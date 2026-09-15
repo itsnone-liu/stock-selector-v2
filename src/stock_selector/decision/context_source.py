@@ -44,7 +44,10 @@ def context_available_at(payload: dict | None) -> str | None:
 
 
 def context_freshness(payload: dict | None, asof: datetime) -> str:
-    """粗新鲜度：最新观测距 as_of 的交易日数（0=当日，1=T-1...）。"""
+    """粗新鲜度：最新观测距 as_of 的工作日数（0=当日，1=T-1...）。
+
+    用工作日近似（周末/节假日修正自然日偏差）；完整交易日历不在本模块
+    的依赖范围内，标注为近似。"""
     latest = context_available_at(payload)
     if not latest:
         return "unknown"
@@ -52,9 +55,13 @@ def context_freshness(payload: dict | None, asof: datetime) -> str:
         d = datetime.fromisoformat(str(latest)[:10].replace("/", "-")).date()
     except ValueError:
         return "unknown"
-    calendar_days = (asof.date() - d).days
-    if calendar_days <= 1:
+    try:
+        import numpy as np
+        business_days = int(np.busday_count(d, asof.date()))
+    except Exception:
+        business_days = (asof.date() - d).days * 5 // 7
+    if business_days <= 1:
         return "current"
-    if calendar_days <= 5:
+    if business_days <= 5:
         return "t_minus_few"
     return "stale"

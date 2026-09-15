@@ -64,9 +64,14 @@ class CapitalContext:
     channels: dict[str, CapitalChannel] = field(default_factory=dict)
     method_version: str | None = None
     limitations: list[str] = field(default_factory=list)
+    coverage_reported: str | None = None  # 上游按预期通道总数给出的覆盖（缺失计入分母）
 
     @property
     def coverage(self) -> str:
+        # 优先用上游报告（分母=预期通道数，含规划位）；无上游字段时退回
+        # 已知通道数口径（兼容旧payload，注意该口径会高估覆盖率）。
+        if self.coverage_reported:
+            return self.coverage_reported
         known = sum(1 for ch in self.channels.values() if ch.status != "unknown")
         return f"{known}/{len(self.channels)}" if self.channels else "0/0"
 
@@ -86,6 +91,9 @@ def parse_capital_context(payload: dict | None) -> CapitalContext:
     result.sector_id = payload.get("sector_id")
     result.as_of = payload.get("as_of")
     result.method_version = payload.get("method_version")
+    cov = payload.get("coverage")
+    if isinstance(cov, str) and "/" in cov:
+        result.coverage_reported = cov
     ctx = payload.get("context", "unknown")
     result.context = ctx if ctx in VALID_CONTEXTS else "unknown"
     channels = payload.get("channels") or {}
