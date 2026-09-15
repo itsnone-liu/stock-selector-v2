@@ -200,8 +200,13 @@ def compose_advice(
         monthly_ok = bool((monthly or {}).get("passed"))
         trend_ok = bool((weekly_trend or {}).get("any"))
         any_label = any(labels.labels.values())
+        # 周趋势策略开关（滚动验证未裁决硬门槛价值，须可实验）：
+        # hard_gate=现行(趋势必须过)；feature_only=不过滤，趋势仅记录进evidence；
+        # off=完全不使用。
+        trend_policy = str(cfg.get("weekly_trend_policy", "hard_gate"))
+        trend_gate = trend_ok if trend_policy == "hard_gate" else True
         entry_ready = (
-            monthly_ok and trend_ok and any_label
+            monthly_ok and trend_gate and any_label
             and momentum.state == ACTIVE_UP
             and momentum.evaluation_status == EVALUATED
         )
@@ -230,6 +235,12 @@ def compose_advice(
             advice.rationale.append("疑似资金撤退（放量阴线）：禁止入场")
         else:
             advice.rationale.append("入场条件未齐或动能不足")
+
+        if trend_policy in ("feature_only", "off") and trend_ok and advice.action == WATCH \
+                and monthly_ok and any_label and momentum.state == ACTIVE_UP:
+            advice.rationale.append(
+                "policy=feature_only: 周趋势不设门槛（本票趋势通过，仅记录）" if trend_policy == "feature_only"
+                else "policy=off: 周趋势未参与判定")
 
         # 板块资金上下文只做证据标注，不当门槛
         if context.context == "divergent" and advice.action in (BUY, ADD):

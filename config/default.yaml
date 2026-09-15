@@ -90,6 +90,7 @@ output:
   save_diagnostics: true
 
 decision:
+  weekly_trend_policy: hard_gate  # hard_gate | feature_only | off（滚动验证未裁决硬门槛价值，须可实验）
   # 决策层（蓝图 docs/DECISION_SYSTEM_BLUEPRINT.md）。数值默认为工程缺省，
   # 标注 research 的项需回放+样本外验证后才可晋升为生产规则。
   weekly_momentum_mode: revised_weekday   # revised_weekday | unified | legacy_weekday
