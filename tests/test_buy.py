@@ -20,6 +20,17 @@ def test_after_close_uses_previous_bar_as_previous_close(config):
         assert abs(result.metrics["day_change_pct"] - expected) < 0.01
 
 
+def test_after_close_volume_ratio_uses_daily_bars(config):
+    daily = make_daily(end="2026-09-15", drift=0.35)
+    daily.iloc[-1, daily.columns.get_loc("close")] += 0.6
+    daily.iloc[-1, daily.columns.get_loc("volume")] = 700_000.0
+    daily.iloc[-2, daily.columns.get_loc("volume")] = 1_400_000.0
+    result = daily_buy(daily, datetime(2026, 9, 15, 15, 10), config)
+    assert result.reason == "shrinking_volume_acceleration"
+    assert result.metrics["volume_method"] == "daily_bar_ratio"
+    assert abs(result.metrics["volume_ratio"] - 0.5) < 0.001
+
+
 def test_shrinking_volume_requires_comparable_volume(config):
     daily = make_daily(end="2026-09-14", drift=0.01)
     previous_close = float(daily.iloc[-1].close)

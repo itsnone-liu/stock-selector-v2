@@ -14,6 +14,8 @@ from stock_selector.freshness import check_daily_freshness, check_quote_freshnes
 from stock_selector.models import Decision, DiagnosticCounter, Quote, RuleResult
 from stock_selector.output import write_csv, write_json
 from stock_selector.snapshots import VolumeSnapshotStore
+from stock_selector.bottom_pool import BottomPoolStore
+from stock_selector.strategies.bottom import bottom_volume_signal
 from stock_selector.strategies.buy import daily_buy
 from stock_selector.strategies.risk import check_risk_filters
 from stock_selector.strategies.surge import weekly_surge
@@ -54,6 +56,7 @@ class SelectorPipeline:
         self.output_dir.mkdir(parents=True, exist_ok=True)
         self.state_dir.mkdir(parents=True, exist_ok=True)
         self.volume_snapshots = VolumeSnapshotStore(self.state_dir / "intraday_volume_snapshots.csv")
+        self.bottom_pool = BottomPoolStore(self.state_dir / "bottom_volume_events.csv")
         self._daily_cache: dict[str, pd.DataFrame | None] = {}
 
     def _daily(self, code: str) -> pd.DataFrame | None:
@@ -136,6 +139,102 @@ class SelectorPipeline:
             references = {}
         return self._run_signal_pipeline(pool, at, quotes, errors, realtime=realtime, skip_surge=True, same_time_volumes=references)
 
+    def run_bottom_scan(self, asof: datetime | None = None) -> dict[str, object]:
+        """盘后扫描全市场底部三倍量事件，并刷新池内既有事件状态。"""
+        at = asof or datetime.now()
+        expiry = int(self.config.get("bottom_volume", {}).get("expiry_trading_days", 60))
+        refresh_counts = self.bottom_pool.refresh(self._daily, at, expiry)
+        counter = DiagnosticCounter()
+        new_events: list[dict] = []
+        for row in self.universe().to_dict("records"):
+            code = str(row["代码"]).zfill(6)
+            name = self._name(code, row.get("名称", ""))
+            daily = self._daily(code)
+            if daily is None:
+                counter.add(RuleResult(Decision.SKIP, "bottom_volume", "missing_daily_data"))
+                continue
+            freshness = check_daily_freshness(daily, at, self.config, realtime=False)
+            if not freshness.passed:
+                counter.add(RuleResult(Decision.SKIP, "bottom_volume", freshness.reason))
+                continue
+            risk = check_risk_filters(code, name, daily, self.config)
+            if not risk.passed:
+                continue
+            result = bottom_volume_signal(daily, self.config)
+            counter.add(result)
+            if not result.passed:
+                continue
+            new_events.append(
+                {
+                    "代码": code,
+                    "名称": name,
+                    "事件日": str(pd.Timestamp(daily.index[-1]).date()),
+                    "事件日最低": round(float(daily["low"].iloc[-1]), 3),
+                    "量倍数": result.metrics.get("volume_multiple"),
+                    "当日涨幅": result.metrics.get("day_change_pct"),
+                    "回撤深度": result.metrics.get("drawdown_pct"),
+                    "平台位置": result.metrics.get("platform_pct"),
+                    "状态": "active",
+                    "失效日": "",
+                    "转化日": "",
+                    "更新时间": at.isoformat(),
+                }
+            )
+        self.bottom_pool.append(new_events)
+        stamp = at.strftime("%Y%m%d")
+        paths: dict[str, object] = {
+            "events_state": self.bottom_pool.path,
+            "active_pool": write_csv(self.bottom_pool.active(), self.output_dir / "bottom_pool_active.csv"),
+            "new_events": write_csv(pd.DataFrame(new_events), self.output_dir / f"bottom_new_events_{stamp}.csv"),
+            "diagnostics": write_json(
+                {**vars(counter), "refresh": refresh_counts, "asof": at.isoformat()},
+                self.output_dir / f"bottom_scan_diagnostics_{stamp}.json",
+            ),
+        }
+        return paths
+
+    def run_bottom_channel(self, asof: datetime | None = None, realtime: bool = False) -> dict[str, Path]:
+        """底部池小金叉通道：跳过月线多头，要求周线趋势(小金叉)+周线形态+日线买点。"""
+        at = asof or datetime.now()
+        expiry = int(self.config.get("bottom_volume", {}).get("expiry_trading_days", 60))
+        self.bottom_pool.refresh(self._daily, at, expiry)
+        active = self.bottom_pool.active()
+        if active.empty:
+            suffix = "bottom_realtime" if realtime else "bottom_close"
+            diagnostics = {"pool_size": 0, "asof": at.isoformat(), "note": "bottom pool empty"}
+            return {"diagnostics": write_json(diagnostics, self.output_dir / f"diagnostics_{suffix}.json")}
+        quotes: dict[str, Quote] = {}
+        errors: dict[str, str] = {}
+        references: dict[str, float] = {}
+        if realtime:
+            provider = TencentQuoteProvider(
+                int(self.config["realtime"].get("timeout_seconds", 15)),
+                int(self.config["realtime"].get("batch_size", 50)),
+            )
+            quotes, errors = provider.fetch(active["代码"].tolist(), at)
+            references = self.volume_snapshots.references(active["代码"].tolist(), at)
+            self.volume_snapshots.save(quotes, at)
+        suffix = "bottom_realtime" if realtime else "bottom_close"
+        paths = self._run_signal_pipeline(
+            active,
+            at,
+            quotes,
+            errors,
+            realtime=realtime,
+            same_time_volumes=references,
+            require_weekly_trend=True,
+            suffix=suffix,
+        )
+        buy_path = paths.get("buy")
+        if buy_path and Path(buy_path).exists() and Path(buy_path).stat().st_size > 0:
+            try:
+                frame = pd.read_csv(buy_path, dtype={"代码": str})
+            except pd.errors.EmptyDataError:
+                frame = pd.DataFrame()
+            if not frame.empty:
+                self.bottom_pool.mark_converted(frame["代码"].tolist(), at.date())
+        return paths
+
     def _run_signal_pipeline(
         self,
         pool: pd.DataFrame,
@@ -145,6 +244,8 @@ class SelectorPipeline:
         realtime: bool,
         skip_surge: bool = False,
         same_time_volumes: dict[str, float] | None = None,
+        require_weekly_trend: bool = False,
+        suffix: str | None = None,
     ) -> dict[str, Path]:
         same_time_volumes = same_time_volumes or {}
         surge_pass: list[dict] = []
@@ -152,6 +253,8 @@ class SelectorPipeline:
         green_pass: list[dict] = []
         rejections: list[dict] = []
         counters = {"freshness": DiagnosticCounter(), "risk": DiagnosticCounter(), "surge": DiagnosticCounter(), "buy": DiagnosticCounter()}
+        if require_weekly_trend:
+            counters["trend"] = DiagnosticCounter()
         for row in pool.to_dict("records"):
             code = str(row["代码"]).zfill(6)
             name = self._name(code, row.get("名称", ""))
@@ -183,6 +286,12 @@ class SelectorPipeline:
                 if not quote_freshness.passed:
                     rejections.append({"代码": code, "名称": name, "阶段": "freshness", "原因": quote_freshness.reason, **quote_freshness.metrics})
                     continue
+            if require_weekly_trend:
+                trend = weekly_trend(daily, self.config)
+                counters["trend"].add(trend)
+                if not trend.passed:
+                    rejections.append({"代码": code, "名称": name, "阶段": "trend", "原因": trend.reason, **trend.metrics})
+                    continue
             if skip_surge:
                 surge = RuleResult(Decision.PASS, "surge", "board_mode_skips_surge", 0.0)
             else:
@@ -202,9 +311,11 @@ class SelectorPipeline:
                 rejections.append({"代码": code, "名称": name, "阶段": "buy", "原因": buy.reason, **buy.metrics})
                 continue
             buy_pass.append({"代码": code, "名称": name, "买点类型": buy.reason, "综合评分": buy.score, "信号": "、".join(buy.signals), **buy.metrics})
-        suffix = "realtime" if realtime else "close"
-        if skip_surge:
-            suffix = "board_realtime" if realtime else "board_close"
+        if suffix is None:
+            if skip_surge:
+                suffix = "board_realtime" if realtime else "board_close"
+            else:
+                suffix = "realtime" if realtime else "close"
         diagnostics = {key: vars(value) for key, value in counters.items()}
         diagnostics["quote_errors"] = quote_errors
         diagnostics["same_time_volume_references"] = len(same_time_volumes)

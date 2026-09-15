@@ -4,6 +4,7 @@ __pycache__/
 .venv/
 output/*.csv
 output/*.json
+output/runs/
 state/*
 !output/.gitkeep
 !state/.gitkeep

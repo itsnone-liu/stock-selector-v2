@@ -46,6 +46,11 @@ def build_parser() -> argparse.ArgumentParser:
     board.add_argument("--realtime", action="store_true")
     board.add_argument("--asof", help="ISO时间；默认当前时间")
 
+    bottom = sub.add_parser("bottom-volume", help="底部三倍量事件池：默认盘后扫描更新；--select运行小金叉通道")
+    bottom.add_argument("--select", action="store_true", help="对活跃池运行小金叉通道（周线趋势+形态+日线买点）")
+    bottom.add_argument("--realtime", action="store_true", help="通道使用实时行情（仅--select时有效）")
+    bottom.add_argument("--asof", help="ISO时间；默认当前时间")
+
     backtest = sub.add_parser("backtest", help="回测日线买点的后续收益")
     backtest.add_argument("--pool", required=True)
     backtest.add_argument("--start", required=True)
@@ -80,6 +85,12 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "board":
         pool = load_pool(args.pool, args.board)
         _print_paths(pipeline.run_board(pool, _parse_asof(args.asof), args.realtime))
+        return 0
+    if args.command == "bottom-volume":
+        if args.select:
+            _print_paths(pipeline.run_bottom_channel(_parse_asof(args.asof), args.realtime))
+        else:
+            _print_paths(pipeline.run_bottom_scan(_parse_asof(args.asof)))
         return 0
     if args.command == "backtest":
         from stock_selector.backtest import run_backtest

@@ -23,7 +23,16 @@ def _volume_comparison(
     config: dict,
     same_time_reference_volume: float | None,
 ) -> tuple[float | None, str]:
-    if quote is None or quote.volume is None:
+    if quote is None:
+        # 盘后模式：最后一根日线即当日，用日线量比（与旧系统盘后语义一致）。
+        if len(daily) < 2:
+            return None, "volume_unavailable"
+        today_volume = float(daily.iloc[-1]["volume"])
+        yesterday_volume = float(daily.iloc[-2]["volume"])
+        if today_volume <= 0 or yesterday_volume <= 0:
+            return None, "daily_volume_invalid"
+        return today_volume / yesterday_volume, "daily_bar_ratio"
+    if quote.volume is None:
         return None, "volume_unavailable"
     if same_time_reference_volume is not None and same_time_reference_volume > 0:
         return quote.volume / same_time_reference_volume, "same_time"
@@ -82,9 +91,10 @@ def daily_buy(
     signals: list[str] = []
     near_ma10 = abs(current_price - ma10) / ma10 <= tolerance
     near_ma20 = abs(current_price - ma20) / ma20 <= tolerance
+    scores = cfg.get("base_scores", {})
     if float(cfg.get("pullback_change_min_pct", -3.0)) <= day_change <= float(cfg.get("pullback_change_max_pct", 2.0)) and (near_ma10 or near_ma20):
         buy_type = "pullback_holds"
-        base_score = 30.0
+        base_score = float(scores.get("pullback_holds", 30.0))
         signals.append("near_ma10" if near_ma10 else "near_ma20")
 
     yesterday_change = safe_pct_change(yesterday["close"], previous["close"])
@@ -92,11 +102,11 @@ def daily_buy(
     volume_ratio, volume_method = _volume_comparison(daily, quote, asof, config, same_time_reference_volume)
     if buy_type is None and day_change > 0 and day_change > yesterday_change and day_change < maximum and volume_ratio is not None and volume_ratio < 1:
         buy_type = "shrinking_volume_acceleration"
-        base_score = 25.0
+        base_score = float(scores.get("shrinking_volume_acceleration", 25.0))
         signals.append("volume_contraction")
     if buy_type is None and yesterday["close"] > yesterday["open"] and day_change > 0 and day_change >= yesterday_change and day_change < maximum:
         buy_type = "two_day_acceleration"
-        base_score = 25.0
+        base_score = float(scores.get("two_day_acceleration", 25.0))
         signals.append("two_day_up")
     if buy_type is None:
         reason = "daily_buy_pattern_not_passed"

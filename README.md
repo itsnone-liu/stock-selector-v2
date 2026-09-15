@@ -107,7 +107,24 @@ $PY -m stock_selector.cli board \
   --realtime
 ```
 
-### 6. 回测
+### 6. 底部三倍量观察池
+
+每日盘后扫描并刷新池状态：
+
+```bash
+$PY -m stock_selector.cli bottom-volume
+```
+
+对活跃池运行“小金叉专用通道”（跳过月线多头，保留周线趋势/小金叉→周线形态→日线买点）：
+
+```bash
+$PY -m stock_selector.cli bottom-volume --select
+$PY -m stock_selector.cli bottom-volume --select --realtime
+```
+
+状态文件为`state/bottom_volume_events.csv`；收盘破事件日低点自动失效，60交易日未转化自动过期。
+
+### 7. 回测
 
 ```bash
 $PY -m stock_selector.cli backtest \
@@ -150,7 +167,7 @@ $PY -m stock_selector.cli backtest \
 
 每次运行会在 `output/runs/YYYYMMDD_HHMMSS/<模式>/` 保存不可覆盖的完整归档。盘中累计成交量快照持久化到 `state/intraday_volume_snapshots.csv`；下一交易日运行时会自动匹配上一交易日相近分钟，匹配不到才使用明确标记的全天投影回退。
 
-完整规则定义见 `SPEC.md`。
+完整规则定义见 `SPEC.md`；体系消融、大盘regime、评分分位、退出规则和底部通道的历史数据见 `EVALUATION.md`。
 
 ## 配置
 
