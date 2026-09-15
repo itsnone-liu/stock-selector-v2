@@ -56,6 +56,19 @@ def build_parser() -> argparse.ArgumentParser:
     backtest.add_argument("--start", required=True)
     backtest.add_argument("--end", required=True)
     backtest.add_argument("--horizons", default="1,3,5,10")
+
+    decide = sub.add_parser("decide", help="单票决策建议（决策栈：月线+周趋势+周动能+多标签+建议）")
+    decide.add_argument("--code", required=True)
+    decide.add_argument("--asof", help="ISO时间；默认当前时间（盘中=L1证据，盘后=L2）")
+    decide.add_argument("--capital-context", help="capital-observer 上下文JSON路径（可选）")
+
+    replay = sub.add_parser("replay", help="PIT历史回放：按日重跑决策栈，防穿越")
+    replay.add_argument("--codes", required=True, help="逗号分隔代码列表")
+    replay.add_argument("--start", required=True)
+    replay.add_argument("--end", required=True)
+    replay.add_argument("--mode", default=None, help="weekly_momentum模式覆盖")
+    replay.add_argument("--checkpoints", default="15:05", help="逗号分隔的每日检查点HH:MM，默认15:05（EOD）")
+    replay.add_argument("--output", default="output/replay_advices.jsonl")
     return parser
 
 
@@ -96,6 +109,61 @@ def main(argv: list[str] | None = None) -> int:
         from stock_selector.backtest import run_backtest
         horizons = tuple(int(item) for item in args.horizons.split(",") if item.strip())
         _print_paths(run_backtest(pipeline, load_pool(args.pool), args.start, args.end, horizons))
+        return 0
+    if args.command == "decide":
+        import json as _json
+
+        from stock_selector.decision.replay import DecisionService
+        from stock_selector.data.tdx_index import index_daily
+
+        asof = _parse_asof(args.asof) or datetime.now()
+        index_cfg = config.get("decision", {}).get("index", {})
+        service = DecisionService(
+            config=config,
+            daily_loader=pipeline._daily,
+            index_loader=lambda: index_daily(
+                config["paths"]["tdx_dir"], index_cfg.get("market", "sh"), str(index_cfg.get("code", "000001"))
+            ),
+        )
+        context_payload = None
+        if args.capital_context:
+            context_payload = _json.loads(Path(args.capital_context).read_text(encoding="utf-8"))
+        advice = service.evaluate(str(args.code).zfill(6), asof, context_payload=context_payload)
+        print(_json.dumps(advice, ensure_ascii=False, indent=2))
+        return 0
+    if args.command == "replay":
+        from stock_selector.decision.replay import PITReplay, DecisionService
+        from stock_selector.data.tdx_index import index_daily
+
+        index_cfg = config.get("decision", {}).get("index", {})
+        cfg = dict(config)
+        if args.mode:
+            cfg["decision"] = {**cfg.get("decision", {}), "weekly_momentum_mode": args.mode}
+        service = DecisionService(
+            config=cfg,
+            daily_loader=pipeline._daily,
+            index_loader=lambda: index_daily(
+                config["paths"]["tdx_dir"], index_cfg.get("market", "sh"), str(index_cfg.get("code", "000001"))
+            ),
+        )
+        codes = [c.strip().zfill(6) for c in args.codes.split(",") if c.strip()]
+        checkpoints = [t.strip() for t in args.checkpoints.split(",") if t.strip()]
+        asof_list: list[datetime] = []
+        start = pd.Timestamp(args.start).date()
+        end = pd.Timestamp(args.end).date()
+        day = start
+        while day <= end:
+            if day.weekday() < 5:
+                for hhmm in checkpoints:
+                    hh, mm = int(hhmm[:2]), int(hhmm[3:5])
+                    asof_list.append(datetime(day.year, day.month, day.day, hh, mm))
+            day = pd.Timestamp(day) + pd.Timedelta(days=1)
+            day = day.date()
+        target = Path(args.output)
+        if not target.is_absolute():
+            target = Path(config["_project_root"]) / target
+        run = PITReplay(service).run(codes, asof_list, output_path=str(target))
+        print(f"replay advices: {len(run.advices)} -> {run.path}")
         return 0
     return 2
 

@@ -88,3 +88,24 @@ output:
   atomic_write: true
   save_rejections: true
   save_diagnostics: true
+
+decision:
+  # 决策层（蓝图 docs/DECISION_SYSTEM_BLUEPRINT.md）。数值默认为工程缺省，
+  # 标注 research 的项需回放+样本外验证后才可晋升为生产规则。
+  weekly_momentum_mode: revised_weekday   # revised_weekday | unified | legacy_weekday
+  index:
+    market: sh
+    code: "000001"        # 上证指数：regime 用
+  portfolio:
+    single_max_pct: 20    # 单票上限（占组合净值）
+    industry_max_pct: 40  # 行业暴露上限
+    daily_add_max_pct: 30 # 单日新增敞口上限
+  exits:
+    time_stop_days: 5
+    trail_pct: 8.0        # E3 收盘峰值回撤比例
+    max_hold_days: 20
+  checkpoints:
+    - "10:00"
+    - "14:00"
+    - "14:45"             # 主决策
+    - "15:05"             # 盘后复核
