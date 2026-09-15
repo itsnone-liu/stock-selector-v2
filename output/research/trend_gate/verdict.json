@@ -1,0 +1,13 @@
+{
+  "n_total": 19424,
+  "n_hard_gate_A": 8815,
+  "n_feature_only_B": 19424,
+  "B_minus_A_n": 10609,
+  "fwd10_pos_ratio": {
+    "ma_bull": 0.125,
+    "macd_cross": 0.375,
+    "macd_stabilizing": 0.625,
+    "none": 0.25
+  },
+  "arms": "A=hard_gate(trend≠none) ⊂ B=feature_only(全部候选)；C(off)收益统计与B等价"
+}
