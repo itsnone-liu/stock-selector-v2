@@ -13,6 +13,7 @@ from stock_selector.data.tdx import TdxStore, load_name_map
 from stock_selector.freshness import check_daily_freshness, check_quote_freshness
 from stock_selector.models import Decision, DiagnosticCounter, Quote, RuleResult
 from stock_selector.output import write_csv, write_json
+from stock_selector.snapshots import VolumeSnapshotStore
 from stock_selector.strategies.buy import daily_buy
 from stock_selector.strategies.risk import check_risk_filters
 from stock_selector.strategies.surge import weekly_surge
@@ -49,7 +50,17 @@ class SelectorPipeline:
         self.store = TdxStore(config["paths"]["tdx_dir"])
         self.names = load_name_map(config["paths"].get("names_file"))
         self.output_dir = resolve_project_path(config, config["paths"]["output_dir"])
+        self.state_dir = resolve_project_path(config, config["paths"]["state_dir"])
         self.output_dir.mkdir(parents=True, exist_ok=True)
+        self.state_dir.mkdir(parents=True, exist_ok=True)
+        self.volume_snapshots = VolumeSnapshotStore(self.state_dir / "intraday_volume_snapshots.csv")
+        self._daily_cache: dict[str, pd.DataFrame | None] = {}
+
+    def _daily(self, code: str) -> pd.DataFrame | None:
+        code = str(code).zfill(6)
+        if code not in self._daily_cache:
+            self._daily_cache[code] = self.store.daily(code)
+        return self._daily_cache[code]
 
     def _name(self, code: str, supplied: str = "") -> str:
         supplied = "" if pd.isna(supplied) else str(supplied).strip()
@@ -66,7 +77,7 @@ class SelectorPipeline:
         for row in pool.to_dict("records"):
             code = str(row["代码"]).zfill(6)
             name = self._name(code, row.get("名称", ""))
-            daily = self.store.daily(code)
+            daily = self._daily(code)
             if daily is None:
                 result = RuleResult(Decision.SKIP, stage, "missing_daily_data")
             else:
@@ -101,7 +112,9 @@ class SelectorPipeline:
             100.0 if self.config["realtime"].get("tencent_volume_unit", "hand") == "hand" else 1.0,
         )
         quotes, quote_errors = provider.fetch(pool["代码"].tolist(), at)
-        return self._run_signal_pipeline(pool, at, quotes, quote_errors, realtime=True)
+        references = self.volume_snapshots.references(pool["代码"].tolist(), at)
+        self.volume_snapshots.save(quotes, at)
+        return self._run_signal_pipeline(pool, at, quotes, quote_errors, realtime=True, same_time_volumes=references)
 
     def run_after_close(self, pool: pd.DataFrame, asof: datetime | None = None) -> dict[str, Path]:
         at = asof or datetime.now()
@@ -117,7 +130,11 @@ class SelectorPipeline:
                 int(self.config["realtime"].get("batch_size", 50)),
             )
             quotes, errors = provider.fetch(pool["代码"].tolist(), at)
-        return self._run_signal_pipeline(pool, at, quotes, errors, realtime=realtime, skip_surge=True)
+            references = self.volume_snapshots.references(pool["代码"].tolist(), at)
+            self.volume_snapshots.save(quotes, at)
+        else:
+            references = {}
+        return self._run_signal_pipeline(pool, at, quotes, errors, realtime=realtime, skip_surge=True, same_time_volumes=references)
 
     def _run_signal_pipeline(
         self,
@@ -127,7 +144,9 @@ class SelectorPipeline:
         quote_errors: dict[str, str],
         realtime: bool,
         skip_surge: bool = False,
+        same_time_volumes: dict[str, float] | None = None,
     ) -> dict[str, Path]:
+        same_time_volumes = same_time_volumes or {}
         surge_pass: list[dict] = []
         buy_pass: list[dict] = []
         green_pass: list[dict] = []
@@ -136,7 +155,7 @@ class SelectorPipeline:
         for row in pool.to_dict("records"):
             code = str(row["代码"]).zfill(6)
             name = self._name(code, row.get("名称", ""))
-            daily = self.store.daily(code)
+            daily = self._daily(code)
             if daily is None:
                 result = RuleResult(Decision.SKIP, "risk", "missing_daily_data")
                 counters["risk"].add(result)
@@ -177,7 +196,7 @@ class SelectorPipeline:
             if quote and quote.price < quote.previous_close:
                 green_pass.append({**surge_row, "实时价": quote.price, "昨收": quote.previous_close, "日涨幅%": round((quote.price / quote.previous_close - 1) * 100, 3)})
             upstream = surge.score
-            buy = daily_buy(daily, at, self.config, upstream, quote)
+            buy = daily_buy(daily, at, self.config, upstream, quote, same_time_volumes.get(code))
             counters["buy"].add(buy)
             if not buy.passed:
                 rejections.append({"代码": code, "名称": name, "阶段": "buy", "原因": buy.reason, **buy.metrics})
@@ -188,11 +207,22 @@ class SelectorPipeline:
             suffix = "board_realtime" if realtime else "board_close"
         diagnostics = {key: vars(value) for key, value in counters.items()}
         diagnostics["quote_errors"] = quote_errors
+        diagnostics["same_time_volume_references"] = len(same_time_volumes)
         diagnostics["asof"] = at.isoformat()
-        return {
-            "surge": write_csv(pd.DataFrame(surge_pass), self.output_dir / f"surge_{suffix}.csv"),
-            "buy": write_csv(pd.DataFrame(buy_pass).sort_values("综合评分", ascending=False) if buy_pass else pd.DataFrame(), self.output_dir / f"buy_{suffix}.csv"),
-            "green": write_csv(pd.DataFrame(green_pass), self.output_dir / f"surge_green_{suffix}.csv"),
-            "rejections": write_csv(pd.DataFrame(rejections), self.output_dir / f"rejections_{suffix}.csv"),
-            "diagnostics": write_json(diagnostics, self.output_dir / f"diagnostics_{suffix}.json"),
+        frames = {
+            "surge": pd.DataFrame(surge_pass),
+            "buy": pd.DataFrame(buy_pass).sort_values("综合评分", ascending=False) if buy_pass else pd.DataFrame(),
+            "green": pd.DataFrame(green_pass),
+            "rejections": pd.DataFrame(rejections),
         }
+        paths = {
+            key: write_csv(frame, self.output_dir / f"{('surge_green' if key == 'green' else key)}_{suffix}.csv")
+            for key, frame in frames.items()
+        }
+        paths["diagnostics"] = write_json(diagnostics, self.output_dir / f"diagnostics_{suffix}.json")
+        run_dir = self.output_dir / "runs" / at.strftime("%Y%m%d_%H%M%S") / suffix
+        for key, frame in frames.items():
+            write_csv(frame, run_dir / f"{key}.csv")
+        write_json(diagnostics, run_dir / "diagnostics.json")
+        paths["run_archive"] = run_dir
+        return paths

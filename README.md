@@ -146,6 +146,12 @@ $PY -m stock_selector.cli backtest \
 
 系统内部统一使用“股”。腾讯接口字段为“手”，在 `TencentQuoteProvider` 边界乘100后才进入规则层。
 
+## 运行归档与同刻量快照
+
+每次运行会在 `output/runs/YYYYMMDD_HHMMSS/<模式>/` 保存不可覆盖的完整归档。盘中累计成交量快照持久化到 `state/intraday_volume_snapshots.csv`；下一交易日运行时会自动匹配上一交易日相近分钟，匹配不到才使用明确标记的全天投影回退。
+
+完整规则定义见 `SPEC.md`。
+
 ## 配置
 
 默认配置：`config/default.yaml`。可传入覆盖配置：

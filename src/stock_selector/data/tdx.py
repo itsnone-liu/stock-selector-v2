@@ -28,7 +28,7 @@ def valid_security_code(market: str, code: str, include_b_share: bool = False) -
         prefixes = ("000", "001", "002", "003", "004", "300", "301")
         return code.startswith(prefixes) and not code.startswith("39")
     if market == "bj":
-        return code.startswith(("43", "83", "87", "88", "4", "8"))
+        return code.startswith(("43", "83", "87", "88", "920", "4", "8"))
     return False
 
 

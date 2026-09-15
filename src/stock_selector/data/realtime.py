@@ -13,11 +13,23 @@ LOG = logging.getLogger(__name__)
 
 def _symbol(code: str) -> str:
     code = str(code).zfill(6)
-    if code.startswith(("4", "8")):
+    if code.startswith(("4", "8", "920")):
         return "bj" + code
-    if code.startswith(("5", "6", "9")):
+    if code.startswith(("5", "6", "900")):
         return "sh" + code
     return "sz" + code
+
+
+def _quote_timestamp(fields: list[str]) -> datetime | None:
+    if len(fields) <= 30:
+        return None
+    raw = fields[30].strip()
+    for pattern in ("%Y%m%d%H%M%S", "%Y%m%d%H%M"):
+        try:
+            return datetime.strptime(raw, pattern)
+        except ValueError:
+            continue
+    return None
 
 
 class TencentQuoteProvider:
@@ -67,13 +79,16 @@ class TencentQuoteProvider:
                 if price <= 0 or previous_close <= 0:
                     errors[code] = "invalid_zero_quote"
                     continue
+                if open_price <= 0 or volume <= 0:
+                    errors[code] = "halted_or_preopen_quote"
+                    continue
                 quotes[code] = Quote(
                     code=code,
                     price=price,
-                    open=open_price if open_price > 0 else price,
+                    open=open_price,
                     previous_close=previous_close,
-                    volume=volume if volume >= 0 else None,
-                    timestamp=at or datetime.now(),
+                    volume=volume,
+                    timestamp=_quote_timestamp(fields),
                 )
                 seen.add(code)
             for code in batch:
