@@ -1,0 +1,68 @@
+paths:
+  tdx_dir: /root/tdx_data
+  output_dir: output
+  state_dir: state
+  names_file: /root/.hermes/hermes-agent/stock_names.json
+
+universe:
+  include_sh: true
+  include_sz: true
+  include_bj: true
+  include_b_share: false
+  exclude_st: true
+  exclude_delisting: true
+  min_listing_days: 120
+  min_median_amount_20d: 20000000
+
+monthly:
+  min_bars: 20
+  require_ma_bull: true
+  max_last_month_drop_pct: 8.0
+
+weekly:
+  min_bars: 35
+  allow_ma_bull: true
+  allow_macd_cross: true
+  allow_macd_stabilizing: true
+  macd_gap_pct: 0.8
+
+surge:
+  allow_reversal: true
+  allow_dual_yang: true
+  require_current_week_up_vs_prev_close: true
+  min_projected_volume_ratio: 0.8
+  bearish_turnover_veto_ratio: 1.5
+  bearish_turnover_lookback: 4
+  efficiency_improvement_ratio: 1.0
+  return_projection: none
+
+buy:
+  pullback_change_min_pct: -3.0
+  pullback_change_max_pct: 2.0
+  ma_tolerance_pct: 1.0
+  acceleration_max_change_pct: 3.5
+  realtime_volume_mode: same_time
+  allow_projected_volume_fallback: true
+
+freshness:
+  max_daily_data_business_day_lag: 5
+  max_quote_age_seconds: 180
+  reject_future_daily_bar: true
+
+calendar:
+  # 交易所休市日应按年份维护；用于周内成交量进度，不用于猜测价格。
+  holidays: []
+
+realtime:
+  provider: tencent
+  timeout_seconds: 15
+  batch_size: 50
+  benchmark_minutes_per_day: 240
+  tencent_volume_unit: hand
+  canonical_volume_unit: share
+
+output:
+  encoding: utf-8-sig
+  atomic_write: true
+  save_rejections: true
+  save_diagnostics: true
