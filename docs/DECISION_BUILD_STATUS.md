@@ -21,7 +21,9 @@
 
 ## 待办（P2+）
 
-- 分钟数据源（lc1/lc5 或付费）：profile_v1 校准与盘中L1精度；
+- ~~分钟数据源~~ **搁置（2026-09-16）**：免费源速率不支持即时判断，系统按
+  `docs/MINUTE_DEGRADED_MODE.md` 降级模式运行（uniform 折算 + close-confirm
+  退出 + 盘中仅实时 quote）；读分钟代码已就位，解锁条件见该文档；
 - ~~capital-observer 自动接入 decide~~ ✅ 2026-09-15 落地：默认自动拉
   `http://127.0.0.1:8120/api/v1/context`（`--board BKxxxx` 指定板块；
   `--context-url` 改地址；`--no-context` 或服务不通 → unknown，绝不默认 neutral；
