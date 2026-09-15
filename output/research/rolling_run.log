@@ -1,0 +1,13 @@
+评估窗 10 个: 2021-12-01 .. 2026-09-16
+样本 1500 / 全市场 5585（seed=20260915）
+  edges[mom20] tercile: -0.0605 / 0.0374  (n=296500)
+  edges[mom60] tercile: -0.1120 / 0.0321  (n=292372)
+  edges[vr20] tercile: 0.7226 / 1.0526  (n=296598)
+  edges[malignment] tercile: 0.0000 / 0.6667  (n=298447)
+  pass2: 200/1500 stocks
+  pass2: 400/1500 stocks
+  pass2: 600/1500 stocks
+  pass2: 800/1500 stocks
+  pass2: 1000/1500 stocks
+  pass2: 1200/1500 stocks
+done -> output/research/rolling
