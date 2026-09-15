@@ -13,7 +13,7 @@
   distribution_risk 可否决）、周二双阴缩量=pullback_weakening、周三四
   momentum_velocity（价格只留已实现值）、周五/收盘后完整周判定；
 - unified：现有 weekly_surge 的语义映射（对照组）；
-- legacy_weekday：按讨论记录重建的旧分支逻辑（reconstructed，待旧代码取证）。
+- legacy_weekday：旧分支逻辑（2026-09-16 取证校准为 v1，依据 LEGACY_FORENSICS.md）。
 """
 
 from __future__ import annotations
@@ -108,7 +108,11 @@ def _distribution_risk(bar: dict, baseline_volume: float, veto_ratio: float) -> 
 
 def _classify_current(bar: dict, prev: dict, cfg: dict, week_completion: float,
                       volume_clock: VolumeClock, observed_minutes: int) -> tuple[str, dict]:
-    """对（可能是部分的）本周K分类。价格只用已实现值；量按周完成度折算。"""
+    """对（可能是部分的）本周K分类。价格只用已实现值；量按周完成度折算。
+
+    form_a_volume_exempt=True 时（legacy 口径）：上一周收阴的阳转（形态A）
+    豁免量比门槛——旧代码形态A无量比要求，0.8门槛只属于形态B（双阳加速）。
+    """
     min_volume_ratio = float(cfg.get("min_projected_volume_ratio", 0.8))
     veto_ratio = float(cfg.get("bearish_turnover_veto_ratio", 1.5))
     prev_volume = float(prev.get("volume", 0.0))
@@ -120,6 +124,8 @@ def _classify_current(bar: dict, prev: dict, cfg: dict, week_completion: float,
     realized = safe_pct_change(bar["close"], bar["open"])
     above_prev_close = bar["close"] > float(prev["close"])
     bearish = bar["close"] < bar["open"]
+    prev_bearish = float(prev["close"]) < float(prev["open"])
+    form_a_exempt = bool(cfg.get("form_a_volume_exempt", False)) and prev_bearish
     metrics = {
         "realized_week_return_pct": round(realized, 3),
         "momentum_velocity": round(realized / week_completion, 3) if week_completion > 0 else None,
@@ -127,35 +133,39 @@ def _classify_current(bar: dict, prev: dict, cfg: dict, week_completion: float,
         "projected_volume_ratio": round(volume_ratio, 3),
         "volume_method": "week_completion_prorated" if 0 < week_completion < 1 else "full_week",
         "above_prev_week_close": above_prev_close,
+        "form_a_volume_exempt_applied": form_a_exempt,
     }
     if _distribution_risk(bar, prev_volume, veto_ratio):
         return DISTRIBUTION_RISK, metrics
     if bearish and volume_ratio < min_volume_ratio:
         # 回调仍在继续但卖压衰减：量价代理口径的 pullback_weakening。
         return PULLBACK_WEAKENING, metrics
-    if not bearish and above_prev_close and volume_ratio >= min_volume_ratio:
+    if not bearish and above_prev_close and (form_a_exempt or volume_ratio >= min_volume_ratio):
         return ACTIVE_UP, metrics
     return NO_MOMENTUM, metrics
 
 
 def _classify_completed(week: dict, prev: dict, cfg: dict) -> tuple[str, dict]:
-    """对完整周K分类（周五收盘后/历史周）。"""
+    """对完整周K分类（周五收盘后/历史周）。form_a_volume_exempt 同上。"""
     veto_ratio = float(cfg.get("bearish_turnover_veto_ratio", 1.5))
     min_volume_ratio = float(cfg.get("min_projected_volume_ratio", 0.8))
     volume_ratio = week["volume"] / prev["volume"] if prev.get("volume", 0) > 0 else 0.0
     realized = safe_pct_change(week["close"], week["open"])
     above_prev_close = week["close"] > float(prev["close"])
     bearish = week["close"] < week["open"]
+    prev_bearish = float(prev["close"]) < float(prev["open"])
+    form_a_exempt = bool(cfg.get("form_a_volume_exempt", False)) and prev_bearish
     metrics = {
         "realized_week_return_pct": round(realized, 3),
         "volume_ratio_vs_prev_week": round(volume_ratio, 3),
         "above_prev_week_close": above_prev_close,
+        "form_a_volume_exempt_applied": form_a_exempt,
     }
     if _distribution_risk(week, prev.get("volume", 0.0), veto_ratio):
         return DISTRIBUTION_RISK, metrics
     if bearish and volume_ratio < min_volume_ratio:
         return PULLBACK_WEAKENING, metrics
-    if not bearish and above_prev_close and volume_ratio >= min_volume_ratio:
+    if not bearish and above_prev_close and (form_a_exempt or volume_ratio >= min_volume_ratio):
         return ACTIVE_UP, metrics
     return NO_MOMENTUM, metrics
 
@@ -296,19 +306,23 @@ def unified(daily: pd.DataFrame, asof: datetime, config: dict,
 
 def legacy_weekday(daily: pd.DataFrame, asof: datetime, config: dict,
                    quote: Quote | None = None) -> MomentumResult:
-    """旧星期分支逻辑的重建版（mode=legacy_reconstructed_v0）。
+    """旧星期分支逻辑（mode=legacy_reconstructed_v1，2026-09-16 取证校准）。
 
-    依据讨论记录重建，**未经旧代码逐行取证**，只作对照实验种子：
-    - 周一：本周+上周不满足 → 上周+前周；
-    - 周二：双阴缩量；
-    - 周三四：当日涨幅×5/已过天数（旧投影口径，仅记录）；
-    - 周五：完整周。
-    取证后若与旧实现不符，以旧代码为准修订本函数。
+    取证依据 docs/research/LEGACY_FORENSICS.md（旧代码文件:行号可复查）：
+    - 周一：**完全不看本周**——只看最近两个完整周跑形态A/B
+      （旧 week_surge.py:166-226；realtime 版另有"上周开盘→实时价"合并语义，
+       属盘中变体，EOD 路径不采用）；
+    - 周二：**必须先过周一逻辑**（完整周形态门槛），再看本周三情形：
+      周一涨→保留；一阴一阳→保留；双阴→周二须缩量，否则剔除；
+    - 周三四：本周部分周对比上一完整周，量按已过交易日数折算（÷完成度）；
+    - 周五：完整周；
+    - 形态A（阴转阳）豁免量比门槛（旧代码无量比要求）。
     """
-    cfg = config.get("surge", {})
+    cfg = dict(config.get("surge", {}))
+    cfg["form_a_volume_exempt"] = True  # legacy 口径（取证 §1.4 必修点③）
     clock = session_clock(asof, daily)
     base = dict(
-        mode="legacy_reconstructed_v0",
+        mode="legacy_reconstructed_v1",
         calendar_weekday=clock.calendar_weekday,
         trading_session_in_week=clock.trading_session_in_week,
     )
@@ -317,52 +331,68 @@ def legacy_weekday(daily: pd.DataFrame, asof: datetime, config: dict,
     if len(completed) < 2:
         return MomentumResult(NO_MOMENTUM, NONE_ORIGIN, INSUFFICIENT, **base,
                               metrics={"completed_weeks": len(completed)},
-                              notes=["legacy重建需要至少2个完整周"])
+                              notes=["legacy需要至少2个完整周"])
     prev_bar = _week_bar(completed.iloc[[-1]])
     prev2_bar = _week_bar(completed.iloc[[-2]])
     session_idx = clock.trading_session_in_week or clock.calendar_weekday
     week_completion = clock.week_completion_with_today
 
     if session_idx == 1:
-        # 周一：先看 本周(临时)+上周；不满足则 上周+前周。
-        bar = _partial_week_bar(daily, asof, quote)
-        state, m = _classify_current(bar, prev_bar, cfg, max(week_completion, 0.2), VolumeClock(), clock.observed_minutes) if bar else (NO_MOMENTUM, {})
-        if state != ACTIVE_UP:
-            prev_state, prev_metrics = _classify_completed(prev_bar, prev2_bar, cfg)
+        # 周一（取证§1：纯看最近两个完整周，本周临时K不参与）
+        prev_state, prev_metrics = _classify_completed(prev_bar, prev2_bar, cfg)
+        return MomentumResult(prev_state, PREVIOUS_COMPLETED_WEEK, EVALUATED, **base,
+                              source_week=iso_week_end(pd.Timestamp(completed.index[-1]).date()),
+                              valid_until=str(asof.date()), metrics=prev_metrics,
+                              notes=["legacy周一：最近两个完整周形态A/B（取证校准）"])
+
+    if session_idx == 2:
+        # 周二（取证§1：先过周一门槛，再本周三情形）
+        prev_state, prev_metrics = _classify_completed(prev_bar, prev2_bar, cfg)
+        if prev_state != ACTIVE_UP:
+            # 未过周一完整周门槛：周二不看本周（旧代码直接出局）
             return MomentumResult(prev_state, PREVIOUS_COMPLETED_WEEK, EVALUATED, **base,
                                   source_week=iso_week_end(pd.Timestamp(completed.index[-1]).date()),
                                   valid_until=str(asof.date()), metrics=prev_metrics,
-                                  notes=["legacy周一回退：上周+前周", "重建版待取证校准"])
-        return MomentumResult(state, CURRENT_WEEK, EVALUATED, **base,
-                              source_week=iso_week_end(asof.date()), metrics=m,
-                              notes=["legacy重建版待取证校准"])
-
-    if session_idx == 2:
+                                  notes=["legacy周二：未过周一完整周门槛（取证校准）"])
         rows = current_week_rows(daily, asof)
         day1 = rows[[pd.Timestamp(x).date() < asof.date() for x in rows.index]]
         day1_bar = _week_bar(day1) if not day1.empty else None
+        today_rows = rows[[pd.Timestamp(x).date() == asof.date() for x in rows.index]]
+        today_vol = float(today_rows["volume"].iloc[-1]) if not today_rows.empty else None
         bar = _partial_week_bar(daily, asof, quote)
-        if day1_bar is not None and bar is not None:
-            prev_state, _ = _classify_completed(prev_bar, prev2_bar, cfg)
-            if (prev_state == ACTIVE_UP and day1_bar["close"] < day1_bar["open"]
-                    and bar["close"] < bar["open"] and bar["volume"] < day1_bar["volume"]):
-                return MomentumResult(PULLBACK_WEAKENING, CURRENT_WEEK, EVALUATED, **base,
-                                      source_week=iso_week_end(asof.date()),
-                                      metrics={"day1_volume": day1_bar["volume"], "day2_volume": bar["volume"]},
-                                      notes=["legacy周二双阴缩量", "重建版待取证校准"])
+        if day1_bar is not None and today_vol is not None:
+            day1_bull = day1_bar["close"] > day1_bar["open"]
+            today_bull = bar is not None and bar["close"] > bar["open"]
+            wk = dict(prev_metrics)
+            wk.update({"day1_volume": day1_bar["volume"], "day2_volume": today_vol})
+            if day1_bull or today_bull:
+                # 周一涨保留 / 阴转阳保留（门槛维持周一的 ACTIVE_UP）
+                return MomentumResult(ACTIVE_UP, PREVIOUS_COMPLETED_WEEK, EVALUATED, **base,
+                                      source_week=iso_week_end(pd.Timestamp(completed.index[-1]).date()),
+                                      valid_until=str(asof.date()), metrics=wk,
+                                      notes=["legacy周二：周一涨/阴转阳→保留（取证校准）"])
+            if today_vol >= day1_bar["volume"]:
+                return MomentumResult(NO_MOMENTUM, CURRENT_WEEK, EVALUATED, **base,
+                                      source_week=iso_week_end(asof.date()), metrics=wk,
+                                      notes=["legacy周二：双阴未缩量→剔除（取证校准）"])
+            return MomentumResult(PULLBACK_WEAKENING, CURRENT_WEEK, EVALUATED, **base,
+                                  source_week=iso_week_end(asof.date()), metrics=wk,
+                                  notes=["legacy周二：双阴缩量（取证校准）"])
 
     bar = _partial_week_bar(daily, asof, quote)
     if bar is None:
         return MomentumResult(NO_MOMENTUM, NONE_ORIGIN, INSUFFICIENT, **base)
     state, metrics = _classify_current(bar, prev_bar, cfg, week_completion, VolumeClock(), clock.observed_minutes)
     if session_idx in (3, 4) and clock.evidence_level == "L1":
-        # 旧投影口径仅作记录：当日已实现涨幅外推到5日（不参与状态判定）。
+        # 旧投影口径仅作记录（取证§1.4 必修点②）：本周已实现涨幅 ÷ 已过交易日数 ×5，
+        # 即 ÷week_completion（旧代码 week_surge.py 周三四分支的量/涨幅折算口径）。
         day_realized = safe_pct_change(bar["close"], bar["open"])
-        metrics["legacy_projected_week_pct"] = round(day_realized * 5.0, 3)
+        if week_completion > 0:
+            metrics["legacy_projected_week_pct"] = round(day_realized / week_completion, 3)
         metrics["legacy_projection_note"] = "旧口径记录用，禁止作为收益预测"
     return MomentumResult(state, CURRENT_WEEK, EVALUATED, **base,
                           source_week=iso_week_end(asof.date()), metrics=metrics,
-                          notes=["legacy重建版待取证校准"])
+                          notes=["legacy周三四/五：部分周折算对比上一完整周（取证校准）"])
 
 
 _MODES = {
