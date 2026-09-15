@@ -1,0 +1,10 @@
+﻿k,regime,n,fwd1,fwd3,fwd5,fwd10,win5,open_entry_fwd5
+pullback_holds,bull,377494,0.07,0.331,0.605,1.005,0.515,0.657
+pullback_holds,mid,121191,0.122,0.331,0.398,0.872,0.512,0.405
+pullback_holds,weak,113358,0.136,0.472,1.35,3.959,0.518,1.372
+shrinking_volume_acceleration,bull,187544,0.054,0.345,0.412,0.493,0.479,0.44
+shrinking_volume_acceleration,mid,72704,0.156,-0.033,0.334,0.902,0.522,0.353
+shrinking_volume_acceleration,weak,84810,0.192,0.331,1.122,3.198,0.53,1.242
+two_day_acceleration,bull,130511,0.074,0.396,0.506,0.752,0.486,0.535
+two_day_acceleration,mid,42235,0.149,0.454,1.09,1.361,0.514,1.111
+two_day_acceleration,weak,39998,-0.047,0.159,0.892,3.07,0.516,1.043

@@ -60,7 +60,11 @@ def build_parser() -> argparse.ArgumentParser:
     decide = sub.add_parser("decide", help="单票决策建议（决策栈：月线+周趋势+周动能+多标签+建议）")
     decide.add_argument("--code", required=True)
     decide.add_argument("--asof", help="ISO时间；默认当前时间（盘中=L1证据，盘后=L2）")
-    decide.add_argument("--capital-context", help="capital-observer 上下文JSON路径（可选）")
+    decide.add_argument("--capital-context", help="capital-observer 上下文JSON路径（可选；与--context-url互斥）")
+    decide.add_argument("--board", help="EM板块BK代码（传给capital-observer /api/v1/context）")
+    decide.add_argument("--context-url", default=None,
+                        help="context服务地址；默认 http://127.0.0.1:8120；--no-context 禁用自动拉取")
+    decide.add_argument("--no-context", action="store_true", help="禁用capital-observer自动拉取（上下文=unknown）")
 
     replay = sub.add_parser("replay", help="PIT历史回放：按日重跑决策栈，防穿越")
     replay.add_argument("--codes", required=True, help="逗号分隔代码列表")
@@ -126,9 +130,18 @@ def main(argv: list[str] | None = None) -> int:
             ),
         )
         context_payload = None
+        context_source_note = "unknown"
         if args.capital_context:
             context_payload = _json.loads(Path(args.capital_context).read_text(encoding="utf-8"))
+            context_source_note = f"file:{args.capital_context}"
+        elif not args.no_context:
+            from stock_selector.decision.context_source import fetch_context_payload
+            base = args.context_url or "http://127.0.0.1:8120"
+            context_payload = fetch_context_payload(str(args.code).zfill(6), board=args.board, base_url=base)
+            context_source_note = "auto" if context_payload else f"unreachable:{base}"
         advice = service.evaluate(str(args.code).zfill(6), asof, context_payload=context_payload)
+        if isinstance(advice, dict):
+            advice.setdefault("capital_context_source", context_source_note)
         print(_json.dumps(advice, ensure_ascii=False, indent=2))
         return 0
     if args.command == "replay":

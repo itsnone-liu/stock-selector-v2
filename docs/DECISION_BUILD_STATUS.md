@@ -22,8 +22,14 @@
 ## 待办（P2+）
 
 - 分钟数据源（lc1/lc5 或付费）：profile_v1 校准与盘中L1精度；
-- capital-observer 自动接入 decide（当前 `--capital-context` 手动喂JSON）；
+- ~~capital-observer 自动接入 decide~~ ✅ 2026-09-15 落地：默认自动拉
+  `http://127.0.0.1:8120/api/v1/context`（`--board BKxxxx` 指定板块；
+  `--context-url` 改地址；`--no-context` 或服务不通 → unknown，绝不默认 neutral；
+  输出带 `capital_context_source: auto|unreachable:...|file:...`）；
+- ETF 官方日度份额通道 ✅ 2026-09-15 已在 capital-observer 上线
+  （`/api/v1/etf/shares`，沪深直连，同源差分，T+1 事实）；
 - legacy_weekday 取证校准（工作表P1清单）；
+- 滚动窗口/样本外验证框架（裁决 regime 反转与 base_scores 失效）；
 - 退出规则回放对比（E1-E5触发≠成交的成交模型）；
 - 组合级（多票、行业约束生效）回放器。
 
@@ -33,7 +39,10 @@
 # 盘后单票建议（L2）
 python3 -m stock_selector.cli decide --code 600519 --asof 2026-09-15T15:10:00
 
-# 带板块资金上下文
+# 自动拉 capital-observer 上下文（默认行为；指定板块）
+python3 -m stock_selector.cli decide --code 600519 --board BK0420
+
+# 手动喂JSON（与自动互斥）
 python3 -m stock_selector.cli decide --code 600519 --capital-context ctx.json
 
 # PIT回放（EOD检查点）

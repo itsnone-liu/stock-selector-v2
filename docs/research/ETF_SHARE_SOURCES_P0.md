@@ -63,3 +63,23 @@ sz = ak.fund_scale_daily_szse(start_date="20260914", end_date="20260914")  # 733
 
 环境：本机 venv akshare==1.18.56（已装）。SZSE 偶发 ConnectionReset→重试；
 SSE 当日未清算时返回空（按 KeyError 处理，降级取最近可得日）。
+
+## 落地状态（2026-09-15）
+
+**已在 capital-observer 上线**（commit 见该仓库）：
+
+- 采集：`ingestion/adapters/etf_share.py`（SSE 逐日快照 + SZSE 区间 xlsx，
+  分段≤150天，`\x00` 分段分隔——CSV 含换行绝不能按 `\n` 拼拆，教训见下）
+- 入库：`fact_observation`，metric=`etf_total_shares`，unit=shares，
+  source_id=`sse.etf_share` / `szse.etf_share`；首跑 2026-09-03..14 双所 8 交易日
+  ~1.3万条事实（SSE ~903只/日，SZSE ~730只/日）
+- 刷新：`scripts/refresh.py` 3.5 步增量道（`--skip-etf` 跳过，
+  `--etf-backfill=N` 无历史时回看 N 天）
+- API：`GET /api/v1/etf/shares?code=510300&days=30` → 全序列同源差分后截窗，
+  `estimated_net_flow=Δ×当日净值`（净值缺失不外推，当前仅首批15只有nav）
+- 消费：v2 `decide` 默认自动拉 `/api/v1/context`（板块流proxy + 两融fact +
+  宽基ETF份额fact 三通道规则化 → supportive/neutral/divergent/unknown）
+
+**踩坑（写入长期教训）**：多段 CSV 用 `"\n".join` 再 `split("\n")` 会把每行当独立
+CSV：每帧首行数据被当表头 → 几千个互异列名的帧 concat 成 帧数×列数 爆炸矩阵，
+parse 假死（CPU 满转无输出）。分段必须用不出现在数据里的分隔符（`\x00`）。
