@@ -60,7 +60,7 @@ def trend_category(trend_result) -> str:
     return "none"
 
 
-def run(frames_iter, index_frame, cfg, start, end):
+def run(frames_iter, index_frame, cfg, start, end, record_monthly_fail=False):
     dcfg = cfg.get("decision", cfg)
     start_ts, end_ts = pd.Timestamp(start), pd.Timestamp(end)
 
@@ -95,7 +95,7 @@ def run(frames_iter, index_frame, cfg, start, end):
             asof = datetime(ts.year, ts.month, ts.day, 15, 5)
             # 廉价前置：月线不通过直接跳过（省掉动能/标签计算）
             m = monthly_trend(frame, cfg)
-            if not m.passed:
+            if not m.passed and not record_monthly_fail:
                 continue
             mom = weekly_momentum(frame, asof, cfg, None)
             if mom.state != ACTIVE_UP:
@@ -122,6 +122,7 @@ def run(frames_iter, index_frame, cfg, start, end):
                 mae = mfe = np.nan
             rows.append({
                 "code": code, "date": str(ts.date()), "weekday": ts.weekday(),
+                "monthly_passed": bool(m.passed),
                 "regime": rg, "trend": cat, "label": lab.primary_type,
                 "mom_origin": mom.evidence_origin,
                 "fwd5": _fwd(4), "fwd10": _fwd(9), "fwd20": _fwd(19),
@@ -170,6 +171,8 @@ def main() -> None:
     p.add_argument("--end", default="2026-09-15")
     p.add_argument("--min-amount", type=float, default=2e7)
     p.add_argument("--out", default="output/research/trend_gate")
+    p.add_argument("--no-monthly-gate", action="store_true",
+                   help="记录月线未通过的组合（底部池增量裁决）")
     args = p.parse_args()
 
     cfg = load_config(args.config)
@@ -181,7 +184,8 @@ def main() -> None:
     frames_iter = stream_qualified_codes(store, picked, args.min_amount, yield_frames=True)
     index_frame = index_daily(cfg["paths"]["tdx_dir"], "sh", "000001")
 
-    df, n_codes, n_eval = run(frames_iter, index_frame, cfg, args.start, args.end)
+    df, n_codes, n_eval = run(frames_iter, index_frame, cfg, args.start, args.end,
+                              record_monthly_fail=args.no_monthly_gate)
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
     df.to_csv(out / "candidates.csv", index=False, encoding="utf-8-sig")

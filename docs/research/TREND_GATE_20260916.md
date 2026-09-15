@@ -46,3 +46,30 @@
 ## 复现
 
 `PYTHONPATH=src python3 scripts/trend_gate_experiment.py --sample 800 --start 2022-01-04 --end 2026-09-15 --out output/research/trend_gate`
+
+## 追加：stabilizing 组细分（同日切片）
+
+**stabilizing × 日线标签（三种标签全正！）**：
+
+| label | n | fwd10中位 | 均值 |
+|---|---|---|---|
+| pullback_holds | 450 | +0.92% | +0.60% |
+| shrinking_volume_acceleration | 125 | +1.28% | +1.78% |
+| two_day_acceleration | 240 | +1.04% | +1.36% |
+
+对照：同标签在 ma_bull/none 组内全部 ≈0 或负。**stabilizing 是抬升全部
+买点的"语境"而非某标签专属效应**——买点的有效性取决于周线早期企稳语境，
+不取决于买点本身。这与"先确认大方向，再观察资金何时推动"一致。
+
+**stabilizing × 星期**：周一中位 0.00%，周二~周五 +1.0%~+1.6%——周一
+（证据最不完整日）事件显著更弱，与 legacy 周一逻辑（只看完整周）方向一致。
+
+**标签构成差异**：stabilizing/none 组以 pullback_holds 为主（55-57%），
+macd_cross 组加速类标签更多（42%+42%）——组间差异不能全归标签构成。
+
+## 追加实验（2026-09-16 第二轮，运行中）
+
+1. portfolio A/B：`--trend-policy hard_gate vs feature_only`（同池120只、
+   2025-01→2026-09、同 caps/退出）——裸信号结论的组组合语境复核；
+2. `--no-monthly-gate`：记录月线未通过的候选（monthly_passed 列），
+   裁决底部池通道（跳月线→周线小金叉）的增量。

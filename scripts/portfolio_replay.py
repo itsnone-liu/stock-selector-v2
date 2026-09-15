@@ -204,10 +204,15 @@ def main() -> None:
     p.add_argument("--capital", type=float, default=1_000_000.0)
     p.add_argument("--top-per-day", type=int, default=3)
     p.add_argument("--min-amount", type=float, default=2e7)
+    p.add_argument("--trend-policy", default=None,
+                   choices=["hard_gate", "feature_only", "off"],
+                   help="覆盖 decision.weekly_trend_policy（A/B实验用）")
     p.add_argument("--out", default="output/research/portfolio_replay")
     args = p.parse_args()
 
     cfg = load_config(args.config)
+    if args.trend_policy:
+        cfg["decision"]["weekly_trend_policy"] = args.trend_policy
     store = TdxStore(cfg["paths"]["tdx_dir"])
     if args.codes:
         codes = [c.strip().zfill(6) for c in args.codes.split(",") if c.strip()]
