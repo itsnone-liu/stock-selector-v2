@@ -36,3 +36,27 @@ def test_shadow_scan_builds_monthly_pool_and_multilabel_events(tmp_path):
     assert '"current_month_incomplete": true' in monthly
     expiry = store.conn.execute("select expiry_at from signal_event limit 1").fetchone()[0]
     assert expiry > at.date().isoformat()
+
+
+def _rising_frame():
+    idx = pd.date_range(end="2026-09-18", periods=560, freq="B")
+    close = np.linspace(5, 20, len(idx))
+    frame = pd.DataFrame({"open": close * .995, "high": close * 1.01,
+                          "low": close * .99, "close": close,
+                          "volume": np.full(len(idx), 1_000_000.0),
+                          "amount": close * 1_000_000}, index=idx)
+    return frame
+
+
+def test_no_phantom_events_when_asof_has_no_session_bar(tmp_path):
+    s = WatchStore(tmp_path / "w.db")
+    cfg = {"monthly": {"min_bars": 20, "require_ma_bull": True,
+                       "max_last_month_drop_pct": 8},
+           "buy": {"pullback_change_min_pct": -3, "pullback_change_max_pct": 2,
+                   "ma_tolerance_pct": 5, "acceleration_max_change_pct": 3.5}}
+    frame = _rising_frame()
+    at = datetime(2026, 9, 19, 15, 5)  # 周六：最后bar是周五
+    out = shadow_scan({"600001": frame}, at, cfg, s)
+    assert out["events"] == 0
+    assert out["data_note"] == "data_stale_through_2026-09-18"
+    assert out["monthly_pass"] >= 0  # 月线状态仍照记

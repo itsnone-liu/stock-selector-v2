@@ -27,13 +27,18 @@ def shadow_scan(frames: dict[str, pd.DataFrame], as_of: datetime, config: dict,
     watch_cfg = config.get("v3_watch", {})
     expiry_sessions = int(watch_cfg.get("event_expiry_sessions", 20))
     expiry_at = (pd.Timestamp(as_of.date()) + BDay(expiry_sessions)).date().isoformat()
+    stale_note: str | None = None
     event_ids: list[str] = []
     for code in sorted(frames):
         frame = frames[code]
         visible = frame.loc[frame.index <= pd.Timestamp(as_of.date())]
+        visible = frame.loc[frame.index <= pd.Timestamp(as_of.date())]
         if visible.empty:
             counts["unknown"] += 1
             continue
+        if stale_note is None and pd.Timestamp(visible.index[-1]).date() != as_of.date():
+            # as_of当天无bar（休市/数据未到）：旧bar不得冒充当日触发新事件。
+            stale_note = f"data_stale_through_{pd.Timestamp(visible.index[-1]).date()}"
         monthly = monthly_trend(visible, config)
         monthly_metrics = dict(monthly.metrics)
         month_start = pd.Timestamp(as_of.date()).replace(day=1)
@@ -52,6 +57,8 @@ def shadow_scan(frames: dict[str, pd.DataFrame], as_of: datetime, config: dict,
             continue
         counts["monthly_pass"] += 1
         store.record_behavior_features(code, as_of.isoformat(), behavior_features(visible))
+        if stale_note:
+            continue  # 月线状态照记，但当天没有新日线bar，不触发事件
         labels = daily_labels(visible, as_of, config)
         for event_type, hit in sorted(labels.labels.items()):
             if not hit:
@@ -64,4 +71,5 @@ def shadow_scan(frames: dict[str, pd.DataFrame], as_of: datetime, config: dict,
             counts["events"] += 1
     return {**counts, "event_ids": event_ids,
             "monthly_pool": sorted(store.monthly_pool(day, MONTHLY_STATE_VERSION)),
-            "watch_codes": sorted(store.active_codes())}
+            "watch_codes": sorted(store.active_codes()),
+            "data_note": stale_note}
