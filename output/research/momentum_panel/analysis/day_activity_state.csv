@@ -1,0 +1,4 @@
+activity_state,n,overnight_gap_med,overnight_gap_pos,next_day_open_to_close_med,next_day_open_to_close_pos,fwd1_med,fwd1_pos,fwd2_med,fwd2_pos,fwd3_med,fwd3_pos,fwd30_med,fwd30_pos,peak3_return_med,peak3_return_pos,giveback_from_peak3_med,giveback_from_peak3_pos,mae3_full_med,mae3_full_pos,mfe3_full_med,mfe3_full_pos
+expanding,300585,-0.00031,0.3773,0.0,0.4826,-0.00143,0.466,-0.00195,0.4695,-0.00171,0.4776,-0.00677,0.479,0.02829,0.9122,-0.0313,0.0,-0.02826,0.0484,0.02828,0.9122
+normal,197791,0.0,0.3858,0.0,0.491,-0.00034,0.4779,-0.00087,0.4807,-0.00042,0.4877,-0.00715,0.477,0.02689,0.9259,-0.02878,0.0,-0.02605,0.0466,0.02689,0.9258
+shrinking,368616,0.0,0.396,0.0,0.4926,0.0,0.4855,-0.00089,0.4809,-0.00115,0.4822,-0.00626,0.4795,0.02764,0.9308,-0.02979,0.0,-0.02637,0.0486,0.02764,0.9308

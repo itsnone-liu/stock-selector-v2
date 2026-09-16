@@ -1,0 +1,3 @@
+sv_legacy,n,overnight_gap_med,overnight_gap_pos,next_day_open_to_close_med,next_day_open_to_close_pos,fwd1_med,fwd1_pos,fwd2_med,fwd2_pos,fwd3_med,fwd3_pos,fwd30_med,fwd30_pos,peak3_return_med,peak3_return_pos,giveback_from_peak3_med,giveback_from_peak3_pos,mae3_full_med,mae3_full_pos,mfe3_full_med,mfe3_full_pos
+False,753196,0.0,0.3861,0.0,0.4886,-0.00065,0.4763,-0.00131,0.4768,-0.00121,0.4821,-0.00725,0.4771,0.02812,0.9231,-0.03046,0.0,-0.02732,0.0483,0.02811,0.9231
+True,113796,0.0,0.3943,0.0,0.4901,0.0,0.4817,-0.00108,0.4779,-0.00122,0.4803,-0.00274,0.4896,0.025,0.9243,-0.02776,0.0,-0.02459,0.0466,0.025,0.9243
