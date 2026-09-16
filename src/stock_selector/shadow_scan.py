@@ -6,6 +6,8 @@ from __future__ import annotations
 
 from datetime import datetime
 
+from pandas.tseries.offsets import BDay
+
 import pandas as pd
 
 from stock_selector.behavior_features import behavior_features
@@ -22,6 +24,9 @@ def shadow_scan(frames: dict[str, pd.DataFrame], as_of: datetime, config: dict,
                 store: WatchStore) -> dict:
     counts = {"input": len(frames), "monthly_pass": 0, "events": 0, "unknown": 0}
     day = as_of.date().isoformat()
+    watch_cfg = config.get("v3_watch", {})
+    expiry_sessions = int(watch_cfg.get("event_expiry_sessions", 20))
+    expiry_at = (pd.Timestamp(as_of.date()) + BDay(expiry_sessions)).date().isoformat()
     event_ids: list[str] = []
     for code in sorted(frames):
         frame = frames[code]
@@ -30,8 +35,17 @@ def shadow_scan(frames: dict[str, pd.DataFrame], as_of: datetime, config: dict,
             counts["unknown"] += 1
             continue
         monthly = monthly_trend(visible, config)
+        monthly_metrics = dict(monthly.metrics)
+        month_start = pd.Timestamp(as_of.date()).replace(day=1)
+        completed = visible.loc[visible.index < month_start]
+        previous = monthly_trend(completed, config)
+        monthly_metrics["current_month_incomplete"] = True
+        monthly_metrics["previous_complete_month"] = {
+            "passed": previous.decision == Decision.PASS,
+            "reason": previous.reason, "metrics": previous.metrics,
+            "through": str(completed.index[-1].date()) if len(completed) else None}
         store.record_monthly_state(code, day, monthly.decision == Decision.PASS,
-                                   monthly.reason, monthly.metrics, MONTHLY_STATE_VERSION)
+                                   monthly.reason, monthly_metrics, MONTHLY_STATE_VERSION)
         if monthly.decision != Decision.PASS:
             if monthly.decision == Decision.SKIP:
                 counts["unknown"] += 1
@@ -44,8 +58,9 @@ def shadow_scan(frames: dict[str, pd.DataFrame], as_of: datetime, config: dict,
                 continue
             event_ids.append(store.record_event(SignalEvent(
                 code=code, detection_at=as_of.isoformat(), event_type=event_type,
-                event_version=EVENT_VERSION,
-                evidence={"features": labels.features, "monthly_reason": monthly.reason})))
+                event_version=EVENT_VERSION, expiry_at=expiry_at,
+                evidence={"features": labels.features, "monthly_reason": monthly.reason,
+                          "expiry_sessions": expiry_sessions})))
             counts["events"] += 1
     return {**counts, "event_ids": event_ids,
             "monthly_pool": sorted(store.monthly_pool(day, MONTHLY_STATE_VERSION)),

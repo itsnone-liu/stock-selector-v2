@@ -89,6 +89,11 @@ output:
   save_rejections: true
   save_diagnostics: true
 
+v3_watch:
+  event_expiry_sessions: 20
+  event_version: daily-label-v1
+  monthly_state_version: monthly-v1
+
 decision:
   weekly_trend_policy: hard_gate  # hard_gate | feature_only | off（滚动验证未裁决硬门槛价值，须可实验）
   execution:

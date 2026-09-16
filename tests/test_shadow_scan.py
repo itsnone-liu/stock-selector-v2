@@ -32,3 +32,7 @@ def test_shadow_scan_builds_monthly_pool_and_multilabel_events(tmp_path):
     assert store.monthly_pool(at.date().isoformat(), MONTHLY_STATE_VERSION) == {"600001"}
     row = store.conn.execute("select cost_ref,data_quality from behavior_feature").fetchone()
     assert '"vwap_20d"' in row[0]
+    monthly = store.conn.execute("select metrics from monthly_state").fetchone()[0]
+    assert '"current_month_incomplete": true' in monthly
+    expiry = store.conn.execute("select expiry_at from signal_event limit 1").fetchone()[0]
+    assert expiry > at.date().isoformat()
