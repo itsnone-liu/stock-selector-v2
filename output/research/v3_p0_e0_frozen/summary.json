@@ -1,0 +1,23 @@
+{
+  "start": "2025-01-02",
+  "end": "2026-09-15",
+  "codes": 113,
+  "capital": 1000000.0,
+  "final_equity": 1050143.0,
+  "total_return": 0.0501,
+  "max_drawdown": -0.1706,
+  "n_trades": 320,
+  "buys": 160,
+  "exit_reasons": {
+    "E1_structural_stop": 80,
+    "E2_time_stop": 79,
+    "E3_trailing_drawdown": 1
+  },
+  "benchmark_equal_weight": 0.2093,
+  "limitations": [
+    "无成本/滑点",
+    "退出=close-confirm次日开盘模型",
+    "行业40%上限未启用（无行业映射）",
+    "研究用"
+  ]
+}

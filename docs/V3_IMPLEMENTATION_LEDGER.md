@@ -15,7 +15,7 @@
 | 未来数据篡改不影响过去 | ✅ | `test_future_data_mutation_*` |
 | 输入顺序不影响成交 | ✅ | `test_input_order_*` |
 | 复现元数据 | ✅基础版 | manifest + SHA/config/seed/input hash；完整数据快照待数据层 |
-| E1 修复后基线 | 🔄 | `output/research/v3_p0_e1` 跑批中 |
+| E1 修复后基线 | ✅ | `docs/research/E0_E1_20260916.md`：E0 +5.01% vs E1 -9.61%，费用3.78万，拒单156 |
 
 ## Capital Observer P0
 

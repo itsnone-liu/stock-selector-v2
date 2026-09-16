@@ -1,0 +1,26 @@
+{
+  "start": "2025-01-02",
+  "end": "2026-09-15",
+  "codes": 113,
+  "capital": 1000000.0,
+  "input_snapshot_hash": "868191bfb3e5f914143b7aaf07704b7d4d0bc40b4adc991276fe68b6cb6fa7e9",
+  "final_equity": 903915.65,
+  "total_return": -0.0961,
+  "max_drawdown": -0.2145,
+  "n_trades": 406,
+  "buys": 203,
+  "exit_reasons": {
+    "E1_structural_stop": 104,
+    "E2_time_stop": 98,
+    "E3_trailing_drawdown": 1
+  },
+  "total_cost": 37763.65,
+  "n_execution_rejections": 156,
+  "execution_model": "cn-a-share-eod-v1",
+  "benchmark_equal_weight": 0.2093,
+  "limitations": [
+    "开盘涨跌停按日K开盘价保守近似（无盘口队列）",
+    "行业40%上限未启用（无历史行业映射）",
+    "研究用"
+  ]
+}
