@@ -15,7 +15,9 @@
 | 未来数据篡改不影响过去 | ✅ | `test_future_data_mutation_*` |
 | 输入顺序不影响成交 | ✅ | `test_input_order_*` |
 | 复现元数据 | ✅基础版 | manifest + SHA/config/seed/input hash；完整数据快照待数据层 |
-| E1 修复后基线 | ✅ | `docs/research/E0_E1_20260916.md`：E0 +5.01% vs E1 -9.61%，费用3.78万，拒单156 |
+| E1 修复后基线 | ✅ | `docs/research/E0_E1_20260916.md`：E0 +5.01% / E1 -9.61% / E1b(选样防前视) -6.05% |
+| 选样防前视 | ✅ | 资格按窗口起点判定，113→105只，前视约虚增3.6pp |
+| 盘后影子链 | ✅ | `scripts/v3_daily_shadow.py` 单入口幂等，2026-09-15实测重跑0新增 |
 
 ## Capital Observer P0
 
