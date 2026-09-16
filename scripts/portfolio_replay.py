@@ -50,22 +50,22 @@ CONF_RANK = {"high": 0, "medium": 1, "low": 2, "unknown": 3}
 
 def replay_input_hash(frames: dict[str, pd.DataFrame], index_frame: pd.DataFrame,
                       cfg: dict, start: str, end: str) -> str:
-    """轻量可复现指纹：配置+范围+每帧边界/长度/末值（不是完整数据归档替代）。"""
+    """区间内完整输入内容指纹；区间外未来数据不得改变该哈希。"""
     start_ts, end_ts = pd.Timestamp(start), pd.Timestamp(end)
     idx = index_frame.loc[(index_frame.index >= start_ts) & (index_frame.index <= end_ts)]
-    frame_meta = {}
+    h = hashlib.sha256(json.dumps({"start": start, "end": end, "config": cfg},
+                                  ensure_ascii=False, sort_keys=True,
+                                  default=str).encode())
+    def update_frame(label: str, f: pd.DataFrame) -> None:
+        h.update(label.encode())
+        canonical = f.sort_index().sort_index(axis=1)
+        h.update(pd.util.hash_pandas_object(canonical.index, index=False).values.tobytes())
+        h.update(pd.util.hash_pandas_object(canonical, index=True).values.tobytes())
+    update_frame("__index__", idx)
     for c, f in sorted(frames.items()):
         visible = f.loc[(f.index >= start_ts) & (f.index <= end_ts)]
-        frame_meta[c] = ([0, None, None, None] if visible.empty else
-                         [len(visible), str(visible.index[0]), str(visible.index[-1]),
-                          float(visible.iloc[-1]["close"])])
-    payload = {"start": start, "end": end, "config": cfg,
-               "index": ([0, None, None, None] if idx.empty else
-                         [len(idx), str(idx.index[0]), str(idx.index[-1]),
-                          float(idx.iloc[-1]["close"])]),
-               "frames": frame_meta}
-    raw = json.dumps(payload, ensure_ascii=False, sort_keys=True, default=str).encode()
-    return hashlib.sha256(raw).hexdigest()
+        update_frame(c, visible)
+    return h.hexdigest()
 
 
 def git_sha() -> str:
@@ -75,9 +75,10 @@ def git_sha() -> str:
         return "unknown"
 
 
-def run_manifest(cfg: dict, seed: int, codes: list[str], result: dict) -> dict:
+def run_manifest(cfg: dict, seed: int, codes: list[str], result: dict,
+                 start_git_sha: str) -> dict:
     cfg_raw = json.dumps(cfg, ensure_ascii=False, sort_keys=True, default=str).encode()
-    return {"git_sha": git_sha(), "python": platform.python_version(), "seed": seed,
+    return {"git_sha": start_git_sha, "python": platform.python_version(), "seed": seed,
             "codes": sorted(codes), "config_sha256": hashlib.sha256(cfg_raw).hexdigest(),
             "input_snapshot_hash": result["summary"]["input_snapshot_hash"],
             "execution_model": result["summary"]["execution_model"]}
@@ -301,6 +302,7 @@ def main() -> None:
     cfg = load_config(args.config)
     if args.trend_policy:
         cfg["decision"]["weekly_trend_policy"] = args.trend_policy
+    start_git_sha = git_sha()  # 冻结启动时代码版本；长跑期间的新提交不得冒充本跑批
     store = TdxStore(cfg["paths"]["tdx_dir"])
     if args.codes:
         codes = [c.strip().zfill(6) for c in args.codes.split(",") if c.strip()]
@@ -328,8 +330,8 @@ def main() -> None:
     (out / "summary.json").write_text(
         json.dumps(result["summary"], ensure_ascii=False, indent=2), encoding="utf-8")
     (out / "manifest.json").write_text(
-        json.dumps(run_manifest(cfg, args.seed, list(frames), result), ensure_ascii=False,
-                   indent=2), encoding="utf-8")
+        json.dumps(run_manifest(cfg, args.seed, list(frames), result, start_git_sha),
+                   ensure_ascii=False, indent=2), encoding="utf-8")
     print(json.dumps(result["summary"], ensure_ascii=False, indent=2))
 
 
