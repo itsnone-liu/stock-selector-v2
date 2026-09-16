@@ -1,0 +1,8 @@
+{
+  "pit_rule": "available_at <= event_date 15:05; normally T-1 margin fact",
+  "events": 19424,
+  "industry_known": 18782,
+  "margin_context_known": 15419,
+  "margin_unknown": 4005,
+  "no_trade_restriction": true
+}

@@ -1,0 +1,116 @@
+{
+  "definitions": {
+    "trend_age": "consecutive daily MA5>MA10>MA20",
+    "volume_stagnation": "amount_rel>=1.5 and abs(return5)<=2%",
+    "control": "same date + same SW L1 median"
+  },
+  "coverage": {
+    "events": 19424,
+    "industry_known": 18782,
+    "industry_unknown": 642
+  },
+  "hard_gate": [
+    {
+      "hard_gate": false,
+      "n": 10609.0,
+      "fwd10_mean": 0.006320419495981313,
+      "fwd10_median": -0.00053875776649865,
+      "demeaned_n": 8344.0,
+      "demeaned_median": -0.00062830859088925
+    },
+    {
+      "hard_gate": true,
+      "n": 8815.0,
+      "fwd10_mean": 0.008564284903661956,
+      "fwd10_median": -0.0014992503748125,
+      "demeaned_n": 6751.0,
+      "demeaned_median": -0.00021535065624279925
+    }
+  ],
+  "trend": [
+    {
+      "trend": "ma_bull",
+      "n": 7492.0,
+      "fwd10_mean": 0.008541526407535152,
+      "fwd10_median": -0.0033557046979865,
+      "demeaned_n": 5687.0,
+      "demeaned_median": -0.0013936141519172995
+    },
+    {
+      "trend": "macd_cross",
+      "n": 507.0,
+      "fwd10_mean": 0.0065519375677564155,
+      "fwd10_median": 0.0,
+      "demeaned_n": 418.0,
+      "demeaned_median": 0.008986958409910397
+    },
+    {
+      "trend": "macd_stabilizing",
+      "n": 816.0,
+      "fwd10_mean": 0.010024929535372689,
+      "fwd10_median": 0.0099502487562188,
+      "demeaned_n": 646.0,
+      "demeaned_median": 0.002376068468555103
+    },
+    {
+      "trend": "none",
+      "n": 10609.0,
+      "fwd10_mean": 0.006320419495981313,
+      "fwd10_median": -0.00053875776649865,
+      "demeaned_n": 8344.0,
+      "demeaned_median": -0.00062830859088925
+    }
+  ],
+  "age_bin": [
+    {
+      "age_bin": "0-5",
+      "n": 16214.0,
+      "fwd10_mean": 0.006533641512990478,
+      "fwd10_median": -0.0014040223342548,
+      "demeaned_n": 12649.0,
+      "demeaned_median": -0.0006479857127053013
+    },
+    {
+      "age_bin": "6-20",
+      "n": 2966.0,
+      "fwd10_mean": 0.011007287682219221,
+      "fwd10_median": 0.0006906077348065,
+      "demeaned_n": 2261.0,
+      "demeaned_median": 0.00035653919224814916
+    },
+    {
+      "age_bin": "21-60",
+      "n": 243.0,
+      "fwd10_mean": 0.016269927316710744,
+      "fwd10_median": -0.0016759776536313,
+      "demeaned_n": 184.0,
+      "demeaned_median": 0.002577667699444324
+    },
+    {
+      "age_bin": "61+",
+      "n": 1.0,
+      "fwd10_mean": 0.0483766233766234,
+      "fwd10_median": 0.0483766233766234,
+      "demeaned_n": 1.0,
+      "demeaned_median": 0.0520803270803271
+    }
+  ],
+  "volume_stagnation": [
+    {
+      "volume_stagnation": false,
+      "n": 18658.0,
+      "fwd10_mean": 0.007022314766767652,
+      "fwd10_median": -0.001433349259436,
+      "demeaned_n": 14544.0,
+      "demeaned_median": -0.00038190925536807016
+    },
+    {
+      "volume_stagnation": true,
+      "n": 766.0,
+      "fwd10_mean": 0.015083294814035189,
+      "fwd10_median": 0.005501039113177951,
+      "demeaned_n": 551.0,
+      "demeaned_median": -0.003417593902901403
+    }
+  ]
+}
