@@ -29,6 +29,15 @@ def test_recovery_transition_and_audit_history(tmp_path):
         s.transition(eid, "2026-09-20", "new", "bad", {}, "v1")
 
 
+def test_due_event_expires_with_audited_transition(tmp_path):
+    s = WatchStore(tmp_path / "watch.db")
+    eid = s.record_event(SignalEvent("600001", "2026-09-16", "x", "v1", {},
+                                     expiry_at="2026-09-18"))
+    assert s.expire_due("2026-09-19") == 1
+    assert s.current_state(eid) == "expired"
+    assert s.expire_due("2026-09-20") == 0
+
+
 def test_held_risk_monitor_is_independent():
     u = monitoring_universe(main_pool=[], watch_codes=[], held_codes=["600009"])
     assert u["scan"] == set()

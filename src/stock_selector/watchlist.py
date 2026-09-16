@@ -115,6 +115,21 @@ class WatchStore:
           join (select event_id,max(id) id from watch_state group by event_id) x on w.id=x.id""").fetchall()
         return {r[0] for r in rows if r[1] in ACTIVE_STATES}
 
+    def expire_due(self, as_of: str, rule_version: str = "expiry-v1") -> int:
+        """显式写入expired转移；无expiry的事件永不被静默删除。"""
+        rows = self.conn.execute("""select e.event_id,e.expiry_at,w.current_state
+          from signal_event e join
+          (select event_id,max(id) id from watch_state group by event_id) x on e.event_id=x.event_id
+          join watch_state w on w.id=x.id
+          where e.expiry_at is not null and e.expiry_at < ?""", (as_of,)).fetchall()
+        n = 0
+        for event_id, expiry_at, state in rows:
+            if state in ACTIVE_STATES:
+                self.transition(event_id, as_of, "expired", "expiry_elapsed",
+                                {"expiry_at": expiry_at}, rule_version)
+                n += 1
+        return n
+
     def record_monthly_state(self, code: str, as_of: str, trend_pass: bool,
                              reason: str, metrics: dict, state_version: str) -> None:
         self.conn.execute("""insert or replace into monthly_state
