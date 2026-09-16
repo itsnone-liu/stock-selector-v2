@@ -312,7 +312,9 @@ def main() -> None:
         codes = rng.choice(all_codes, size=min(args.sample, len(all_codes)),
                            replace=False).tolist()
     frames: dict[str, pd.DataFrame] = {}
-    for code, f in stream_qualified_codes(store, codes, args.min_amount, yield_frames=True):
+    # 选样资格以窗口起点可见数据判定（防选样前视）；旧行为见backtest_decision。
+    for code, f in stream_qualified_codes(store, codes, args.min_amount,
+                                          yield_frames=True, as_of=args.start):
         frames[code] = f
     print(f"合格样本 {len(frames)}/{len(codes)}")
     index_frame = index_daily(cfg["paths"]["tdx_dir"], "sh", "000001")

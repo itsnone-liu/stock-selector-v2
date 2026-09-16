@@ -100,13 +100,25 @@ def regime_series(index_frame: pd.DataFrame) -> pd.Series:
 
 
 def stream_qualified_codes(store: TdxStore, codes: list[str], min_amount: float,
-                           yield_frames: bool = False):
-    """流式过滤合格股票：一次只持有一帧（内存受限机器）。"""
+                           yield_frames: bool = False, as_of: str | None = None,
+                           min_listing_sessions: int = 120):
+    """流式过滤合格股票：一次只持有一帧（内存受限机器）。
+
+    as_of 提供时，流动性与上市时长都以 as_of 当时可见数据判定（选样防前视）；
+    缺省保留旧行为（数据末端），仅供明确接受偏差的对照复现。
+    """
+    cutoff = pd.Timestamp(as_of) if as_of else None
     for code in codes:
         f = store.daily(code)
         if f is None or len(f) < 160:
             continue
-        recent = f["amount"].iloc[-120:]
+        if cutoff is not None:
+            visible = f.loc[f.index <= cutoff]
+            if len(visible) < 160:
+                continue  # as_of当时上市时长不足，不以未来数据补判
+            recent = visible["amount"].iloc[-120:]
+        else:
+            recent = f["amount"].iloc[-120:]
         if len(recent) < 60 or recent.median() < min_amount:
             continue
         yield (code, f) if yield_frames else code
