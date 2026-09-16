@@ -8,6 +8,7 @@ from datetime import datetime
 
 import pandas as pd
 
+from stock_selector.behavior_features import behavior_features
 from stock_selector.decision.labels import daily_labels
 from stock_selector.models import Decision
 from stock_selector.strategies.trend import monthly_trend
@@ -36,6 +37,7 @@ def shadow_scan(frames: dict[str, pd.DataFrame], as_of: datetime, config: dict,
                 counts["unknown"] += 1
             continue
         counts["monthly_pass"] += 1
+        store.record_behavior_features(code, as_of.isoformat(), behavior_features(visible))
         labels = daily_labels(visible, as_of, config)
         for event_type, hit in sorted(labels.labels.items()):
             if not hit:

@@ -62,6 +62,13 @@ class WatchStore:
           reason text not null, metrics text not null, state_version text not null,
           primary key(code,as_of,state_version)
         );
+        create table if not exists behavior_feature(
+          code text not null, as_of text not null, timeframe text not null,
+          raw_metrics text not null, normalized_metrics text not null,
+          cost_ref text not null, feature_version text not null,
+          data_quality text not null,
+          primary key(code,as_of,timeframe,feature_version)
+        );
         """)
         self.conn.commit()
 
@@ -143,6 +150,21 @@ class WatchStore:
           where as_of=? and state_version=? and trend_pass=1""",
           (as_of, state_version)).fetchall()
         return {r[0] for r in rows}
+
+    def record_behavior_features(self, code: str, as_of: str, features: dict,
+                                 timeframe: str = "daily") -> None:
+        cost = {k: v for k, v in features.items()
+                if k.startswith("vwap_") or k.startswith("price_to_vwap_") or
+                k == "shares_per_volume_unit"}
+        raw = {k: v for k, v in features.items()
+               if k not in cost and k not in {"feature_version", "data_quality"}}
+        self.conn.execute("""insert or replace into behavior_feature
+          (code,as_of,timeframe,raw_metrics,normalized_metrics,cost_ref,
+           feature_version,data_quality) values(?,?,?,?,?,?,?,?)""",
+          (code, as_of, timeframe, json.dumps(raw, sort_keys=True), "{}",
+           json.dumps(cost, sort_keys=True), features["feature_version"],
+           json.dumps(features.get("data_quality", []), sort_keys=True)))
+        self.conn.commit()
 
 
 def monitoring_universe(main_pool: Iterable[str], watch_codes: Iterable[str],

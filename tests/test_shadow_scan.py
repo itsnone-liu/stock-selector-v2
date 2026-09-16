@@ -30,3 +30,5 @@ def test_shadow_scan_builds_monthly_pool_and_multilabel_events(tmp_path):
     assert out["events"] >= 2
     assert set(store.conn.execute("select distinct event_version from signal_event").fetchone()) == {EVENT_VERSION}
     assert store.monthly_pool(at.date().isoformat(), MONTHLY_STATE_VERSION) == {"600001"}
+    row = store.conn.execute("select cost_ref,data_quality from behavior_feature").fetchone()
+    assert '"vwap_20d"' in row[0]
