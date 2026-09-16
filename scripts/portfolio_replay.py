@@ -97,7 +97,15 @@ def run_portfolio_replay(frames: dict[str, pd.DataFrame], index_frame: pd.DataFr
         service = DecisionService(config=cfg, daily_loader=lambda c: frames.get(c),
                                   index_loader=lambda: index_frame)
     pf = Portfolio(cash=capital)
-    costs = cost_model or CostModel()
+    exec_cfg = cfg.get("decision", {}).get("execution", {})
+    configured_version = exec_cfg.get("model_version", EXECUTION_MODEL_VERSION)
+    if configured_version != EXECUTION_MODEL_VERSION:
+        raise ValueError(f"unsupported execution model: {configured_version}")
+    costs = cost_model or CostModel(
+        commission_rate=float(exec_cfg.get("commission_rate", 0.0003)),
+        minimum_commission=float(exec_cfg.get("minimum_commission", 5.0)),
+        slippage_bps=float(exec_cfg.get("slippage_bps", 5.0)),
+        transfer_fee_rate=float(exec_cfg.get("transfer_fee_rate", 0.00001)))
     cap_cfg = cfg.get("decision", {}).get("portfolio", {})
     anchors: dict[str, ExitAnchor] = {}
     pending_exits: list[dict] = []   # T日信号 → T+1开盘执行

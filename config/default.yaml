@@ -91,6 +91,13 @@ output:
 
 decision:
   weekly_trend_policy: hard_gate  # hard_gate | feature_only | off（滚动验证未裁决硬门槛价值，须可实验）
+  execution:
+    model_version: cn-a-share-eod-v1
+    commission_rate: 0.0003
+    minimum_commission: 5.0
+    slippage_bps: 5.0
+    transfer_fee_rate: 0.00001
+    stamp_tax_schedule: cn-sell-20230828-v1
   # 决策层（蓝图 docs/DECISION_SYSTEM_BLUEPRINT.md）。数值默认为工程缺省，
   # 标注 research 的项需回放+样本外验证后才可晋升为生产规则。
   weekly_momentum_mode: revised_weekday   # revised_weekday | unified | legacy_weekday
