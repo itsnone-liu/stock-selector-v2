@@ -27,16 +27,23 @@
 | membership换组闭旧区间 | ✅ |
 | 历史as_of/batch API | 延至P2（时间规则真实前不做伪PIT） |
 
-## P1（下一阶段）
+## P1（已完成影子内核，不切生产）
 
-- 主池快照：月线主池版本、池入/出原因；
-- 事件账本：candidate_event append-only，多标签；
-- 观察状态机：new/observing/confirmed/weakening/invalidated/expired，可恢复；
-- 持仓风险池独立运行，不依赖主池/候选池；
-- 每次转移保留 old/new、trigger、evidence、rule_version、as_of；
-- 全市场廉价扫描只做本地向量化，深检只跑观察池。
+- ✅ 月线主池快照，显式区分当前未完成月与上一完整月；
+- ✅ signal_event append-only、多标签、确定性去重ID、默认20会话有效期；
+- ✅ new/observing/confirmed/weakening/invalidated/expired，可恢复且转移全审计；
+- ✅ 持仓风险批处理独立于主池/候选池，缺数据为unknown；
+- ✅ 全市场本地影子扫描：2026-09-15共5237帧、主池712、事件301、unknown 135；
+- ✅ 行为特征快照分离 raw/cost_ref/version/data_quality。
 
-## P2–P4 边界
+## P2–P4 进度与边界
+
+- P2已完成：strict `as_of` context、batch context、observations窗口，统一
+  `available_at <= as_of`；旧unknown历史不准入。
+- P3已完成基础层：趋势年龄、5/10/20日VWAP、相对VWAP、推进/成交额特征；
+  真实TDX单位验证确认volume=手，显式×100股换算。
+- P4已完成研究原语：事件簇去重、严格事后5/10/20日路径、MAE/MFE、分位数、
+  正收益率与右尾贡献；尚未完成E2-E7全矩阵及真正封存样本。
 
 - P2：源级 publication rule、历史行业映射、market/style/sector snapshots、batch/as_of API；
 - P3：原双阳效率/revised active_up/V3效率并行特征；趋势年龄、VWAP、换手与成本压力；
