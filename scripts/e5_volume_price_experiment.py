@@ -16,6 +16,8 @@ from stock_selector.research.event_evaluation import deduplicate_events
 
 def enrich(e, store):
     e=e.copy(); e["shrinking_up"]=pd.NA; e["accelerating_up"]=pd.NA
+    for col in ["fwd1", "fwd2", "fwd3", "fwd30", "mae3", "mfe3", "mae30", "mfe30"]:
+        e[col] = np.nan
     for code, ix in e.groupby("code").groups.items():
         f=store.daily(str(code))
         if f is None: continue
@@ -30,17 +32,40 @@ def enrich(e, store):
             if prior20<=0: continue
             e.at[j,"shrinking_up"]=bool(ret5>0 and cur5/prior20<=.8)
             e.at[j,"accelerating_up"]=bool(ret5>0 and ret5>prev5)
+            entry = v.index[-1]
+            pos = f.index.searchsorted(entry) + 1
+            if pos < len(f):
+                entry_price = float(f.iloc[pos]["open"])
+                for h in (1, 2, 3, 30):
+                    window = f.iloc[pos:pos+h]
+                    if len(window) >= h:
+                        e.at[j, f"fwd{h}"] = float(window.iloc[h-1]["close"] / entry_price - 1)
+                short = f.iloc[pos:pos+3]
+                long = f.iloc[pos:pos+30]
+                if len(short):
+                    e.at[j, "mae3"] = float(short["low"].min() / entry_price - 1)
+                    e.at[j, "mfe3"] = float(short["high"].max() / entry_price - 1)
+                if len(long):
+                    e.at[j, "mae30"] = float(long["low"].min() / entry_price - 1)
+                    e.at[j, "mfe30"] = float(long["high"].max() / entry_price - 1)
             e.at[j,"volume_ratio_5_vs_prior20"]=cur5/prior20
             e.at[j,"ret5"]=ret5; e.at[j,"ret5_prev"]=prev5
     return e
 
 
 def summarise(e):
+    # 短线主窗口1/2/3日，中期主窗口30日；10日仅辅助。
+    horizons = [c for c in ["fwd1", "fwd2", "fwd3", "fwd5", "fwd10", "fwd20", "fwd30"] if c in e]
     def agg(g):
-        return pd.Series({"n":len(g),"fwd10_mean":g.fwd10.mean(),
-          "fwd10_median":g.fwd10.median(),"demeaned_n":g.fwd10_industry_demeaned.notna().sum(),
-          "demeaned_median":g.fwd10_industry_demeaned.median(),
-          "positive_rate":(g.fwd10>0).mean()})
+        out = {"n": len(g)}
+        for h in horizons:
+            out[f"{h}_median"] = g[h].median()
+            out[f"{h}_positive_rate"] = (g[h] > 0).mean()
+        for h in ("mae3", "mfe3", "mae30", "mfe30"):
+            out[f"{h}_median"] = g[h].median()
+        out["demeaned_n"] = g.get("fwd10_industry_demeaned", pd.Series(dtype=float)).notna().sum()
+        out["demeaned_median"] = g.get("fwd10_industry_demeaned", pd.Series(dtype=float)).median()
+        return pd.Series(out)
     out={"definitions":{"shrinking_up":"ret5>0 and mean(amount[-5:]) / median(amount[-25:-5]) <= 0.8",
       "accelerating_up":"ret5>0 and ret5 > previous ret5","missing":"unknown, not false"},
       "coverage":{"events":len(e),"shrinking_known":int(e.shrinking_up.notna().sum()),
