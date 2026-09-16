@@ -57,6 +57,11 @@ class WatchStore:
           created_at text default current_timestamp
         );
         create index if not exists ix_watch_latest on watch_state(code,event_id,as_of,id);
+        create table if not exists monthly_state(
+          code text not null, as_of text not null, trend_pass integer not null,
+          reason text not null, metrics text not null, state_version text not null,
+          primary key(code,as_of,state_version)
+        );
         """)
         self.conn.commit()
 
@@ -109,6 +114,20 @@ class WatchStore:
         rows = self.conn.execute("""select w.code,w.current_state from watch_state w
           join (select event_id,max(id) id from watch_state group by event_id) x on w.id=x.id""").fetchall()
         return {r[0] for r in rows if r[1] in ACTIVE_STATES}
+
+    def record_monthly_state(self, code: str, as_of: str, trend_pass: bool,
+                             reason: str, metrics: dict, state_version: str) -> None:
+        self.conn.execute("""insert or replace into monthly_state
+          (code,as_of,trend_pass,reason,metrics,state_version) values(?,?,?,?,?,?)""",
+          (code, as_of, int(trend_pass), reason,
+           json.dumps(metrics, ensure_ascii=False, sort_keys=True), state_version))
+        self.conn.commit()
+
+    def monthly_pool(self, as_of: str, state_version: str) -> set[str]:
+        rows = self.conn.execute("""select code from monthly_state
+          where as_of=? and state_version=? and trend_pass=1""",
+          (as_of, state_version)).fetchall()
+        return {r[0] for r in rows}
 
 
 def monitoring_universe(main_pool: Iterable[str], watch_codes: Iterable[str],
