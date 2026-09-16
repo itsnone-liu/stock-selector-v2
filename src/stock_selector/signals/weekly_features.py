@@ -119,14 +119,20 @@ def partial_week_bar(daily: pd.DataFrame, as_of: datetime) -> WeekBar | None:
 
 # ---------- 星期分支（legacy_eod v4.0 复刻） ----------
 
-def evaluate_monday(weekly_completed: pd.DataFrame) -> dict:
-    """周一：最近两个完整周。tw=最近完整周，pw=前一周。"""
-    if weekly_completed is None or len(weekly_completed) < 2:
-        return {"passed": None, "base_pattern": UNKNOWN, "components": {"note": "insufficient_weeks"}}
-    tw, pw = weekly_completed.iloc[-1], weekly_completed.iloc[-2]
-    eff = dual_yang_efficiency(tw["open"], tw["close"], tw["volume"],
-                               pw["open"], pw["close"], pw["volume"])
-    rev = reversal_check(tw["open"], tw["close"], pw["open"], pw["close"])
+def evaluate_monday(weekly_completed: pd.DataFrame, partial: WeekBar | None = None) -> dict:
+    """周一：旧代码 tw=weekly.iloc[-1]（含当日的部分周K），pw=iloc[-2]（上一完整周）。
+
+    差分校正：旧 resample('W-FRI') 在周一EOD时最后一根=当日单日部分周，
+    不是两个完整周——按旧代码实际行为复刻。
+    """
+    if weekly_completed is None or len(weekly_completed) < 2 or partial is None:
+        return {"passed": None, "base_pattern": UNKNOWN,
+                "weekday_path": "monday", "components": {"note": "insufficient_weeks"}}
+    tw_open, tw_close, tw_vol = partial.open, partial.close, partial.volume
+    pw = weekly_completed.iloc[-1]
+    eff = dual_yang_efficiency(tw_open, tw_close, tw_vol,
+                               float(pw["open"]), float(pw["close"]), float(pw["volume"]))
+    rev = reversal_check(tw_open, tw_close, float(pw["open"]), float(pw["close"]))
     pattern = "none"
     passed = False
     if eff["passed"]:
@@ -138,12 +144,13 @@ def evaluate_monday(weekly_completed: pd.DataFrame) -> dict:
     return {"passed": passed, "base_pattern": pattern,
             "weekday_path": "monday",
             "components": {"dual_yang": eff, "reversal": rev,
-                           "tw_change_pct": round(float(tw["change"]) if "change" in weekly_completed.columns else 0.0, 4)}}
+                           "tw_sessions": partial.sessions}}
 
 
-def evaluate_tuesday(weekly_completed: pd.DataFrame, daily: pd.DataFrame, as_of: datetime) -> dict:
-    """周二：先过周一门槛，再看本周一/周二三情形。"""
-    monday = evaluate_monday(weekly_completed)
+def evaluate_tuesday(weekly_completed: pd.DataFrame, daily: pd.DataFrame, as_of: datetime,
+                     partial: WeekBar | None = None) -> dict:
+    """周二：先过周一门槛（部分周语义），再看本周一/周二三情形。"""
+    monday = evaluate_monday(weekly_completed, partial=partial)
     out = {"passed": None, "base_pattern": monday.get("base_pattern", UNKNOWN),
            "weekday_path": "tuesday_gate_failed", "components": {"monday": monday}}
     if not monday.get("passed"):
@@ -212,7 +219,9 @@ def evaluate_midweek(daily: pd.DataFrame, weekly_completed: pd.DataFrame, as_of:
     if not tw.is_yang:
         return {"passed": False, "base_pattern": "none", "weekday_path": "midweek_partial", "components": comp}
     rev = reversal_check(tw.open, tw.close, float(pw["open"]), float(pw["close"]))
-    eff = dual_yang_efficiency(tw.open, tw.close, this_vol_scaled,
+    # 差分校正：旧代码形态B的 tc 用折算涨幅（close_scaled），量用折算量
+    scaled_close = tw.open + (tw.close - tw.open) / days * LEGACY_PRORATION_BASE
+    eff = dual_yang_efficiency(tw.open, scaled_close, this_vol_scaled,
                                float(pw["open"]), float(pw["close"]), pw_vol)
     comp.update(reversal=rev, dual_yang_scaled=eff)
     # 排除滞涨（旧代码原文顺序：先排除滞涨再评分）
@@ -220,6 +229,7 @@ def evaluate_midweek(daily: pd.DataFrame, weekly_completed: pd.DataFrame, as_of:
         comp["stagnation_excluded"] = True
         return {"passed": False, "base_pattern": "none", "weekday_path": "midweek_partial",
                 "components": comp}
+    # 旧顺序：形态A优先（无量比要求），形态B次之
     if rev["passed"]:
         return {"passed": True, "base_pattern": "negative_to_positive",
                 "weekday_path": "midweek_partial", "components": comp}
@@ -244,11 +254,12 @@ def evaluate_friday(daily: pd.DataFrame, weekly_completed: pd.DataFrame, as_of: 
     comp = {"dual_yang": eff, "reversal": rev,
             "this_change_pct": round(tw.change_pct, 4),
             "prev_change_pct": round((float(pw["close"]) - float(pw["open"])) / float(pw["open"]) * 100 if pw["open"] else 0.0, 4)}
-    if eff["passed"]:
-        return {"passed": True, "base_pattern": "double_positive_efficiency_improved",
-                "weekday_path": "completed_week", "components": comp}
+    # 旧顺序：周五形态A优先、形态B次之（标签归属与旧一致）
     if rev["passed"]:
         return {"passed": True, "base_pattern": "negative_to_positive",
+                "weekday_path": "completed_week", "components": comp}
+    if eff["passed"]:
+        return {"passed": True, "base_pattern": "double_positive_efficiency_improved",
                 "weekday_path": "completed_week", "components": comp}
     return {"passed": False, "base_pattern": "none", "weekday_path": "completed_week",
             "components": comp}
@@ -285,9 +296,9 @@ def evaluate_weekly(snapshot, source_variant: str = "legacy_eod",
 
     wd = snapshot.calendar_weekday
     if wd == 1:
-        res = evaluate_monday(weekly_completed)
+        res = evaluate_monday(weekly_completed, partial=partial)
     elif wd == 2:
-        res = evaluate_tuesday(weekly_completed, daily, as_of)
+        res = evaluate_tuesday(weekly_completed, daily, as_of, partial=partial)
     elif wd in (3, 4):
         res = evaluate_midweek(daily, weekly_completed, as_of)
     else:
@@ -296,6 +307,12 @@ def evaluate_weekly(snapshot, source_variant: str = "legacy_eod",
     ev.passed = res.get("passed")
     ev.base_pattern = res.get("base_pattern", UNKNOWN)
     ev.weekday_path = res.get("weekday_path", UNKNOWN)
+    # 差分校正：旧 check_weekly_surge 在分发层先跑 veto，veto=True 一票否决
+    if ev.veto_flag:
+        ev.notes.append("周线放量阴线 veto（v4.0 一票否决，对照组保留标记）")
+        if ev.passed:
+            ev.passed = False
+            ev.notes.append("veto_overridden_branch_pass")
     ev.components = {
         **res.get("components", {}),
         "source_variant": source_variant,
