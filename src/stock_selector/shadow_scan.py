@@ -32,7 +32,6 @@ def shadow_scan(frames: dict[str, pd.DataFrame], as_of: datetime, config: dict,
     for code in sorted(frames):
         frame = frames[code]
         visible = frame.loc[frame.index <= pd.Timestamp(as_of.date())]
-        visible = frame.loc[frame.index <= pd.Timestamp(as_of.date())]
         if visible.empty:
             counts["unknown"] += 1
             continue
