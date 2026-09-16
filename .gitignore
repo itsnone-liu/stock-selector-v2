@@ -1,6 +1,7 @@
 __pycache__/
 *.py[cod]
 .pytest_cache/
+.jspace/
 .venv/
 output/*.csv
 output/*.json

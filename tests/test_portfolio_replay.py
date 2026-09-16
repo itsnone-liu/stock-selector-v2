@@ -100,6 +100,46 @@ def test_portfolio_replay_invariants():
     assert codes_traded <= set(codes)
 
 
+def test_input_order_does_not_change_selection_or_result():
+    days, end = 30, "2026-03-31"
+    codes = ["600004", "600002", "600003", "600001"]
+    frames = _frames(codes, days, end)
+    index = _index(90, end)
+    a = run_portfolio_replay(frames, index, CFG, "2026-03-01", end,
+                             top_per_day=2, service=StubService())
+    reversed_frames = dict(reversed(list(frames.items())))
+    b = run_portfolio_replay(reversed_frames, index, CFG, "2026-03-01", end,
+                             top_per_day=2, service=StubService())
+    cols = ["date", "code", "side", "qty", "reason"]
+    pd.testing.assert_frame_equal(a["trades"][cols].reset_index(drop=True),
+                                  b["trades"][cols].reset_index(drop=True))
+    assert a["summary"]["final_equity"] == b["summary"]["final_equity"]
+    assert a["summary"]["input_snapshot_hash"] == b["summary"]["input_snapshot_hash"]
+
+
+def test_future_data_mutation_does_not_change_past_decisions():
+    days, end = 30, "2026-03-31"
+    codes = ["600001", "600002"]
+    frames = _frames(codes, days, end)
+    index = _index(90, end)
+    cutoff = "2026-03-20"
+    a = run_portfolio_replay(frames, index, CFG, "2026-03-01", cutoff,
+                             top_per_day=2, service=StubService())
+    corrupted = {c: f.copy() for c, f in frames.items()}
+    for f in corrupted.values():
+        mask = f.index > pd.Timestamp(cutoff)
+        f.loc[mask, ["open", "high", "low", "close"]] *= 100
+    corrupted_index = index.copy()
+    corrupted_index.loc[corrupted_index.index > pd.Timestamp(cutoff),
+                        ["open", "high", "low", "close"]] *= 100
+    b = run_portfolio_replay(corrupted, corrupted_index, CFG, "2026-03-01", cutoff,
+                             top_per_day=2, service=StubService())
+    cols = ["date", "code", "side", "qty", "price"]
+    pd.testing.assert_frame_equal(a["trades"][cols].reset_index(drop=True),
+                                  b["trades"][cols].reset_index(drop=True))
+    pd.testing.assert_frame_equal(a["daily"], b["daily"])
+
+
 def test_portfolio_replay_weak_regime_blocks_buys():
     days, end = 20, "2026-03-31"
     codes = ["600009"]

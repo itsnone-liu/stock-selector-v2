@@ -125,9 +125,9 @@ class Portfolio:
         return (not reasons), reasons
 
     def buy(self, code: str, price: float, qty: float, at: datetime,
-            industry: str | None = None) -> Lot:
+            industry: str | None = None, fee: float = 0.0) -> Lot:
         amount = price * qty
-        if amount > self.cash:
+        if amount + fee > self.cash:
             raise ValueError("insufficient_cash")
         pos = self.positions.setdefault(code, Position(code=code, industry=industry))
         if industry:
@@ -135,17 +135,19 @@ class Portfolio:
         lot = Lot(buy_date=at.date(), qty=qty, price=price)
         pos.lots.append(lot)
         pos.last_price = price
-        self.cash -= amount
+        self.cash -= amount + fee
         self.daily_added_value[at.date()] = self.daily_added_value.get(at.date(), 0.0) + amount
         return lot
 
-    def sell(self, code: str, price: float, qty: float, at: datetime) -> float:
-        """T+1约束下卖出，返回实际卖出数量。"""
+    def sell(self, code: str, price: float, qty: float, at: datetime,
+             fee: float = 0.0) -> float:
+        """T+1约束下卖出，返回实际卖出数量；fee从卖出所得扣除。"""
         pos = self.positions.get(code)
         if not pos:
             return 0.0
         sold = pos.reduce(qty, at.date())
-        self.cash += sold * price
+        if sold > 0:
+            self.cash += sold * price - fee
         if pos.qty <= 1e-9:
             self.positions.pop(code, None)
         return sold

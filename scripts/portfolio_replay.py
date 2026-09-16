@@ -20,7 +20,10 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
+import platform
+import subprocess
 import sys
 from datetime import datetime, time as dtime
 from pathlib import Path
@@ -36,6 +39,8 @@ from stock_selector.config import load_config  # noqa: E402
 from stock_selector.data.tdx import TdxStore  # noqa: E402
 from stock_selector.data.tdx_index import index_daily  # noqa: E402
 from stock_selector.decision.exits import ExitAnchor  # noqa: E402
+from stock_selector.decision.execution import (CostModel, EXECUTION_MODEL_VERSION,
+                                               execution_feasibility)  # noqa: E402
 from stock_selector.decision.portfolio import Portfolio  # noqa: E402
 from stock_selector.decision.regime import market_regime  # noqa: E402
 from stock_selector.decision.replay import DecisionService, truncate_daily  # noqa: E402
@@ -43,11 +48,47 @@ from stock_selector.decision.replay import DecisionService, truncate_daily  # no
 CONF_RANK = {"high": 0, "medium": 1, "low": 2, "unknown": 3}
 
 
+def replay_input_hash(frames: dict[str, pd.DataFrame], index_frame: pd.DataFrame,
+                      cfg: dict, start: str, end: str) -> str:
+    """轻量可复现指纹：配置+范围+每帧边界/长度/末值（不是完整数据归档替代）。"""
+    start_ts, end_ts = pd.Timestamp(start), pd.Timestamp(end)
+    idx = index_frame.loc[(index_frame.index >= start_ts) & (index_frame.index <= end_ts)]
+    frame_meta = {}
+    for c, f in sorted(frames.items()):
+        visible = f.loc[(f.index >= start_ts) & (f.index <= end_ts)]
+        frame_meta[c] = ([0, None, None, None] if visible.empty else
+                         [len(visible), str(visible.index[0]), str(visible.index[-1]),
+                          float(visible.iloc[-1]["close"])])
+    payload = {"start": start, "end": end, "config": cfg,
+               "index": ([0, None, None, None] if idx.empty else
+                         [len(idx), str(idx.index[0]), str(idx.index[-1]),
+                          float(idx.iloc[-1]["close"])]),
+               "frames": frame_meta}
+    raw = json.dumps(payload, ensure_ascii=False, sort_keys=True, default=str).encode()
+    return hashlib.sha256(raw).hexdigest()
+
+
+def git_sha() -> str:
+    try:
+        return subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+    except Exception:
+        return "unknown"
+
+
+def run_manifest(cfg: dict, seed: int, codes: list[str], result: dict) -> dict:
+    cfg_raw = json.dumps(cfg, ensure_ascii=False, sort_keys=True, default=str).encode()
+    return {"git_sha": git_sha(), "python": platform.python_version(), "seed": seed,
+            "codes": sorted(codes), "config_sha256": hashlib.sha256(cfg_raw).hexdigest(),
+            "input_snapshot_hash": result["summary"]["input_snapshot_hash"],
+            "execution_model": result["summary"]["execution_model"]}
+
+
 def run_portfolio_replay(frames: dict[str, pd.DataFrame], index_frame: pd.DataFrame,
                          cfg: dict, start: str, end: str, capital: float = 1_000_000.0,
                          top_per_day: int = 3, checkpoint: dtime = dtime(15, 5),
                          context_payload: dict | None = None,
-                         service: DecisionService | None = None) -> dict:
+                         service: DecisionService | None = None,
+                         cost_model: CostModel | None = None) -> dict:
     """核心回放循环。frames: code→完整日线（函数内部做 PIT 截断）。
 
     service 可注入（测试用桩）；缺省现场构造。
@@ -56,73 +97,106 @@ def run_portfolio_replay(frames: dict[str, pd.DataFrame], index_frame: pd.DataFr
         service = DecisionService(config=cfg, daily_loader=lambda c: frames.get(c),
                                   index_loader=lambda: index_frame)
     pf = Portfolio(cash=capital)
+    costs = cost_model or CostModel()
     cap_cfg = cfg.get("decision", {}).get("portfolio", {})
     anchors: dict[str, ExitAnchor] = {}
     pending_exits: list[dict] = []   # T日信号 → T+1开盘执行
     pending_buys: list[dict] = []
     trades: list[dict] = []
+    rejections: list[dict] = []
     daily_rows: list[dict] = []
+    total_cost = 0.0
 
     days = [d for d in index_frame.index
             if pd.Timestamp(start) <= d <= pd.Timestamp(end)]
     days = sorted(days)
     day_bars = {c: f for c, f in frames.items()}
-    regime, _ = market_regime(index_frame, datetime.combine(days[0], dtime(15, 5)))
-
     for di, day in enumerate(days):
         ts = pd.Timestamp(day)
         asof = datetime(ts.year, ts.month, ts.day, checkpoint.hour, checkpoint.minute)
+        execution_at = datetime(ts.year, ts.month, ts.day, 9, 30)
         prev_day = days[di - 1] if di > 0 else None
 
         # ---- 1. 早盘：执行昨日信号（开盘价成交） ----
         if prev_day is not None:
-            # 卖出（先卖后买，释放现金与 caps 空间）
-            for pe in [x for x in pending_exits]:
+            # 卖出（先卖后买，释放现金与 caps 空间）。被停牌/跌停阻断则次日重试。
+            retry_exits: list[dict] = []
+            for pe in list(pending_exits):
                 c = pe["code"]
                 f = day_bars.get(c)
                 if f is None or ts not in f.index:
+                    rejections.append({"date": str(ts.date()), "code": c, "side": "sell",
+                                       "reason": "missing_bar_or_suspended"})
+                    retry_exits.append(pe)
                     continue
-                open_px = float(f.loc[ts, "open"])
+                bar = f.loc[ts]
+                prev_rows = f[f.index < ts]
+                prev_close = float(prev_rows.iloc[-1]["close"]) if len(prev_rows) else None
+                feasible, blocked = execution_feasibility(c, bar, prev_close, "sell")
+                if not feasible:
+                    rejections.append({"date": str(ts.date()), "code": c, "side": "sell",
+                                       "reason": blocked})
+                    retry_exits.append(pe)
+                    continue
                 qty = pf.positions[c].sellable_qty(ts.date()) if c in pf.positions else 0.0
                 if qty <= 0:
-                    continue  # T+1：全部为当日买入（理论上不会，信号隔日）
-                sold = pf.sell(c, open_px, qty, at=asof)
+                    retry_exits.append(pe)
+                    continue
+                fill_px = costs.fill_price(float(bar["open"]), "sell")
+                fee_parts = costs.fees(fill_px * qty, "sell", ts.date())
+                sold = pf.sell(c, fill_px, qty, at=execution_at, fee=fee_parts["total"])
                 if sold > 0:
+                    total_cost += fee_parts["total"]
                     trades.append({"date": str(ts.date()), "code": c, "side": "sell",
-                                   "price": round(open_px, 4), "qty": sold,
-                                   "value": round(sold * open_px, 2),
+                                   "price": round(fill_px, 4), "qty": sold,
+                                   "gross_value": round(sold * fill_px, 2),
+                                   "fees": round(fee_parts["total"], 2),
+                                   "value": round(sold * fill_px - fee_parts["total"], 2),
                                    "reason": pe["rule"]})
                     anchors.pop(c, None)
-            pending_exits = []
-            # 买入（按信号日置信度排序，caps 约束在信号日预算、成交日复核）
-            for pb in sorted(pending_buys, key=lambda x: (x["rank"], x["code"])):
+            pending_exits = retry_exits
+            # 买入：订单携带T日已知regime；成交日只复核价格/现金/可成交性。
+            for pb in pending_buys:
                 c = pb["code"]
                 f = day_bars.get(c)
                 if f is None or ts not in f.index or c in pf.positions:
                     continue
-                open_px = float(f.loc[ts, "open"])
-                if open_px <= 0:
+                bar = f.loc[ts]
+                prev_rows = f[f.index < ts]
+                prev_close = float(prev_rows.iloc[-1]["close"]) if len(prev_rows) else None
+                feasible, blocked = execution_feasibility(c, bar, prev_close, "buy")
+                if not feasible:
+                    rejections.append({"date": str(ts.date()), "code": c, "side": "buy",
+                                       "reason": blocked})
                     continue
-                regime_now, _ = market_regime(truncate_daily(index_frame, asof), asof)
+                fill_px = costs.fill_price(float(bar["open"]), "buy")
                 budget = min(pb["budget"], pf.equity * 0.2 - pf.position_value(c)) \
                     if pf.equity > 0 else 0.0
-                qty = int(max(0.0, budget) / open_px / 100) * 100  # 整手
+                qty = int(max(0.0, budget) / fill_px / 100) * 100  # 整手
+                while qty > 0:
+                    fees = costs.fees(fill_px * qty, "buy", ts.date())
+                    if fill_px * qty + fees["total"] <= pf.cash:
+                        break
+                    qty -= 100
                 if qty <= 0:
                     continue
-                ok, reasons = pf.can_buy(c, open_px, qty, cap_cfg, ts.date(), regime_now,
-                                         industry=None)
+                ok, reasons = pf.can_buy(c, fill_px, qty, cap_cfg, ts.date(),
+                                         pb["signal_regime"], industry=None)
                 if not ok:
+                    rejections.append({"date": str(ts.date()), "code": c, "side": "buy",
+                                       "reason": ";".join(reasons)})
                     continue
-                if qty * open_px > pf.cash:
-                    qty = int(pf.cash / open_px / 100) * 100
-                    if qty <= 0:
-                        continue
-                pf.buy(c, open_px, float(qty), at=asof)
-                trades.append({"date": str(ts.date()), "code": c, "side": "buy",
-                               "price": round(open_px, 4), "qty": qty,
-                               "value": round(qty * open_px, 2), "reason": pb["reason"]})
+                fee_parts = costs.fees(fill_px * qty, "buy", ts.date())
+                pf.buy(c, fill_px, float(qty), at=execution_at, fee=fee_parts["total"])
+                total_cost += fee_parts["total"]
+                trades.append({"date": str(ts.date()), "signal_date": pb["signal_date"],
+                               "code": c, "side": "buy", "price": round(fill_px, 4),
+                               "qty": qty, "gross_value": round(qty * fill_px, 2),
+                               "fees": round(fee_parts["total"], 2),
+                               "value": round(qty * fill_px + fee_parts["total"], 2),
+                               "reason": pb["reason"], "signal_regime": pb["signal_regime"]})
                 anchors[c] = ExitAnchor(
-                    entry_date=str(ts.date()), entry_price=open_px,
+                    entry_date=str(ts.date()), entry_price=fill_px,
                     structural_stop=pb["stop"], time_stop_days=int(
                         cfg["decision"]["exits"]["time_stop_days"]),
                     trail_pct=float(cfg["decision"]["exits"]["trail_pct"]) / 100.0,
@@ -147,11 +221,12 @@ def run_portfolio_replay(frames: dict[str, pd.DataFrame], index_frame: pd.DataFr
                 stop = advice.get("invalidation", {}).get("structural_stop") \
                     or float(f.loc[ts, "low"])
                 buys.append({"code": c, "rank": CONF_RANK.get(advice.get("confidence", "low"), 3),
-                             "stop": float(stop),
+                             "stop": float(stop), "signal_date": str(ts.date()),
+                             "signal_regime": regime,
                              "budget": pf.equity * 0.2,
                              "reason": "+".join(advice.get("rationale") or [])[:120]})
-        for pb in buys[:top_per_day]:
-            pending_buys.append(pb)
+        # P0：先按全候选统一键排序，再截 top-N；输入 dict 顺序不得影响结果。
+        pending_buys = sorted(buys, key=lambda x: (x["rank"], x["code"]))[:top_per_day]
 
         # ---- 3. 收盘估值 ----
         marks = {c: float(f.loc[ts, "close"]) for c, f in day_bars.items()
@@ -178,17 +253,22 @@ def run_portfolio_replay(frames: dict[str, pd.DataFrame], index_frame: pd.DataFr
     exit_reasons = tdf[tdf["side"] == "sell"]["reason"].value_counts().to_dict() if len(tdf) else {}
     return {
         "trades": tdf,
+        "rejections": pd.DataFrame(rejections),
         "daily": pd.DataFrame(daily_rows),
         "summary": {
             "start": start, "end": end, "codes": len(frames), "capital": capital,
+            "input_snapshot_hash": replay_input_hash(frames, index_frame, cfg, start, end),
             "final_equity": round(float(eq.iloc[-1]), 2) if len(eq) else capital,
             "total_return": round(ret, 4), "max_drawdown": round(dd, 4),
             "n_trades": len(tdf),
             "buys": int((tdf["side"] == "buy").sum()) if len(tdf) else 0,
             "exit_reasons": exit_reasons,
+            "total_cost": round(total_cost, 2),
+            "n_execution_rejections": len(rejections),
+            "execution_model": EXECUTION_MODEL_VERSION,
             "benchmark_equal_weight": round(bench, 4),
-            "limitations": ["无成本/滑点", "退出=close-confirm次日开盘模型",
-                            "行业40%上限未启用（无行业映射）", "研究用"],
+            "limitations": ["开盘涨跌停按日K开盘价保守近似（无盘口队列）",
+                            "行业40%上限未启用（无历史行业映射）", "研究用"],
         },
     }
 
@@ -233,9 +313,15 @@ def main() -> None:
     out.mkdir(parents=True, exist_ok=True)
     if len(result["trades"]):
         result["trades"].to_csv(out / "trades.csv", index=False, encoding="utf-8-sig")
+    if len(result["rejections"]):
+        result["rejections"].to_csv(out / "execution_rejections.csv", index=False,
+                                    encoding="utf-8-sig")
     result["daily"].to_csv(out / "daily_equity.csv", index=False, encoding="utf-8-sig")
     (out / "summary.json").write_text(
         json.dumps(result["summary"], ensure_ascii=False, indent=2), encoding="utf-8")
+    (out / "manifest.json").write_text(
+        json.dumps(run_manifest(cfg, args.seed, list(frames), result), ensure_ascii=False,
+                   indent=2), encoding="utf-8")
     print(json.dumps(result["summary"], ensure_ascii=False, indent=2))
 
 
