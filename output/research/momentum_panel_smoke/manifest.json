@@ -1,0 +1,20 @@
+{
+  "panel_version": "momentum_panel_v1",
+  "signal_ruleset": "legacy_reconstructed_v1_eod",
+  "config_hash": "bd22e8dfd21be9a2",
+  "start": "2026-01-05",
+  "end": "2026-03-31",
+  "every": 2,
+  "stocks": 300,
+  "dates": 28,
+  "stats": {
+    "stocks": 300,
+    "stocks_with_data": 300,
+    "monthly_pool_hits": 4424,
+    "rows": 4424,
+    "missing_current_bar": 0,
+    "panel_version": "momentum_panel_v1",
+    "signal_ruleset": "legacy_reconstructed_v1_eod"
+  },
+  "note": "legacy_reconstructed 尚未通过等价验收，不称 legacy_v0；研究配置独立于生产"
+}

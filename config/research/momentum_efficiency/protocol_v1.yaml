@@ -1,0 +1,37 @@
+# 资金动能与效率研究协议 v1（预注册，研究配置独立于生产 config/default.yaml）
+research_question: momentum_efficiency_information
+# 中心问题：价格出现资金效率和动能改善迹象时，哪些条件区分持续推动与短暂波动？
+
+universe:
+  channel: monthly_main          # 月线多头主池（PIT 逐日判定）
+  bottom_volume_channel: separate  # 底部三倍量池独立通道，不混入
+  include_no_signal_controls: true # 未触发周/日信号的池内股票保留为对照组
+  require_weekly_momentum: false   # 以下四项必须为 false：入池不得预过滤研究变量
+  require_daily_trigger: false
+  require_market_strength: false
+  require_sector_strength: false
+
+signal_ruleset: legacy_reconstructed_v1_eod   # 未通过等价验收前不称 legacy_v0
+versions_parallel:
+  legacy: true      # 原版复刻（含 3.5% 上限）
+  current: false    # 后续对照
+  optimized: false  # 后续消融
+
+outcomes:
+  reference: signal_close
+  primary_daily_sessions: [1, 2, 3]   # 日动能 → 下一日（短线主轴）
+  primary_weekly: next_trading_week   # 周动能 → 下一周（中期主轴）
+  medium_sessions: [30]
+  auxiliary_sessions: [5, 10, 20]
+  separate_overnight_vs_intraday: true
+  immature_excluded_from_win_rate: true
+
+reporting:
+  per_window_effective_n: true
+  cluster_aware_uncertainty: true     # 股票/时间分块
+  dedup_by_trading_sessions: true    # 真实交易日，非日历日
+  nonoverlapping_for_30d: true
+
+promotion:
+  auto_update_production: false
+  requires: [sealed_sample, cost_adjusted_replay, repeated_increment]
