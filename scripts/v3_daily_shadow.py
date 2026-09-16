@@ -58,7 +58,7 @@ def run_daily_shadow(as_of: datetime, cfg: dict, store: WatchStore,
                "new_events": scan["events"], "watch_codes": len(scan["watch_codes"]),
                "expired_events": expired,
                "holdings": {c: h["status"] for c, h in holdings_report["holdings"].items()},
-               "limitations": ["无股票→板块映射，行业资金快照待P2历史成分",
+               "limitations": ["行业资金快照待接入盘后链(申万L1映射服务已上线)",
                                "影子链不产生交易指令"]}
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     (OUT_DIR / f"{day}.json").write_text(
