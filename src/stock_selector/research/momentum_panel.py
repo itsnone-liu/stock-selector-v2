@@ -15,6 +15,7 @@ import pandas as pd
 
 from stock_selector.calendar import aggregate_weekly
 from stock_selector.signals.daily_features import evaluate_daily
+from stock_selector.signals.pre_signal_features import pre_signal_features
 from stock_selector.signals.snapshot import build_snapshot
 from stock_selector.signals.weekly_features import evaluate_weekly
 from stock_selector.strategies.trend import monthly_trend
@@ -62,26 +63,46 @@ def _monthly_series_fast(monthly_full: pd.DataFrame, daily: pd.DataFrame,
     return closes
 
 
-def _monthly_bull_fast(daily: pd.DataFrame, monthly_full: pd.DataFrame,
-                       pos: int, idx: pd.DatetimeIndex, as_of: datetime, config: dict) -> bool:
-    """与 _monthly_bull_pit 同语义的快速路径（等价性已 4000 样本 0 差异验证）。"""
-    closes = _monthly_series_fast(monthly_full, daily, pos, as_of)
+def _monthly_bull_from_closes(closes: list[float] | None, config: dict) -> bool | None:
+    """月线状态纯函数：None=证据不足，False=明确不满足，True=满足。"""
     if closes is None or len(closes) < max(int(config["monthly"].get("min_bars", 20)), 20):
-        return False
+        return None
     import numpy as np
 
     arr = np.asarray(closes, dtype=float)
-    ma5 = arr[-5:].mean() if len(arr) >= 5 else float("nan")
-    ma10 = arr[-10:].mean() if len(arr) >= 10 else float("nan")
-    ma20 = arr[-20:].mean() if len(arr) >= 20 else float("nan")
+    ma5, ma10, ma20 = arr[-5:].mean(), arr[-10:].mean(), arr[-20:].mean()
     if any(pd.isna(v) for v in (ma5, ma10, ma20)):
-        return False
+        return None
     change = (arr[-1] / arr[-2] - 1) * 100 if len(arr) >= 2 else 0.0
     if change < -float(config["monthly"].get("max_last_month_drop_pct", 8.0)):
         return False
     if config["monthly"].get("require_ma_bull", True) and not (ma5 > ma10 > ma20):
         return False
     return True
+
+
+def _monthly_states_fast(daily: pd.DataFrame, monthly_full: pd.DataFrame,
+                         pos: int, as_of: datetime, config: dict) -> dict:
+    ts = pd.Timestamp(as_of)
+    month_start = ts.to_period("M").to_timestamp()
+    completed_closes = monthly_full.loc[monthly_full.index < month_start, "close"].astype(float).tolist()
+    provisional_closes = _monthly_series_fast(monthly_full, daily, pos, as_of)
+    completed = _monthly_bull_from_closes(completed_closes, config)
+    provisional = _monthly_bull_from_closes(provisional_closes, config)
+    return {
+        "monthly_completed_state": completed,
+        "monthly_provisional_state": provisional,
+        "monthly_state_changed_this_month": (
+            provisional != completed if provisional is not None and completed is not None else None
+        ),
+    }
+
+
+def _monthly_bull_fast(daily: pd.DataFrame, monthly_full: pd.DataFrame,
+                       pos: int, idx: pd.DatetimeIndex, as_of: datetime, config: dict) -> bool:
+    """与 _monthly_bull_pit 同语义的快速路径（池准入仍按临时月状态）。"""
+    state = _monthly_states_fast(daily, monthly_full, pos, as_of, config)["monthly_provisional_state"]
+    return bool(state)
 
 
 def _tri_cell(value) -> str:
@@ -91,7 +112,8 @@ def _tri_cell(value) -> str:
     return "1" if bool(value) else "0"
 
 
-def _evidence_row(code: str, daily: pd.DataFrame, as_of: datetime, weekly_full: pd.DataFrame) -> dict | None:
+def _evidence_row(code: str, daily: pd.DataFrame, as_of: datetime, weekly_full: pd.DataFrame,
+                  monthly_states: dict | None = None) -> dict | None:
     snap = build_snapshot(code, as_of, daily)
     if not snap.has_current_bar:
         return None
@@ -100,12 +122,14 @@ def _evidence_row(code: str, daily: pd.DataFrame, as_of: datetime, weekly_full: 
     daily_values = [dev.legacy_labels.get(k) for k in (
         "shrinking_volume_acceleration", "two_day_acceleration")]
     daily_trigger = None if all(v is None for v in daily_values) else any(bool(v) for v in daily_values)
+    prior = pre_signal_features(snap)
     row = {
         "code": code,
         "date": as_of.date().isoformat(),
         "evidence_level": snap.evidence_level,
         "session_ordinal_in_week": snap.session_ordinal_in_week,
         "planned_sessions_this_week": snap.planned_sessions_this_week,
+        **(monthly_states or {}),
         # 周线连续证据
         "week_realized_pct": wev.realized_return_pct,
         "t_eff": wev.efficiency_this_week,
@@ -140,6 +164,7 @@ def _evidence_row(code: str, daily: pd.DataFrame, as_of: datetime, weekly_full: 
         "acc_rebound": dev.optimized_labels.get("acceleration_rebound"),
         # 协同格：unknown不得压成false；日线两个标签均未知时才是u。
         "weekly_daily_cell": f"{_tri_cell(wev.passed)}_{_tri_cell(daily_trigger)}",
+        **prior,
     }
     return row
 
@@ -165,10 +190,12 @@ def build_panel(store, codes: list[str], dates: list[datetime], config: dict,
             pos = idx.searchsorted(day, side="right")
             if pos == 0 or idx[pos - 1] != day:
                 continue
-            if not _monthly_bull_fast(daily, monthly_full, pos, idx, as_of, config):
+            monthly_states = _monthly_states_fast(daily, monthly_full, pos, as_of, config)
+            if not monthly_states["monthly_provisional_state"]:
                 continue
             stats["monthly_pool_hits"] += 1
-            row = _evidence_row(str(code), daily, as_of, weekly_full)
+            row = _evidence_row(str(code), daily, as_of, weekly_full,
+                                monthly_states=monthly_states)
             if row is None:
                 stats["missing_current_bar"] += 1
                 continue
