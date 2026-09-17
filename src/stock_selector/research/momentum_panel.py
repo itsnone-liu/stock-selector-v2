@@ -84,12 +84,22 @@ def _monthly_bull_fast(daily: pd.DataFrame, monthly_full: pd.DataFrame,
     return True
 
 
+def _tri_cell(value) -> str:
+    """2×2研究格保留unknown，不把None静默压成0。"""
+    if value is None or pd.isna(value):
+        return "u"
+    return "1" if bool(value) else "0"
+
+
 def _evidence_row(code: str, daily: pd.DataFrame, as_of: datetime, weekly_full: pd.DataFrame) -> dict | None:
     snap = build_snapshot(code, as_of, daily)
     if not snap.has_current_bar:
         return None
     wev = evaluate_weekly(snap, source_variant="legacy_eod", weekly_full=weekly_full)
     dev = evaluate_daily(snap)
+    daily_values = [dev.legacy_labels.get(k) for k in (
+        "shrinking_volume_acceleration", "two_day_acceleration")]
+    daily_trigger = None if all(v is None for v in daily_values) else any(bool(v) for v in daily_values)
     row = {
         "code": code,
         "date": as_of.date().isoformat(),
@@ -107,6 +117,8 @@ def _evidence_row(code: str, daily: pd.DataFrame, as_of: datetime, weekly_full: 
         "weekly_base_pattern": wev.base_pattern,
         "weekly_weekday_path": wev.weekday_path,
         "weekly_passed": wev.passed,
+        "weekly_eligibility_state": wev.eligibility_state,
+        "weekly_eligibility_reason": wev.eligibility_reason,
         "weekly_veto": wev.veto_flag,
         # 日线证据
         "r_today_pct": dev.r_today,
@@ -126,8 +138,8 @@ def _evidence_row(code: str, daily: pd.DataFrame, as_of: datetime, weekly_full: 
         "sv_rebound": dev.optimized_labels.get("SV_rebound"),
         "acc_continuation": dev.optimized_labels.get("acceleration_continuation"),
         "acc_rebound": dev.optimized_labels.get("acceleration_rebound"),
-        # 协同格（2×2 对照用）
-        "weekly_daily_cell": f"{int(bool(wev.passed))}_{int(bool(dev.legacy_labels.get('shrinking_volume_acceleration') or dev.legacy_labels.get('two_day_acceleration')))}",
+        # 协同格：unknown不得压成false；日线两个标签均未知时才是u。
+        "weekly_daily_cell": f"{_tri_cell(wev.passed)}_{_tri_cell(daily_trigger)}",
     }
     return row
 
@@ -166,7 +178,8 @@ def build_panel(store, codes: list[str], dates: list[datetime], config: dict,
     return pd.DataFrame(rows), stats
 
 
-def attach_outcomes(store, panel: pd.DataFrame, horizons=(1, 2, 3, 30)) -> pd.DataFrame:
+def attach_outcomes(store, panel: pd.DataFrame,
+                    horizons=(1, 2, 3, 5, 10, 15, 20)) -> pd.DataFrame:
     """对已冻结的 signal_panel 关联未来收益（独立阶段，禁止反向引用）。"""
     from stock_selector.research.outcomes import next_day_outcomes, next_week_outcomes, same_week_remaining
 
@@ -183,7 +196,7 @@ def attach_outcomes(store, panel: pd.DataFrame, horizons=(1, 2, 3, 30)) -> pd.Da
         if daily is None:
             continue
         d = pd.Timestamp(r["date"]).date()
-        o1 = next_day_outcomes(daily, d)
+        o1 = next_day_outcomes(daily, d, horizons=horizons)
         ow = next_week_outcomes(daily, d)
         wr = same_week_remaining(daily, d)
         sig = {"signal_id": f"{r['code']}_{r['date']}", "code": r["code"], "date": r["date"],

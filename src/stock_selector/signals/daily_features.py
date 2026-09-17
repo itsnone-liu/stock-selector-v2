@@ -20,17 +20,19 @@ from stock_selector.signals.contracts import DailyEvidence
 LEGACY_RETURN_CAP_PCT = 3.5  # 原版涨幅上限（复刻，不在此修改）
 
 
-def atr14_prev(daily: pd.DataFrame) -> float | None:
-    """ATR14 截至 t-1（不吃进今日推动）。"""
-    if daily is None or len(daily) < 16:
+def atr14_prev(prior_daily: pd.DataFrame) -> float | None:
+    """ATR14 截至 t-1；输入契约就是“仅含信号日前历史”，函数不再次剔除末行。"""
+    if prior_daily is None or len(prior_daily) < 15:
         return None
-    h, l, c = daily["high"].astype(float), daily["low"].astype(float), daily["close"].astype(float)
+    h = prior_daily["high"].astype(float)
+    l = prior_daily["low"].astype(float)
+    c = prior_daily["close"].astype(float)
     prev_close = c.shift(1)
     tr = pd.concat([h - l, (h - prev_close).abs(), (l - prev_close).abs()], axis=1).max(axis=1)
-    tr = tr.iloc[:-1]  # 剔除今日
-    atr = tr.rolling(14).mean()
-    v = atr.iloc[-1]
-    return float(v) if pd.notna(v) else None
+    # 第一根没有前收盘，不能作为完整TR；ATR14需14个完整TR，因此至少15根历史bar。
+    tr = tr.iloc[1:]
+    v = tr.tail(14).mean() if len(tr) >= 14 else None
+    return float(v) if v is not None and pd.notna(v) else None
 
 
 def activity_state(volume_ratio: float | None) -> str:
@@ -112,12 +114,21 @@ def evaluate_daily(snapshot, volume_ratio: float | None = None,
         "return_cap_passed": bool(r_today is not None and r_today < cap),
     }
 
-    # ---------- 优化版（独立命名，不占原版名） ----------
+    # ---------- Theory候选特征（独立命名，不占原版名） ----------
+    # 基础加速只比较今/昨日收盘收益，不依赖昨日实体阳线；再拆延续与反弹。
+    theory_acceleration_raw = bool(
+        r_today is not None and r_today > 0
+        and r_yesterday_prevclose is not None and r_today > r_yesterday_prevclose
+    )
     ev.optimized_labels = {
         "SV_continuation": bool(shrinking_raw and (r_yesterday_prevclose or 0) > 0) if shrinking_raw else None,
         "SV_rebound": bool(shrinking_raw and (r_yesterday_prevclose if r_yesterday_prevclose is not None else 1) <= 0) if shrinking_raw else None,
-        "acceleration_continuation": bool(two_day_raw and (r_yesterday_prevclose or 0) > 0) if two_day_raw else None,
-        "acceleration_rebound": bool(two_day_raw and (r_yesterday_prevclose if r_yesterday_prevclose is not None else 1) <= 0) if two_day_raw else None,
+        "legacy_acceleration_continuation": bool(two_day_raw and (r_yesterday_prevclose or 0) > 0) if two_day_raw else None,
+        "legacy_acceleration_rebound": bool(two_day_raw and (r_yesterday_prevclose if r_yesterday_prevclose is not None else 1) <= 0) if two_day_raw else None,
+        "theory_acceleration_raw": theory_acceleration_raw,
+        "acceleration_continuation": bool(theory_acceleration_raw and r_yesterday_prevclose > 0),
+        "acceleration_rebound": bool(theory_acceleration_raw and r_yesterday_prevclose <= 0),
+        "yesterday_green_body": yesterday_yang,
         "activity_state": activity_state(vr),
     }
     ev.atr14_previous = atr14_prev(rows)

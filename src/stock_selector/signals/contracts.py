@@ -83,6 +83,10 @@ class WeeklyEvidence:
     base_pattern: str = UNKNOWN  # negative_to_positive | double_positive_efficiency_improved | none | unknown
     weekday_path: str = UNKNOWN  # monday | tuesday_A | tuesday_B | tuesday_C | midweek_partial | completed_week
     passed: bool | None = None  # legacy 复刻判定（None=数据不足 unknown）
+    # 四态准入契约：eligible | observation | excluded | unknown。
+    # legacy只映射既有判定，不改变其语义；Theory/Optimized可独立给状态理由。
+    eligibility_state: str = UNKNOWN
+    eligibility_reason: str | None = None
     # 风险
     veto_flag: bool = False
     veto_metrics: dict = field(default_factory=dict)

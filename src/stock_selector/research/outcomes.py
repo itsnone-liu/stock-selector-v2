@@ -17,17 +17,32 @@ def _future(daily: pd.DataFrame, signal_date: date) -> pd.DataFrame:
     return daily[daily.index > pd.Timestamp(signal_date)]
 
 
-def next_day_outcomes(daily: pd.DataFrame, signal_date: date, horizons=(1, 2, 3, 30)) -> dict:
+PRIMARY_HORIZONS = (1, 2, 3, 5, 10, 15, 20)
+DEFAULT_HORIZONS = PRIMARY_HORIZONS + (30,)  # 30仅作旧结果对账，不是本轮主裁决窗口
+
+
+def next_day_outcomes(daily: pd.DataFrame, signal_date: date,
+                      horizons=DEFAULT_HORIZONS) -> dict:
+    """按参数计算未来交易日结果；每个窗口独立成熟，未成熟值不输出。
+
+    起点为信号日收盘；窗口只含 t+1..t+h，不包含信号日。
+    """
+    normalized = tuple(sorted({int(h) for h in horizons}))
+    if not normalized or any(h <= 0 for h in normalized):
+        raise ValueError("horizons must contain positive trading-session counts")
     fut = _future(daily, signal_date)
-    out: dict = {"matured_1": False, "matured_3": False, "matured_30": False}
+    out: dict = {f"matured_{h}": False for h in normalized}
     if fut.empty:
         return out
     signal_close = float(daily.loc[pd.Timestamp(signal_date), "close"])
     o1 = float(fut.iloc[0]["open"])
     out["overnight_gap"] = o1 / signal_close - 1
-    for h in horizons:
+    for h in normalized:
         if len(fut) >= h:
-            out[f"fwd{h}"] = float(fut.iloc[h - 1]["close"]) / signal_close - 1
+            window = fut.head(h)
+            out[f"fwd{h}"] = float(window.iloc[-1]["close"]) / signal_close - 1
+            out[f"mfe{h}_full"] = float(window["high"].max()) / signal_close - 1
+            out[f"mae{h}_full"] = float(window["low"].min()) / signal_close - 1
             out[f"matured_{h}"] = True
     d1 = fut.iloc[0]
     out["next_day_open_to_close"] = float(d1["close"]) / o1 - 1
@@ -46,15 +61,6 @@ def next_day_outcomes(daily: pd.DataFrame, signal_date: date, horizons=(1, 2, 3,
             out.get("peak3_return", 0) > 0.03
             and out.get("fwd3") is not None and out["fwd3"] < out.get("peak3_return", 0) * 0.3
         )
-    # MAE/MFE：完整3日窗口
-    if len(fut) >= 3:
-        w3 = fut.head(3)
-        out["mae3_full"] = float(w3["low"].min()) / signal_close - 1
-        out["mfe3_full"] = float(w3["high"].max()) / signal_close - 1
-    if len(fut) >= 30:
-        w30 = fut.head(30)
-        out["mae30_full"] = float(w30["low"].min()) / signal_close - 1
-        out["mfe30_full"] = float(w30["high"].max()) / signal_close - 1
     return out
 
 

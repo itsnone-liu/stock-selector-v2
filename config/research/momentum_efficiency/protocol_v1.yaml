@@ -19,12 +19,13 @@ versions_parallel:
 
 outcomes:
   reference: signal_close
-  primary_daily_sessions: [1, 2, 3]   # 日动能 → 下一日（短线主轴）
-  primary_weekly: next_trading_week   # 周动能 → 下一周（中期主轴）
-  medium_sessions: [30]
-  auxiliary_sessions: [5, 10, 20]
+  # 统一主研究期限；30日仅用于旧结果对账，不进入本轮策略裁决。
+  forward_sessions: [1, 2, 3, 5, 10, 15, 20]
+  primary_weekly: next_calendar_trading_week
+  legacy_reconciliation_sessions: [30]
   separate_overnight_vs_intraday: true
   immature_excluded_from_win_rate: true
+  include_full_window_mfe_mae: true
 
 reporting:
   per_window_effective_n: true

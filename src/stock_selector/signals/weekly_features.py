@@ -313,6 +313,18 @@ def evaluate_weekly(snapshot, source_variant: str = "legacy_eod",
         if ev.passed:
             ev.passed = False
             ev.notes.append("veto_overridden_branch_pass")
+    if ev.passed is None:
+        ev.eligibility_state = UNKNOWN
+        ev.eligibility_reason = "insufficient_evidence"
+    elif ev.veto_flag:
+        ev.eligibility_state = "excluded"
+        ev.eligibility_reason = "bearish_heavy_veto"
+    elif ev.passed:
+        ev.eligibility_state = "eligible"
+        ev.eligibility_reason = f"legacy_{ev.base_pattern}_{ev.weekday_path}"
+    else:
+        ev.eligibility_state = "observation"
+        ev.eligibility_reason = f"legacy_not_passed_{ev.weekday_path}"
     ev.components = {
         **res.get("components", {}),
         "source_variant": source_variant,
