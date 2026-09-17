@@ -4,30 +4,30 @@
 """
 from __future__ import annotations
 
-import numpy as np
 import pandas as pd
+
+from stock_selector.research.outcomes import PRIMARY_HORIZONS
 
 
 def deduplicate_events(events: pd.DataFrame, cluster_sessions: int = 5) -> pd.DataFrame:
-    """同股票同事件类型在N个交易行内只保留簇首；不同标签并存。"""
+    """同股票同事件类型在N个真实交易行内只保留簇首；必须提供session_index。"""
     if events.empty:
         return events.copy()
+    if "session_index" not in events.columns:
+        raise ValueError("deduplicate_events requires real trading session_index")
     e = events.sort_values(["code", "event_type", "detection_at"]).copy()
     keep = []
     for _, group in e.groupby(["code", "event_type"], sort=False):
         last_session = None
-        first_day = pd.Timestamp(group.iloc[0]["detection_at"]).date()
         for idx, row in group.iterrows():
-            session = (int(row["session_index"]) if "session_index" in group.columns else
-                       int(np.busday_count(first_day,
-                           pd.Timestamp(row["detection_at"]).date())))
+            session = int(row["session_index"])
             if last_session is None or session - last_session > cluster_sessions:
                 keep.append(idx)
                 last_session = session
     return e.loc[keep].sort_values("detection_at").reset_index(drop=True)
 
 
-def event_path_metrics(prices: pd.DataFrame, event_date: str, horizons=(5, 10, 20)) -> dict:
+def event_path_metrics(prices: pd.DataFrame, event_date: str, horizons=PRIMARY_HORIZONS) -> dict:
     """价格帧需含close/high/low；事件收盘为基准，之后交易行严格向前。"""
     p = prices.sort_index()
     loc = p.index.searchsorted(pd.Timestamp(event_date))

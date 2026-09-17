@@ -15,13 +15,21 @@ def test_dedup_clusters_same_code_label_but_keeps_other_label():
     assert list(out["event_type"]).count("b") == 1
 
 
+def test_dedup_refuses_calendar_weekday_approximation():
+    import pytest
+    e = pd.DataFrame([["600001", "a", "2026-01-05"]],
+                     columns=["code", "event_type", "detection_at"])
+    with pytest.raises(ValueError, match="session_index"):
+        deduplicate_events(e)
+
+
 def test_path_metrics_never_includes_event_day():
     idx = pd.date_range("2026-01-05", periods=25, freq="B")
     close = np.arange(10, 35, dtype=float)
     p = pd.DataFrame({"close": close, "high": close + 1, "low": close - 1}, index=idx)
     x = event_path_metrics(p, str(idx[0].date()))
     assert x["return_5d"] == 15 / 10 - 1
-    assert x["mfe"] == 31 / 10 - 1  # 后续20行high，严格不含事件日high=11
+    assert x["mfe"] == 31 / 10 - 1  # 默认最长20日，严格不含事件日high=11
     assert x["mae"] == 10 / 10 - 1
 
 

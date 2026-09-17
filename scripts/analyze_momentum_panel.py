@@ -13,15 +13,22 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
+from stock_selector.research.outcomes import PRIMARY_HORIZONS
+
 CELL_NAMES = {"0_0": "月线池基准(周否_日否)", "1_0": "周线独立", "0_1": "日线独立", "1_1": "周日协同"}
-DAY_COLS = ["overnight_gap", "next_day_open_to_close", "fwd1", "fwd2", "fwd3", "fwd30",
-            "peak3_return", "giveback_from_peak3", "mae3_full", "mfe3_full"]
+DAY_COLS = (["overnight_gap", "next_day_open_to_close"]
+            + [f"fwd{h}" for h in PRIMARY_HORIZONS]
+            + [f"mae{h}_full" for h in PRIMARY_HORIZONS]
+            + [f"mfe{h}_full" for h in PRIMARY_HORIZONS]
+            + ["peak3_return", "giveback_from_peak3"])
 WEEK_COLS = ["next_week_open_gap", "next_week_return", "next_week_high", "next_week_low"]
 
 
 def _agg(g: pd.DataFrame, cols: list[str]) -> dict:
     out: dict = {"n": int(len(g))}
     for c in cols:
+        if c not in g.columns:
+            continue
         s = g[c].dropna()
         out[f"{c}_med"] = round(float(s.median()), 5) if len(s) else None
         out[f"{c}_pos"] = round(float((s > 0).mean()), 4) if len(s) else None
@@ -85,12 +92,15 @@ def main() -> None:
     tables["week_half_detail"] = pd.DataFrame(rows)
 
     # ---- 5. 覆盖披露 ----
-    tables["coverage"] = pd.DataFrame([{
+    coverage = {
         "signal_rows": len(sig), "outcome_rows": len(out),
-        "matured_1": int(m["matured_1"].sum()), "matured_3": int(m["matured_3"].sum()),
-        "matured_30": int(m["matured_30"].sum()), "matured_week": int(m["matured_week"].sum()),
+        "matured_week": int(m["matured_week"].sum()),
         "unique_codes": sig["code"].nunique(), "unique_dates": sig["date"].nunique(),
-    }])
+    }
+    for h in PRIMARY_HORIZONS:
+        col = f"matured_{h}"
+        coverage[col] = int(m[col].sum()) if col in m else 0
+    tables["coverage"] = pd.DataFrame([coverage])
 
     summary = {}
     for name, t in tables.items():

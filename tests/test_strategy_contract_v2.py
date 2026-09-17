@@ -46,6 +46,22 @@ def test_all_requested_horizons_and_forward_window_exact():
         assert out[f"mae{h}_full"] == future.low.min() / base - 1
 
 
+def test_partial_maturity_has_all_requested_keys():
+    f = _frame(45)
+    sig = f.index[-13].date()  # 只有12根未来bar
+    out = next_day_outcomes(f, sig, horizons=(10, 15, 20))
+    assert out["matured_10"] is True
+    assert out["matured_15"] is False and "fwd15" not in out
+    assert out["matured_20"] is False and "fwd20" not in out
+
+
+def test_invalid_horizons_fail_loudly():
+    import pytest
+    f = _frame()
+    with pytest.raises(ValueError):
+        next_day_outcomes(f, f.index[20].date(), horizons=(0, 5))
+
+
 def test_attach_outcomes_forwards_custom_horizons():
     f = _frame()
     day = f.index[25].date().isoformat()

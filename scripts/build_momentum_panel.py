@@ -36,7 +36,7 @@ def main() -> None:
     p.add_argument("--every", type=int, default=1, help="每 K 个交易日采样一次")
     p.add_argument("--out", default="output/research/momentum_panel")
     p.add_argument("--horizons", default="1,2,3,5,10,15,20",
-                   help="未来交易日窗口，逗号分隔")
+                   help="未来交易日窗口，逗号分隔（默认: 1,2,3,5,10,15,20）")
     a = p.parse_args()
     horizons = tuple(sorted({int(x) for x in a.horizons.split(",") if x.strip()}))
     if not horizons or any(h <= 0 for h in horizons):
