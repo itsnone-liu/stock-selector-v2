@@ -49,3 +49,24 @@ def test_cc_same_progress_uses_closes_not_opens():
     assert e["cc_prev_same_progress_return_pct"] == round(10.2 / 10.1 * 100 - 100, 4)
     assert e["cc_same_progress_return_delta_pct"] == round(
         (9.9 / 10.2 - 10.2 / 10.1) * 100, 4)
+
+
+def test_spring_festival_empty_calendar_week_falls_back_to_trading_week():
+    # 2026春节：02-14~02-23休市，02-24(周二)恢复。
+    # 日历"上周"02-16~22零交易——必须回退到交易周02-09~13及再上周02-02~06。
+    dates = ["2026-01-30", "2026-02-02", "2026-02-03", "2026-02-04", "2026-02-05", "2026-02-06",
+             "2026-02-09", "2026-02-10", "2026-02-11", "2026-02-12", "2026-02-13",
+             "2026-02-24", "2026-02-25"]
+    closes = [10.0, 10.1, 10.2, 10.1, 10.2, 10.3,
+              10.2, 10.2, 10.3, 10.4, 10.5,
+              10.4, 10.6]
+    opens = [c - 0.05 for c in closes]
+    vols = [100.0] * len(dates)
+    d = _rows(dates, opens, closes, vols)
+    # 周二02-24：本周至今=02-24单日；上一交易周=02-09~13(n=1→02-09)
+    e = early_week_comparison_evidence(d, datetime(2026, 2, 24, 15, 30), planned_sessions=5)
+    assert e["sessions"] == 1
+    assert "note" not in e
+    assert e["cc_current_return_pct"] == round(10.4 / 10.5 * 100 - 100, 4)
+    assert e["cc_prev_same_progress_return_pct"] == round(10.2 / 10.3 * 100 - 100, 4)
+    assert e["same_progress_volume_ratio"] == 1.0

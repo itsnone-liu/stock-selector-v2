@@ -120,16 +120,26 @@ def partial_week_bar(daily: pd.DataFrame, as_of: datetime) -> WeekBar | None:
 
 def early_week_comparison_evidence(daily: pd.DataFrame, as_of: datetime,
                                    planned_sessions: int | None) -> dict:
-    """周一/周二的同进度与真实计划交易日折算证据；不参与当前准入。"""
+    """周一/周二的同进度与真实计划交易日折算证据；不参与当前准入。
+
+    周 alignment 用 W-FRI 交易日周（aggregate_weekly 自动跳过休市空周），
+    不用日历周：春节/国庆休市周会导致日历"上周/上上周"零交易日而误报缺失。
+    """
     current = current_week_rows(daily, as_of)
     if current is None or current.empty:
         return {"note": "current_week_missing"}
-    n = len(current)
     ts = pd.Timestamp(as_of).normalize()
-    monday = ts - pd.Timedelta(days=ts.weekday())
-    prev_monday, prev_sunday = monday - pd.Timedelta(days=7), monday - pd.Timedelta(days=1)
-    previous_full = daily[(daily.index >= prev_monday) & (daily.index <= prev_sunday)]
-    previous = previous_full.head(n)
+    current = current[current.index <= ts]  # PIT防御：不假设调用方已截断
+    if current.empty:
+        return {"note": "current_week_missing"}
+    n = len(current)
+    prior = completed_week_rows(daily, as_of)
+    weekly = aggregate_weekly(prior)
+    if weekly is None or weekly.empty:
+        return {"sessions": n, "note": "same_progress_insufficient"}
+    end1 = weekly.index[-1]
+    prev_full = prior[prior.index > end1 - pd.Timedelta(days=7)]
+    previous = prev_full.head(n)
     tw, pw_same = _week_bar_from_rows(current), _week_bar_from_rows(previous)
     if tw is None or pw_same is None or len(previous) < n:
         return {"sessions": n, "note": "same_progress_insufficient"}
@@ -137,14 +147,17 @@ def early_week_comparison_evidence(daily: pd.DataFrame, as_of: datetime,
     same_vol_ratio = tw.volume / pw_same.volume if pw_same.volume > 0 else None
     planned = int(planned_sessions or LEGACY_PRORATION_BASE)
     planned_ret, planned_vol = current_ret / n * planned, tw.volume / n * planned
-    prev_full_vol = float(previous_full["volume"].sum()) if len(previous_full) else 0.0
-    # 收盘对收盘口径（2026-09-17裁定）：本周至今收盘 vs 上周收盘；
-    # 上周同进度收盘 vs 上上周收盘。上上周数据缺失→None，不猜。
-    prev_week_last_close = (float(previous_full["close"].iloc[-1])
-                            if len(previous_full) else None)
-    prev2_monday, prev2_sunday = prev_monday - pd.Timedelta(days=7), prev_monday - pd.Timedelta(days=1)
-    prev2_full = daily[(daily.index >= prev2_monday) & (daily.index <= prev2_sunday)]
-    prev2_last_close = float(prev2_full["close"].iloc[-1]) if len(prev2_full) else None
+    prev_full_vol = float(prev_full["volume"].sum()) if len(prev_full) else 0.0
+    # 收盘对收盘口径（2026-09-17裁定）：本周至今收盘 vs 上一交易周收盘；
+    # 上一交易周同进度收盘 vs 再上一交易周收盘。历史交易周不足→None，不猜。
+    prev_week_last_close = (float(prev_full["close"].iloc[-1])
+                            if len(prev_full) else None)
+    prev2_last_close = None
+    if len(weekly) >= 2:
+        end2 = weekly.index[-2]
+        prev2_full = prior[(prior.index > end2 - pd.Timedelta(days=7)) & (prior.index <= end2)]
+        if len(prev2_full):
+            prev2_last_close = float(prev2_full["close"].iloc[-1])
     cc_current = ((float(current["close"].iloc[-1]) / prev_week_last_close - 1) * 100
                   if prev_week_last_close else None)
     cc_prev_same = ((float(previous["close"].iloc[-1]) / prev2_last_close - 1) * 100
