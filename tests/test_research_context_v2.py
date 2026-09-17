@@ -3,7 +3,11 @@ from __future__ import annotations
 import pandas as pd
 import pytest
 
-from stock_selector.research.context_join import join_industry_context, join_market_context
+from stock_selector.research.context_join import (
+    attach_historical_membership,
+    join_industry_context,
+    join_market_context,
+)
 from stock_selector.research.path_classification import outcome_bucket, price_path
 
 
@@ -19,6 +23,17 @@ def test_context_join_rejects_duplicate_background():
     c = pd.DataFrame({"date": ["2025-01-02", "2025-01-02"], "x": [1, 2]})
     with pytest.raises(ValueError):
         join_market_context(p, c)
+
+
+def test_historical_membership_uses_event_date():
+    p = pd.DataFrame({"code": ["1", "1"], "date": ["2024-06-01", "2025-06-01"]})
+    m = pd.DataFrame({
+        "code": ["000001", "000001"], "industry_code": ["OLD", "NEW"],
+        "effective_from": ["2020-01-01", "2025-01-01"],
+        "effective_to": ["2024-12-31", None],
+    })
+    out = attach_historical_membership(p, m)
+    assert list(out.industry_code) == ["OLD", "NEW"]
 
 
 def test_industry_join_requires_historical_key():

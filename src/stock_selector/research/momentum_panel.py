@@ -20,8 +20,8 @@ from stock_selector.signals.snapshot import build_snapshot
 from stock_selector.signals.weekly_features import evaluate_weekly
 from stock_selector.strategies.trend import monthly_trend
 
-PANEL_VERSION = "momentum_panel_v1"
-SIGNAL_RULESET = "legacy_reconstructed_v1_eod"  # 尚未通过等价验收，不称 legacy_v0
+PANEL_VERSION = "momentum_panel_v2_contract"
+SIGNAL_RULESET = "legacy_reconstructed_v1_eod"  # Legacy verdict source; Theory eligibility is a separate field
 
 
 def panel_config_hash(config: dict) -> str:
