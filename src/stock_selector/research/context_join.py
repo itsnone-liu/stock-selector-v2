@@ -21,20 +21,24 @@ def attach_historical_membership(panel: pd.DataFrame, memberships: pd.DataFrame,
     mem[code_col] = mem[code_col].astype(str).str.zfill(6)
     mem["effective_from"] = pd.to_datetime(mem["effective_from"])
     mem["effective_to"] = pd.to_datetime(mem["effective_to"], errors="coerce")
-    left = panel.copy()
+    left = panel.copy().reset_index(drop=True)
     left[code_col] = left[code_col].astype(str).str.zfill(6)
     left["_event_date"] = pd.to_datetime(left["date"])
-    out_rows = []
-    for _, r in left.iterrows():
-        candidates = mem[(mem[code_col] == r[code_col])
-                         & (mem["effective_from"] <= r["_event_date"])
-                         & (mem["effective_to"].isna() | (mem["effective_to"] >= r["_event_date"]))]
-        if len(candidates) > 1:
-            raise ValueError(f"overlapping membership for {r[code_col]} {r['date']}")
-        row = r.drop(labels=["_event_date"]).to_dict()
-        row[industry_col] = candidates.iloc[0][industry_col] if len(candidates) == 1 else None
-        out_rows.append(row)
-    return pd.DataFrame(out_rows)
+    left["_row_id"] = range(len(left))
+    # 向量化区间连接：先按code展开候选区间，再按有效期过滤；语义与逐行版一致。
+    pairs = left.merge(mem.rename(columns={industry_col: "_mem_industry"}),
+                       on=code_col, how="left")
+    hit = (pairs["effective_from"] <= pairs["_event_date"]) & \
+          (pairs["effective_to"].isna() | (pairs["effective_to"] >= pairs["_event_date"]))
+    pairs = pairs[hit]
+    if pairs["_row_id"].duplicated(keep=False).any():
+        bad_id = int(pairs[pairs["_row_id"].duplicated(keep=False)]["_row_id"].iloc[0])
+        row = left.loc[bad_id]
+        raise ValueError(f"overlapping membership for {row[code_col]} {row['date']}")
+    mapping = pairs.set_index("_row_id")["_mem_industry"]
+    out = left.copy()
+    out[industry_col] = out["_row_id"].map(mapping)
+    return out.drop(columns=["_row_id", "_event_date"])
 
 
 def join_market_context(panel: pd.DataFrame, market_daily: pd.DataFrame) -> pd.DataFrame:
