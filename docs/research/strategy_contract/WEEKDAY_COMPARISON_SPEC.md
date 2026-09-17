@@ -21,7 +21,7 @@
 3. 计划交易日折算：短周使用真实计划交易日，不固定5；
 4. 早周证据：周一/周二输出置信等级，不把单日噪声等同完整周结论。
 
-Theory至少并行输出上述证据，之后单因素决定采用哪种准入，不得根据同一批收益反复拼公式。
+Theory现在已并行输出上述证据，但尚不参与准入：`same_progress_return_delta_pct`、`same_progress_volume_ratio`、`planned_prorated_return_pct`、`planned_prorated_volume_ratio`、`early_week_evidence_strength`；周二另输出`tuesday_recovery_ratio`及是否收复周一收盘。之后单因素决定采用哪种准入，不得根据同一批收益反复拼公式。
 
 ## 已确认与未确认
 

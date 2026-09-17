@@ -77,6 +77,13 @@ class WeeklyEvidence:
     efficiency_comparison_basis: str = UNKNOWN  # full_week | partial_prorated | same_progress
     volume_ratio_vs_prev_week: float | None = None
     prorated_volume_ratio: float | None = None  # /days×5 折算后的量比（legacy 口径）
+    # Theory早周并行证据（只记录，不参与当前准入）
+    same_progress_return_delta_pct: float | None = None
+    same_progress_volume_ratio: float | None = None
+    planned_prorated_return_pct: float | None = None
+    planned_prorated_volume_ratio: float | None = None
+    early_week_evidence_strength: float | None = None
+    tuesday_recovery_ratio: float | None = None
     week_sessions: int | None = None
     week_completion: float | None = None
     # 形态判定

@@ -117,6 +117,46 @@ def partial_week_bar(daily: pd.DataFrame, as_of: datetime) -> WeekBar | None:
     return _week_bar_from_rows(rows)
 
 
+
+def early_week_comparison_evidence(daily: pd.DataFrame, as_of: datetime,
+                                   planned_sessions: int | None) -> dict:
+    """周一/周二的同进度与真实计划交易日折算证据；不参与当前准入。"""
+    current = current_week_rows(daily, as_of)
+    if current is None or current.empty:
+        return {"note": "current_week_missing"}
+    n = len(current)
+    ts = pd.Timestamp(as_of).normalize()
+    monday = ts - pd.Timedelta(days=ts.weekday())
+    prev_monday, prev_sunday = monday - pd.Timedelta(days=7), monday - pd.Timedelta(days=1)
+    previous_full = daily[(daily.index >= prev_monday) & (daily.index <= prev_sunday)]
+    previous = previous_full.head(n)
+    tw, pw_same = _week_bar_from_rows(current), _week_bar_from_rows(previous)
+    if tw is None or pw_same is None or len(previous) < n:
+        return {"sessions": n, "note": "same_progress_insufficient"}
+    current_ret, prev_same_ret = tw.change_pct, pw_same.change_pct
+    same_vol_ratio = tw.volume / pw_same.volume if pw_same.volume > 0 else None
+    planned = int(planned_sessions or LEGACY_PRORATION_BASE)
+    planned_ret, planned_vol = current_ret / n * planned, tw.volume / n * planned
+    prev_full_vol = float(previous_full["volume"].sum()) if len(previous_full) else 0.0
+    out = {
+        "sessions": n, "planned_sessions": planned,
+        "current_return_pct": round(current_ret, 4),
+        "prev_same_progress_return_pct": round(prev_same_ret, 4),
+        "same_progress_return_delta_pct": round(current_ret - prev_same_ret, 4),
+        "same_progress_volume_ratio": round(same_vol_ratio, 4) if same_vol_ratio is not None else None,
+        "planned_prorated_return_pct": round(planned_ret, 4),
+        "planned_prorated_volume_ratio": round(planned_vol / prev_full_vol, 4) if prev_full_vol > 0 else None,
+        "evidence_strength": round(n / planned, 4) if planned > 0 else None,
+    }
+    if n >= 2:
+        mon, tue = current.iloc[0], current.iloc[-1]
+        mon_drop = max(float(mon["open"]) - float(mon["close"]), 0.0)
+        tue_recovery = max(float(tue["close"]) - float(tue["open"]), 0.0)
+        out["tuesday_recovery_ratio"] = round(tue_recovery / mon_drop, 4) if mon_drop > 0 else None
+        out["tuesday_closes_above_monday_close"] = bool(float(tue["close"]) > float(mon["close"]))
+    return out
+
+
 # ---------- 星期分支（legacy_eod v4.0 复刻） ----------
 
 def evaluate_monday(weekly_completed: pd.DataFrame, partial: WeekBar | None = None) -> dict:
@@ -333,8 +373,12 @@ def evaluate_weekly(snapshot, source_variant: str = "legacy_eod",
         if ev.passed:
             ev.passed = False
             ev.notes.append("veto_overridden_branch_pass")
+    early = early_week_comparison_evidence(
+        daily, as_of, snapshot.planned_sessions_this_week
+    ) if wd in (1, 2) else {}
     ev.components = {
         **res.get("components", {}),
+        **({"theory_early_week_evidence": early} if early else {}),
         "source_variant": source_variant,
         "calendar_weekday": wd,
         "session_ordinal_in_week": snapshot.session_ordinal_in_week,
@@ -342,6 +386,13 @@ def evaluate_weekly(snapshot, source_variant: str = "legacy_eod",
         "short_week": (snapshot.planned_sessions_this_week or 5) < 5,
     }
     ev.eligibility_state, ev.eligibility_reason = derive_weekly_eligibility(ev)
+    if early:
+        ev.same_progress_return_delta_pct = early.get("same_progress_return_delta_pct")
+        ev.same_progress_volume_ratio = early.get("same_progress_volume_ratio")
+        ev.planned_prorated_return_pct = early.get("planned_prorated_return_pct")
+        ev.planned_prorated_volume_ratio = early.get("planned_prorated_volume_ratio")
+        ev.early_week_evidence_strength = early.get("evidence_strength")
+        ev.tuesday_recovery_ratio = early.get("tuesday_recovery_ratio")
     # 效率连续量（供研究，非判定）
     eff = None
     comps = res.get("components", {})
