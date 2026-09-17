@@ -87,8 +87,12 @@ def grouped_contrast(df: pd.DataFrame, group_cols: list[str], horizons=HORIZONS)
 def block_bootstrap_median_diff(df: pd.DataFrame, value_col: str, treatment_col: str,
                                 *, block_col: str, iterations: int = 500,
                                 seed: int = 20260917) -> dict:
-    """按股票或日期整块有放回抽样，估计处理组-对照组中位数差CI。"""
-    valid = df.dropna(subset=[value_col, treatment_col, block_col])
+    """按股票或日期整块有放回抽样，估计处理组-对照组中位数差CI。
+
+    treatment_col 必须是布尔型；字符串列会被全部判真，调用方负责显式转换。
+    """
+    valid = df.dropna(subset=[value_col, treatment_col, block_col]).copy()
+    valid[treatment_col] = valid[treatment_col].astype(bool)
     blocks = valid[block_col].unique()
     if len(blocks) < 2:
         return {"estimate": None, "ci_low": None, "ci_high": None, "blocks": len(blocks)}
