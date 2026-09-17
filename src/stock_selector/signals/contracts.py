@@ -84,6 +84,12 @@ class WeeklyEvidence:
     planned_prorated_volume_ratio: float | None = None
     early_week_evidence_strength: float | None = None
     tuesday_recovery_ratio: float | None = None
+    # 收盘对收盘动能上下文（2026-09-17裁定：所有比较用收盘vs前期收盘）
+    prev_week_cc_pct: float | None = None      # 上一完整周 cc 涨幅%
+    prev2_week_cc_pct: float | None = None     # 上上周 cc 涨幅%
+    partial_week_cc_pct: float | None = None   # 本周至今收盘 vs 上周收盘
+    momentum_context_positive: bool | None = None  # 前两周cc均>0；None=数据不足
+    theory_stagnation_flag: bool | None = None  # 上涨早周的部分周滞涨（cc口径）
     week_sessions: int | None = None
     week_completion: float | None = None
     # 形态判定

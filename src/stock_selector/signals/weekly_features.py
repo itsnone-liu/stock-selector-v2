@@ -157,6 +157,46 @@ def early_week_comparison_evidence(daily: pd.DataFrame, as_of: datetime,
     return out
 
 
+# ---------- 收盘对收盘动能上下文（2026-09-17 裁定口径） ----------
+
+def close_close_context(weekly_completed: pd.DataFrame,
+                        partial: WeekBar | None) -> dict | None:
+    """所有比较用当期收盘 vs 前一期收盘，不用开盘（规避跳空/低开）。
+
+    - prev_week_cc_pct: 上一完整周收盘/上上周收盘-1
+    - prev2_week_cc_pct: 上上周收盘/再上周收盘-1（不足三周=None）
+    - momentum_context_positive: 前两周 cc 均>0（任一未知→None，不猜）
+    - partial_week_cc_pct: 本周至今收盘/上一完整周收盘-1
+    - theory_stagnation_flag: 仅上涨早周计算——折算(cc/sessions×5)量>上周量
+      且折算cc涨幅<上周cc涨幅×0.8 → 滞涨（部分周约束只用于排滞涨）。
+    """
+    if weekly_completed is None or len(weekly_completed) < 2 or partial is None:
+        return None
+    pw_close = float(weekly_completed.iloc[-1]["close"])
+    pw2_close = float(weekly_completed.iloc[-2]["close"])
+    prev_cc = (pw_close / pw2_close - 1) * 100 if pw2_close else None
+    prev2_cc = None
+    if len(weekly_completed) >= 3:
+        pw3_close = float(weekly_completed.iloc[-3]["close"])
+        prev2_cc = (pw2_close / pw3_close - 1) * 100 if pw3_close else None
+    partial_cc = (partial.close / pw_close - 1) * 100 if pw_close else None
+    context_positive = (None if prev_cc is None or prev2_cc is None
+                        else bool(prev_cc > 0 and prev2_cc > 0))
+    stagnation = None
+    if partial_cc is not None and partial_cc > 0 and partial.sessions and prev_cc is not None:
+        sessions = partial.sessions
+        scaled_cc = partial_cc / sessions * LEGACY_PRORATION_BASE
+        scaled_vol = partial.volume / sessions * LEGACY_PRORATION_BASE
+        prev_vol = float(weekly_completed.iloc[-1]["volume"])
+        stagnation = bool(scaled_vol > prev_vol and prev_cc > 0
+                          and scaled_cc < prev_cc * 0.8)
+    return {"prev_week_cc_pct": round(prev_cc, 4) if prev_cc is not None else None,
+            "prev2_week_cc_pct": round(prev2_cc, 4) if prev2_cc is not None else None,
+            "partial_week_cc_pct": round(partial_cc, 4) if partial_cc is not None else None,
+            "momentum_context_positive": context_positive,
+            "theory_stagnation_flag": stagnation}
+
+
 # ---------- 星期分支（legacy_eod v4.0 复刻） ----------
 
 def evaluate_monday(weekly_completed: pd.DataFrame, partial: WeekBar | None = None) -> dict:
@@ -307,7 +347,13 @@ def evaluate_friday(daily: pd.DataFrame, weekly_completed: pd.DataFrame, as_of: 
 
 
 def derive_weekly_eligibility(ev: WeeklyEvidence) -> tuple[str, str]:
-    """从Legacy证据纯派生Theory准入四态，不改 passed（保留源码差分语义）。"""
+    """从Legacy证据纯派生Theory准入四态，不改 passed（保留源码差分语义）。
+
+    2026-09-17 裁定叠加：
+    - 周二B（反红）→ observation（不再是暂定eligible）；
+    - 前两周cc正向时：早周下跌（部分周cc<=0）不做部分周硬约束 → observation；
+    - 上涨早周用部分周约束识别滞涨 → theory_stagnation_flag → excluded。
+    """
     if ev.passed is None:
         return UNKNOWN, "insufficient_evidence"
     if ev.veto_flag:
@@ -315,11 +361,24 @@ def derive_weekly_eligibility(ev: WeeklyEvidence) -> tuple[str, str]:
     comps = ev.components or {}
     if comps.get("stagnation_excluded"):
         return "excluded", "stagnation_excluded"
+    if ev.theory_stagnation_flag:
+        return "excluded", "theory_stagnation_partial_week"
     if ev.weekday_path == "tuesday_C_failed_volume":
         return "excluded", "tuesday_double_down_not_shrinking"
+    if ev.weekday_path == "tuesday_B":
+        return "observation", "tuesday_reversal_observation"
     # 旧源码会“保留”的待观察/卖压衰减，不等于Theory交易准入。
     if ev.weekday_path in {"tuesday_pending", "tuesday_C"}:
         return "observation", f"{ev.weekday_path}_legacy_hold"
+    is_early_week = (ev.weekday_path == "monday"
+                     or str(ev.weekday_path).startswith("tuesday"))
+    if is_early_week and ev.momentum_context_positive is True:
+        if ev.partial_week_cc_pct is not None and ev.partial_week_cc_pct <= 0:
+            # 前期动能正向下的早周下跌：不放量跌→观察；放量跌已被veto排除。
+            return "observation", "down_day_no_partial_constraint"
+        if ev.passed:
+            return "eligible", f"legacy_{ev.base_pattern}_{ev.weekday_path}"
+        return "observation", f"up_day_legacy_not_passed_{ev.weekday_path}"
     if ev.passed:
         return "eligible", f"legacy_{ev.base_pattern}_{ev.weekday_path}"
     return "observation", f"legacy_not_passed_{ev.weekday_path}"
@@ -354,6 +413,15 @@ def evaluate_weekly(snapshot, source_variant: str = "legacy_eod",
         }])])
         ev.veto_flag, ev.veto_metrics = bearish_heavy_veto(frame)
 
+    cc_ctx = close_close_context(weekly_completed, partial)
+    if cc_ctx is not None:
+        ev.prev_week_cc_pct = cc_ctx["prev_week_cc_pct"]
+        ev.prev2_week_cc_pct = cc_ctx["prev2_week_cc_pct"]
+        ev.partial_week_cc_pct = cc_ctx["partial_week_cc_pct"]
+        ev.momentum_context_positive = cc_ctx["momentum_context_positive"]
+        if snapshot.calendar_weekday in (1, 2):
+            ev.theory_stagnation_flag = cc_ctx["theory_stagnation_flag"]
+
     wd = snapshot.calendar_weekday
     if wd == 1:
         res = evaluate_monday(weekly_completed, partial=partial)
@@ -379,6 +447,7 @@ def evaluate_weekly(snapshot, source_variant: str = "legacy_eod",
     ev.components = {
         **res.get("components", {}),
         **({"theory_early_week_evidence": early} if early else {}),
+        **({"close_close_context": cc_ctx} if cc_ctx is not None else {}),
         "source_variant": source_variant,
         "calendar_weekday": wd,
         "session_ordinal_in_week": snapshot.session_ordinal_in_week,

@@ -142,6 +142,11 @@ def _evidence_row(code: str, daily: pd.DataFrame, as_of: datetime, weekly_full: 
         "planned_prorated_volume_ratio": wev.planned_prorated_volume_ratio,
         "early_week_evidence_strength": wev.early_week_evidence_strength,
         "tuesday_recovery_ratio": wev.tuesday_recovery_ratio,
+        "prev_week_cc_pct": wev.prev_week_cc_pct,
+        "prev2_week_cc_pct": wev.prev2_week_cc_pct,
+        "partial_week_cc_pct": wev.partial_week_cc_pct,
+        "momentum_context_positive": wev.momentum_context_positive,
+        "theory_stagnation_flag": wev.theory_stagnation_flag,
         "week_completion": wev.week_completion,
         # 周线判定
         "weekly_base_pattern": wev.base_pattern,
