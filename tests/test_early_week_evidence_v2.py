@@ -32,3 +32,20 @@ def test_tuesday_recovery_ratio_is_parallel_evidence():
     assert e["sessions"] == 2
     assert e["tuesday_recovery_ratio"] == 1.0  # 周一跌0.2，周二实体涨0.2
     assert e["tuesday_closes_above_monday_close"] is True
+
+
+def test_cc_same_progress_uses_closes_not_opens():
+    # 上周(08-04~05)收盘10.2；上上周不存在→cc_prev_same=None。
+    # 补上上周：两周前周一/周二。
+    d = _rows(["2025-07-28", "2025-07-29", "2025-08-04", "2025-08-05",
+               "2025-08-11", "2025-08-12"],
+              [10, 10.05, 10, 10.1, 10, 9.7],
+              [10.05, 10.1, 10.1, 10.2, 9.8, 9.9],
+              [100, 100, 100, 100, 120, 110])
+    e = early_week_comparison_evidence(d, datetime(2025, 8, 12, 15, 30), planned_sessions=5)
+    # 本周至今收盘9.9 vs 上周收盘10.2 → cc_current≈-2.9412
+    assert e["cc_current_return_pct"] == round(9.9 / 10.2 * 100 - 100, 4)
+    # 上周同进度(前2日)收盘10.2 vs 上上周收盘10.1 → +0.9901
+    assert e["cc_prev_same_progress_return_pct"] == round(10.2 / 10.1 * 100 - 100, 4)
+    assert e["cc_same_progress_return_delta_pct"] == round(
+        (9.9 / 10.2 - 10.2 / 10.1) * 100, 4)

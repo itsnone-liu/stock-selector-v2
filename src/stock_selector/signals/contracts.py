@@ -79,6 +79,7 @@ class WeeklyEvidence:
     prorated_volume_ratio: float | None = None  # /days×5 折算后的量比（legacy 口径）
     # Theory早周并行证据（只记录，不参与当前准入）
     same_progress_return_delta_pct: float | None = None
+    cc_same_progress_return_delta_pct: float | None = None  # 收盘对收盘同进度差
     same_progress_volume_ratio: float | None = None
     planned_prorated_return_pct: float | None = None
     planned_prorated_volume_ratio: float | None = None

@@ -137,6 +137,7 @@ def _evidence_row(code: str, daily: pd.DataFrame, as_of: datetime, weekly_full: 
         "eff_delta": wev.efficiency_delta,
         "volume_ratio_vs_prev_week": wev.volume_ratio_vs_prev_week,
         "same_progress_return_delta_pct": wev.same_progress_return_delta_pct,
+        "cc_same_progress_return_delta_pct": wev.cc_same_progress_return_delta_pct,
         "same_progress_volume_ratio": wev.same_progress_volume_ratio,
         "planned_prorated_return_pct": wev.planned_prorated_return_pct,
         "planned_prorated_volume_ratio": wev.planned_prorated_volume_ratio,

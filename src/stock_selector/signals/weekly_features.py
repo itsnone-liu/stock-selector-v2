@@ -138,11 +138,26 @@ def early_week_comparison_evidence(daily: pd.DataFrame, as_of: datetime,
     planned = int(planned_sessions or LEGACY_PRORATION_BASE)
     planned_ret, planned_vol = current_ret / n * planned, tw.volume / n * planned
     prev_full_vol = float(previous_full["volume"].sum()) if len(previous_full) else 0.0
+    # 收盘对收盘口径（2026-09-17裁定）：本周至今收盘 vs 上周收盘；
+    # 上周同进度收盘 vs 上上周收盘。上上周数据缺失→None，不猜。
+    prev_week_last_close = (float(previous_full["close"].iloc[-1])
+                            if len(previous_full) else None)
+    prev2_monday, prev2_sunday = prev_monday - pd.Timedelta(days=7), prev_monday - pd.Timedelta(days=1)
+    prev2_full = daily[(daily.index >= prev2_monday) & (daily.index <= prev2_sunday)]
+    prev2_last_close = float(prev2_full["close"].iloc[-1]) if len(prev2_full) else None
+    cc_current = ((float(current["close"].iloc[-1]) / prev_week_last_close - 1) * 100
+                  if prev_week_last_close else None)
+    cc_prev_same = ((float(previous["close"].iloc[-1]) / prev2_last_close - 1) * 100
+                    if prev2_last_close else None)
     out = {
         "sessions": n, "planned_sessions": planned,
         "current_return_pct": round(current_ret, 4),
         "prev_same_progress_return_pct": round(prev_same_ret, 4),
         "same_progress_return_delta_pct": round(current_ret - prev_same_ret, 4),
+        "cc_current_return_pct": round(cc_current, 4) if cc_current is not None else None,
+        "cc_prev_same_progress_return_pct": round(cc_prev_same, 4) if cc_prev_same is not None else None,
+        "cc_same_progress_return_delta_pct": (round(cc_current - cc_prev_same, 4)
+                                              if cc_current is not None and cc_prev_same is not None else None),
         "same_progress_volume_ratio": round(same_vol_ratio, 4) if same_vol_ratio is not None else None,
         "planned_prorated_return_pct": round(planned_ret, 4),
         "planned_prorated_volume_ratio": round(planned_vol / prev_full_vol, 4) if prev_full_vol > 0 else None,
@@ -457,6 +472,7 @@ def evaluate_weekly(snapshot, source_variant: str = "legacy_eod",
     ev.eligibility_state, ev.eligibility_reason = derive_weekly_eligibility(ev)
     if early:
         ev.same_progress_return_delta_pct = early.get("same_progress_return_delta_pct")
+        ev.cc_same_progress_return_delta_pct = early.get("cc_same_progress_return_delta_pct")
         ev.same_progress_volume_ratio = early.get("same_progress_volume_ratio")
         ev.planned_prorated_return_pct = early.get("planned_prorated_return_pct")
         ev.planned_prorated_volume_ratio = early.get("planned_prorated_volume_ratio")
