@@ -27,6 +27,19 @@ outcomes:
   immature_excluded_from_win_rate: true
   include_full_window_mfe_mae: true
 
+result_classification:
+  # 阈值为研究接口默认值；正式样本前可在探索期预注册修改，不能按结果反复调参。
+  excess_return_neutral_band: 0.002
+  meaningful_mfe: 0.03
+  deep_mae: 0.04
+  path_types: [immediate_continuation, delayed_start, spike_then_fade, direct_failure, deep_drawdown_recovery]
+
+context:
+  market_and_industry_are_external: true
+  missing_context_does_not_filter_signal: true
+  historical_industry_membership_required: true
+  portfolio_use: position_sizing_only_until_validated
+
 reporting:
   per_window_effective_n: true
   cluster_aware_uncertainty: true     # 股票/时间分块

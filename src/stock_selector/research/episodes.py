@@ -48,4 +48,6 @@ def build_episode_panel(panel: pd.DataFrame, signal_columns: tuple[str, ...] = (
                     current = None
             if current is not None:
                 rows.append(current)
-    return pd.DataFrame(rows)
+    columns = ["episode_id", "code", "signal_type", "first_trigger_date",
+               "last_trigger_date", "consecutive_confirmations", "end_date", "end_reason"]
+    return pd.DataFrame(rows, columns=columns)
