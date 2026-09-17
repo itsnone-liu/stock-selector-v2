@@ -265,6 +265,26 @@ def evaluate_friday(daily: pd.DataFrame, weekly_completed: pd.DataFrame, as_of: 
             "components": comp}
 
 
+
+def derive_weekly_eligibility(ev: WeeklyEvidence) -> tuple[str, str]:
+    """从Legacy证据纯派生Theory准入四态，不改 passed（保留源码差分语义）。"""
+    if ev.passed is None:
+        return UNKNOWN, "insufficient_evidence"
+    if ev.veto_flag:
+        return "excluded", "bearish_heavy_veto"
+    comps = ev.components or {}
+    if comps.get("stagnation_excluded"):
+        return "excluded", "stagnation_excluded"
+    if ev.weekday_path == "tuesday_C_failed_volume":
+        return "excluded", "tuesday_double_down_not_shrinking"
+    # 旧源码会“保留”的待观察/卖压衰减，不等于Theory交易准入。
+    if ev.weekday_path in {"tuesday_pending", "tuesday_C"}:
+        return "observation", f"{ev.weekday_path}_legacy_hold"
+    if ev.passed:
+        return "eligible", f"legacy_{ev.base_pattern}_{ev.weekday_path}"
+    return "observation", f"legacy_not_passed_{ev.weekday_path}"
+
+
 def evaluate_weekly(snapshot, source_variant: str = "legacy_eod",
                     weekly_full: pd.DataFrame | None = None) -> WeeklyEvidence:
     """统一入口：按星期分支复刻旧周线判定，输出连续证据+判定+组件。
@@ -313,18 +333,6 @@ def evaluate_weekly(snapshot, source_variant: str = "legacy_eod",
         if ev.passed:
             ev.passed = False
             ev.notes.append("veto_overridden_branch_pass")
-    if ev.passed is None:
-        ev.eligibility_state = UNKNOWN
-        ev.eligibility_reason = "insufficient_evidence"
-    elif ev.veto_flag:
-        ev.eligibility_state = "excluded"
-        ev.eligibility_reason = "bearish_heavy_veto"
-    elif ev.passed:
-        ev.eligibility_state = "eligible"
-        ev.eligibility_reason = f"legacy_{ev.base_pattern}_{ev.weekday_path}"
-    else:
-        ev.eligibility_state = "observation"
-        ev.eligibility_reason = f"legacy_not_passed_{ev.weekday_path}"
     ev.components = {
         **res.get("components", {}),
         "source_variant": source_variant,
@@ -333,6 +341,7 @@ def evaluate_weekly(snapshot, source_variant: str = "legacy_eod",
         "planned_sessions_this_week": snapshot.planned_sessions_this_week,
         "short_week": (snapshot.planned_sessions_this_week or 5) < 5,
     }
+    ev.eligibility_state, ev.eligibility_reason = derive_weekly_eligibility(ev)
     # 效率连续量（供研究，非判定）
     eff = None
     comps = res.get("components", {})

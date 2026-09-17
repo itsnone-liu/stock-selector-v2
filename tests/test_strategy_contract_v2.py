@@ -11,7 +11,8 @@ from stock_selector.research.outcomes import next_day_outcomes
 from stock_selector.signals.daily_features import atr14_prev, evaluate_daily
 from stock_selector.signals.lifecycle import EpisodeTracker
 from stock_selector.signals.snapshot import build_snapshot
-from stock_selector.signals.weekly_features import evaluate_weekly
+from stock_selector.signals.contracts import WeeklyEvidence
+from stock_selector.signals.weekly_features import derive_weekly_eligibility, evaluate_weekly
 
 
 class _Store:
@@ -99,6 +100,20 @@ def test_weekly_four_state_mapping():
     assert ev.eligibility_state in {"eligible", "observation", "excluded", "unknown"}
     if ev.veto_flag:
         assert ev.eligibility_state == "excluded"
+
+
+def test_tuesday_legacy_hold_is_observation_not_admission():
+    # passed保持Legacy差分语义；Theory准入由纯派生状态决定。
+    for path in ("tuesday_pending", "tuesday_C"):
+        ev = WeeklyEvidence(code="600001", passed=True, weekday_path=path,
+                            base_pattern="double_positive_efficiency_improved")
+        state, reason = derive_weekly_eligibility(ev)
+        assert state == "observation"
+        assert path in reason
+        assert ev.passed is True
+    failed = WeeklyEvidence(code="600001", passed=False,
+                            weekday_path="tuesday_C_failed_volume", base_pattern="none")
+    assert derive_weekly_eligibility(failed)[0] == "excluded"
 
 
 def test_episode_dedup_unknown_hold_and_retrigger():
