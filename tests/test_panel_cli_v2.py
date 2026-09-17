@@ -20,4 +20,5 @@ def test_panel_cli_default_horizons_declared(capsys):
     help_text = capsys.readouterr().out
     assert "--horizons" in help_text
     assert "1,2,3,5,10,15,20" in help_text
+    assert "--batch" in help_text
     # 实际端到端列输出由外部CLI冒烟验收；此测试锁住入口和默认窗口。

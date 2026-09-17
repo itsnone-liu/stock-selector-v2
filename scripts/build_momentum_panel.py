@@ -37,6 +37,8 @@ def main() -> None:
     p.add_argument("--out", default="output/research/momentum_panel")
     p.add_argument("--horizons", default="1,2,3,5,10,15,20",
                    help="未来交易日窗口，逗号分隔（默认: 1,2,3,5,10,15,20）")
+    p.add_argument("--batch", type=int, default=250,
+                   help="每批股票数（流式落盘，控内存）")
     a = p.parse_args()
     horizons = tuple(sorted({int(x) for x in a.horizons.split(",") if x.strip()}))
     if not horizons or any(h <= 0 for h in horizons):
@@ -60,25 +62,46 @@ def main() -> None:
     days = days[:: a.every]
     dates = [datetime.combine(d.date(), datetime.min.time()).replace(hour=15, minute=30) for d in days]
 
-    panel, stats = build_panel(store, codes, dates, config)
-    panel.to_csv(out / "signal_panel.csv", index=False)
-    episodes = build_episode_panel(panel)
+    # 分批流式构建：按股票批次生成→落盘→释放，3GB内存机器跑不下列表全量累积。
+    batch_size = a.batch
+    total_stats = {"stocks": 0, "stocks_with_data": 0, "monthly_pool_hits": 0,
+                   "rows": 0, "missing_current_bar": 0, "panel_version": PANEL_VERSION,
+                   "signal_ruleset": SIGNAL_RULESET}
+    outcome_rows = 0
+    sig_path, out_path = out / "signal_panel.csv", out / "outcome_panel.csv"
+    for path in (sig_path, out_path):
+        path.unlink(missing_ok=True)
+    for i in range(0, len(codes), batch_size):
+        batch = codes[i:i + batch_size]
+        panel, stats = build_panel(store, batch, dates, config)
+        outcomes = attach_outcomes(store, panel, horizons=horizons)
+        panel.to_csv(sig_path, mode="a", index=False, header=not sig_path.exists())
+        outcomes.to_csv(out_path, mode="a", index=False, header=not out_path.exists())
+        outcome_rows += len(outcomes)
+        for k in ("stocks", "stocks_with_data", "monthly_pool_hits", "rows", "missing_current_bar"):
+            total_stats[k] += stats.get(k, 0)
+        del panel, outcomes
+        print(f"batch {i // batch_size + 1}: codes {batch[0]}-{batch[-1]} "
+              f"rows {stats.get('rows', 0)} total {total_stats['rows']}", flush=True)
+
+    # episode折叠只读轻量列（内存友好）
+    slim = pd.read_csv(sig_path, usecols=["code", "date", "sv_legacy", "td_legacy"],
+                       dtype={"code": str})
+    episodes = build_episode_panel(slim)
     episodes.to_csv(out / "episode_panel.csv", index=False)
     manifest = {
         "panel_version": PANEL_VERSION,
         "signal_ruleset": SIGNAL_RULESET,
         "config_hash": panel_config_hash(config),
         "start": a.start, "end": a.end, "every": a.every,
-        "stocks": len(codes), "dates": len(dates), "stats": stats,
+        "stocks": len(codes), "dates": len(dates), "stats": total_stats,
         "horizons": list(horizons), "episode_rows": len(episodes),
+        "outcome_rows": outcome_rows, "batch_size": batch_size,
         "note": "研究面板不自动晋升生产；条件闭合前结果仅作工程校验和假设生成",
     }
     (out / "manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2, default=str))
-    print(json.dumps(stats, ensure_ascii=False))
-
-    outcomes = attach_outcomes(store, panel, horizons=horizons)
-    outcomes.to_csv(out / "outcome_panel.csv", index=False)
-    print(f"outcome rows: {len(outcomes)}")
+    print(json.dumps(total_stats, ensure_ascii=False))
+    print(f"outcome rows: {outcome_rows}")
 
 
 if __name__ == "__main__":
