@@ -17,12 +17,12 @@ import pandas as pd
 
 from stock_selector.config import load_config
 from stock_selector.data.tdx import TdxStore
-from stock_selector.research.episodes import build_episode_panel
+from stock_selector.research.episodes import build_episode_panel, build_strategy_episode_panel
 from stock_selector.research.momentum_panel import (
     PANEL_VERSION,
     SIGNAL_RULESET,
     attach_outcomes,
-    build_panel,
+    build_panel_with_universe,
     panel_config_hash,
 )
 
@@ -65,22 +65,24 @@ def main() -> None:
     # 分批流式构建：按股票批次生成→落盘→释放，3GB内存机器跑不下列表全量累积。
     batch_size = a.batch
     total_stats = {"stocks": 0, "stocks_with_data": 0, "monthly_pool_hits": 0,
-                   "rows": 0, "missing_current_bar": 0, "panel_version": PANEL_VERSION,
+                   "rows": 0, "universe_rows": 0, "missing_current_bar": 0, "panel_version": PANEL_VERSION,
                    "signal_ruleset": SIGNAL_RULESET}
     outcome_rows = 0
     sig_path, out_path = out / "signal_panel.csv", out / "outcome_panel.csv"
-    for path in (sig_path, out_path):
+    universe_path = out / "universe_state_panel.csv"
+    for path in (sig_path, out_path, universe_path):
         path.unlink(missing_ok=True)
     for i in range(0, len(codes), batch_size):
         batch = codes[i:i + batch_size]
-        panel, stats = build_panel(store, batch, dates, config)
+        panel, universe, stats = build_panel_with_universe(store, batch, dates, config)
         outcomes = attach_outcomes(store, panel, horizons=horizons)
         panel.to_csv(sig_path, mode="a", index=False, header=not sig_path.exists())
         outcomes.to_csv(out_path, mode="a", index=False, header=not out_path.exists())
+        universe.to_csv(universe_path, mode="a", index=False, header=not universe_path.exists())
         outcome_rows += len(outcomes)
-        for k in ("stocks", "stocks_with_data", "monthly_pool_hits", "rows", "missing_current_bar"):
+        for k in ("stocks", "stocks_with_data", "monthly_pool_hits", "rows", "universe_rows", "missing_current_bar"):
             total_stats[k] += stats.get(k, 0)
-        del panel, outcomes
+        del panel, universe, outcomes
         print(f"batch {i // batch_size + 1}: codes {batch[0]}-{batch[-1]} "
               f"rows {stats.get('rows', 0)} total {total_stats['rows']}", flush=True)
 
@@ -89,6 +91,11 @@ def main() -> None:
                        dtype={"code": str})
     episodes = build_episode_panel(slim)
     episodes.to_csv(out / "episode_panel.csv", index=False)
+    strategy_cols = ["code", "date", "weekly_eligibility_state", "sv_legacy", "td_legacy"]
+    strategy_signal = pd.read_csv(sig_path, usecols=strategy_cols, dtype={"code": str})
+    universe = pd.read_csv(universe_path, dtype={"code": str})
+    strategy_episodes = build_strategy_episode_panel(strategy_signal, universe)
+    strategy_episodes.to_csv(out / "strategy_episode_panel.csv", index=False)
     manifest = {
         "panel_version": PANEL_VERSION,
         "signal_ruleset": SIGNAL_RULESET,
@@ -96,6 +103,8 @@ def main() -> None:
         "start": a.start, "end": a.end, "every": a.every,
         "stocks": len(codes), "dates": len(dates), "stats": total_stats,
         "horizons": list(horizons), "episode_rows": len(episodes),
+        "strategy_episode_rows": len(strategy_episodes),
+        "universe_rows": total_stats["universe_rows"],
         "outcome_rows": outcome_rows, "batch_size": batch_size,
         "note": "研究面板不自动晋升生产；条件闭合前结果仅作工程校验和假设生成",
     }

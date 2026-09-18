@@ -155,6 +155,8 @@ def _evidence_row(code: str, daily: pd.DataFrame, as_of: datetime, weekly_full: 
         "weekly_passed": wev.passed,
         "weekly_eligibility_state": wev.eligibility_state,
         "weekly_eligibility_reason": wev.eligibility_reason,
+        "weekly_evidence_status": wev.evidence_status,
+        "weekly_legacy_gate_status": wev.legacy_gate_status,
         "weekly_veto": wev.veto_flag,
         # 日线证据
         "r_today_pct": dev.r_today,
@@ -181,12 +183,17 @@ def _evidence_row(code: str, daily: pd.DataFrame, as_of: datetime, weekly_full: 
     return row
 
 
-def build_panel(store, codes: list[str], dates: list[datetime], config: dict,
-                min_history: int = 130) -> tuple[pd.DataFrame, dict]:
-    """对 (codes × dates) 生成月线池内全量证据行。"""
+def build_panel_with_universe(store, codes: list[str], dates: list[datetime], config: dict,
+                              min_history: int = 130) -> tuple[pd.DataFrame, pd.DataFrame, dict]:
+    """一次扫描生成月池内重证据表与全研究日期轻状态表。
+
+    轻状态明确区分 out 与 unknown；缺bar/证据不足绝不推断为出池。
+    monthly_pool_spell_id 只在明确连续在池期间存在，退出或未知均中断。
+    """
     rows: list[dict] = []
+    state_rows: list[dict] = []
     stats = {"stocks": 0, "stocks_with_data": 0, "monthly_pool_hits": 0, "rows": 0,
-             "missing_current_bar": 0, "panel_version": PANEL_VERSION,
+             "universe_rows": 0, "missing_current_bar": 0, "panel_version": PANEL_VERSION,
              "signal_ruleset": SIGNAL_RULESET}
     for code in codes:
         daily = store.daily(str(code))
@@ -197,13 +204,35 @@ def build_panel(store, codes: list[str], dates: list[datetime], config: dict,
         weekly_full = aggregate_weekly(daily)
         monthly_full = _precompute_monthly(daily)
         idx = pd.DatetimeIndex(daily.index)
+        spell = 0
+        in_spell = False
+        session_index = 0
         for as_of in dates:
             day = pd.Timestamp(as_of).normalize()
             pos = idx.searchsorted(day, side="right")
-            if pos == 0 or idx[pos - 1] != day:
+            has_bar = pos > 0 and idx[pos - 1] == day
+            if not has_bar:
+                in_spell = False
+                state_rows.append({"code": str(code), "date": day.date().isoformat(),
+                                   "session_index": None, "data_status": "missing_bar",
+                                   "monthly_pool_state": "unknown", "monthly_pool_spell_id": None,
+                                   "monthly_state_reason": "current_bar_missing"})
                 continue
+            session_index += 1
             monthly_states = _monthly_states_fast(daily, monthly_full, pos, as_of, config)
-            if not monthly_states["monthly_provisional_state"]:
+            provisional = monthly_states["monthly_provisional_state"]
+            pool_state = "in" if provisional is True else "out" if provisional is False else "unknown"
+            if pool_state == "in" and not in_spell:
+                spell += 1
+            in_spell = pool_state == "in"
+            state_rows.append({"code": str(code), "date": day.date().isoformat(),
+                               "session_index": session_index, "data_status": "available",
+                               "monthly_pool_state": pool_state,
+                               "monthly_pool_spell_id": spell if in_spell else None,
+                               "monthly_state_reason": ("provisional_passed" if provisional is True else
+                                                        "provisional_failed" if provisional is False else
+                                                        "insufficient_monthly_history")})
+            if pool_state != "in":
                 continue
             stats["monthly_pool_hits"] += 1
             row = _evidence_row(str(code), daily, as_of, weekly_full,
@@ -211,10 +240,19 @@ def build_panel(store, codes: list[str], dates: list[datetime], config: dict,
             if row is None:
                 stats["missing_current_bar"] += 1
                 continue
+            row["monthly_pool_spell_id"] = spell
             rows.append(row)
         stats["stocks"] += 1
     stats["rows"] = len(rows)
-    return pd.DataFrame(rows), stats
+    stats["universe_rows"] = len(state_rows)
+    return pd.DataFrame(rows), pd.DataFrame(state_rows), stats
+
+
+def build_panel(store, codes: list[str], dates: list[datetime], config: dict,
+                min_history: int = 130) -> tuple[pd.DataFrame, dict]:
+    """兼容入口：返回月线池内全量证据行。"""
+    panel, _, stats = build_panel_with_universe(store, codes, dates, config, min_history=min_history)
+    return panel, stats
 
 
 def attach_outcomes(store, panel: pd.DataFrame,

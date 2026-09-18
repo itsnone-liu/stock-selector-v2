@@ -6,7 +6,7 @@ from datetime import datetime
 import numpy as np
 import pandas as pd
 
-from stock_selector.research.episodes import build_episode_panel
+from stock_selector.research.episodes import build_episode_panel, build_strategy_episode_panel
 from stock_selector.research.momentum_panel import _monthly_states_fast, _precompute_monthly
 from stock_selector.signals.pre_signal_features import pre_signal_features
 from stock_selector.signals.snapshot import build_snapshot
@@ -57,3 +57,44 @@ def test_episode_panel_deduplicates_and_unknown_holds():
     assert list(ep.consecutive_confirmations) == [2, 2]
     assert ep.iloc[0].end_reason == "signal_inactive"
     assert ep.iloc[0].episode_id != ep.iloc[1].episode_id
+    assert bool(ep.iloc[0].boundary_uncertain) is True
+
+
+def test_strategy_episode_starts_when_weekly_becomes_eligible_and_ends_on_pool_exit():
+    dates = pd.date_range("2025-01-02", periods=5).astype(str)
+    signal = pd.DataFrame({
+        "code": ["600001"] * 4, "date": dates[:4],
+        "weekly_eligibility_state": ["observation", "eligible", "eligible", "eligible"],
+        "sv_legacy": [True, True, True, True], "td_legacy": [False] * 4,
+    })
+    universe = pd.DataFrame({
+        "code": ["600001"] * 5, "date": dates,
+        "monthly_pool_state": ["in", "in", "in", "out", "in"],
+        "monthly_pool_spell_id": [1, 1, 1, None, 2],
+        "data_status": ["available"] * 5,
+    })
+    ep = build_strategy_episode_panel(signal, universe, signal_columns=("sv_legacy",))
+    assert len(ep) == 1
+    assert ep.iloc[0].first_trigger_date == dates[1]
+    assert ep.iloc[0].end_date == dates[3]
+    assert ep.iloc[0].end_reason == "monthly_pool_exit"
+    assert ep.iloc[0].monthly_pool_spell_id == 1
+
+
+def test_strategy_episode_unknown_holds_but_marks_boundary_uncertain():
+    dates = pd.date_range("2025-01-02", periods=4).astype(str)
+    signal = pd.DataFrame({
+        "code": ["600001"] * 3, "date": [dates[0], dates[2], dates[3]],
+        "weekly_eligibility_state": ["eligible", "eligible", "observation"],
+        "sv_legacy": [True, True, True], "td_legacy": [False] * 3,
+    })
+    universe = pd.DataFrame({
+        "code": ["600001"] * 4, "date": dates,
+        "monthly_pool_state": ["in", "unknown", "in", "in"],
+        "monthly_pool_spell_id": [1, None, 2, 2],
+        "data_status": ["available", "missing_bar", "available", "available"],
+    })
+    ep = build_strategy_episode_panel(signal, universe, signal_columns=("sv_legacy",))
+    assert len(ep) == 1
+    assert bool(ep.iloc[0].boundary_uncertain) is True
+    assert ep.iloc[0].end_reason == "weekly_not_eligible"
