@@ -96,3 +96,18 @@ def test_non_positive_context_falls_back_to_pattern_mapping():
     assert derive_weekly_eligibility(ev)[0] == "eligible"  # 形态判定主导
     ev2 = _ev(passed=False, momentum_context_positive=False)
     assert derive_weekly_eligibility(ev2)[0] == "observation"
+
+
+def test_confirmed_veto_precedes_legacy_unknown():
+    ev = _ev(passed=None, veto_flag=True)
+    assert derive_weekly_eligibility(ev) == ("excluded", "bearish_heavy_veto")
+
+
+def test_tuesday_gate_failed_is_observation_not_unknown():
+    ev = _ev(passed=None, weekday_path="tuesday_gate_failed")
+    assert derive_weekly_eligibility(ev) == ("observation", "tuesday_legacy_gate_failed")
+
+
+def test_real_missing_evidence_stays_unknown():
+    ev = _ev(passed=None, weekday_path="tuesday_no_daily")
+    assert derive_weekly_eligibility(ev) == ("unknown", "insufficient_evidence")

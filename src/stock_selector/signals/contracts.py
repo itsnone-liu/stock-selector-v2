@@ -101,6 +101,9 @@ class WeeklyEvidence:
     # legacy只映射既有判定，不改变其语义；Theory/Optimized可独立给状态理由。
     eligibility_state: str = UNKNOWN
     eligibility_reason: str | None = None
+    # 证据完整性与Legacy门槛结果必须独立：门槛未满足不等于数据不足。
+    evidence_status: str = UNKNOWN  # complete | partial | insufficient | unknown
+    legacy_gate_status: str = UNKNOWN  # passed | failed | insufficient | unknown
     # 风险
     veto_flag: bool = False
     veto_metrics: dict = field(default_factory=dict)

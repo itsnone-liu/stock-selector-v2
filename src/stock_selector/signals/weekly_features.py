@@ -382,11 +382,16 @@ def derive_weekly_eligibility(ev: WeeklyEvidence) -> tuple[str, str]:
     - 前两周cc正向时：早周下跌（部分周cc<=0）不做部分周硬约束 → observation；
     - 上涨早周用部分周约束识别滞涨 → theory_stagnation_flag → excluded。
     """
-    if ev.passed is None:
-        return UNKNOWN, "insufficient_evidence"
+    # 可独立确认的负向证据优先；Legacy未知不能覆盖明确风险。
     if ev.veto_flag:
         return "excluded", "bearish_heavy_veto"
     comps = ev.components or {}
+    if ev.weekday_path == "tuesday_gate_failed":
+        # 周二旧门槛明确未过：这是已知条件不满足，不是数据不足；
+        # Theory保持观察，不把Legacy失败擅自升级成排除。
+        return "observation", "tuesday_legacy_gate_failed"
+    if ev.passed is None:
+        return UNKNOWN, "insufficient_evidence"
     if comps.get("stagnation_excluded"):
         return "excluded", "stagnation_excluded"
     if ev.theory_stagnation_flag:
@@ -463,6 +468,13 @@ def evaluate_weekly(snapshot, source_variant: str = "legacy_eod",
     ev.passed = res.get("passed")
     ev.base_pattern = res.get("base_pattern", UNKNOWN)
     ev.weekday_path = res.get("weekday_path", UNKNOWN)
+    ev.legacy_gate_status = ("failed" if ev.weekday_path == "tuesday_gate_failed" else
+                             "passed" if ev.passed is True else
+                             "failed" if ev.passed is False else "insufficient")
+    note = (res.get("components") or {}).get("note")
+    ev.evidence_status = ("insufficient" if ev.passed is None and note else
+                          "partial" if partial is not None and not partial.complete else
+                          "complete")
     # 差分校正：旧 check_weekly_surge 在分发层先跑 veto，veto=True 一票否决
     if ev.veto_flag:
         ev.notes.append("周线放量阴线 veto（v4.0 一票否决，对照组保留标记）")
