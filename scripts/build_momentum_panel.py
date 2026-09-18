@@ -53,11 +53,17 @@ def main() -> None:
     if a.limit:
         codes = codes[: a.limit]
 
-    # 交易日采样：用指数日线做真实日历
-    dates_idx = store.daily(codes[0]) if codes else None
-    if dates_idx is None:
-        raise SystemExit("no daily data")
-    all_days = pd.DatetimeIndex(dates_idx.index)
+    # 完整市场交易日历来自指数日线（与个股缺bar/研究区间无关）；
+    # 采样日期从市场日历抽取，session_index按市场日历定位，--every不再压缩时间轴。
+    market_calendar = store.market_calendar()
+    calendar_source = "index_sh000001"
+    if market_calendar is None:
+        first = store.daily(codes[0]) if codes else None
+        if first is None:
+            raise SystemExit("no daily data for calendar")
+        market_calendar = pd.DatetimeIndex(first.index)
+        calendar_source = "first_stock_fallback"
+    all_days = market_calendar
     days = all_days[(all_days >= pd.Timestamp(a.start)) & (all_days <= pd.Timestamp(a.end))]
     days = days[:: a.every]
     dates = [datetime.combine(d.date(), datetime.min.time()).replace(hour=15, minute=30) for d in days]
@@ -75,7 +81,8 @@ def main() -> None:
         path.unlink(missing_ok=True)
     for i in range(0, len(codes), batch_size):
         batch = codes[i:i + batch_size]
-        panel, universe, stats = build_panel_with_universe(store, batch, dates, config)
+        panel, universe, stats = build_panel_with_universe(store, batch, dates, config,
+                                                           trading_calendar=market_calendar)
         outcomes = attach_outcomes(store, panel, horizons=horizons)
         panel.to_csv(sig_path, mode="a", index=False, header=not sig_path.exists())
         outcomes.to_csv(out_path, mode="a", index=False, header=not out_path.exists())
@@ -111,6 +118,7 @@ def main() -> None:
         "pattern_episode_scope": "monthly_pool_only",
         "strategy_episode_max_unknown_gap": 5,
         "sampling_every_sessions": a.every,
+        "calendar_source": calendar_source,
         "note": "研究面板不自动晋升生产；条件闭合前结果仅作工程校验和假设生成",
     }
     (out / "manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2, default=str))

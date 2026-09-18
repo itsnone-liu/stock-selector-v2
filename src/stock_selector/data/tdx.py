@@ -69,6 +69,33 @@ class TdxStore:
             return None
         return frame
 
+    def market_calendar(self, index_file: str = "sh000001") -> pd.DatetimeIndex | None:
+        """完整市场交易日历：直接解析指数.day文件（与个股缺bar无关）。
+
+        返回升序 DatetimeIndex；文件缺失或为空返回 None。
+        """
+        path = None
+        for market in ("sh", "sz", "bj"):
+            candidate = self.tdx_dir / "vipdoc" / market / "lday" / f"{index_file}.day"
+            if candidate.exists():
+                path = candidate
+                break
+        if path is None:
+            LOG.warning("TDX index file missing: %s.day", index_file)
+            return None
+        dates: list[str] = []
+        data = path.read_bytes()
+        for i in range(0, len(data) - 31, 32):
+            chunk = data[i:i + 32]
+            n = int.from_bytes(chunk[0:4], "little")  # yyyymmdd
+            y, m, d = n // 10000, n // 100 % 100, n % 100
+            if not (1990 <= y <= 2100 and 1 <= m <= 12 and 1 <= d <= 31):
+                continue
+            dates.append(f"{y:04d}-{m:02d}-{d:02d}")
+        if not dates:
+            return None
+        return pd.DatetimeIndex(pd.to_datetime(sorted(set(dates))))
+
 
 def load_name_map(path: str | Path | None) -> dict[str, str]:
     if not path:

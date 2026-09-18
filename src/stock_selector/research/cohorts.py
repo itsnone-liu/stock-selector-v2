@@ -11,12 +11,15 @@ DAILY_SIGNALS = ("sv_legacy", "td_legacy")
 
 def attach_daily_trigger(panel: pd.DataFrame,
                          signal_columns: tuple[str, ...] = DAILY_SIGNALS) -> pd.DataFrame:
+    """日线触发三态：任一明确真=triggered；全部明确假=not_triggered；
+    无真但存在未知（含部分未知）=unknown。触发是两标签的或，未知不得压成未触发。"""
     out = panel.copy()
     vals = out[list(signal_columns)]
-    all_unknown = vals.isna().all(axis=1)
-    out["daily_trigger_state"] = "not_triggered"
-    out.loc[all_unknown, "daily_trigger_state"] = "unknown"
-    out.loc[vals.fillna(False).astype(bool).any(axis=1), "daily_trigger_state"] = "triggered"
+    any_true = vals.fillna(False).astype(bool).any(axis=1)
+    all_known_false = vals.notna().all(axis=1) & ~any_true
+    out["daily_trigger_state"] = "unknown"
+    out.loc[all_known_false, "daily_trigger_state"] = "not_triggered"
+    out.loc[any_true, "daily_trigger_state"] = "triggered"
     out["daily_trigger_type"] = vals.apply(
         lambda r: "+".join(c for c in signal_columns if pd.notna(r[c]) and bool(r[c])) or None,
         axis=1)

@@ -1,0 +1,217 @@
+#!/usr/bin/env python3
+"""正式递进分析入口：三组对照×收益/基准×组间统计 + 策略事件表现 + 同结构正负 + 持有期背景。
+
+仅消费 v3 面板（契约闸门）；所有对照均为明确组间比较，不出现混合对照。
+输出目录：
+  designs/                     三组cohort设计表（全量+逐期限非重叠）
+  progressive_summary.csv      组×期限中位数/均值/胜率/样本量
+  bootstrap_contrasts.json     明确组间块bootstrap（code块）
+  strategy_episode_report.csv  策略事件表现（按终止原因/池龄/时滞）
+  pattern_episode_report.csv   形态事件表现（独立保留）
+  within_structure_contrast.csv 同结构内正/负组事前特征差异
+  holding_context.csv          事件持有期市场/行业路径背景
+  PROGRESSIVE_MANIFEST.json
+"""
+from __future__ import annotations
+
+import argparse
+import json
+import sys
+from pathlib import Path
+
+import numpy as np
+import pandas as pd
+import yaml
+
+sys.path.insert(0, "src")
+sys.path.insert(0, "scripts")
+
+from run_e_stage_analysis import build_market_frames  # noqa:E402
+from stock_selector.research.benchmarks import attach_relative_outcomes  # noqa:E402
+from stock_selector.research.background_panel import (attach_pre_context,  # noqa:E402
+                                                      holding_context_metrics)
+from stock_selector.research.comparisons import build_progressive_comparisons  # noqa:E402
+from stock_selector.research.contrast import (HORIZONS,  # noqa:E402
+                                              block_bootstrap_median_diff)
+from stock_selector.research.context_join import attach_historical_membership  # noqa:E402
+from stock_selector.research.momentum_panel import PANEL_VERSION  # noqa:E402
+from stock_selector.research.within_structure_analysis import (  # noqa:E402
+    label_absolute_and_relative_outcomes,
+    within_structure_feature_contrast,
+)
+
+COHORT_NAMES = ["daily_increment_within_monthly_weekly",
+                "weekly_state_within_daily_shape",
+                "weekly_direct_within_monthly"]
+
+
+def load_panel(panel_dir: Path) -> dict[str, pd.DataFrame]:
+    manifest = json.loads((panel_dir / "manifest.json").read_text())
+    if manifest.get("panel_version") != PANEL_VERSION:
+        raise SystemExit(f"stale panel contract: expected {PANEL_VERSION}, got {manifest.get('panel_version')}")
+    sig = pd.read_csv(panel_dir / "signal_panel.csv", dtype={"code": str}, low_memory=False)
+    out = pd.read_csv(panel_dir / "outcome_panel.csv", dtype={"code": str}, low_memory=False)
+    uni = pd.read_csv(panel_dir / "universe_state_panel.csv", dtype={"code": str}, low_memory=False)
+    strat = pd.read_csv(panel_dir / "strategy_episode_panel.csv", dtype={"code": str})
+    pat = pd.read_csv(panel_dir / "episode_panel.csv", dtype={"code": str})
+    return {"signal": sig, "outcome": out, "universe": uni, "strategy": strat, "pattern": pat,
+            "manifest": manifest}
+
+
+def group_summary(frame: pd.DataFrame, horizons) -> pd.DataFrame:
+    rows = []
+    for (cohort,), g in frame.groupby(["cohort"], dropna=False):
+        for h in horizons:
+            v = pd.to_numeric(g.get(f"fwd{h}"), errors="coerce").dropna()
+            ex = pd.to_numeric(g.get(f"industry_excess{h}"), errors="coerce").dropna()
+            rows.append({"cohort": cohort, "horizon": h, "events": len(g),
+                         "n_fwd": len(v), "median_fwd": v.median() if len(v) else None,
+                         "mean_fwd": v.mean() if len(v) else None,
+                         "positive_rate": float((v > 0).mean()) if len(v) else None,
+                         "n_excess": len(ex),
+                         "median_excess": ex.median() if len(ex) else None})
+    return pd.DataFrame(rows)
+
+
+def pairwise_bootstrap(frame: pd.DataFrame, horizons, contrasts: list[tuple[str, str]],
+                       block_col: str = "code", iterations: int = 500) -> dict:
+    res = {}
+    for h in horizons:
+        col = f"industry_excess{h}"
+        if col not in frame:
+            continue
+        x = frame.dropna(subset=[col])
+        for a, b in contrasts:
+            ga, gb = x[x["cohort"] == a], x[x["cohort"] == b]
+            if len(ga) >= 30 and len(gb) >= 30:
+                merged = pd.concat([ga.assign(_t=1), gb.assign(_t=0)], ignore_index=True)
+                r = block_bootstrap_median_diff(merged, col, "_t", block_col=block_col,
+                                                iterations=iterations)
+                res[f"h{h}|{a}_vs_{b}"] = {
+                    "n_a": len(ga), "n_b": len(gb),
+                    "median_diff": r.get("median_diff"),
+                    "ci_low": r.get("ci_low"), "ci_high": r.get("ci_high"),
+                    "p_approx": r.get("p_two_sided", r.get("p")),
+                }
+    return res
+
+
+def strategy_report(strat: pd.DataFrame, outcome: pd.DataFrame) -> pd.DataFrame:
+    """策略事件从首触发日关联收益；形态事件独立，不混入。"""
+    o = outcome.rename(columns={"date": "first_trigger_date"})
+    keep = [c for c in ("code", "first_trigger_date") + tuple(f"fwd{h}" for h in HORIZONS)
+            if c in set(o)]
+    # 多个策略事件可同日首触发（sv/td并存），outcome按(code,日期)唯一，左连复制值即可
+    x = strat.merge(o[keep], on=["code", "first_trigger_date"], how="left")
+    rows = []
+    for reason, g in x.groupby("end_reason", dropna=False):
+        row = {"end_reason": reason, "episodes": len(g),
+               "median_lag": g["pattern_to_strategy_lag_sessions"].median(),
+               "median_spell_age": None, "median_confirmations": g["consecutive_confirmations"].median(),
+               "right_censored_share": float(g["right_censored"].mean())}
+        for h in (1, 5, 20):
+            v = pd.to_numeric(g.get(f"fwd{h}"), errors="coerce").dropna()
+            row[f"median_fwd{h}"] = v.median() if len(v) else None
+            row[f"positive_rate{h}"] = float((v > 0).mean()) if len(v) else None
+        rows.append(row)
+    return pd.DataFrame(rows)
+
+
+def main() -> None:
+    p = argparse.ArgumentParser()
+    p.add_argument("--panel-dir", required=True)
+    p.add_argument("--membership", required=True)
+    p.add_argument("--tdx-dir", default="/root/tdx_data")
+    p.add_argument("--protocol", default="config/research/momentum_efficiency/protocol_v1.yaml")
+    p.add_argument("--out", required=True)
+    p.add_argument("--bootstrap-iterations", type=int, default=500)
+    a = p.parse_args()
+    out = Path(a.out); out.mkdir(parents=True, exist_ok=True)
+    cfg = yaml.safe_load(Path(a.protocol).read_text())["result_classification"]
+    data = load_panel(Path(a.panel_dir))
+    sig, outcome = data["signal"], data["outcome"]
+
+    # ---- 基准（逐日历史行业+前收盘+尾部缓冲，与E阶段同一实现） ----
+    merged0 = sig.merge(outcome, on=["code", "date"], how="left",
+                        suffixes=("", "_out"), validate="one_to_one")
+    memberships = pd.read_csv(a.membership, dtype={"code": str, "industry_code": str})
+    start, end = str(merged0["date"].min()), str(merged0["date"].max())
+    returns, prices = build_market_frames(a.tdx_dir, 0, memberships, start, end,
+                                          end_buffer_sessions=max(HORIZONS))
+    from stock_selector.research.benchmarks import forward_cross_section_benchmarks
+    market_fwd, industry_fwd = forward_cross_section_benchmarks(prices, horizons=HORIZONS)
+    from stock_selector.research.context_join import (join_industry_context,
+                                                      join_market_context)
+    from stock_selector.research.benchmarks import daily_cross_section_benchmarks
+    market_daily, industry_daily = daily_cross_section_benchmarks(returns.dropna(subset=["return"]))
+
+    # ---- 三组对照：设计→收益/基准关联→组间统计 ----
+    design_dir = out / "designs"; design_dir.mkdir(exist_ok=True)
+    summary_parts, boot_all = [], {}
+    for name in COHORT_NAMES:
+        base = build_progressive_comparisons(merged0, horizons=HORIZONS)[f"{name}__all"]
+        base = attach_historical_membership(base, memberships)
+        base = attach_relative_outcomes(base, market_fwd, industry_fwd, horizons=HORIZONS)
+        base.to_csv(design_dir / f"{name}.csv", index=False)
+        summary_parts.append(group_summary(base, HORIZONS).assign(comparison=name))
+        states = sorted(base["cohort"].dropna().unique())
+        contrasts = [(x, y) for i, x in enumerate(states) for y in states[i + 1:]]
+        boot_all[name] = pairwise_bootstrap(base, HORIZONS, contrasts,
+                                            iterations=a.bootstrap_iterations)
+    pd.concat(summary_parts, ignore_index=True).to_csv(out / "progressive_summary.csv", index=False)
+    (out / "bootstrap_contrasts.json").write_text(
+        json.dumps(boot_all, ensure_ascii=False, indent=2, default=str))
+
+    # ---- 策略事件表现（独立于形态事件） ----
+    data["strategy"].to_csv(out / "strategy_episode_report_raw.csv", index=False)
+    srep = strategy_report(data["strategy"], outcome)
+    srep.to_csv(out / "strategy_episode_report.csv", index=False)
+
+    # ---- 形态事件表现（单独保留，不与策略事件混表） ----
+    pat = data["pattern"].rename(columns={"first_trigger_date": "date"})
+    pat = pat.merge(outcome, on=["code", "date"], how="left", validate="many_to_one")
+    pat_rows = []
+    for stype, g in pat.groupby("signal_type"):
+        row = {"signal_type": stype, "episodes": len(g)}
+        for h in (1, 5, 20):
+            v = pd.to_numeric(g.get(f"fwd{h}"), errors="coerce").dropna()
+            row[f"median_fwd{h}"] = v.median() if len(v) else None
+            row[f"positive_rate{h}"] = float((v > 0).mean()) if len(v) else None
+        pat_rows.append(row)
+    pd.DataFrame(pat_rows).to_csv(out / "pattern_episode_report.csv", index=False)
+
+    # ---- 同结构正负 + 持有期背景（对照A事件日） ----
+    a_rows = pd.read_csv(design_dir / "daily_increment_within_monthly_weekly.csv",
+                         dtype={"code": str}, low_memory=False)
+    a_rows = join_market_context(a_rows, market_daily)
+    a_rows = join_industry_context(a_rows, industry_daily)
+    a_rows = attach_pre_context(a_rows, market_daily,
+                                value_columns=("market_return_med", "market_up_ratio"))
+    feats = [c for c in ("pre_context_market_return_med", "pre_context_market_up_ratio",
+                         "monthly_pool_spell_age") if c in set(a_rows)]
+    contrast = within_structure_feature_contrast(
+        a_rows, horizon=5, feature_columns=feats,
+        structure_columns=("monthly_pool_spell_age", "daily_trigger_type"))
+    contrast.to_csv(out / "within_structure_contrast.csv", index=False)
+
+    hold_market = holding_context_metrics(
+        a_rows.drop_duplicates(["code", "date"]),
+        market_daily.rename(columns={"market_return_med": "mret"})[["date", "mret"]],
+        value_col="mret", horizon=5)
+    hold_market.to_csv(out / "holding_context.csv", index=False)
+
+    manifest = {"panel_dir": str(a.panel_dir), "panel_version": PANEL_VERSION,
+                "horizons": list(HORIZONS), "bootstrap_iterations": a.bootstrap_iterations,
+                "events_signal": len(sig), "strategy_episodes": len(data["strategy"]),
+                "pattern_episodes": len(data["pattern"]),
+                "neutral_band": float(cfg["excess_return_neutral_band"]),
+                "median_note": "组内median不跨分项相加；恒等分解仅均值成立",
+                "note": "全部对照为明确组间比较；混合对照已被禁用；不回写选股逻辑"}
+    (out / "PROGRESSIVE_MANIFEST.json").write_text(
+        json.dumps(manifest, ensure_ascii=False, indent=2, default=str))
+    print(json.dumps({k: manifest[k] for k in
+                      ("events_signal", "strategy_episodes", "pattern_episodes")}, default=str))
+
+
+if __name__ == "__main__":
+    main()

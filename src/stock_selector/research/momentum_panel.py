@@ -185,18 +185,29 @@ def _evidence_row(code: str, daily: pd.DataFrame, as_of: datetime, weekly_full: 
 
 
 def build_panel_with_universe(store, codes: list[str], dates: list[datetime], config: dict,
-                              min_history: int = 130) -> tuple[pd.DataFrame, pd.DataFrame, dict]:
+                              min_history: int = 130,
+                              trading_calendar: pd.DatetimeIndex | None = None
+                              ) -> tuple[pd.DataFrame, pd.DataFrame, dict]:
     """一次扫描生成月池内重证据表与全研究日期轻状态表。
 
     轻状态明确区分 out 与 unknown；缺bar/证据不足绝不推断为出池。
     monthly_pool_spell_id 只在明确连续在池期间存在，退出或未知均中断。
+    trading_calendar为完整市场交易日历（与采样无关）；session_index按市场
+    日历定位，研究采样（--every）不压缩时间轴。缺省时退化为采样日期序列
+    并在stats标记calendar_source=sampled（仅every=1时等价）。
     """
     rows: list[dict] = []
     state_rows: list[dict] = []
-    market_calendar = pd.DatetimeIndex([pd.Timestamp(d).normalize() for d in dates])
+    if trading_calendar is not None:
+        market_calendar = pd.DatetimeIndex([pd.Timestamp(d).normalize() for d in trading_calendar])
+        calendar_source = "market"
+    else:
+        market_calendar = pd.DatetimeIndex([pd.Timestamp(d).normalize() for d in dates])
+        calendar_source = "sampled"
     stats = {"stocks": 0, "stocks_with_data": 0, "monthly_pool_hits": 0,
              "monthly_pool_out": 0, "monthly_pool_unknown": 0, "rows": 0,
-             "universe_rows": 0, "missing_current_bar": 0, "panel_version": PANEL_VERSION,
+             "universe_rows": 0, "missing_current_bar": 0, "calendar_source": calendar_source,
+             "panel_version": PANEL_VERSION,
              "signal_ruleset": SIGNAL_RULESET}
     for code in codes:
         daily = store.daily(str(code))
@@ -210,8 +221,10 @@ def build_panel_with_universe(store, codes: list[str], dates: list[datetime], co
         spell = 0
         spell_age = 0
         in_spell = False
-        for session_index, as_of in enumerate(dates, start=1):
+        for as_of in dates:
             day = pd.Timestamp(as_of).normalize()
+            # session_index定位到完整市场日历，与采样无关；缺bar也保留索引。
+            session_index = int(market_calendar.searchsorted(day)) + 1
             pos = idx.searchsorted(day, side="right")
             has_bar = pos > 0 and idx[pos - 1] == day
             # session_index来自共享交易日历，跨股票同日可比；缺bar也保留索引。
