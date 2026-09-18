@@ -131,9 +131,8 @@ def build_strategy_episode_panel(signal_panel: pd.DataFrame,
                         current["consecutive_confirmations"] += 1
                         current["boundary_uncertain"] = uncertain
                 elif current is not None:
-                    if pool == "out": reason = "monthly_pool_exit"
-                    elif weekly != "eligible": reason = "weekly_not_eligible"
-                    else: reason = "daily_signal_inactive"
+                    # pool=="out"已被显式退出分支continue，此处只会是周线或日线原因
+                    reason = "weekly_not_eligible" if weekly != "eligible" else "daily_signal_inactive"
                     current.update(end_date=day, end_reason=reason, boundary_uncertain=uncertain,
                                    right_censored=False)
                     rows.append(current); current = None; uncertain = False

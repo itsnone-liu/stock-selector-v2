@@ -154,7 +154,10 @@ def main() -> None:
     manifest = {"panel_dir": str(a.panel_dir), "events": len(events),
                 "bench_codes": int(prices["code"].nunique()),
                 "membership_coverage": float(events["industry_code"].notna().mean()),
+                "membership_status_counts": events["membership_status"].value_counts(dropna=False).to_dict()
+                if "membership_status" in events else None,
                 "groups": groups,
+                "median_note": "e_stage_summary的median列不可跨分项相加；恒等分解仅component_means的均值成立",
                 "eligibility_counts": events["weekly_eligibility_state"].value_counts(dropna=False).to_dict()}
     (out / "E_STAGE_MANIFEST.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2))
     print(json.dumps(manifest, ensure_ascii=False))

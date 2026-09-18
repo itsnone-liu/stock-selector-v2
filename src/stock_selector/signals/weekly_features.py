@@ -472,12 +472,13 @@ def evaluate_weekly(snapshot, source_variant: str = "legacy_eod",
     ev.passed = res.get("passed")
     ev.base_pattern = res.get("base_pattern", UNKNOWN)
     ev.weekday_path = res.get("weekday_path", UNKNOWN)
-    ev.legacy_gate_status = ("failed" if ev.weekday_path == "tuesday_gate_failed" else
-                             "passed" if ev.passed is True else
-                             "failed" if ev.passed is False else "insufficient")
     note = (res.get("components") or {}).get("note")
+    # 周完结判定优先用交易日历（短周如节前周四即最后一日），无日历时回退周五。
+    planned = snapshot.planned_sessions_this_week
+    ordinal = snapshot.session_ordinal_in_week
+    week_finished = (planned is not None and ordinal is not None and ordinal >= planned) or wd == 5
     ev.evidence_status = ("insufficient" if ev.passed is None and note else
-                          "complete" if wd == 5 else
+                          "complete" if week_finished else
                           "partial" if partial is not None else "insufficient")
     # 差分校正：旧 check_weekly_surge 在分发层先跑 veto，veto=True 一票否决
     if ev.veto_flag:
@@ -485,6 +486,10 @@ def evaluate_weekly(snapshot, source_variant: str = "legacy_eod",
         if ev.passed:
             ev.passed = False
             ev.notes.append("veto_overridden_branch_pass")
+    # gate状态必须在veto覆写后计算，避免passed与gate标签不一致。
+    ev.legacy_gate_status = ("failed" if ev.weekday_path == "tuesday_gate_failed" else
+                             "passed" if ev.passed is True else
+                             "failed" if ev.passed is False else "insufficient")
     early = early_week_comparison_evidence(
         daily, as_of, snapshot.planned_sessions_this_week
     ) if wd in (1, 2) else {}
