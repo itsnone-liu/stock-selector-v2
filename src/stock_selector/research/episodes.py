@@ -63,7 +63,8 @@ def build_episode_panel(panel: pd.DataFrame,
 
 def build_strategy_episode_panel(signal_panel: pd.DataFrame,
                                  universe_state: pd.DataFrame,
-                                 signal_columns: tuple[str, ...] = ("sv_legacy", "td_legacy")) -> pd.DataFrame:
+                                 signal_columns: tuple[str, ...] = ("sv_legacy", "td_legacy"),
+                                 max_unknown_gap: int = 5) -> pd.DataFrame:
     """构建完整策略条件首次同时成立的事件，不把事件结束解释为卖出。"""
     required_sig = {"code", "date", "weekly_eligibility_state", *signal_columns}
     required_uni = {"code", "date", "monthly_pool_state", "monthly_pool_spell_id", "data_status"}
@@ -77,7 +78,7 @@ def build_strategy_episode_panel(signal_panel: pd.DataFrame,
     rows = []
     for code, group in x.sort_values(["code", "date"]).groupby("code", sort=False):
         for signal in signal_columns:
-            current = None; ordinal = 0; uncertain = False
+            current = None; ordinal = 0; uncertain = False; unknown_gap = 0
             pattern_start = None; pattern_start_session = None
             for _, r in group.iterrows():
                 pool = r["monthly_pool_state"]
@@ -99,12 +100,18 @@ def build_strategy_episode_panel(signal_panel: pd.DataFrame,
                 if explicit_pool_exit:
                     if current is not None:
                         current.update(end_date=day, end_reason="monthly_pool_exit",
-                                       boundary_uncertain=uncertain)
+                                       boundary_uncertain=uncertain, right_censored=False)
                         rows.append(current); current = None; uncertain = False
                     continue
                 if unknown:
-                    if current is not None: uncertain = True
+                    if current is not None:
+                        uncertain = True; unknown_gap += 1
+                        if unknown_gap > max_unknown_gap:
+                            current.update(end_date=day, end_reason="gap_exceeded",
+                                           boundary_uncertain=True, right_censored=False)
+                            rows.append(current); current = None; unknown_gap = 0
                     continue
+                unknown_gap = 0
                 if active:
                     if current is None:
                         ordinal += 1
@@ -116,7 +123,8 @@ def build_strategy_episode_panel(signal_panel: pd.DataFrame,
                                    "pattern_to_strategy_lag_sessions": (
                                        int(r.get("session_index") - pattern_start_session)
                                        if pd.notna(r.get("session_index")) and pd.notna(pattern_start_session) else None),
-                                   "end_date": None, "end_reason": None, "boundary_uncertain": False}
+                                   "end_date": None, "end_reason": None, "boundary_uncertain": False,
+                                   "right_censored": False}
                         uncertain = False
                     else:
                         current["last_trigger_date"] = day
@@ -126,11 +134,15 @@ def build_strategy_episode_panel(signal_panel: pd.DataFrame,
                     if pool == "out": reason = "monthly_pool_exit"
                     elif weekly != "eligible": reason = "weekly_not_eligible"
                     else: reason = "daily_signal_inactive"
-                    current.update(end_date=day, end_reason=reason, boundary_uncertain=uncertain)
+                    current.update(end_date=day, end_reason=reason, boundary_uncertain=uncertain,
+                                   right_censored=False)
                     rows.append(current); current = None; uncertain = False
             if current is not None:
-                current["boundary_uncertain"] = uncertain; rows.append(current)
+                current.update(boundary_uncertain=uncertain, right_censored=True,
+                               end_reason="right_censored")
+                rows.append(current)
     columns = ["episode_id", "code", "signal_type", "first_trigger_date", "last_trigger_date",
                "consecutive_confirmations", "monthly_pool_spell_id", "first_pattern_trigger_date",
-               "pattern_to_strategy_lag_sessions", "end_date", "end_reason", "boundary_uncertain"]
+               "pattern_to_strategy_lag_sessions", "end_date", "end_reason", "boundary_uncertain",
+               "right_censored"]
     return pd.DataFrame(rows, columns=columns)

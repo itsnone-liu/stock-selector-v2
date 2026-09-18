@@ -100,3 +100,24 @@ def test_strategy_episode_unknown_holds_but_marks_boundary_uncertain():
     assert len(ep) == 1
     assert bool(ep.iloc[0].boundary_uncertain) is True
     assert ep.iloc[0].end_reason == "weekly_not_eligible"
+    assert bool(ep.iloc[0].right_censored) is False
+
+
+def test_strategy_episode_marks_right_censor_and_long_unknown_gap():
+    dates = pd.date_range("2025-01-02", periods=4).astype(str)
+    signal = pd.DataFrame({"code": ["600001"], "date": [dates[0]],
+                           "weekly_eligibility_state": ["eligible"],
+                           "sv_legacy": [True], "td_legacy": [False]})
+    universe = pd.DataFrame({"code": ["600001"] * 4, "date": dates,
+                             "monthly_pool_state": ["in", "unknown", "unknown", "unknown"],
+                             "monthly_pool_spell_id": [1, None, None, None],
+                             "session_index": [1, 2, 3, 4],
+                             "data_status": ["available", "missing_bar", "missing_bar", "missing_bar"]})
+    ep = build_strategy_episode_panel(signal, universe, signal_columns=("sv_legacy",), max_unknown_gap=2)
+    assert ep.iloc[0].end_reason == "gap_exceeded"
+    assert bool(ep.iloc[0].right_censored) is False
+
+    open_ep = build_strategy_episode_panel(signal.iloc[:1], universe.iloc[:1],
+                                           signal_columns=("sv_legacy",))
+    assert open_ep.iloc[0].end_reason == "right_censored"
+    assert bool(open_ep.iloc[0].right_censored) is True

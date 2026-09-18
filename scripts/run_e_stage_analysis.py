@@ -30,8 +30,7 @@ from stock_selector.data.tdx import TdxStore
 from stock_selector.research.benchmarks import (attach_relative_outcomes,
                                                 daily_cross_section_benchmarks,
                                                 forward_cross_section_benchmarks)
-from stock_selector.research.contrast import (HORIZONS, block_bootstrap_median_diff,
-                                              grouped_contrast, label_contrast_rows)
+from stock_selector.research.contrast import HORIZONS, grouped_contrast, label_contrast_rows
 from stock_selector.research.context_join import (attach_historical_membership,
                                                   join_industry_context,
                                                   join_market_context)
@@ -145,16 +144,12 @@ def main() -> None:
     summary = pd.concat(tables, ignore_index=True)
     summary.to_csv(out / "e_stage_summary.csv", index=False)
 
-    # 主对照：eligible vs 非eligible（行业超额），股票块与日期块两套CI
-    events["_is_eligible"] = events["weekly_eligibility_state"] == "eligible"
-    boot = {}
-    for block in ("code", "date"):
-        for h in (1, 5, 20):
-            boot[f"ind_excess{h}_by_{block}"] = block_bootstrap_median_diff(
-                events.dropna(subset=[f"industry_excess{h}"]),
-                f"industry_excess{h}", "_is_eligible",
-                block_col=block, iterations=300)
-    (out / "e_stage_bootstrap.json").write_text(json.dumps(boot, ensure_ascii=False, indent=2))
+    # 禁止恢复旧的 eligible-vs-all-noneligible 混合主对照；
+    # 正式对照只存在于 designs/ 三组明确cohort，统计脚本按各自cohort两两比较。
+    (out / "e_stage_bootstrap.json").write_text(json.dumps({
+        "status": "not_run",
+        "reason": "bootstrap must consume explicit progressive design cohorts; mixed noneligible control is forbidden"
+    }, ensure_ascii=False, indent=2))
 
     manifest = {"panel_dir": str(a.panel_dir), "events": len(events),
                 "bench_codes": int(prices["code"].nunique()),
