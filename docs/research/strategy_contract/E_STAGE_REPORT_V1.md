@@ -98,5 +98,5 @@ PYTHONPATH=src python scripts/run_e_stage_analysis.py \
   --panel-dir output/research/momentum_panel_v2 \
   --membership ../capital-observer/output/research_context/membership_history.csv \
   --out output/research/e_stage_v2
-# bootstrap部分若中断可用 scripts/finish_e_stage_bootstrap.py 补算
+# 旧混合对照补算脚本已硬禁用；本报告及其补算路径均不得继续使用
 ```
