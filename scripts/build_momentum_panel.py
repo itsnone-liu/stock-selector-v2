@@ -39,6 +39,8 @@ def main() -> None:
                    help="未来交易日窗口，逗号分隔（默认: 1,2,3,5,10,15,20）")
     p.add_argument("--batch", type=int, default=250,
                    help="每批股票数（流式落盘，控内存）")
+    p.add_argument("--allow-calendar-fallback", action="store_true",
+                   help="仅冒烟/诊断允许指数日历缺失时退回首股；正式构建默认拒绝")
     a = p.parse_args()
     horizons = tuple(sorted({int(x) for x in a.horizons.split(",") if x.strip()}))
     if not horizons or any(h <= 0 for h in horizons):
@@ -60,11 +62,13 @@ def main() -> None:
     market_calendar = store.market_calendar()
     calendar_source = "index_sh000001"
     if market_calendar is None:
+        if not a.allow_calendar_fallback:
+            raise SystemExit("market index calendar missing; pass --allow-calendar-fallback only for smoke/diagnosis")
         first = store.daily(codes[0]) if codes else None
         if first is None:
             raise SystemExit("no daily data for calendar")
         market_calendar = pd.DatetimeIndex(first.index)
-        calendar_source = "first_stock_fallback"
+        calendar_source = "first_stock_fallback_smoke_only"
     all_days = market_calendar
     days = all_days[(all_days >= pd.Timestamp(a.start)) & (all_days <= pd.Timestamp(a.end))]
     days = days[:: a.every]

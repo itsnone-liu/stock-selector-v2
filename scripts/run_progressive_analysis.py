@@ -57,24 +57,35 @@ def load_panel(panel_dir: Path) -> dict[str, pd.DataFrame]:
             "manifest": manifest}
 
 
-def group_summary(frame: pd.DataFrame, horizons) -> pd.DataFrame:
+def group_summary(frame: pd.DataFrame, horizons, group_cols=("cohort",),
+                  *, comparison: str, sample_kind: str) -> pd.DataFrame:
     rows = []
-    for (cohort,), g in frame.groupby(["cohort"], dropna=False):
+    for keys, g in frame.groupby(list(group_cols), dropna=False):
+        if not isinstance(keys, tuple): keys = (keys,)
+        base = dict(zip(group_cols, keys))
         for h in horizons:
             v = pd.to_numeric(g.get(f"fwd{h}"), errors="coerce").dropna()
             ex = pd.to_numeric(g.get(f"industry_excess{h}"), errors="coerce").dropna()
-            rows.append({"cohort": cohort, "horizon": h, "events": len(g),
-                         "n_fwd": len(v), "median_fwd": v.median() if len(v) else None,
-                         "mean_fwd": v.mean() if len(v) else None,
-                         "positive_rate": float((v > 0).mean()) if len(v) else None,
-                         "n_excess": len(ex),
-                         "median_excess": ex.median() if len(ex) else None})
+            row = {**base, "comparison": comparison, "sample_kind": sample_kind,
+                   "horizon": h, "events": len(g), "n_fwd": len(v),
+                   "median_fwd": v.median() if len(v) else None,
+                   "mean_fwd": v.mean() if len(v) else None,
+                   "positive_rate": float((v > 0).mean()) if len(v) else None,
+                   "n_excess": len(ex), "median_excess": ex.median() if len(ex) else None}
+            if comparison == "weekly_direct_within_monthly":
+                nw = (pd.to_numeric(g["next_week_return"], errors="coerce").dropna()
+                      if "next_week_return" in g else pd.Series(dtype=float))
+                row.update(next_week_n=len(nw), next_week_median=nw.median() if len(nw) else None,
+                           next_week_mean=nw.mean() if len(nw) else None,
+                           next_week_positive_rate=float((nw > 0).mean()) if len(nw) else None)
+            rows.append(row)
     return pd.DataFrame(rows)
 
 
 def pairwise_bootstrap(frame: pd.DataFrame, horizons, contrasts: list[tuple[str, str]],
                        block_col: str = "code", iterations: int = 500,
-                       min_n: int = 30) -> dict:
+                       min_n: int = 30, group_col: str = "cohort") -> dict:
+    """显式组间bootstrap；block_col可为code或date，禁止混合非目标组。"""
     res = {}
     for h in horizons:
         col = f"industry_excess{h}"
@@ -82,19 +93,18 @@ def pairwise_bootstrap(frame: pd.DataFrame, horizons, contrasts: list[tuple[str,
             continue
         x = frame.dropna(subset=[col])
         for a, b in contrasts:
-            ga, gb = x[x["cohort"] == a], x[x["cohort"] == b]
+            ga, gb = x[x[group_col] == a], x[x[group_col] == b]
             if len(ga) >= min_n and len(gb) >= min_n:
                 merged = pd.concat([ga.assign(_t=1), gb.assign(_t=0)], ignore_index=True)
                 r = block_bootstrap_median_diff(merged, col, "_t", block_col=block_col,
                                                 iterations=iterations)
                 lo, hi = r.get("ci_low"), r.get("ci_high")
                 res[f"h{h}|{a}_vs_{b}"] = {
-                    "n_a": len(ga), "n_b": len(gb),
-                    "estimate": r.get("estimate"),
+                    "n_a": len(ga), "n_b": len(gb), "estimate": r.get("estimate"),
                     "ci_low": lo, "ci_high": hi,
                     "ci_excludes_zero": (lo is not None and hi is not None
                                          and (lo > 0 or hi < 0)),
-                    "blocks": r.get("blocks"),
+                    "blocks": r.get("blocks"), "block_col": block_col,
                 }
     return res
 
@@ -156,19 +166,46 @@ def main() -> None:
     from stock_selector.research.benchmarks import daily_cross_section_benchmarks
     market_daily, industry_daily = daily_cross_section_benchmarks(returns.dropna(subset=["return"]))
 
-    # ---- 三组对照：设计→收益/基准关联→组间统计 ----
+    # ---- 三组对照：设计→收益/基准关联→全量+逐期限非重叠统计 ----
     design_dir = out / "designs"; design_dir.mkdir(exist_ok=True)
+    designs = build_progressive_comparisons(merged0, horizons=HORIZONS)
     summary_parts, boot_all = [], {}
+
+    def enrich(frame):
+        frame = attach_historical_membership(frame, memberships)
+        return attach_relative_outcomes(frame, market_fwd, industry_fwd, horizons=HORIZONS)
+
+    def compare(frame, name, sample_kind, horizons):
+        group_cols = ("daily_trigger_type", "cohort") if name == "weekly_state_within_daily_shape" else ("cohort",)
+        summary_parts.append(group_summary(frame, horizons, group_cols=group_cols,
+                                            comparison=name, sample_kind=sample_kind))
+        result = {}
+        if name == "weekly_state_within_daily_shape":
+            for shape, shaped in frame.groupby("daily_trigger_type", dropna=False):
+                states = sorted(shaped["cohort"].dropna().unique())
+                contrasts = [(x, y) for i, x in enumerate(states) for y in states[i + 1:]]
+                for block in ("code", "date"):
+                    result[f"shape={shape}|block={block}"] = pairwise_bootstrap(
+                        shaped, horizons, contrasts, block_col=block,
+                        iterations=a.bootstrap_iterations)
+        else:
+            states = sorted(frame["cohort"].dropna().unique())
+            contrasts = [(x, y) for i, x in enumerate(states) for y in states[i + 1:]]
+            for block in ("code", "date"):
+                result[f"block={block}"] = pairwise_bootstrap(
+                    frame, horizons, contrasts, block_col=block,
+                    iterations=a.bootstrap_iterations)
+        return result
+
     for name in COHORT_NAMES:
-        base = build_progressive_comparisons(merged0, horizons=HORIZONS)[f"{name}__all"]
-        base = attach_historical_membership(base, memberships)
-        base = attach_relative_outcomes(base, market_fwd, industry_fwd, horizons=HORIZONS)
-        base.to_csv(design_dir / f"{name}.csv", index=False)
-        summary_parts.append(group_summary(base, HORIZONS).assign(comparison=name))
-        states = sorted(base["cohort"].dropna().unique())
-        contrasts = [(x, y) for i, x in enumerate(states) for y in states[i + 1:]]
-        boot_all[name] = pairwise_bootstrap(base, HORIZONS, contrasts,
-                                            iterations=a.bootstrap_iterations)
+        all_frame = enrich(designs[f"{name}__all"])
+        all_frame.to_csv(design_dir / f"{name}__all.csv", index=False)
+        boot_all[f"{name}__all"] = compare(all_frame, name, "all", HORIZONS)
+        for h in HORIZONS:
+            key = f"{name}__nonoverlap_h{h}"
+            no_frame = enrich(designs[key])
+            no_frame.to_csv(design_dir / f"{key}.csv", index=False)
+            boot_all[key] = compare(no_frame, name, f"nonoverlap_h{h}", (h,))
     pd.concat(summary_parts, ignore_index=True).to_csv(out / "progressive_summary.csv", index=False)
     (out / "bootstrap_contrasts.json").write_text(
         json.dumps(boot_all, ensure_ascii=False, indent=2, default=str))
@@ -192,24 +229,59 @@ def main() -> None:
     pd.DataFrame(pat_rows).to_csv(out / "pattern_episode_report.csv", index=False)
 
     # ---- 同结构正负 + 持有期背景（对照A事件日） ----
-    a_rows = pd.read_csv(design_dir / "daily_increment_within_monthly_weekly.csv",
+    a_rows = pd.read_csv(design_dir / "daily_increment_within_monthly_weekly__all.csv",
                          dtype={"code": str}, low_memory=False)
     a_rows = join_market_context(a_rows, market_daily)
     a_rows = join_industry_context(a_rows, industry_daily)
     a_rows = attach_pre_context(a_rows, market_daily,
                                 value_columns=("market_return_med", "market_up_ratio"))
-    feats = [c for c in ("pre_context_market_return_med", "pre_context_market_up_ratio",
-                         "monthly_pool_spell_age") if c in set(a_rows)]
+    # 池龄不作为特征（同组固定池龄会产生必然零差）；改为分段结构条件。
+    a_rows["monthly_pool_age_band"] = pd.cut(
+        pd.to_numeric(a_rows["monthly_pool_spell_age"], errors="coerce"),
+        bins=[0, 5, 20, 60, 120, np.inf],
+        labels=["1_5", "6_20", "21_60", "61_120", "121_plus"],
+        include_lowest=True).astype(object)
+    feats = [c for c in (
+        "pre_context_market_return_med", "pre_context_market_up_ratio",
+        "pre_return_20_pct", "dist_to_prior_ma20_pct", "today_close_position",
+        "today_upper_shadow_pct", "t_eff", "eff_delta",
+        "volume_ratio_vs_prev_week") if c in set(a_rows)]
     contrast = within_structure_feature_contrast(
         a_rows, horizon=5, feature_columns=feats,
-        structure_columns=("monthly_pool_spell_age", "daily_trigger_type"))
+        structure_columns=("monthly_pool_age_band", "weekly_base_pattern",
+                           "weekly_weekday_path", "daily_trigger_type"))
     contrast.to_csv(out / "within_structure_contrast.csv", index=False)
 
+    event_keys = a_rows.drop_duplicates(["code", "date"])[["code", "date"]]
     hold_market = holding_context_metrics(
-        a_rows.drop_duplicates(["code", "date"]),
-        market_daily.rename(columns={"market_return_med": "mret"})[["date", "mret"]],
-        value_col="mret", horizon=5)
+        event_keys, market_daily.rename(columns={"market_return_med": "mret"})[["date", "mret"]],
+        value_col="mret", horizon=5).rename(columns={
+            "holding_context_mret_h5_sum": "holding_context_market_h5_sum",
+            "holding_context_mret_h5_min": "holding_context_market_h5_min",
+            "holding_context_mret_h5_n": "holding_context_market_h5_n",
+            "holding_context_mret_h5_complete": "holding_context_market_h5_complete"})
+    # 行业持有期路径按事件当日PIT行业分组计算，再与市场路径合并。
+    industry_hold_parts = []
+    if "industry_code" in a_rows and "industry_code" in industry_daily:
+        for ind, eg in a_rows.drop_duplicates(["code", "date", "industry_code"]).groupby("industry_code"):
+            ctx = industry_daily[industry_daily["industry_code"] == ind]
+            if ctx.empty: continue
+            part = holding_context_metrics(
+                eg[["code", "date"]], ctx.rename(columns={"industry_return_med": "iret"})[["date", "iret"]],
+                value_col="iret", horizon=5)
+            part["industry_code"] = ind
+            industry_hold_parts.append(part)
+    hold_ind = pd.concat(industry_hold_parts, ignore_index=True) if industry_hold_parts else pd.DataFrame()
+    if not hold_ind.empty:
+        hold_ind = hold_ind.rename(columns={
+            "holding_context_iret_h5_sum": "holding_context_industry_h5_sum",
+            "holding_context_iret_h5_min": "holding_context_industry_h5_min",
+            "holding_context_iret_h5_n": "holding_context_industry_h5_n",
+            "holding_context_iret_h5_complete": "holding_context_industry_h5_complete"})
     hold_market.to_csv(out / "holding_context.csv", index=False)
+    if not hold_ind.empty:
+        hold_market.merge(hold_ind, on=["code", "date"], how="left").to_csv(
+            out / "holding_context.csv", index=False)
 
     manifest = {"panel_dir": str(a.panel_dir), "panel_version": PANEL_VERSION,
                 "horizons": list(HORIZONS), "bootstrap_iterations": a.bootstrap_iterations,

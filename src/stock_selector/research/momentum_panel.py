@@ -122,7 +122,9 @@ def _evidence_row(code: str, daily: pd.DataFrame, as_of: datetime, weekly_full: 
     dev = evaluate_daily(snap)
     daily_values = [dev.legacy_labels.get(k) for k in (
         "shrinking_volume_acceleration", "two_day_acceleration")]
-    daily_trigger = None if all(v is None for v in daily_values) else any(bool(v) for v in daily_values)
+    # 日线OR三态：任一真触发；全明确假未触发；无真但部分未知仍未知。
+    daily_trigger = (True if any(v is True for v in daily_values) else
+                     False if all(v is False for v in daily_values) else None)
     prior = pre_signal_features(snap)
     row = {
         "code": code,

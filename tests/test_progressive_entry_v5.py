@@ -125,9 +125,12 @@ def test_progressive_main_smoke(tmp_path, monkeypatch):
     # bootstrap必须真实执行且键契约正确（B1/B2回归）
     import math
     boot = json.loads((out / "bootstrap_contrasts.json").read_text())
-    a_boot = boot["daily_increment_within_monthly_weekly"]
+    a_boot = boot["daily_increment_within_monthly_weekly__all"]
+    assert "block=code" in a_boot and "block=date" in a_boot
     assert a_boot, "bootstrap组间对比为空：入口对bootstrap路径失明"
-    entry = next(iter(a_boot.values()))
+    code_boot = a_boot["block=code"]
+    assert code_boot
+    entry = next(iter(code_boot.values()))
     assert entry["estimate"] is not None and "ci_excludes_zero" in entry
     assert entry["n_a"] >= 30 and entry["n_b"] >= 30
     man = json.loads((out / "PROGRESSIVE_MANIFEST.json").read_text())
