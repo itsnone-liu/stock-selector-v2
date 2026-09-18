@@ -78,6 +78,7 @@ def build_strategy_episode_panel(signal_panel: pd.DataFrame,
     for code, group in x.sort_values(["code", "date"]).groupby("code", sort=False):
         for signal in signal_columns:
             current = None; ordinal = 0; uncertain = False
+            pattern_start = None; pattern_start_session = None
             for _, r in group.iterrows():
                 pool = r["monthly_pool_state"]
                 weekly = r["weekly_eligibility_state"]
@@ -87,8 +88,14 @@ def build_strategy_episode_panel(signal_panel: pd.DataFrame,
                 unknown = (pool == "unknown" or
                            (pool == "in" and (pd.isna(weekly) or weekly == "unknown"
                                               or pd.isna(value) or value in UNKNOWN)))
-                active = pool == "in" and weekly == "eligible" and bool(value) and not unknown
+                pattern_active = pd.notna(value) and value not in UNKNOWN and bool(value)
                 day = r["date"]
+                if pattern_active and pattern_start is None:
+                    pattern_start = day
+                    pattern_start_session = r.get("session_index")
+                elif not pattern_active and not unknown:
+                    pattern_start = None; pattern_start_session = None
+                active = pool == "in" and weekly == "eligible" and pattern_active and not unknown
                 if explicit_pool_exit:
                     if current is not None:
                         current.update(end_date=day, end_reason="monthly_pool_exit",
@@ -105,6 +112,10 @@ def build_strategy_episode_panel(signal_panel: pd.DataFrame,
                                    "signal_type": signal, "first_trigger_date": day,
                                    "last_trigger_date": day, "consecutive_confirmations": 1,
                                    "monthly_pool_spell_id": r["monthly_pool_spell_id"],
+                                   "first_pattern_trigger_date": pattern_start,
+                                   "pattern_to_strategy_lag_sessions": (
+                                       int(r.get("session_index") - pattern_start_session)
+                                       if pd.notna(r.get("session_index")) and pd.notna(pattern_start_session) else None),
                                    "end_date": None, "end_reason": None, "boundary_uncertain": False}
                         uncertain = False
                     else:
@@ -120,6 +131,6 @@ def build_strategy_episode_panel(signal_panel: pd.DataFrame,
             if current is not None:
                 current["boundary_uncertain"] = uncertain; rows.append(current)
     columns = ["episode_id", "code", "signal_type", "first_trigger_date", "last_trigger_date",
-               "consecutive_confirmations", "monthly_pool_spell_id", "end_date", "end_reason",
-               "boundary_uncertain"]
+               "consecutive_confirmations", "monthly_pool_spell_id", "first_pattern_trigger_date",
+               "pattern_to_strategy_lag_sessions", "end_date", "end_reason", "boundary_uncertain"]
     return pd.DataFrame(rows, columns=columns)

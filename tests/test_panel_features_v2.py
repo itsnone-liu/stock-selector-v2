@@ -70,7 +70,7 @@ def test_strategy_episode_starts_when_weekly_becomes_eligible_and_ends_on_pool_e
     universe = pd.DataFrame({
         "code": ["600001"] * 5, "date": dates,
         "monthly_pool_state": ["in", "in", "in", "out", "in"],
-        "monthly_pool_spell_id": [1, 1, 1, None, 2],
+        "monthly_pool_spell_id": [1, 1, 1, None, 2], "session_index": [1, 2, 3, 4, 5],
         "data_status": ["available"] * 5,
     })
     ep = build_strategy_episode_panel(signal, universe, signal_columns=("sv_legacy",))
@@ -79,6 +79,8 @@ def test_strategy_episode_starts_when_weekly_becomes_eligible_and_ends_on_pool_e
     assert ep.iloc[0].end_date == dates[3]
     assert ep.iloc[0].end_reason == "monthly_pool_exit"
     assert ep.iloc[0].monthly_pool_spell_id == 1
+    assert ep.iloc[0].first_pattern_trigger_date == dates[0]
+    assert ep.iloc[0].pattern_to_strategy_lag_sessions == 1
 
 
 def test_strategy_episode_unknown_holds_but_marks_boundary_uncertain():
@@ -91,7 +93,7 @@ def test_strategy_episode_unknown_holds_but_marks_boundary_uncertain():
     universe = pd.DataFrame({
         "code": ["600001"] * 4, "date": dates,
         "monthly_pool_state": ["in", "unknown", "in", "in"],
-        "monthly_pool_spell_id": [1, None, 2, 2],
+        "monthly_pool_spell_id": [1, None, 2, 2], "session_index": [1, 2, 3, 4],
         "data_status": ["available", "missing_bar", "available", "available"],
     })
     ep = build_strategy_episode_panel(signal, universe, signal_columns=("sv_legacy",))
