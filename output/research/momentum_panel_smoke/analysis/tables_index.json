@@ -1,0 +1,21 @@
+{
+  "cell_main": 6,
+  "day_sv_raw": 2,
+  "day_sv_legacy": 2,
+  "day_td_raw": 2,
+  "day_td_legacy": 2,
+  "day_sv_continuation": 3,
+  "day_sv_rebound": 3,
+  "day_acc_continuation": 2,
+  "day_acc_rebound": 2,
+  "day_activity_state": 3,
+  "week_weekly_passed": 3,
+  "week_weekly_base_pattern": 4,
+  "week_weekly_weekday_path": 8,
+  "week_weekly_veto": 2,
+  "week_eff_delta_bucket": 5,
+  "cell_by_half": 2,
+  "cell_half_detail": 12,
+  "week_half_detail": 4,
+  "coverage": 1
+}

@@ -1,0 +1,5 @@
+weekly_base_pattern,n,next_week_open_gap_med,next_week_open_gap_pos,next_week_return_med,next_week_return_pos,next_week_high_med,next_week_high_pos,next_week_low_med,next_week_low_pos
+double_positive_efficiency_improved,881,-0.00359,0.4325,-0.00988,0.4234,0.03793,0.7787,-0.04726,0.1544
+negative_to_positive,1597,0.0,0.4753,-0.01172,0.392,0.03514,0.8153,-0.04047,0.139
+none,3066,-0.00479,0.4054,-0.01279,0.4159,0.03312,0.775,-0.04394,0.1308
+unknown,1,0.06875,1.0,0.10938,1.0,0.10938,1.0,-0.0125,0.0

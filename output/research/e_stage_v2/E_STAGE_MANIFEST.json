@@ -1,0 +1,13 @@
+{
+  "panel_dir": "output/research/momentum_panel_v2",
+  "events": 195586,
+  "bench_codes": 5588,
+  "membership_coverage": 0.9802133077009602,
+  "eligibility_counts": {
+    "observation": 406587,
+    "eligible": 399569,
+    "unknown": 118078,
+    "excluded": 47229
+  },
+  "note": "bootstrap补算自e_stage_events.csv；eligibility计数来自全量signal_panel"
+}

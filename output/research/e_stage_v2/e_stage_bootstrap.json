@@ -1,0 +1,86 @@
+{
+  "industry_excess1_by_code": {
+    "estimate": -6.855106854245001e-05,
+    "ci_low": -0.00023881504521436269,
+    "ci_high": 0.00010702523251777858,
+    "blocks": 4675,
+    "iterations": 300
+  },
+  "industry_excess5_by_code": {
+    "estimate": -0.0004876627041975,
+    "ci_low": -0.0009135520819167875,
+    "ci_high": -0.00012133176805930285,
+    "blocks": 4675,
+    "iterations": 300
+  },
+  "industry_excess20_by_code": {
+    "estimate": -0.00027521547715875005,
+    "ci_low": -0.0011432672855083586,
+    "ci_high": 0.0004927337817046201,
+    "blocks": 4658,
+    "iterations": 300
+  },
+  "market_excess1_by_code": {
+    "estimate": -0.00019441605266389998,
+    "ci_low": -0.00040535049271771126,
+    "ci_high": -3.5302831042388324e-06,
+    "blocks": 4832,
+    "iterations": 300
+  },
+  "market_excess5_by_code": {
+    "estimate": 8.791221218514998e-05,
+    "ci_low": -0.00039560941960434254,
+    "ci_high": 0.00047372860368072745,
+    "blocks": 4832,
+    "iterations": 300
+  },
+  "market_excess20_by_code": {
+    "estimate": 7.5748071261001054e-06,
+    "ci_low": -0.0010271110436080825,
+    "ci_high": 0.0009241582968070949,
+    "blocks": 4826,
+    "iterations": 300
+  },
+  "industry_excess1_by_date": {
+    "estimate": -6.855106854245001e-05,
+    "ci_low": -0.0005090433196021022,
+    "ci_high": 0.0002730170339757351,
+    "blocks": 643,
+    "iterations": 300
+  },
+  "industry_excess5_by_date": {
+    "estimate": -0.0004876627041975,
+    "ci_low": -0.0013859494822984315,
+    "ci_high": 0.00018182311333624654,
+    "blocks": 639,
+    "iterations": 300
+  },
+  "industry_excess20_by_date": {
+    "estimate": -0.00027521547715875005,
+    "ci_low": -0.0017824741939715398,
+    "ci_high": 0.0013992652821396203,
+    "blocks": 624,
+    "iterations": 300
+  },
+  "market_excess1_by_date": {
+    "estimate": -0.00019441605266389998,
+    "ci_low": -0.0007584558137599877,
+    "ci_high": 0.0004006911575262097,
+    "blocks": 644,
+    "iterations": 300
+  },
+  "market_excess5_by_date": {
+    "estimate": 8.791221218514998e-05,
+    "ci_low": -0.0009791654213812226,
+    "ci_high": 0.001183588810610608,
+    "blocks": 640,
+    "iterations": 300
+  },
+  "market_excess20_by_date": {
+    "estimate": 7.5748071261001054e-06,
+    "ci_low": -0.0025638718842793088,
+    "ci_high": 0.0027220486484442067,
+    "blocks": 625,
+    "iterations": 300
+  }
+}
