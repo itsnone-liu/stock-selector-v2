@@ -96,19 +96,24 @@ def block_bootstrap_median_diff(df: pd.DataFrame, value_col: str, treatment_col:
     blocks = valid[block_col].unique()
     if len(blocks) < 2:
         return {"estimate": None, "ci_low": None, "ci_high": None, "blocks": len(blocks)}
-    def diff(x):
-        a = x[x[treatment_col].astype(bool)][value_col]
-        b = x[~x[treatment_col].astype(bool)][value_col]
-        return float(a.median() - b.median()) if len(a) and len(b) else np.nan
-    estimate = diff(valid)
+    # numpy数组级重采样：只携带(value, treat)两列，避免整块DataFrame拼接。
+    keys = valid[block_col].to_numpy()
+    vals = valid[value_col].to_numpy(dtype=float)
+    treat = valid[treatment_col].to_numpy(dtype=bool)
+    grouped = {b: (vals[keys == b], treat[keys == b]) for b in blocks}
+    def diff(v, t):
+        a, c = v[t], v[~t]
+        return float(np.median(a) - np.median(c)) if len(a) and len(c) else np.nan
+    estimate = diff(vals, treat)
     rng = np.random.default_rng(seed)
-    samples = []
-    grouped = {b: valid[valid[block_col] == b] for b in blocks}
-    for _ in range(iterations):
-        draw = rng.choice(blocks, size=len(blocks), replace=True)
-        x = pd.concat([grouped[b] for b in draw], ignore_index=True)
-        samples.append(diff(x))
-    arr = np.asarray(samples, dtype=float); arr = arr[~np.isnan(arr)]
+    block_list = list(blocks)
+    samples = np.empty(iterations)
+    for i in range(iterations):
+        draw = rng.choice(block_list, size=len(block_list), replace=True)
+        v = np.concatenate([grouped[b][0] for b in draw])
+        t = np.concatenate([grouped[b][1] for b in draw])
+        samples[i] = diff(v, t)
+    arr = samples[~np.isnan(samples)]
     return {"estimate": estimate,
             "ci_low": float(np.quantile(arr, .025)) if len(arr) else None,
             "ci_high": float(np.quantile(arr, .975)) if len(arr) else None,
