@@ -111,3 +111,13 @@ def test_tuesday_gate_failed_is_observation_not_unknown():
 def test_real_missing_evidence_stays_unknown():
     ev = _ev(passed=None, weekday_path="tuesday_no_daily")
     assert derive_weekly_eligibility(ev) == ("unknown", "insufficient_evidence")
+
+
+def test_tuesday_gate_history_insufficient_stays_unknown():
+    ev = _ev(passed=None, weekday_path="tuesday_gate_unknown")
+    assert derive_weekly_eligibility(ev) == ("unknown", "insufficient_evidence")
+
+
+def test_stagnation_precedes_tuesday_gate_failed_mapping():
+    ev = _ev(passed=None, weekday_path="tuesday_gate_failed", theory_stagnation_flag=True)
+    assert derive_weekly_eligibility(ev) == ("excluded", "theory_stagnation_partial_week")

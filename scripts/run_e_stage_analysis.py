@@ -35,6 +35,8 @@ from stock_selector.research.contrast import (HORIZONS, block_bootstrap_median_d
 from stock_selector.research.context_join import (attach_historical_membership,
                                                   join_industry_context,
                                                   join_market_context)
+from stock_selector.research.comparisons import build_progressive_comparisons
+from stock_selector.research.momentum_panel import PANEL_VERSION
 
 
 def load_events(panel_dir: Path) -> pd.DataFrame:
@@ -93,6 +95,15 @@ def main() -> None:
     a = p.parse_args()
     out = Path(a.out); out.mkdir(parents=True, exist_ok=True)
     cfg = yaml.safe_load(Path(a.protocol).read_text())["result_classification"]
+    source_manifest = json.loads((Path(a.panel_dir) / "manifest.json").read_text())
+    if source_manifest.get("panel_version") != PANEL_VERSION:
+        raise SystemExit(f"stale panel contract: expected {PANEL_VERSION}, got {source_manifest.get('panel_version')}")
+    # 新三对照先构造并落盘；收益汇总仍以独立outcome阶段连接。
+    signal_all = pd.read_csv(Path(a.panel_dir) / "signal_panel.csv", dtype={"code": str}, low_memory=False)
+    designs = build_progressive_comparisons(signal_all, horizons=HORIZONS)
+    design_dir = out / "designs"; design_dir.mkdir(exist_ok=True)
+    for name, frame in designs.items():
+        frame.to_csv(design_dir / f"{name}.csv", index=False)
 
     events = load_events(Path(a.panel_dir))
     memberships = pd.read_csv(a.membership, dtype={"code": str, "industry_code": str})

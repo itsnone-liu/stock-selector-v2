@@ -9,6 +9,7 @@ from pathlib import Path
 import pandas as pd
 
 from stock_selector.research.comparisons import build_progressive_comparisons
+from stock_selector.research.momentum_panel import PANEL_VERSION
 
 
 def main():
@@ -20,7 +21,18 @@ def main():
     horizons = tuple(int(x) for x in a.horizons.split(",") if x)
     panel_dir, out = Path(a.panel_dir), Path(a.out)
     out.mkdir(parents=True, exist_ok=True)
+    manifest_path = panel_dir / "manifest.json"
+    if not manifest_path.exists():
+        raise SystemExit("panel manifest missing")
+    source_manifest = json.loads(manifest_path.read_text())
+    if source_manifest.get("panel_version") != PANEL_VERSION:
+        raise SystemExit(f"stale panel contract: expected {PANEL_VERSION}, got {source_manifest.get('panel_version')}")
     sig = pd.read_csv(panel_dir / "signal_panel.csv", dtype={"code": str}, low_memory=False)
+    required = {"session_index", "monthly_pool_spell_age", "weekly_eligibility_state",
+                "sv_legacy", "td_legacy"}
+    missing = required - set(sig)
+    if missing:
+        raise SystemExit(f"panel missing progressive-design columns: {sorted(missing)}")
     designs = build_progressive_comparisons(sig, horizons=horizons)
     manifest = {"source": str(panel_dir), "horizons": list(horizons), "tables": {}}
     for name, frame in designs.items():

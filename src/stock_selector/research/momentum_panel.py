@@ -20,7 +20,7 @@ from stock_selector.signals.snapshot import build_snapshot
 from stock_selector.signals.weekly_features import evaluate_weekly
 from stock_selector.strategies.trend import monthly_trend
 
-PANEL_VERSION = "momentum_panel_v2_contract"
+PANEL_VERSION = "momentum_panel_v3_progressive_contract"
 SIGNAL_RULESET = "legacy_reconstructed_v1_eod"  # Legacy verdict source; Theory eligibility is a separate field
 
 
@@ -113,8 +113,9 @@ def _tri_cell(value) -> str:
 
 
 def _evidence_row(code: str, daily: pd.DataFrame, as_of: datetime, weekly_full: pd.DataFrame,
-                  monthly_states: dict | None = None) -> dict | None:
-    snap = build_snapshot(code, as_of, daily)
+                  monthly_states: dict | None = None,
+                  trading_calendar: pd.DatetimeIndex | None = None) -> dict | None:
+    snap = build_snapshot(code, as_of, daily, trading_calendar=trading_calendar)
     if not snap.has_current_bar:
         return None
     wev = evaluate_weekly(snap, source_variant="legacy_eod", weekly_full=weekly_full)
@@ -192,6 +193,7 @@ def build_panel_with_universe(store, codes: list[str], dates: list[datetime], co
     """
     rows: list[dict] = []
     state_rows: list[dict] = []
+    market_calendar = pd.DatetimeIndex([pd.Timestamp(d).normalize() for d in dates])
     stats = {"stocks": 0, "stocks_with_data": 0, "monthly_pool_hits": 0, "rows": 0,
              "universe_rows": 0, "missing_current_bar": 0, "panel_version": PANEL_VERSION,
              "signal_ruleset": SIGNAL_RULESET}
@@ -241,7 +243,7 @@ def build_panel_with_universe(store, codes: list[str], dates: list[datetime], co
                 continue
             stats["monthly_pool_hits"] += 1
             row = _evidence_row(str(code), daily, as_of, weekly_full,
-                                monthly_states=monthly_states)
+                                monthly_states=monthly_states, trading_calendar=market_calendar)
             if row is None:
                 stats["missing_current_bar"] += 1
                 continue

@@ -107,4 +107,6 @@ def same_week_remaining(daily: pd.DataFrame, signal_date: date) -> dict:
     out["week_remaining_return"] = float(rows.iloc[-1]["close"]) / signal_close - 1
     out["week_remaining_high"] = float(rows["high"].max()) / signal_close - 1
     out["week_remaining_sessions"] = len(rows)
+    # 至少存在本周之后的行情，才能确认本周剩余窗口已走完；周五无剩余行保持False。
+    out["matured_week_remaining"] = bool((daily.index > friday).any())
     return out

@@ -26,7 +26,9 @@ def attach_daily_trigger(panel: pd.DataFrame,
 def daily_increment_cohort(panel: pd.DataFrame) -> pd.DataFrame:
     """对照A：月池内且周线eligible，日线明确触发 vs 明确未触发。"""
     x = attach_daily_trigger(panel)
-    monthly = x.get("monthly_provisional_state", pd.Series(True, index=x.index))
+    if "monthly_provisional_state" not in x:
+        raise ValueError("panel requires monthly_provisional_state")
+    monthly = x["monthly_provisional_state"]
     x = x[(monthly == True) & (x["weekly_eligibility_state"] == "eligible")].copy()  # noqa:E712
     x = x[x["daily_trigger_state"] != "unknown"]
     x["cohort"] = x["daily_trigger_state"]
@@ -45,7 +47,9 @@ def weekly_state_within_daily_shape(panel: pd.DataFrame) -> pd.DataFrame:
 def weekly_direct_cohort(panel: pd.DataFrame) -> pd.DataFrame:
     """对照C：月池内直接研究周动能/效率，不以日线触发为入样条件。"""
     x = attach_daily_trigger(panel)
-    monthly = x.get("monthly_provisional_state", pd.Series(True, index=x.index))
+    if "monthly_provisional_state" not in x:
+        raise ValueError("panel requires monthly_provisional_state")
+    monthly = x["monthly_provisional_state"]
     x = x[(monthly == True) & x["weekly_eligibility_state"].isin(
         ["eligible", "observation", "excluded"])].copy()  # noqa:E712
     x["cohort"] = x["weekly_eligibility_state"]
@@ -63,6 +67,6 @@ def nonoverlapping_anchors(rows: pd.DataFrame, horizon: int,
         last = None
         for idx, row in group.iterrows():
             session = int(row["session_index"])
-            if last is None or session - last > horizon:
+            if last is None or session - last >= horizon:
                 keep.append(idx); last = session
     return rows.loc[keep].sort_values(["date", "code"]).reset_index(drop=True)

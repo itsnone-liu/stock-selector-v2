@@ -90,18 +90,20 @@ def evaluate_daily(snapshot, volume_ratio: float | None = None,
     ev.volume_ratio_vs_prev = round(vr, 4) if vr is not None else None
 
     # ---------- 原版量价现象（上限前） ----------
-    shrinking_raw = bool(
-        r_today is not None and r_today > 0
-        and ev.return_acceleration is not None and ev.return_acceleration > 0
-        and vr is not None and vr < 1
-    )
+    shrinking_inputs_known = (r_today is not None and ev.return_acceleration is not None
+                              and vr is not None)
+    shrinking_raw = (bool(r_today > 0 and ev.return_acceleration > 0 and vr < 1)
+                     if shrinking_inputs_known else None)
     yesterday_yang = bool(yesterday_green_body) if yesterday_green_body is not None else (
         bool(r_yesterday is not None and r_yesterday > 0)
     )
-    two_day_raw = bool(
-        yesterday_yang and r_today is not None and r_today > 0
-        and ev.return_acceleration is not None and ev.return_acceleration >= 0
-    )
+    two_day_inputs_known = (r_today is not None and ev.return_acceleration is not None
+                            and yesterday_green_body is not None)
+    # 调用方未给实体信息时，昨日开收盘可直接计算，因此仍是已知输入。
+    if yesterday_green_body is None:
+        two_day_inputs_known = r_today is not None and ev.return_acceleration is not None and r_yesterday is not None
+    two_day_raw = (bool(yesterday_yang and r_today > 0 and ev.return_acceleration >= 0)
+                   if two_day_inputs_known else None)
     ev.raw_pattern_matched = {
         "shrinking_volume_acceleration_raw": shrinking_raw,
         "two_day_acceleration_raw": two_day_raw,
@@ -109,9 +111,11 @@ def evaluate_daily(snapshot, volume_ratio: float | None = None,
     # ---------- 原版标签（含 3.5% 上限） ----------
     cap = LEGACY_RETURN_CAP_PCT / 100
     ev.legacy_labels = {
-        "shrinking_volume_acceleration": bool(shrinking_raw and r_today is not None and r_today < cap) if shrinking_raw else False,
-        "two_day_acceleration": bool(two_day_raw and r_today is not None and r_today < cap) if two_day_raw else False,
-        "return_cap_passed": bool(r_today is not None and r_today < cap),
+        "shrinking_volume_acceleration": (None if shrinking_raw is None else
+                                           bool(shrinking_raw and r_today < cap)),
+        "two_day_acceleration": (None if two_day_raw is None else
+                                  bool(two_day_raw and r_today < cap)),
+        "return_cap_passed": (None if r_today is None else bool(r_today < cap)),
     }
 
     # ---------- Theory候选特征（独立命名，不占原版名） ----------

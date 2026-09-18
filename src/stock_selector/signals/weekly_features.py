@@ -261,7 +261,11 @@ def evaluate_tuesday(weekly_completed: pd.DataFrame, daily: pd.DataFrame, as_of:
     monday = evaluate_monday(weekly_completed, partial=partial)
     out = {"passed": None, "base_pattern": monday.get("base_pattern", UNKNOWN),
            "weekday_path": "tuesday_gate_failed", "components": {"monday": monday}}
-    if not monday.get("passed"):
+    if monday.get("passed") is None:
+        out["weekday_path"] = "tuesday_gate_unknown"
+        out["components"]["note"] = "周二前置周线证据不足"
+        return out
+    if monday.get("passed") is False:
         return out
     rows = current_week_rows(daily, as_of)
     if rows is None or len(rows) < 1:
@@ -269,15 +273,14 @@ def evaluate_tuesday(weekly_completed: pd.DataFrame, daily: pd.DataFrame, as_of:
         out["passed"] = None
         out["components"]["note"] = "本周日线缺失"
         return out
-    mon = rows.iloc[0]
-    mon_change = (float(mon["close"]) - float(mon["open"])) / float(mon["open"]) * 100 if mon["open"] else 0.0
+    # 周二分支要求两个本周交易日；节后周二若是本周首个交易日，不得伪装成周一。
+    rows = rows[rows.index <= pd.Timestamp(as_of)]
     if len(rows) < 2:
-        # 旧代码：周二只有周一数据 → 周一涨保留，周一跌"待观察"也保留
-        path = "tuesday_A" if mon_change > 0 else "tuesday_pending"
-        out.update(passed=True, weekday_path=path,
-                   components={**out["components"], "monday_change_pct": round(mon_change, 4),
-                               "note": "周二当日bar缺失，按旧代码待观察保留"})
+        out["weekday_path"] = "tuesday_first_session"
+        out["components"]["note"] = "周二为本周首个交易日，日线分支证据不足"
         return out
+    mon = rows.iloc[-2]
+    mon_change = (float(mon["close"]) - float(mon["open"])) / float(mon["open"]) * 100 if mon["open"] else 0.0
     tue = rows.iloc[-1]
     tue_change = (float(tue["close"]) - float(tue["open"])) / float(tue["open"]) * 100 if tue["open"] else 0.0
     comp = {"monday_change_pct": round(mon_change, 4), "tuesday_change_pct": round(tue_change, 4)}
@@ -386,18 +389,19 @@ def derive_weekly_eligibility(ev: WeeklyEvidence) -> tuple[str, str]:
     if ev.veto_flag:
         return "excluded", "bearish_heavy_veto"
     comps = ev.components or {}
-    if ev.weekday_path == "tuesday_gate_failed":
-        # 周二旧门槛明确未过：这是已知条件不满足，不是数据不足；
-        # Theory保持观察，不把Legacy失败擅自升级成排除。
-        return "observation", "tuesday_legacy_gate_failed"
-    if ev.passed is None:
-        return UNKNOWN, "insufficient_evidence"
+    # 所有可独立确认的负向证据先于门槛映射。
     if comps.get("stagnation_excluded"):
         return "excluded", "stagnation_excluded"
     if ev.theory_stagnation_flag:
         return "excluded", "theory_stagnation_partial_week"
     if ev.weekday_path == "tuesday_C_failed_volume":
         return "excluded", "tuesday_double_down_not_shrinking"
+    if ev.weekday_path == "tuesday_gate_failed":
+        # 周二旧门槛明确未过：这是已知条件不满足，不是数据不足；
+        # Theory保持观察，不把Legacy失败擅自升级成排除。
+        return "observation", "tuesday_legacy_gate_failed"
+    if ev.passed is None:
+        return UNKNOWN, "insufficient_evidence"
     if ev.weekday_path == "tuesday_B":
         return "observation", "tuesday_reversal_observation"
     # 旧源码会“保留”的待观察/卖压衰减，不等于Theory交易准入。
@@ -473,8 +477,8 @@ def evaluate_weekly(snapshot, source_variant: str = "legacy_eod",
                              "failed" if ev.passed is False else "insufficient")
     note = (res.get("components") or {}).get("note")
     ev.evidence_status = ("insufficient" if ev.passed is None and note else
-                          "partial" if partial is not None and not partial.complete else
-                          "complete")
+                          "complete" if wd == 5 else
+                          "partial" if partial is not None else "insufficient")
     # 差分校正：旧 check_weekly_surge 在分发层先跑 veto，veto=True 一票否决
     if ev.veto_flag:
         ev.notes.append("周线放量阴线 veto（v4.0 一票否决，对照组保留标记）")
