@@ -205,30 +205,35 @@ def build_panel_with_universe(store, codes: list[str], dates: list[datetime], co
         monthly_full = _precompute_monthly(daily)
         idx = pd.DatetimeIndex(daily.index)
         spell = 0
+        spell_age = 0
         in_spell = False
-        session_index = 0
-        for as_of in dates:
+        for session_index, as_of in enumerate(dates, start=1):
             day = pd.Timestamp(as_of).normalize()
             pos = idx.searchsorted(day, side="right")
             has_bar = pos > 0 and idx[pos - 1] == day
+            # session_index来自共享交易日历，跨股票同日可比；缺bar也保留索引。
             if not has_bar:
                 in_spell = False
+                spell_age = 0
                 state_rows.append({"code": str(code), "date": day.date().isoformat(),
-                                   "session_index": None, "data_status": "missing_bar",
+                                   "session_index": session_index, "data_status": "missing_bar",
                                    "monthly_pool_state": "unknown", "monthly_pool_spell_id": None,
+                                   "monthly_pool_spell_age": None,
                                    "monthly_state_reason": "current_bar_missing"})
                 continue
-            session_index += 1
             monthly_states = _monthly_states_fast(daily, monthly_full, pos, as_of, config)
             provisional = monthly_states["monthly_provisional_state"]
             pool_state = "in" if provisional is True else "out" if provisional is False else "unknown"
             if pool_state == "in" and not in_spell:
                 spell += 1
+                spell_age = 0
             in_spell = pool_state == "in"
+            spell_age = spell_age + 1 if in_spell else 0
             state_rows.append({"code": str(code), "date": day.date().isoformat(),
                                "session_index": session_index, "data_status": "available",
                                "monthly_pool_state": pool_state,
                                "monthly_pool_spell_id": spell if in_spell else None,
+                               "monthly_pool_spell_age": spell_age if in_spell else None,
                                "monthly_state_reason": ("provisional_passed" if provisional is True else
                                                         "provisional_failed" if provisional is False else
                                                         "insufficient_monthly_history")})
@@ -241,6 +246,8 @@ def build_panel_with_universe(store, codes: list[str], dates: list[datetime], co
                 stats["missing_current_bar"] += 1
                 continue
             row["monthly_pool_spell_id"] = spell
+            row["monthly_pool_spell_age"] = spell_age
+            row["session_index"] = session_index
             rows.append(row)
         stats["stocks"] += 1
     stats["rows"] = len(rows)

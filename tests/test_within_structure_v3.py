@@ -16,7 +16,7 @@ def test_absolute_relative_labels_and_event_identity():
 
 def test_within_structure_contrast_does_not_mix_structures():
     x = pd.DataFrame({
-        "monthly_pool_spell_id": [1, 1, 2, 2], "weekly_base_pattern": ["A"] * 4,
+        "monthly_pool_spell_age": [1, 1, 2, 2], "weekly_base_pattern": ["A"] * 4,
         "weekly_weekday_path": ["monday"] * 4, "weekly_eligibility_state": ["eligible"] * 4,
         "daily_trigger_type": ["sv"] * 4, "fwd1": [.1, -.1, .2, -.2],
         "market_fwd1": [0.] * 4, "industry_fwd1": [0.] * 4, "pre_position": [8., 2., 9., 1.],

@@ -6,7 +6,8 @@ from __future__ import annotations
 
 import pandas as pd
 
-STRUCTURE_COLUMNS = ("monthly_pool_spell_id", "weekly_base_pattern",
+# spell_id仅是单股区间标识，不能作为跨股票结构分组；结构使用池龄。
+STRUCTURE_COLUMNS = ("monthly_pool_spell_age", "weekly_base_pattern",
                      "weekly_weekday_path", "weekly_eligibility_state",
                      "daily_trigger_type")
 
