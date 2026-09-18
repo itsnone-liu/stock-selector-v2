@@ -48,44 +48,37 @@ def load_events(panel_dir: Path) -> pd.DataFrame:
 
 
 def build_market_frames(tdx_dir: str, limit: int, memberships: pd.DataFrame,
-                        start: str, end: str):
-    """全市场（或其子集）日收益/收盘长表 + 行业标注。"""
+                        start: str, end: str, *, end_buffer_sessions: int = 20):
+    """全市场日收益/收盘长表；逐日历史行业，尾部为前视窗口留足行情。"""
     store = TdxStore(tdx_dir)
     codes = sorted(store.list_codes())
     if limit:
         codes = codes[:limit]
-    mem = memberships.copy()
-    mem["code"] = mem["code"].astype(str).str.zfill(6)
-    mem["effective_from"] = pd.to_datetime(mem["effective_from"])
-    mem["effective_to"] = pd.to_datetime(mem["effective_to"], errors="coerce")
-    mem_map = {c: g for c, g in mem.groupby("code")}
     ret_rows, close_rows = [], []
     for c in codes:
         df = store.daily(c)
         if df is None or df.empty:
             continue
+        df = df.sort_index()
+        # 收益先在完整序列计算，避免截窗首日因缺前收盘而丢失。
+        full_return = df["close"].astype(float).pct_change()
         idx = pd.to_datetime(df.index)
-        m = (idx >= pd.Timestamp(start)) & (idx <= pd.Timestamp(end))
-        df = df[m]
-        if df.empty:
+        end_pos = idx.searchsorted(pd.Timestamp(end), side="right")
+        stop = min(len(idx), end_pos + end_buffer_sessions)
+        begin = idx.searchsorted(pd.Timestamp(start), side="left")
+        if begin >= stop:
             continue
-        industry = None
-        g = mem_map.get(c)
-        if g is not None:
-            # 取覆盖样本起点的区间；多点区间取最后一条（调用前已查重叠）
-            hit = g[(g["effective_from"] <= idx.min())
-                    & (g["effective_to"].isna() | (g["effective_to"] >= idx.min()))]
-            if len(hit):
-                industry = hit.iloc[-1]["industry_code"]
-        d = pd.to_datetime(df.index).strftime("%Y-%m-%d")
-        prev_close = df["close"].shift(1)
+        take = slice(begin, stop)
+        d = idx[take].strftime("%Y-%m-%d")
         ret_rows.append(pd.DataFrame({"code": c, "date": d,
-                                      "return": df["close"] / prev_close - 1}))
+                                      "return": full_return.iloc[take].to_numpy()}))
         close_rows.append(pd.DataFrame({"code": c, "date": d,
-                                        "close": df["close"].astype(float),
-                                        "industry_code": industry}))
+                                        "close": df["close"].iloc[take].astype(float).to_numpy()}))
     returns = pd.concat(ret_rows, ignore_index=True)
     prices = pd.concat(close_rows, ignore_index=True)
+    # 事件侧与基准侧复用同一PIT有效期关联，保证行业历史口径对称。
+    returns = attach_historical_membership(returns, memberships)
+    prices = attach_historical_membership(prices, memberships)
     return returns, prices
 
 
@@ -106,7 +99,8 @@ def main() -> None:
     events = attach_historical_membership(events, memberships)
 
     start, end = str(events["date"].min()), str(events["date"].max())
-    returns, prices = build_market_frames(a.tdx_dir, a.bench_limit, memberships, start, end)
+    returns, prices = build_market_frames(a.tdx_dir, a.bench_limit, memberships, start, end,
+                                          end_buffer_sessions=max(HORIZONS))
     market_daily, industry_daily = daily_cross_section_benchmarks(returns.dropna(subset=["return"]))
     market_fwd, industry_fwd = forward_cross_section_benchmarks(prices, horizons=HORIZONS)
 
@@ -119,6 +113,11 @@ def main() -> None:
                                                    events["market_up_ratio"] > .7],
                                                   ["market_shock_down", "market_broad_up"],
                                                   default="market_normal"))
+    events["industry_context"] = np.where(events["industry_return_med"].isna(), "unknown",
+                                          np.select([events["industry_up_ratio"] > .7,
+                                                     events["industry_up_ratio"] < .3],
+                                                    ["industry_broad_up", "industry_broad_down"],
+                                                    default="industry_normal"))
     events = label_contrast_rows(events, horizons=HORIZONS,
                                  delta=float(cfg["excess_return_neutral_band"]),
                                  meaningful_mfe=float(cfg["meaningful_mfe"]),
