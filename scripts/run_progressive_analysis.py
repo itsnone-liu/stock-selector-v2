@@ -3,7 +3,7 @@
 
 仅消费 v3 面板（契约闸门）；所有对照均为明确组间比较，不出现混合对照。
 输出目录：
-  designs/                     三组cohort设计表（全量+逐期限非重叠）
+  designs/                     三组cohort设计表（__all全量；非重叠口径由summary/bootstrap内用）
   progressive_summary.csv      组×期限中位数/均值/胜率/样本量
   bootstrap_contrasts.json     明确组间块bootstrap（code块）
   strategy_episode_report.csv  策略事件表现（按终止原因/池龄/时滞）
@@ -36,7 +36,6 @@ from stock_selector.research.contrast import (HORIZONS,  # noqa:E402
 from stock_selector.research.context_join import attach_historical_membership  # noqa:E402
 from stock_selector.research.momentum_panel import PANEL_VERSION  # noqa:E402
 from stock_selector.research.within_structure_analysis import (  # noqa:E402
-    label_absolute_and_relative_outcomes,
     within_structure_feature_contrast,
 )
 
@@ -74,7 +73,8 @@ def group_summary(frame: pd.DataFrame, horizons) -> pd.DataFrame:
 
 
 def pairwise_bootstrap(frame: pd.DataFrame, horizons, contrasts: list[tuple[str, str]],
-                       block_col: str = "code", iterations: int = 500) -> dict:
+                       block_col: str = "code", iterations: int = 500,
+                       min_n: int = 30) -> dict:
     res = {}
     for h in horizons:
         col = f"industry_excess{h}"
@@ -83,31 +83,42 @@ def pairwise_bootstrap(frame: pd.DataFrame, horizons, contrasts: list[tuple[str,
         x = frame.dropna(subset=[col])
         for a, b in contrasts:
             ga, gb = x[x["cohort"] == a], x[x["cohort"] == b]
-            if len(ga) >= 30 and len(gb) >= 30:
+            if len(ga) >= min_n and len(gb) >= min_n:
                 merged = pd.concat([ga.assign(_t=1), gb.assign(_t=0)], ignore_index=True)
                 r = block_bootstrap_median_diff(merged, col, "_t", block_col=block_col,
                                                 iterations=iterations)
+                lo, hi = r.get("ci_low"), r.get("ci_high")
                 res[f"h{h}|{a}_vs_{b}"] = {
                     "n_a": len(ga), "n_b": len(gb),
-                    "median_diff": r.get("median_diff"),
-                    "ci_low": r.get("ci_low"), "ci_high": r.get("ci_high"),
-                    "p_approx": r.get("p_two_sided", r.get("p")),
+                    "estimate": r.get("estimate"),
+                    "ci_low": lo, "ci_high": hi,
+                    "ci_excludes_zero": (lo is not None and hi is not None
+                                         and (lo > 0 or hi < 0)),
+                    "blocks": r.get("blocks"),
                 }
     return res
 
 
-def strategy_report(strat: pd.DataFrame, outcome: pd.DataFrame) -> pd.DataFrame:
+def strategy_report(strat: pd.DataFrame, outcome: pd.DataFrame,
+                    universe: pd.DataFrame | None = None) -> pd.DataFrame:
     """策略事件从首触发日关联收益；形态事件独立，不混入。"""
     o = outcome.rename(columns={"date": "first_trigger_date"})
     keep = [c for c in ("code", "first_trigger_date") + tuple(f"fwd{h}" for h in HORIZONS)
             if c in set(o)]
-    # 多个策略事件可同日首触发（sv/td并存），outcome按(code,日期)唯一，左连复制值即可
-    x = strat.merge(o[keep], on=["code", "first_trigger_date"], how="left")
+    # 多个策略事件可同日首触发（sv/td并存）；outcome按(code,日期)唯一，many_to_one合法
+    x = strat.merge(o[keep], on=["code", "first_trigger_date"], how="left",
+                    validate="many_to_one")
+    if universe is not None and {"code", "date", "monthly_pool_spell_age"} <= set(universe):
+        uni = universe[["code", "date", "monthly_pool_spell_age"]].rename(
+            columns={"date": "first_trigger_date"})
+        x = x.merge(uni, on=["code", "first_trigger_date"], how="left", validate="many_to_one")
     rows = []
     for reason, g in x.groupby("end_reason", dropna=False):
+        ages = g["monthly_pool_spell_age"].dropna() if "monthly_pool_spell_age" in g else pd.Series(dtype=float)
         row = {"end_reason": reason, "episodes": len(g),
                "median_lag": g["pattern_to_strategy_lag_sessions"].median(),
-               "median_spell_age": None, "median_confirmations": g["consecutive_confirmations"].median(),
+               "median_spell_age": ages.median() if len(ages) else None,
+               "median_confirmations": g["consecutive_confirmations"].median(),
                "right_censored_share": float(g["right_censored"].mean())}
         for h in (1, 5, 20):
             v = pd.to_numeric(g.get(f"fwd{h}"), errors="coerce").dropna()
@@ -164,7 +175,7 @@ def main() -> None:
 
     # ---- 策略事件表现（独立于形态事件） ----
     data["strategy"].to_csv(out / "strategy_episode_report_raw.csv", index=False)
-    srep = strategy_report(data["strategy"], outcome)
+    srep = strategy_report(data["strategy"], outcome, data["universe"])
     srep.to_csv(out / "strategy_episode_report.csv", index=False)
 
     # ---- 形态事件表现（单独保留，不与策略事件混表） ----
@@ -205,6 +216,7 @@ def main() -> None:
                 "events_signal": len(sig), "strategy_episodes": len(data["strategy"]),
                 "pattern_episodes": len(data["pattern"]),
                 "neutral_band": float(cfg["excess_return_neutral_band"]),
+                "bootstrap_min_n": 30,
                 "median_note": "组内median不跨分项相加；恒等分解仅均值成立",
                 "note": "全部对照为明确组间比较；混合对照已被禁用；不回写选股逻辑"}
     (out / "PROGRESSIVE_MANIFEST.json").write_text(

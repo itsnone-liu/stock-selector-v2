@@ -200,6 +200,13 @@ def build_panel_with_universe(store, codes: list[str], dates: list[datetime], co
     state_rows: list[dict] = []
     if trading_calendar is not None:
         market_calendar = pd.DatetimeIndex([pd.Timestamp(d).normalize() for d in trading_calendar])
+        if not market_calendar.is_monotonic_increasing:
+            raise ValueError("trading_calendar must be sorted ascending")
+        sampled = pd.DatetimeIndex([pd.Timestamp(d).normalize() for d in dates])
+        stray = sampled.difference(market_calendar)
+        if len(stray):
+            raise ValueError(f"sampling dates not in trading_calendar: {len(stray)} days "
+                             f"(e.g. {stray[0].date()}); session_index would collide")
         calendar_source = "market"
     else:
         market_calendar = pd.DatetimeIndex([pd.Timestamp(d).normalize() for d in dates])

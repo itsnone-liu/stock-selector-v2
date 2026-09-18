@@ -52,6 +52,8 @@ def main() -> None:
     codes = sorted(store.list_codes())
     if a.limit:
         codes = codes[: a.limit]
+    if not codes:
+        raise SystemExit("no codes to build")
 
     # 完整市场交易日历来自指数日线（与个股缺bar/研究区间无关）；
     # 采样日期从市场日历抽取，session_index按市场日历定位，--every不再压缩时间轴。
