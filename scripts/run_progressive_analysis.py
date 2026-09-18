@@ -73,8 +73,10 @@ def group_summary(frame: pd.DataFrame, horizons, group_cols=("cohort",),
                    "positive_rate": float((v > 0).mean()) if len(v) else None,
                    "n_excess": len(ex), "median_excess": ex.median() if len(ex) else None}
             if comparison == "weekly_direct_within_monthly":
-                nw = (pd.to_numeric(g["next_week_return"], errors="coerce").dropna()
-                      if "next_week_return" in g else pd.Series(dtype=float))
+                # 下一交易周必须使用成熟标记；未走完下一自然周的临时收益不得进入正式描述统计。
+                nw_frame = g[g["matured_week"] == True] if "matured_week" in g else g.iloc[0:0]  # noqa:E712
+                nw = (pd.to_numeric(nw_frame["next_week_return"], errors="coerce").dropna()
+                      if "next_week_return" in nw_frame else pd.Series(dtype=float))
                 row.update(next_week_n=len(nw), next_week_median=nw.median() if len(nw) else None,
                            next_week_mean=nw.mean() if len(nw) else None,
                            next_week_positive_rate=float((nw > 0).mean()) if len(nw) else None)
