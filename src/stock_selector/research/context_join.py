@@ -19,8 +19,14 @@ def attach_historical_membership(panel: pd.DataFrame, memberships: pd.DataFrame,
         raise ValueError("panel/memberships missing historical membership keys")
     mem = memberships.copy()
     mem[code_col] = mem[code_col].astype(str).str.zfill(6)
-    mem["effective_from"] = pd.to_datetime(mem["effective_from"])
-    mem["effective_to"] = pd.to_datetime(mem["effective_to"], errors="coerce")
+    mem["effective_from"] = pd.to_datetime(mem["effective_from"], errors="raise")
+    # 空值允许表示开放区间；非空脏值必须报错，不能coerce成永久开放。
+    raw_to = mem["effective_to"]
+    parsed_to = pd.to_datetime(raw_to, errors="coerce")
+    invalid_to = raw_to.notna() & parsed_to.isna()
+    if invalid_to.any():
+        raise ValueError("membership effective_to contains invalid non-null dates")
+    mem["effective_to"] = parsed_to
     left = panel.copy().reset_index(drop=True)
     left[code_col] = left[code_col].astype(str).str.zfill(6)
     left["_event_date"] = pd.to_datetime(left["date"])
@@ -38,6 +44,11 @@ def attach_historical_membership(panel: pd.DataFrame, memberships: pd.DataFrame,
     mapping = pairs.set_index("_row_id")["_mem_industry"]
     out = left.copy()
     out[industry_col] = out["_row_id"].map(mapping)
+    codes_with_membership = set(mem[code_col])
+    has_any = out[code_col].isin(codes_with_membership)
+    out["membership_status"] = "matched"
+    out.loc[out[industry_col].isna() & has_any, "membership_status"] = "effective_gap"
+    out.loc[out[industry_col].isna() & ~has_any, "membership_status"] = "code_unmapped"
     return out.drop(columns=["_row_id", "_event_date"])
 
 

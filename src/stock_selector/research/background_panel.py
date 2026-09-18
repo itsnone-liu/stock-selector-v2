@@ -29,8 +29,10 @@ def holding_context_metrics(events: pd.DataFrame, daily_context: pd.DataFrame,
         d = pd.Timestamp(r["date"]); pos = dates.searchsorted(d, side="right")
         window = values[pos:pos + horizon]
         valid = window[~np.isnan(window)]
+        complete = len(window) == horizon and len(valid) == horizon
         rows.append({"code": r["code"], "date": d.date().isoformat(),
-                     f"holding_context_{value_col}_h{horizon}_sum": float(valid.sum()) if len(valid) else None,
-                     f"holding_context_{value_col}_h{horizon}_min": float(valid.min()) if len(valid) else None,
-                     f"holding_context_{value_col}_h{horizon}_n": int(len(valid))})
+                     f"holding_context_{value_col}_h{horizon}_sum": float(valid.sum()) if complete else None,
+                     f"holding_context_{value_col}_h{horizon}_min": float(valid.min()) if complete else None,
+                     f"holding_context_{value_col}_h{horizon}_n": int(len(valid)),
+                     f"holding_context_{value_col}_h{horizon}_complete": complete})
     return pd.DataFrame(rows)

@@ -42,14 +42,19 @@ def forward_cross_section_benchmarks(prices: pd.DataFrame, horizons=(1, 2, 3, 5,
     x["date"] = pd.to_datetime(x["date"]).dt.date.astype(str)
     for h in horizons:
         x[f"fwd{h}"] = x.groupby("code", sort=False)["close"].shift(-h) / x["close"] - 1
-    market = x.groupby("date", as_index=False).agg(**{
-        f"market_fwd{h}": (f"fwd{h}", "median") for h in horizons
-    })
+    market_aggs = {}
+    for h in horizons:
+        market_aggs[f"market_fwd{h}"] = (f"fwd{h}", "median")
+        market_aggs[f"market_fwd{h}_n"] = (f"fwd{h}", "count")
+    market = x.groupby("date", as_index=False).agg(**market_aggs)
     if industry_col not in x:
         return market, pd.DataFrame(columns=["date", industry_col])
-    industry = x.dropna(subset=[industry_col]).groupby(["date", industry_col], as_index=False).agg(**{
-        f"industry_fwd{h}": (f"fwd{h}", "median") for h in horizons
-    })
+    industry_aggs = {}
+    for h in horizons:
+        industry_aggs[f"industry_fwd{h}"] = (f"fwd{h}", "median")
+        industry_aggs[f"industry_fwd{h}_n"] = (f"fwd{h}", "count")
+    industry = x.dropna(subset=[industry_col]).groupby(
+        ["date", industry_col], as_index=False).agg(**industry_aggs)
     return market, industry
 
 

@@ -35,6 +35,9 @@ def within_structure_feature_contrast(events: pd.DataFrame, *, horizon: int,
                                       feature_columns: list[str],
                                       structure_columns: tuple[str, ...] = STRUCTURE_COLUMNS) -> pd.DataFrame:
     """同结构内绝对正/负组的事前特征分布及效应大小。"""
+    leaked = [c for c in feature_columns if c.startswith("holding_context_")]
+    if leaked:
+        raise ValueError(f"holding-period context cannot be used as pre-signal features: {leaked}")
     label = f"absolute_result_{horizon}"
     if label not in events:
         events = label_absolute_and_relative_outcomes(events, horizon)

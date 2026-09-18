@@ -194,7 +194,8 @@ def build_panel_with_universe(store, codes: list[str], dates: list[datetime], co
     rows: list[dict] = []
     state_rows: list[dict] = []
     market_calendar = pd.DatetimeIndex([pd.Timestamp(d).normalize() for d in dates])
-    stats = {"stocks": 0, "stocks_with_data": 0, "monthly_pool_hits": 0, "rows": 0,
+    stats = {"stocks": 0, "stocks_with_data": 0, "monthly_pool_hits": 0,
+             "monthly_pool_out": 0, "monthly_pool_unknown": 0, "rows": 0,
              "universe_rows": 0, "missing_current_bar": 0, "panel_version": PANEL_VERSION,
              "signal_ruleset": SIGNAL_RULESET}
     for code in codes:
@@ -215,12 +216,13 @@ def build_panel_with_universe(store, codes: list[str], dates: list[datetime], co
             has_bar = pos > 0 and idx[pos - 1] == day
             # session_index来自共享交易日历，跨股票同日可比；缺bar也保留索引。
             if not has_bar:
-                in_spell = False
-                spell_age = 0
+                stats["monthly_pool_unknown"] += 1
+                # unknown不证明月池退出；保留当前spell上下文但不增加池龄。
                 state_rows.append({"code": str(code), "date": day.date().isoformat(),
                                    "session_index": session_index, "data_status": "missing_bar",
-                                   "monthly_pool_state": "unknown", "monthly_pool_spell_id": None,
-                                   "monthly_pool_spell_age": None,
+                                   "monthly_pool_state": "unknown",
+                                   "monthly_pool_spell_id": spell if in_spell else None,
+                                   "monthly_pool_spell_age": spell_age if in_spell else None,
                                    "monthly_state_reason": "current_bar_missing"})
                 continue
             monthly_states = _monthly_states_fast(daily, monthly_full, pos, as_of, config)
@@ -239,6 +241,10 @@ def build_panel_with_universe(store, codes: list[str], dates: list[datetime], co
                                "monthly_state_reason": ("provisional_passed" if provisional is True else
                                                         "provisional_failed" if provisional is False else
                                                         "insufficient_monthly_history")})
+            if pool_state == "out":
+                stats["monthly_pool_out"] += 1
+            elif pool_state == "unknown":
+                stats["monthly_pool_unknown"] += 1
             if pool_state != "in":
                 continue
             stats["monthly_pool_hits"] += 1

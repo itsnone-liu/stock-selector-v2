@@ -65,6 +65,7 @@ def main() -> None:
     # 分批流式构建：按股票批次生成→落盘→释放，3GB内存机器跑不下列表全量累积。
     batch_size = a.batch
     total_stats = {"stocks": 0, "stocks_with_data": 0, "monthly_pool_hits": 0,
+                   "monthly_pool_out": 0, "monthly_pool_unknown": 0,
                    "rows": 0, "universe_rows": 0, "missing_current_bar": 0, "panel_version": PANEL_VERSION,
                    "signal_ruleset": SIGNAL_RULESET}
     outcome_rows = 0
@@ -80,7 +81,8 @@ def main() -> None:
         outcomes.to_csv(out_path, mode="a", index=False, header=not out_path.exists())
         universe.to_csv(universe_path, mode="a", index=False, header=not universe_path.exists())
         outcome_rows += len(outcomes)
-        for k in ("stocks", "stocks_with_data", "monthly_pool_hits", "rows", "universe_rows", "missing_current_bar"):
+        for k in ("stocks", "stocks_with_data", "monthly_pool_hits", "monthly_pool_out",
+                  "monthly_pool_unknown", "rows", "universe_rows", "missing_current_bar"):
             total_stats[k] += stats.get(k, 0)
         del panel, universe, outcomes
         print(f"batch {i // batch_size + 1}: codes {batch[0]}-{batch[-1]} "
@@ -106,6 +108,9 @@ def main() -> None:
         "strategy_episode_rows": len(strategy_episodes),
         "universe_rows": total_stats["universe_rows"],
         "outcome_rows": outcome_rows, "batch_size": batch_size,
+        "pattern_episode_scope": "monthly_pool_only",
+        "strategy_episode_max_unknown_gap": 5,
+        "sampling_every_sessions": a.every,
         "note": "研究面板不自动晋升生产；条件闭合前结果仅作工程校验和假设生成",
     }
     (out / "manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2, default=str))

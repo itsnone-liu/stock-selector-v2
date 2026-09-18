@@ -10,6 +10,7 @@ import pandas as pd
 import yaml
 
 from stock_selector.research.contrast import HORIZONS, grouped_contrast, label_contrast_rows, nonoverlapping_events
+from stock_selector.research.momentum_panel import PANEL_VERSION
 
 
 def main() -> None:
@@ -19,6 +20,11 @@ def main() -> None:
     p.add_argument("--calendar", help="可选交易日CSV，第一列为日期；提供时输出20日非重叠稳健样本")
     a = p.parse_args()
     d = Path(a.dir)
+    manifest_path = d / "manifest.json"
+    if not manifest_path.exists():
+        raise SystemExit("panel manifest missing")
+    if json.loads(manifest_path.read_text()).get("panel_version") != PANEL_VERSION:
+        raise SystemExit(f"stale panel contract: expected {PANEL_VERSION}")
     cfg = yaml.safe_load(Path(a.protocol).read_text())
     c = cfg["result_classification"]
     sig = pd.read_csv(d / "signal_panel.csv", dtype={"code": str}, low_memory=False)
