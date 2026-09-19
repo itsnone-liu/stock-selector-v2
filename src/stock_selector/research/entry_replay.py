@@ -32,7 +32,7 @@ from stock_selector.decision.execution import (
     EXECUTION_MODEL_VERSION, CostModel, execution_feasibility,
 )
 
-RULE_VERSION = "entry_replay_stage4_v4"
+RULE_VERSION = "entry_replay_stage4_v5"
 RETURN_QUALITY = "unadjusted_exploratory"
 LIMITATION = "approximate_limit_ratio"
 
@@ -363,7 +363,8 @@ def replay_entries(code: str, lifecycles: pd.DataFrame, daily: pd.DataFrame,
     last = len(daily) - 1
     rows: list[dict] = []
     for lc in (lifecycles.to_dict("records") if len(lifecycles) else []):
-        for k in ("breakout_day", "reattack_days", "end_day", "anchor_day"):
+        for k in ("breakout_day", "reattack_days", "end_day", "anchor_day",
+                  "reattack_pullback_event_ids"):
             lc[k] = lc[k] if isinstance(lc[k], str) else None
         for e in pullback_events:
             if not isinstance(e.get("stabilization_day"), str):
@@ -441,10 +442,21 @@ def replay_entries(code: str, lifecycles: pd.DataFrame, daily: pd.DataFrame,
             else:  # staged_entry
                 t1p = bo
                 t2p = shrink_pos
-                t3p = pos.get(lc["reattack_days"].split("|")[0]) \
-                    if lc["reattack_days"] else None
-                if t3p is not None and t3p > end:
-                    t3p = None
+                # T3 = 第二批所选回调事件（突破后首次回调）配对的再上攻；
+                # reattack_pullback_event_ids 与 reattack_days 一一同序。
+                # 该回调无再上攻则第三批不成交，不得借用其他回调的再上攻。
+                t3p = None
+                if lc["reattack_days"] and first_pb is not None:
+                    rdays = lc["reattack_days"].split("|")
+                    rids = (lc["reattack_pullback_event_ids"] or "").split("|")
+                    for rday, rid in zip(rdays, rids):
+                        if rid == first_pb["event_id"]:
+                            tp = pos.get(rday)
+                            if tp is not None and tp <= end:
+                                t3p = tp
+                            break
+                if t3p is not None and t2p is None:
+                    t3p = None  # 第三批存在 ⇒ 第二批必须存在
                 out["t1_fill_date"] = daily.index[t1p].strftime("%Y-%m-%d")
                 out["t1_fill_price"] = cost.fill_price(raw_price(daily, t1p), "buy")
                 legs = [(t1p, out["t1_fill_price"], 0.30)]

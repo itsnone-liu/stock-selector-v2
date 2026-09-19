@@ -670,3 +670,113 @@ def test_next_view_aggregates_reflect_actual_fills():
     assert st["capital_position_days_next"] is not None
     assert st["capital_position_days_next"] >= 0
     assert st["avg_cost_next"] is not None
+
+
+# ---------------- 修复轮 4：T3 必须配对 T2 的回调事件 ----------------
+
+def _mk_manual_lifecycle(df, breakout_i, reattack_pairs, t2_event,
+                          t2_first_i, t2_end_i, t2_shrink_i):
+    """手工 lifecycle 记录（真实数据中存在的形态：reattack_days 第一位
+    属于突破前回调，配对 ids 由上游表提供）。"""
+    D = lambda i: df.index[i].strftime("%Y-%m-%d")
+    lc = pd.DataFrame([{
+        "lifecycle_id": "LC1", "anchor_day": D(0), "breakout_day": D(breakout_i),
+        "reattack_days": "|".join(d for d, _ in reattack_pairs) or None,
+        "reattack_pullback_event_ids": "|".join(r for _, r in reattack_pairs) or None,
+        "end_day": D(len(df) - 1), "end_reason": "data_end",
+        "right_censored": True}])
+    pb = [{"event_id": t2_event, "first_day": D(t2_first_i),
+           "end_day": D(t2_end_i), "stabilization_day": None}]
+    pdly = pd.DataFrame({"event_id": [t2_event],
+                         "date": [D(t2_shrink_i)],
+                         "shrink_volume": [True]})
+    return lc, pb, pdly
+
+
+def _mk_pairing_market():
+    closes = [8.0] * 25 + [8.6] + [8.45, 8.4, 8.42] + [8.7] \
+        + [8.8 + 0.05 * i for i in range(28)]
+    vols = [1000] * 25 + [1500] + [500, 450, 480] + [1400] + [900] * 28
+    return mk_daily(closes, [c * 0.998 for c in closes], vols)
+
+
+def test_t3_paired_to_t2_event_not_first_reattack():
+    # reattack_days 第一位属于突破前回调 PBPRE（早于 T2）——不得借用
+    df = _mk_pairing_market()  # breakout=25, T2 缩量日=26, 合法 T3=29
+    lc, pb, pdly = _mk_manual_lifecycle(
+        df, breakout_i=25,
+        reattack_pairs=[(df.index[24].strftime("%Y-%m-%d"), "PBPRE"),   # 突破前
+                        (df.index[29].strftime("%Y-%m-%d"), "PBPOST")],
+        t2_event="PBPOST", t2_first_i=26, t2_end_i=28, t2_shrink_i=26)
+    ev = replay_entries("000001", lc, df, pb, pdly, ReplayConfig(), CostModel())
+    st = ev[ev["strategy"] == "staged_entry"].iloc[0]
+    assert st["t2_fill_date"] == df.index[26].strftime("%Y-%m-%d")
+    assert st["t3_fill_date"] == df.index[29].strftime("%Y-%m-%d")  # 配对 PBPOST
+    assert st["t3_fill_date"] > st["t2_fill_date"]
+    assert st["max_position"] == pytest.approx(1.00)
+
+
+def test_t3_absent_when_t2_event_has_no_paired_reattack():
+    # T2 回调事件无配对再上攻：T3 不成交，不借用其他事件的再上攻
+    df = _mk_pairing_market()
+    lc, pb, pdly = _mk_manual_lifecycle(
+        df, breakout_i=25,
+        reattack_pairs=[(df.index[27].strftime("%Y-%m-%d"), "PBOTHER")],
+        t2_event="PBPOST", t2_first_i=26, t2_end_i=28, t2_shrink_i=26)
+    ev = replay_entries("000001", lc, df, pb, pdly, ReplayConfig(), CostModel())
+    st = ev[ev["strategy"] == "staged_entry"].iloc[0]
+    assert st["t2_fill_date"] == df.index[26].strftime("%Y-%m-%d")
+    assert st["t3_fill_date"] is None          # 不借用 PBOTHER 的再上攻
+    assert st["max_position"] == pytest.approx(0.60)
+
+
+def test_t3_requires_t2_presence():
+    # 第三批存在 ⇒ 第二批必须存在（无缩量日时即使有配对再上攻也不成交）
+    df = _mk_pairing_market()
+    lc, pb, pdly = _mk_manual_lifecycle(
+        df, breakout_i=25,
+        reattack_pairs=[(df.index[29].strftime("%Y-%m-%d"), "PBPOST")],
+        t2_event="PBPOST", t2_first_i=26, t2_end_i=28, t2_shrink_i=26)
+    pdly_empty = pd.DataFrame(columns=["event_id", "date", "shrink_volume"])
+    ev = replay_entries("000001", lc, df, pb, pdly_empty, ReplayConfig(),
+                        CostModel())
+    st = ev[ev["strategy"] == "staged_entry"].iloc[0]
+    assert st["t2_fill_date"] is None
+    assert st["t3_fill_date"] is None
+    assert st["max_position"] == pytest.approx(0.30)
+
+
+def test_close_theory_position_enum_only_3060_100():
+    # close 理论仓位只能 30/60/100；70/40 只可能出现在 next 实际视角
+    df = _mk_pairing_market()
+    lc, pb, pdly = _mk_manual_lifecycle(
+        df, breakout_i=25,
+        reattack_pairs=[(df.index[29].strftime("%Y-%m-%d"), "PBPOST")],
+        t2_event="PBPOST", t2_first_i=26, t2_end_i=28, t2_shrink_i=26)
+    ev = replay_entries("000001", lc, df, pb, pdly, ReplayConfig(), CostModel())
+    st = ev[ev["strategy"] == "staged_entry"].iloc[0]
+    assert st["max_position"] in (0.30, 0.60, 1.00)
+    ev2 = replay_entries("000001", lc, df, pb,
+                         pd.DataFrame(columns=["event_id", "date",
+                                                "shrink_volume"]),
+                         ReplayConfig(), CostModel())
+    assert ev2[ev2["strategy"] == "staged_entry"].iloc[0]["max_position"] \
+        == pytest.approx(0.30)
+
+
+def test_next_position_reconstructible_from_leg_reasons():
+    # next 实际仓位必须能由各批失败原因严格还原
+    df = _mk_pairing_market()
+    lc, pb, pdly = _mk_manual_lifecycle(
+        df, breakout_i=25,
+        reattack_pairs=[(df.index[29].strftime("%Y-%m-%d"), "PBPOST")],
+        t2_event="PBPOST", t2_first_i=26, t2_end_i=28, t2_shrink_i=26)
+    _limit_up(df, 26)  # T1(25) 的次日一字板
+    ev = replay_entries("000001", lc, df, pb, pdly, ReplayConfig(), CostModel())
+    st = ev[ev["strategy"] == "staged_entry"].iloc[0]
+    legs = [("t1", 0.30), ("t2", 0.30), ("t3", 0.40)]
+    w = sum(lw for tag, lw in legs if st[f"{tag}_next_status"] == "filled")
+    assert st["fraction_invested_next"] == pytest.approx(w)
+    for tag, _ in legs:
+        if st[f"{tag}_next_status"] == "not_filled":
+            assert st[f"{tag}_next_reason"] is not None

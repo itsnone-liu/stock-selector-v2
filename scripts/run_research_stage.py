@@ -1050,7 +1050,9 @@ def stage_entry_replay(args: argparse.Namespace) -> int:
         t0 = time.time()
         lcs = ps.read_table(lc_src, columns=["code", "lifecycle_id",
                                              "anchor_day", "breakout_day",
-                                             "reattack_days", "end_day",
+                                             "reattack_days",
+                                             "reattack_pullback_event_ids",
+                                             "end_day",
                                              "end_reason", "right_censored"],
                             codes=batch_codes)
         pev = ps.read_table(pb_ev_src, columns=["code", "event_id", "first_day",
@@ -1065,7 +1067,10 @@ def stage_entry_replay(args: argparse.Namespace) -> int:
                 "lifecycle_id": rec.lifecycle_id,
                 "anchor_day": rec.anchor_day if isinstance(rec.anchor_day, str) else None,
                 "breakout_day": rec.breakout_day,
-                "reattack_days": rec.reattack_days, "end_day": rec.end_day,
+                "reattack_days": rec.reattack_days,
+                "reattack_pullback_event_ids": getattr(
+                    rec, "reattack_pullback_event_ids", None),
+                "end_day": rec.end_day,
                 "end_reason": rec.end_reason,
                 "right_censored": bool(rec.right_censored)})
         pev_by: dict = {}
