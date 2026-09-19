@@ -157,6 +157,23 @@ max_position（累计权重，≤1.0）；只落 tranche 级摘要，不落每�
    no_shrink_day、open_limit_up_buy_blocked、missing_bar_or_suspended、
    right_censored 分别计数，不得统一归并为“未成交失败”。
 
+## §10b 双价格口径（入场回放第一约束）
+
+```text
+raw_price        -> 信号识别、成交价、涨跌停判断、滑点（TDX 原始价）
+adjusted_return  -> 5/10/20 日收益、MFE、MAE、错失涨幅（公司行动调整后）
+RETURN_QUALITY   = "unadjusted_exploratory"   # 当前数据源无复权因子
+```
+
+- 本地 TDX 无股本变迁/复权因子文件（gpcw 等），全链为未复权原始价；
+- 引擎将成交价层与收益计算层分离为可替换接口：未来接入复权因子时只换
+  收益层，策略语义、信号、门禁结果全部不变；
+- `return_quality=unadjusted_exploratory` 落在每一行：此类结果只能用于
+  工程验证（管线正确性、成交率、阻断统计），**不得**用于判断哪种入场
+  策略更好，**不得**据此调整 3.5% 上限或任何生产参数；
+- 复权收益口径确认有效（接入因子并抽验除权样本）后才允许跑全量并
+  进入策略结论阶段。
+
 ## §11 等待错失的基准与公式（回答问题 10）
 
 ```text

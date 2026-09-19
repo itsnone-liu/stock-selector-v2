@@ -80,6 +80,8 @@ def build_parser() -> argparse.ArgumentParser:
                         "all=全市场事实+池状态标注列")
     p.add_argument("--allow-dirty", action="store_true",
                    help="允许工作区有未提交修改（仅冒烟/诊断；正式运行要求干净）")
+    p.add_argument("--lifecycle-dir", default="output/research/lifecycle_v1/lifecycle_stage4_v1_full",
+                   help="上游生命周期目录（全量已验收）")
     p.add_argument("--pullback-dir", default="output/research/lifecycle_v1/pullback_v2",
                    help="上游回调事件目录（pullback_v2）")
     p.add_argument("--weekly-state-dir", default="output/research/lifecycle_v1/weekly_state_v1",
@@ -905,6 +907,229 @@ def stage_lifecycle(args: argparse.Namespace) -> int:
     return 0 if complete else 7
 
 
+def stage_entry_replay(args: argparse.Namespace) -> int:
+    """第四批(下)：四种入场策略回放（消费 lifecycle，不重建生命周期）。
+
+    双价格口径：raw_price 信号/成交/涨跌停；收益层当前为未复权工程口径
+    （return_quality=unadjusted_exploratory），仅限工程验证，禁止据此
+    比较策略优劣或调整 3.5% 上限；全量需复权口径确认后另行放行。
+    """
+    import stock_selector.research.entry_replay as er
+
+    cfg = er.ReplayConfig.from_config(load_config())
+    cost = CostModel()
+    store = TdxStore(args.tdx_dir)
+    repo = Path(__file__).resolve().parents[1]
+    dirty = ps.git_worktree_dirty(repo)
+    if dirty and not args.allow_dirty:
+        print(f"工作区不干净：{len(dirty)} 处未提交修改。正式运行要求先提交；"
+              "冒烟可加 --allow-dirty。", file=sys.stderr)
+        return 2
+
+    r0, r1 = args.start, args.end
+    result_end = pd.Timestamp(r1)
+    codes = sorted(store.list_codes())
+    if args.codes_limit:
+        codes = codes[:args.codes_limit]
+    if not codes:
+        print("没有可处理股票", file=sys.stderr)
+        return 2
+
+    core = Path(args.core_dir)
+    weekly_dir = Path(args.weekly_state_dir)
+    pb_dir = Path(args.pullback_dir)
+    lc_dir = Path(args.lifecycle_dir)
+    lman = ps.read_manifest(lc_dir) or {}
+    pman = ps.read_manifest(pb_dir) or {}
+    EXPECTED_LIFECYCLE = "7f2c8dda08801d27"
+    if (not lman.get("run_spec_hash") or lman.get("status") != "complete"
+            or lman.get("run_spec_hash") != EXPECTED_LIFECYCLE):
+        print(f"上游 lifecycle 指纹不符：期望 {EXPECTED_LIFECYCLE}，"
+              f"实际 {lman.get('run_spec_hash')}（{lc_dir}）", file=sys.stderr)
+        return 2
+    if not pman.get("run_spec_hash") or pman.get("status") != "complete":
+        print(f"上游 pullback 未完成：{pb_dir}", file=sys.stderr)
+        return 2
+
+    cal_all = store.market_calendar()
+    compute_end = cal_all[cal_all <= result_end][-1]
+    run_spec = {
+        "stage": "entry-replay", "rule_version": er.RULE_VERSION,
+        "result_date_range": [r0, r1],
+        "replay_config": {"chase_gain_cap_pct": cfg.chase_gain_cap_pct,
+                          "staged_tranches": [list(t) for t in cfg.staged_tranches]},
+        "capital": er.CAPITAL,
+        "horizons": list(er.HORIZONS),
+        "execution_model_version": EXECUTION_MODEL_VERSION,
+        "return_quality": er.RETURN_QUALITY,
+        "limitation": er.LIMITATION,
+        "tdx_dir": args.tdx_dir,
+        "codes_limit": args.codes_limit,
+        "upstream_lifecycle": {
+            "dir": str(lc_dir), "run_spec_hash": lman["run_spec_hash"],
+            "rows_out": lman.get("rows_out"),
+        },
+        "upstream_pullback": {
+            "dir": str(pb_dir), "run_spec_hash": pman["run_spec_hash"],
+            "event_rule_version": "pullback_stage2_v1",
+            "outcome_contract_version": "right_censored_v2",
+        },
+        "git_commit": ps.git_commit(repo),
+        "code_md5": {
+            "entry_replay": ps.fingerprint(
+                repo / "src/stock_selector/research/entry_replay.py")["md5"],
+            "run_research_stage": ps.fingerprint(Path(__file__))["md5"],
+        },
+        "tdx_snapshot": ps.dir_snapshot(args.tdx_dir),
+        "tdx_content_md5": ps.dir_content_hash(args.tdx_dir),
+        "calendar_md5": _calendar_md5(args.tdx_dir),
+    }
+    spec_hash = ps.run_spec_hash(run_spec)
+
+    out = Path(args.out or "output/research/lifecycle_v1/entry_replay_v1")
+    parts = out / "partitions"
+    parts.mkdir(parents=True, exist_ok=True)
+    manifest_path = out / "MANIFEST.json"
+    old = ps.read_manifest(out) or {}
+    if old.get("partitions"):
+        reason = ps.validate_resume(old, codes, args.batch, spec_hash=spec_hash)
+        if reason:
+            print(f"拒绝续跑：{reason}", file=sys.stderr)
+            return 6
+    done = ps.completed_partitions(old) if args.resume else set()
+
+    def _mark_invalid(reason_: str) -> int:
+        m = ps.read_manifest(out) or {}
+        m["status"] = "invalid_data_changed"
+        m["invalid_reason"] = reason_
+        m["closure"] = {"complete": False, "reason": reason_}
+        ps.write_manifest(out, m)
+        print(f"运行期间数据变化，任务作废（invalid_data_changed）：{reason_}",
+              file=sys.stderr)
+        return 8
+
+    def _assert_data_frozen() -> str | None:
+        if ps.dir_snapshot(args.tdx_dir) != run_spec["tdx_snapshot"]:
+            return "行情目录变化"
+        lnow = ps.read_manifest(lc_dir) or {}
+        if lnow.get("run_spec_hash") != lman["run_spec_hash"]:
+            return "上游 lifecycle 口径指纹变化"
+        return None
+
+    log = ps.ResourceLogger(out)
+    store_info = {
+        "stage": "entry-replay", "rule_version": er.RULE_VERSION,
+        "tdx_dir": args.tdx_dir, "result_date_range": [r0, r1],
+        "codes": len(codes), "batch_size": args.batch,
+        "run_spec": run_spec, "run_spec_hash": spec_hash,
+        "memory_limit_mb": args.memory_limit_mb,
+        "return_quality": er.RETURN_QUALITY,
+        "partitions": old.get("partitions", {}),
+    }
+    ps.write_manifest(out, store_info)
+
+    lc_src = lc_dir / "partitions"
+    pb_ev_src = pb_dir / "events" / "partitions"
+    pb_dly_src = pb_dir / "daily" / "partitions"
+    for batch_name, batch_codes in ps.iter_code_batches(codes, args.batch, done):
+        reason = _assert_data_frozen()
+        if reason:
+            return _mark_invalid(reason)
+        t0 = time.time()
+        lcs = ps.read_table(lc_src, columns=["code", "lifecycle_id",
+                                             "anchor_day", "breakout_day",
+                                             "reattack_days", "end_day",
+                                             "end_reason", "right_censored"],
+                            codes=batch_codes)
+        pev = ps.read_table(pb_ev_src, columns=["code", "event_id", "first_day",
+                                                "end_day", "stabilization_day"],
+                            codes=batch_codes)
+        pdly = ps.read_table(pb_dly_src, columns=["code", "event_id", "date",
+                                                  "shrink_volume"],
+                             codes=batch_codes)
+        lc_by: dict = {}
+        for rec in lcs.itertuples(index=False):
+            lc_by.setdefault(rec.code, []).append({
+                "lifecycle_id": rec.lifecycle_id, "anchor_day": rec.anchor_day,
+                "breakout_day": rec.breakout_day,
+                "reattack_days": rec.reattack_days, "end_day": rec.end_day,
+                "end_reason": rec.end_reason,
+                "right_censored": bool(rec.right_censored)})
+        pev_by: dict = {}
+        for rec in pev.itertuples(index=False):
+            pev_by.setdefault(rec.code, []).append({
+                "event_id": rec.event_id, "first_day": rec.first_day,
+                "end_day": rec.end_day,
+                "stabilization_day": getattr(rec, "stabilization_day", None)})
+        pdly_by: dict = {}
+        for rec in pdly.itertuples(index=False):
+            pdly_by.setdefault(rec.code, []).append(
+                {"event_id": rec.event_id, "date": rec.date,
+                 "shrink_volume": bool(rec.shrink_volume)})
+
+        rows, missing = [], 0
+        for code in batch_codes:
+            daily = store.daily(code)
+            if daily is None or daily.empty:
+                missing += 1
+                continue
+            daily = daily[daily.index <= compute_end]
+            if daily.empty or code not in lc_by:
+                continue
+            ldf = pd.DataFrame(lc_by[code])
+            ev = er.replay_entries(
+                code, ldf, daily, pev_by.get(code, []),
+                pd.DataFrame(pdly_by.get(code, [])), cfg, cost)
+            if len(ev):
+                ev = ev[(ev["signal_day"] >= r0) & (ev["signal_day"] <= r1)]
+                if len(ev):
+                    rows.append(ev)
+        part = pd.concat(rows, ignore_index=True) if rows else \
+            pd.DataFrame(columns=er.ENTRY_REPLAY_COLUMNS)
+        bytes_out = 0
+        if len(part):
+            info = ps.write_partitioned_parquet(
+                part, parts / batch_name, partition_by="year",
+                date_col="signal_day")
+            bytes_out = sum(v["bytes"] for v in info["files"].values())
+        else:
+            (parts / batch_name).mkdir(parents=True, exist_ok=True)
+        rss_state = log.memory_guard(args.memory_limit_mb)
+        log.batch(batch_name, len(part), stage="entry-replay",
+                  extra={"missing": missing, "bytes": bytes_out, "guard": rss_state})
+        ps.mark_partition(manifest_path, batch_name, status="done",
+                          rows=len(part), seconds=time.time() - t0,
+                          rss_mb=log.peak_rss_mb, missing=missing,
+                          codes=batch_codes)
+        print(f"[{batch_name}] codes={len(batch_codes)} rows={len(part)} "
+              f"missing={missing} rss={log.peak_rss_mb:.0f}MB")
+        if rss_state == "stop":
+            print("达到内存红线，停止当前阶段。", file=sys.stderr)
+            return 5
+
+    reason = _assert_data_frozen()
+    if reason:
+        return _mark_invalid(reason)
+    if ps.dir_content_hash(args.tdx_dir) != run_spec["tdx_content_md5"]:
+        return _mark_invalid("行情目录内容哈希变化")
+
+    final = ps.read_manifest(out) or store_info
+    closure = ps.closure_check(final, codes)
+    complete = closure["complete"]
+    final.update({
+        "rows_out": closure["rows_out"],
+        "peak_rss_mb": log.peak_rss_mb,
+        "status": "complete" if complete else "incomplete",
+        "closure": closure,
+        "completed_at": time.strftime("%Y-%m-%dT%H:%M:%S"),
+    })
+    ps.write_manifest(out, final)
+    print(f"[entry-replay] {'完成' if complete else '未闭合'}：codes={len(codes)} "
+          f"rows={closure['rows_out']} 覆盖={closure['covered_codes']}/{len(codes)} "
+          f"peak_rss={log.peak_rss_mb:.0f}MB out={out}")
+    return 0 if complete else 7
+
+
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     if args.workers != 1:
@@ -919,6 +1144,8 @@ def main(argv: list[str] | None = None) -> int:
         return stage_pullback(args)
     if args.stage == "lifecycle":
         return stage_lifecycle(args)
+    if args.stage == "entry-replay":
+        return stage_entry_replay(args)
     print(f"阶段 {args.stage} 属于{BATCH_OF_STAGE[args.stage]}，"
           f"当前只实现 base-check/weekly-state；按方案顺序到对应批次再实现。",
           file=sys.stderr)
