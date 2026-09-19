@@ -80,7 +80,18 @@ def build_parser() -> argparse.ArgumentParser:
                         "all=全市场事实+池状态标注列")
     p.add_argument("--allow-dirty", action="store_true",
                    help="允许工作区有未提交修改（仅冒烟/诊断；正式运行要求干净）")
+    p.add_argument("--weekly-state-dir", default="output/research/lifecycle_v1/weekly_state_v1",
+                   help="pullback 阶段消费的周线双轴表目录")
     return p
+
+
+def _calendar_md5(tdx_dir: str) -> str | None:
+    """交易日历源文件 md5（与 TdxStore.market_calendar 同寻径顺序）。"""
+    for m in ("sh", "sz", "bj"):
+        cand = Path(tdx_dir) / "vipdoc" / m / "lday" / "sh000001.day"
+        if cand.exists():
+            return ps.fingerprint(cand)["md5"]
+    return None
 
 
 def stage_base_check(args: argparse.Namespace) -> int:
@@ -403,6 +414,241 @@ def stage_weekly_state(args: argparse.Namespace) -> int:
     return 0 if complete else 7
 
 
+def stage_pullback(args: argparse.Namespace) -> int:
+    """第三批：回调特征与事件去重（消费周线双轴表，只在月线池内）。"""
+    import stock_selector.research.pullback_features as pb
+
+    cfg = pb.PullbackConfig.from_config(load_config())
+    store = TdxStore(args.tdx_dir)
+    repo = Path(__file__).resolve().parents[1]
+    dirty = ps.git_worktree_dirty(repo)
+    if dirty and not args.allow_dirty:
+        print(f"工作区不干净：{len(dirty)} 处未提交修改。正式运行要求先提交；"
+              "冒烟可加 --allow-dirty。", file=sys.stderr)
+        return 2
+
+    cal_all = store.market_calendar()
+    r0, r1 = args.start, args.end
+    result_start, result_end = pd.Timestamp(r0), pd.Timestamp(r1)
+    warmup_days = 70  # platform30+high20+ATR14+缓冲
+    cal_pre = cal_all[cal_all < result_start]
+    compute_start = cal_pre[-warmup_days] if len(cal_pre) >= warmup_days \
+        else cal_pre[0] if len(cal_pre) else result_start
+    compute_end = cal_all[cal_all <= result_end][-1]
+    codes = sorted(store.list_codes())
+    if args.codes_limit:
+        codes = codes[:args.codes_limit]
+    if not codes:
+        print("没有可处理股票", file=sys.stderr)
+        return 2
+
+    core = Path(args.core_dir)
+    universe_src, universe_mode, universe_reason = ps.resolve_mirror_or_csv(
+        core, "universe_state_panel.csv")
+    print(f"[pullback] 月线池源：{universe_mode}（{universe_reason}）")
+
+    # 上游双轴表冻结链：上游口径指纹与行数记入本阶段 run_spec，
+    # 上游重跑/变更 -> 本阶段目录不可续跑
+    weekly_dir = Path(args.weekly_state_dir)
+    wman = ps.read_manifest(weekly_dir) or {}
+    if not wman.get("run_spec_hash") or wman.get("status") != "complete":
+        print(f"上游双轴表未完成或无口径指纹：{weekly_dir}", file=sys.stderr)
+        return 2
+
+    run_spec = {
+        "stage": "pullback", "rule_version": pb.RULE_VERSION,
+        "result_date_range": [r0, r1],
+        "min_history": args.min_history,
+        "pullback_config": {
+            "min_volume_ratio": cfg.min_volume_ratio, "veto_ratio": cfg.veto_ratio,
+            "ma_windows": list(cfg.ma_windows),
+            "platform_lookback": cfg.platform_lookback,
+            "platform_quantile": cfg.platform_quantile,
+            "high_lookback": cfg.high_lookback,
+            "max_observation_days": cfg.max_observation_days,
+            "outcome_horizons": list(cfg.outcome_horizons),
+            "breakdown_tolerance": cfg.breakdown_tolerance,
+        },
+        "tdx_dir": args.tdx_dir,
+        "universe_source": str(universe_src),
+        "universe_source_md5": ps.fingerprint(core / "universe_state_panel.csv")["md5"],
+        "codes_limit": args.codes_limit,
+        "upstream_weekly_state": {
+            "dir": str(weekly_dir),
+            "run_spec_hash": wman["run_spec_hash"],
+            "rows_out": wman.get("rows_out"),
+            "rule_version": wman.get("run_spec", {}).get("rule_version"),
+        },
+        "git_commit": ps.git_commit(repo),
+        "code_md5": {
+            "pullback_features": ps.fingerprint(
+                repo / "src/stock_selector/research/pullback_features.py")["md5"],
+            "run_research_stage": ps.fingerprint(Path(__file__))["md5"],
+        },
+        "tdx_snapshot": ps.dir_snapshot(args.tdx_dir),
+        "tdx_content_md5": ps.dir_content_hash(args.tdx_dir),
+        "calendar_md5": _calendar_md5(args.tdx_dir),
+    }
+    spec_hash = ps.run_spec_hash(run_spec)
+    pool_fp0 = ps.fingerprint(core / "universe_state_panel.csv")
+
+    out = Path(args.out or "output/research/lifecycle_v1/pullback_v1")
+    parts_ev = out / "events" / "partitions"
+    parts_dly = out / "daily" / "partitions"
+    for d in (parts_ev, parts_dly):
+        d.mkdir(parents=True, exist_ok=True)
+    manifest_path = out / "MANIFEST.json"
+    old = ps.read_manifest(out) or {}
+    if old.get("partitions"):
+        reason = ps.validate_resume(old, codes, args.batch, spec_hash=spec_hash)
+        if reason:
+            print(f"拒绝续跑：{reason}", file=sys.stderr)
+            return 6
+    done = ps.completed_partitions(old) if args.resume else set()
+
+    def _mark_invalid(reason_: str) -> int:
+        m = ps.read_manifest(out) or {}
+        m["status"] = "invalid_data_changed"
+        m["invalid_reason"] = reason_
+        m["closure"] = {"complete": False, "reason": reason_}
+        ps.write_manifest(out, m)
+        print(f"运行期间数据变化，任务作废（invalid_data_changed）：{reason_}\n"
+              f"禁止宣布闭合；请确认数据稳定后换新版本目录重跑。", file=sys.stderr)
+        return 8
+
+    def _assert_data_frozen() -> str | None:
+        snap_now = ps.dir_snapshot(args.tdx_dir)
+        if snap_now != run_spec["tdx_snapshot"]:
+            return f"行情目录变化 {run_spec['tdx_snapshot']} -> {snap_now}"
+        pool_now = ps.fingerprint(core / "universe_state_panel.csv")
+        if (pool_now["size"], pool_now["mtime_ns"]) != (pool_fp0["size"], pool_fp0["mtime_ns"]):
+            return "月线池原件变化 size/mtime"
+        wnow = ps.read_manifest(weekly_dir) or {}
+        if wnow.get("run_spec_hash") != wman["run_spec_hash"]:
+            return "上游双轴表口径指纹变化"
+        return None
+
+    log = ps.ResourceLogger(out)
+    store_info = {
+        "stage": "pullback", "rule_version": pb.RULE_VERSION,
+        "tdx_dir": args.tdx_dir,
+        "result_date_range": [r0, r1],
+        "codes": len(codes), "batch_size": args.batch,
+        "universe_source": str(universe_src),
+        "run_spec": run_spec, "run_spec_hash": spec_hash,
+        "memory_limit_mb": args.memory_limit_mb,
+        "upstream_weekly_state": run_spec["upstream_weekly_state"],
+        "partitions": old.get("partitions", {}),
+    }
+    ps.write_manifest(out, store_info)
+
+    weekly_src = weekly_dir / "partitions"
+    for batch_name, batch_codes in ps.iter_code_batches(codes, args.batch, done):
+        reason = _assert_data_frozen()
+        if reason:
+            return _mark_invalid(reason)
+        t0 = time.time()
+        # 池状态与双轴按批读取（一次 join 语义，逐股转映射）
+        upool = ps.read_table(universe_src, columns=["code", "date", "monthly_pool_state"],
+                              codes=batch_codes)
+        wax = ps.read_table(weekly_src, columns=["code", "date", "trend_structure",
+                                                 "current_momentum"],
+                            codes=batch_codes)
+        pool_by_code: dict = {}
+        for rec in upool.drop_duplicates(subset=["code", "date"]).itertuples(index=False):
+            pool_by_code.setdefault(rec.code, {})[rec.date] = \
+                (rec.monthly_pool_state == "in")
+        week_by_code: dict = {}
+        for rec in wax.drop_duplicates(subset=["code", "date"]).itertuples(index=False):
+            y, w, _ = pd.Timestamp(rec.date).isocalendar()
+            week_by_code.setdefault(rec.code, {})[f"{y}-W{w:02d}"] = \
+                (rec.trend_structure, rec.current_momentum)
+
+        ev_rows, dly_rows, missing = [], [], 0
+        for code in batch_codes:
+            daily = store.daily(code)
+            if daily is None or daily.empty:
+                missing += 1
+                continue
+            daily = daily[(daily.index >= compute_start) & (daily.index <= compute_end)]
+            if daily.empty:
+                missing += 1
+                continue
+            ev, dly = pb.classify_pullback(
+                code, daily, week_by_code.get(code, {}), pool_by_code.get(code, {}), cfg)
+            if len(ev):
+                ev = ev[(ev["first_day"] >= r0) & (ev["first_day"] <= r1)]
+                if len(ev):
+                    ev_rows.append(ev)
+            if len(dly):
+                dly = dly[(dly["date"] >= r0) & (dly["date"] <= r1)]
+                if len(dly):
+                    dly_rows.append(dly)
+        part_ev = pd.concat(ev_rows, ignore_index=True) if ev_rows else \
+            pd.DataFrame(columns=pb.EVENT_COLUMNS)
+        part_dly = pd.concat(dly_rows, ignore_index=True) if dly_rows else \
+            pd.DataFrame(columns=pb.DAILY_COLUMNS)
+        bytes_out = 0
+        if len(part_ev):
+            info = ps.write_partitioned_parquet(
+                part_ev, parts_ev / batch_name, partition_by="year",
+                date_col="first_day")
+            bytes_out += sum(v["bytes"] for v in info["files"].values())
+        else:
+            (parts_ev / batch_name).mkdir(parents=True, exist_ok=True)
+        if len(part_dly):
+            info = ps.write_partitioned_parquet(
+                part_dly, parts_dly / batch_name, partition_by="year")
+            bytes_out += sum(v["bytes"] for v in info["files"].values())
+        else:
+            (parts_dly / batch_name).mkdir(parents=True, exist_ok=True)
+        rss_state = log.memory_guard(args.memory_limit_mb)
+        log.batch(batch_name, len(part_ev), stage="pullback",
+                  extra={"missing": missing, "bytes": bytes_out, "guard": rss_state,
+                         "rows_daily": len(part_dly)})
+        ps.mark_partition(manifest_path, batch_name, status="done",
+                          rows=len(part_ev), seconds=time.time() - t0,
+                          rss_mb=log.peak_rss_mb, missing=missing,
+                          codes=batch_codes,
+                          rows_daily=len(part_dly))
+        print(f"[{batch_name}] codes={len(batch_codes)} events={len(part_ev)} "
+              f"daily={len(part_dly)} missing={missing} rss={log.peak_rss_mb:.0f}MB")
+        if rss_state == "stop":
+            print("达到内存红线，停止当前阶段。续跑：相同 --batch 加 --resume；"
+                  "改变批量请换新版本目录。", file=sys.stderr)
+            return 5
+
+    reason = _assert_data_frozen()
+    if reason:
+        return _mark_invalid(reason)
+    if ps.dir_content_hash(args.tdx_dir) != run_spec["tdx_content_md5"]:
+        return _mark_invalid("行情目录内容哈希变化（等长度修正/写入）")
+    if ps.fingerprint(core / "universe_state_panel.csv")["md5"] != run_spec["universe_source_md5"]:
+        return _mark_invalid("月线池原件内容 md5 变化")
+    wnow = ps.read_manifest(weekly_dir) or {}
+    if wnow.get("run_spec_hash") != wman["run_spec_hash"]:
+        return _mark_invalid("上游双轴表口径指纹变化")
+
+    final = ps.read_manifest(out) or store_info
+    closure = ps.closure_check(final, codes)
+    complete = closure["complete"]
+    total_daily = sum(p.get("rows_daily", 0) for p in final.get("partitions", {}).values())
+    final.update({
+        "rows_out": closure["rows_out"],
+        "rows_daily": total_daily,
+        "peak_rss_mb": log.peak_rss_mb,
+        "status": "complete" if complete else "incomplete",
+        "closure": closure,
+        "completed_at": time.strftime("%Y-%m-%dT%H:%M:%S"),
+    })
+    ps.write_manifest(out, final)
+    print(f"[pullback] {'完成' if complete else '未闭合'}：codes={len(codes)} "
+          f"events={closure['rows_out']} daily={total_daily} "
+          f"覆盖={closure['covered_codes']}/{len(codes)} peak_rss={log.peak_rss_mb:.0f}MB "
+          f"out={out}")
+    return 0 if complete else 7
+
+
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     if args.workers != 1:
@@ -413,6 +659,8 @@ def main(argv: list[str] | None = None) -> int:
         return stage_base_check(args)
     if args.stage == "weekly-state":
         return stage_weekly_state(args)
+    if args.stage == "pullback":
+        return stage_pullback(args)
     print(f"阶段 {args.stage} 属于{BATCH_OF_STAGE[args.stage]}，"
           f"当前只实现 base-check/weekly-state；按方案顺序到对应批次再实现。",
           file=sys.stderr)
