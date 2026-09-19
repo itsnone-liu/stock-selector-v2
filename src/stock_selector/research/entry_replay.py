@@ -169,7 +169,13 @@ def _view_outcome(out: dict, daily: pd.DataFrame, view: str,
         complete = end_pos <= last
         out[ck(h)] = complete
         out[ok_(h)] = min(h, max(0, last - start_pos))
-        g = adjusted_return(daily, start_pos, end_pos) if complete else None
+        # 毛收益 = 市场价格比：close 视角买=成交日收盘，next 视角买=次日
+        # 开盘（滑点与费用只进净收益）
+        base = raw_price(daily, start_pos) if view == "close" \
+            else raw_price(daily, start_pos, "open")
+        g = None
+        if complete and base > 0:
+            g = raw_price(daily, end_pos) / base - 1.0
         out[f"ret_gross_{h}_{suffix}"] = g * 100.0 if g is not None else None
         if complete:
             sell_day = daily.index[end_pos].date()
@@ -183,15 +189,18 @@ def _view_outcome(out: dict, daily: pd.DataFrame, view: str,
     out[f"mae_20_{suffix}"] = mae * 100.0 if mae is not None else None
     # 新高：完整 20 日窗（含第 20 日）；不足 20 日记缺失
     if start_pos + 20 <= last:
+        # 从成交后第一个交易日起搜索（成交日本身不算）；等于突破价也算
         nh = next((j - start_pos for j
-                   in range(start_pos, start_pos + 20 + 1)
+                   in range(start_pos + 1, start_pos + 20 + 1)
                    if raw_price(daily, j) >= breakout_close), None)
         out[f"new_high_in_window_{suffix}"] = nh is not None
         out[f"days_to_new_high_{suffix}"] = nh
     else:
         out[f"new_high_in_window_{suffix}"] = None
         out[f"days_to_new_high_{suffix}"] = None
-    if out.get("outcome_20d_complete") is False:
+    comp_key = "outcome_20d_complete" if view == "close" \
+        else "outcome_20d_complete_next"
+    if out.get(comp_key) is False:
         out[f"failure_path_{suffix}"] = "right_censored"
     elif out.get(f"ret_net_20_{suffix}") is not None:
         out[f"failure_path_{suffix}"] = (
@@ -431,11 +440,12 @@ def replay_entries(code: str, lifecycles: pd.DataFrame, daily: pd.DataFrame,
                     sell_day = daily.index[wend].date()
                     port_gross = cash
                     port_net = cash
+                    end_close = raw_price(daily, wend)
                     for lp, lpx, lw in legs_in:
-                        r = adjusted_return(daily, lp, wend)
-                        if r is None:
+                        base = raw_price(daily, lp)
+                        if base <= 0:
                             continue
-                        port_gross += lw * (1.0 + r)
+                        port_gross += lw * (1.0 + end_close / base - 1.0)
                         net = _round_trip_net(cost, lpx, sell_px, sell_day,
                                               capital=CAPITAL * lw)
                         if net is not None:
@@ -446,7 +456,6 @@ def replay_entries(code: str, lifecycles: pd.DataFrame, daily: pd.DataFrame,
                 # ---- next 视角组合：每批独立次日成交，窗口从 T1 next 日起 ----
                 legs_n = _staged_legs_next(daily, market_cal, code, legs, cost)
                 if npos is not None:
-                    wsum_n = sum(w for np_, _, w in legs_n if np_ is not None)
                     for h in HORIZONS:
                         wend = npos + h
                         out[f"outcome_{h}d_complete_next"] = wend <= last
@@ -458,29 +467,34 @@ def replay_entries(code: str, lifecycles: pd.DataFrame, daily: pd.DataFrame,
                             continue
                         legs_in = [(np_, npx, lw) for np_, npx, lw in legs_n
                                    if np_ is not None and np_ <= wend]
-                        port = 1.0 - sum(lw for _, _, lw in legs_in)
+                        cash = 1.0 - sum(lw for _, _, lw in legs_in)
+                        port_gross = cash
+                        port_net = cash
+                        sell_px = cost.fill_price(raw_price(daily, wend), "sell")
+                        sell_day = daily.index[wend].date()
+                        end_close = raw_price(daily, wend)
                         for np_, npx, lw in legs_in:
-                            r = adjusted_return(daily, np_, wend)
-                            if r is None:
+                            base = raw_price(daily, np_, "open")  # 市场价口径
+                            if base <= 0:
                                 continue
-                            sell_px = cost.fill_price(raw_price(daily, wend), "sell")
-                            sell_day = daily.index[wend].date()
+                            port_gross += lw * (1.0 + end_close / base - 1.0)
                             net = _round_trip_net(cost, npx, sell_px, sell_day,
                                                   capital=CAPITAL * lw)
-                            port += lw * (1.0 + (net if net is not None else r))
-                        out[f"ret_gross_{h}_next"] = (port - 1.0) * 100.0
-                        out[f"ret_net_{h}_next"] = (port - 1.0) * 100.0
+                            if net is not None:
+                                port_net += lw * (1.0 + net)
+                        out[f"ret_gross_{h}_next"] = (port_gross - 1.0) * 100.0
+                        out[f"ret_net_{h}_next"] = (port_net - 1.0) * 100.0
                     mfe, mae = adjusted_path_max(daily, npos,
                                                  min(npos + 20, last))
                     out["mfe_20_next"] = mfe * 100.0 if mfe is not None else None
                     out["mae_20_next"] = mae * 100.0 if mae is not None else None
                     if npos + 20 <= last:
                         nh = next((j - npos for j
-                                   in range(npos, npos + 20 + 1)
+                                   in range(npos + 1, npos + 20 + 1)
                                    if raw_price(daily, j) >= bo_close), None)
                         out["new_high_in_window_next"] = nh is not None
                         out["days_to_new_high_next"] = nh
-                    if out.get("outcome_20d_complete") is False:
+                    if out.get("outcome_20d_complete_next") is False:
                         out["failure_path_next"] = "right_censored"
                     else:
                         n20 = out.get("ret_net_20_next")
@@ -488,6 +502,17 @@ def replay_entries(code: str, lifecycles: pd.DataFrame, daily: pd.DataFrame,
                                                              and n20 >= 0)
                                                     else "entry_poor") \
                             if n20 is not None else "trend_failed"
+
+                # ---- close 视角补充：MFE/MAE/新高（从 T1 成交日起）----
+                mfe, mae = adjusted_path_max(daily, t1p, min(t1p + 20, last))
+                out["mfe_20_close"] = mfe * 100.0 if mfe is not None else None
+                out["mae_20_close"] = mae * 100.0 if mae is not None else None
+                if t1p + 20 <= last:
+                    nh = next((j - t1p for j
+                               in range(t1p + 1, t1p + 20 + 1)
+                               if raw_price(daily, j) >= bo_close), None)
+                    out["new_high_in_window_close"] = nh is not None
+                    out["days_to_new_high_close"] = nh
                 # 各批次单独表现（close 视角）+ 资金占用（非负）
                 for tag, (lp, lpx) in zip(
                         ("t1", "t2", "t3"),

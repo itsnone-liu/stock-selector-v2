@@ -173,10 +173,10 @@ def test_next_view_return_starts_one_day_later():
     bo = _bo(df, lc)
     assert d["ret_gross_20_close"] == pytest.approx(
         (df.iloc[bo + 20]["close"] / df.iloc[bo]["close"] - 1) * 100)
-    # next 视角毛收益：买=次日开盘、卖=起点后第20日收盘
+    # next 视角毛收益：买=次日开盘、卖=起点后第20日收盘（精确市场价口径）
     assert d["ret_gross_20_next"] == pytest.approx(
         (df.iloc[bo + 21]["close"] / df.iloc[bo + 1]["open"] - 1) * 100,
-        rel=0.01)
+        abs=1e-6)
     assert d["mfe_20_next"] != d["mfe_20_close"]
 
 
@@ -395,3 +395,95 @@ def test_no_lookahead_outcome_only():
     assert d1["fill_price_close"] == d2["fill_price_close"]
     assert d1["fill_date_close"] == d2["fill_date_close"]
     assert d2["ret_gross_20_close"] > d1["ret_gross_20_close"]
+
+
+# ---------------- 修复轮 2：四个口径问题 + 新高边界 ----------------
+
+def test_next_gross_uses_open_price_exactly():
+    # 精确对照：次日开盘 -> 第20日收盘（市场价，不含滑点费用）
+    closes = [8.0] * 25 + [8.6 * 1.02 ** i for i in range(30)]
+    vols = [1000] * 25 + [1100] * 30
+    df, lc, _, _ = build_market(closes, vols)
+    ev = replay_entries("000001", lc, df, [], pd.DataFrame(),
+                        ReplayConfig(), CostModel())
+    d = ev[ev["strategy"] == "direct_chase"].iloc[0]
+    bo = _bo(df, lc)
+    exp = (df.iloc[bo + 21]["close"] / df.iloc[bo + 1]["open"] - 1) * 100
+    assert d["ret_gross_20_next"] == pytest.approx(exp, abs=1e-6)
+
+
+def test_next_view_censoring_uses_own_completeness():
+    # close 有 20 日、next 少一天：next=右删失，close=完整
+    closes = [8.0] * 25 + [8.6 * 1.01 ** i for i in range(28)]
+    vols = [1000] * 25 + [1100] * 28
+    df, lc, _, _ = build_market(closes, vols)
+    bo = _bo(df, lc)
+    df2 = df.iloc[:bo + 21]  # last=bo+20：close 完整、next(bo+21) 不完整
+    lc2 = classify_lifecycle("000001", df2, mk_week(df2), mk_pool(df2), [],
+                             LifecycleConfig())
+    assert len(lc2) == 1
+    ev = replay_entries("000001", lc2, df2, [], pd.DataFrame(),
+                        ReplayConfig(), CostModel())
+    d = ev[ev["strategy"] == "direct_chase"].iloc[0]
+    assert d["fill_status_next"] == "filled"
+    assert d["outcome_20d_complete"] is True      # close 视角完整
+    assert d["outcome_20d_complete_next"] is False  # next 视角不完整
+    assert d["failure_path_close"] in ("ok", "entry_poor")
+    assert d["failure_path_next"] == "right_censored"  # 不得计失败样本
+
+
+def test_staged_gross_differs_from_net():
+    ev = run_replay()
+    st = ev[ev["strategy"] == "staged_entry"].iloc[0]
+    assert st["ret_gross_20_close"] is not None
+    assert st["ret_net_20_close"] is not None
+    assert st["ret_net_20_close"] < st["ret_gross_20_close"]  # 费用+滑点分离
+    if st["ret_gross_20_next"] is not None:
+        assert st["ret_net_20_next"] < st["ret_gross_20_next"]
+
+
+def test_staged_close_view_has_mfe_mae_new_high():
+    # 分批 close 视角补齐：MFE/MAE/新高非空（完整窗）
+    closes = [8.0] * 25 + [8.6, 8.62, 8.58, 8.4, 8.45] + [8.9 + 0.05 * i
+                                                          for i in range(25)]
+    vols = [1000] * 25 + [1200] * 2 + [400, 350, 500] + [900] * 25
+    df = mk_daily(closes, [c * 0.998 for c in closes], vols)
+    lc = classify_lifecycle("000001", df, mk_week(df), mk_pool(df), [],
+                            LifecycleConfig())
+    assert len(lc) == 1
+    bo = _bo(df, lc)
+    pb = [{"event_id": "PB1", "first_day": df.index[bo + 2].strftime("%Y-%m-%d"),
+           "end_day": df.index[bo + 5].strftime("%Y-%m-%d"),
+           "stabilization_day": None}]
+    pdly = pd.DataFrame({"event_id": ["PB1"],
+                         "date": [df.index[bo + 3].strftime("%Y-%m-%d")],
+                         "shrink_volume": [True]})
+    ev = replay_entries("000001", lc, df, pb, pdly, ReplayConfig(), CostModel())
+    st = ev[ev["strategy"] == "staged_entry"].iloc[0]
+    assert st["outcome_20d_complete"] is True
+    assert st["mfe_20_close"] is not None
+    assert st["mae_20_close"] is not None
+    assert st["mae_20_close"] < 0 < st["mfe_20_close"]
+    assert st["new_high_in_window_close"] in (True, False)
+    assert st["days_to_new_high_close"] is not None
+    # 手工对照：从 T1(bo) 次日起，窗口内最高/最低相对 bo 收盘
+    w = [df.iloc[j]["close"] / df.iloc[bo]["close"] - 1
+         for j in range(bo, bo + 21)]
+    assert st["mfe_20_close"] == pytest.approx(max(w) * 100, abs=1e-9)
+    assert st["mae_20_close"] == pytest.approx(min(w) * 100, abs=1e-9)
+
+
+def test_direct_new_high_starts_after_fill_day():
+    # 成交日=突破日自身不算新高：其后 20 天均低于突破价 -> False（非 0 天）
+    closes = [8.0] * 25 + [8.6] + [8.4 + 0.005 * i for i in range(20)] + [8.5] * 3
+    vols = [1000] * 25 + [1100] * 24
+    df, lc, _, _ = build_market(closes, vols)
+    ev = replay_entries("000001", lc, df, [], pd.DataFrame(),
+                        ReplayConfig(), CostModel())
+    d = ev[ev["strategy"] == "direct_chase"].iloc[0]
+    bo = _bo(df, lc)
+    assert all(df.iloc[bo + k]["close"] < df.iloc[bo]["close"]
+               for k in range(1, 21))
+    assert d["outcome_20d_complete"] is True
+    assert d["new_high_in_window_close"] is False
+    assert d["days_to_new_high_close"] is None
