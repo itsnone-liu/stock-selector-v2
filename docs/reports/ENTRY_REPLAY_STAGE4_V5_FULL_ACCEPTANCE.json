@@ -28,8 +28,7 @@
     "gates": {
       "t3_without_t2": 0,
       "t3_date_le_t2": 0,
-      "close_theory_positions": "仅 30/60/100（1.0x11526, 0.6x10077, 0.3x5819）",
-      "v4_residual_70pct_1964_plus_40pct_8": "全部消除并归位（0.6/0.3/0.0），总数 27,422 守恒",
+      "close_theory_positions": "仅 30/60/100；v4 的 70%×1,964 + 40%×8 全部消除并归位，突破样本总数 27,422 守恒（v4->v5: 1.0 14576->11526, 0.6 6639->10077, 0.3 4110->5819；70%/40% 行归位至 0.6/0.3）",
       "next_70_40_reconstructible": "115/115 由各批阻断原因严格还原"
     },
     "close_theory_shift_v4_to_v5": "1.0: 14576->11526; 0.6: 6639->10077; 0.3: 4110->5819; 0.7: 1964->0; 0.4: 8->0; 0.0: 125->133"
@@ -74,5 +73,29 @@
   },
   "tests": "37 项 entry-replay 测试（含 T3 配对五门禁）+ 全量回归通过",
   "git_head": "2b58022",
-  "review_chain": "e2223a3->5ac1335/08be18f->0790429->a3b27ab->c8bea21->f601b7a->233c247"
+  "review_chain": "e2223a3->5ac1335/08be18f->0790429->a3b27ab->c8bea21->f601b7a->233c247",
+  "close_position_distribution": {
+    "1.0": 11526,
+    "0.6": 10077,
+    "0.3": 5819
+  },
+  "close_position_distribution_total": 27422,
+  "next_position_distribution": {
+    "1.0": 11298,
+    "0.6": 9917,
+    "0.3": 5959,
+    "0.0": 133,
+    "0.7": 115
+  },
+  "next_position_distribution_total": 27422,
+  "next_position_reconstruction": {
+    "checked_positions": [
+      "0.7",
+      "0.4"
+    ],
+    "reconstructible": 115,
+    "total": 115,
+    "note": "0.7=T1或T2阻断+其余成交；0.4=T1/T2均阻断+T3成交（v5 实际 0 条，v4 的 0.4×8 为借用 T3 的错误行）；0.0×133=次日三批全阻断（含 v4 归位的 8 行），属 next 实际视角，close 理论视角第一批必然存在故无 0.0",
+    "conservation": "close 分布总数 = next 分布总数 = 27,422（突破样本）"
+  }
 }
