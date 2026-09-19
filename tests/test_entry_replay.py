@@ -466,11 +466,16 @@ def test_staged_close_view_has_mfe_mae_new_high():
     assert st["mae_20_close"] < 0 < st["mfe_20_close"]
     assert st["new_high_in_window_close"] in (True, False)
     assert st["days_to_new_high_close"] is not None
-    # 手工对照：从 T1(bo) 次日起，窗口内最高/最低相对 bo 收盘
-    w = [df.iloc[j]["close"] / df.iloc[bo]["close"] - 1
-         for j in range(bo, bo + 21)]
-    assert st["mfe_20_close"] == pytest.approx(max(w) * 100, abs=1e-9)
-    assert st["mae_20_close"] == pytest.approx(min(w) * 100, abs=1e-9)
+    # 手工对照：组合净值路径（现金+T1 0.3+T2 0.3），逐日价值相对起点面值
+    t2 = bo + 3
+    vals = []
+    for j in range(bo, bo + 21):
+        v = 1.0 + 0.3 * (df.iloc[j]["close"] / df.iloc[bo]["close"] - 1.0)
+        if j >= t2:
+            v += 0.3 * (df.iloc[j]["close"] / df.iloc[t2]["close"] - 1.0)
+        vals.append(v)
+    assert st["mfe_20_close"] == pytest.approx((max(vals) - 1) * 100, abs=1e-9)
+    assert st["mae_20_close"] == pytest.approx((min(vals) - 1) * 100, abs=1e-9)
 
 
 def test_direct_new_high_starts_after_fill_day():
@@ -487,3 +492,134 @@ def test_direct_new_high_starts_after_fill_day():
     assert d["outcome_20d_complete"] is True
     assert d["new_high_in_window_close"] is False
     assert d["days_to_new_high_close"] is None
+
+
+# ---------------- 修复轮 3：分批 next 独立性 + MFE 基准 + 净值路径 ----------------
+
+def _mk_staged_market():
+    """突破 -> 回调(缩量日 bo+3) -> 再突破前高(reattack) -> 续涨。"""
+    closes = [8.0] * 25 + [8.6, 8.62, 8.58, 8.4, 8.45] + [8.7, 8.8] + \
+        [8.9 + 0.05 * i for i in range(24)]
+    vols = [1000] * 25 + [1200] * 2 + [400, 350, 500] + [1300, 1400] + [900] * 24
+    df = mk_daily(closes, [c * 0.998 for c in closes], vols)
+    lc = classify_lifecycle("000001", df, mk_week(df), mk_pool(df), [],
+                            LifecycleConfig())
+    assert len(lc) == 1
+    bo = _bo(df, lc)
+    pb = [{"event_id": "PB1", "first_day": df.index[bo + 2].strftime("%Y-%m-%d"),
+           "end_day": df.index[bo + 5].strftime("%Y-%m-%d"),
+           "stabilization_day": None}]
+    pdly = pd.DataFrame({"event_id": ["PB1"],
+                         "date": [df.index[bo + 3].strftime("%Y-%m-%d")],
+                         "shrink_volume": [True]})
+    return df, lc, pb, pdly, bo
+
+
+def _limit_up(df, pos):
+    prev = df.iloc[pos - 1]["close"]
+    for f in ("open", "high", "low", "close"):
+        df.iloc[pos, df.columns.get_loc(f)] = round(prev * 1.10, 2)
+
+
+def test_staged_t1_next_blocked_t2_fills():
+    # 第一批次日涨停不可成交：观察起点应为第二批的次日成交日
+    df, lc, pb, pdly, bo = _mk_staged_market()
+    _limit_up(df, bo + 1)  # T1 的次日一字板
+    ev = replay_entries("000001", lc, df, pb, pdly, ReplayConfig(), CostModel())
+    st = ev[ev["strategy"] == "staged_entry"].iloc[0]
+    t2 = bo + 3
+    assert st["fill_status_next"] == "filled"
+    # 起点 = T2 的次日（t2+1）
+    assert st["fill_date_next"] == df.index[t2 + 1].strftime("%Y-%m-%d")
+    assert st["ret_gross_20_next"] is not None
+    # 手工：组合 = 现金 0.7 + T2 批 0.3（next 开盘 -> 窗口末收盘，市场价）
+    wend = t2 + 1 + 20
+    exp = (0.7 + 0.3 * df.iloc[wend]["close"]
+           / df.iloc[t2 + 1]["open"] - 1) * 100
+    assert st["ret_gross_20_next"] == pytest.approx(exp, abs=1e-6)
+
+
+def test_staged_t1_t2_next_blocked_t3_fills():
+    # T1 次日涨停 + 无回调成交但 T2 也被阻断（构造 T2 次日同样涨停）
+    df, lc, pb, pdly, bo = _mk_staged_market()
+    _limit_up(df, bo + 1)   # T1 次日涨停
+    _limit_up(df, bo + 4)   # T2(bo+3) 的次日涨停
+    ev = replay_entries("000001", lc, df, pb, pdly, ReplayConfig(), CostModel())
+    st = ev[ev["strategy"] == "staged_entry"].iloc[0]
+    if lc.iloc[0]["reattack_days"]:
+        t3 = [i for i, ts in enumerate(df.index)
+              if ts.strftime("%Y-%m-%d")
+              == lc.iloc[0]["reattack_days"].split("|")[0]][0]
+        assert st["fill_status_next"] == "filled"
+        assert st["fill_date_next"] == df.index[t3 + 1].strftime("%Y-%m-%d")
+        assert st["ret_gross_20_next"] is not None
+    else:  # 无 reattack：T1/T2 全被阻断 -> 整行未成交
+        assert st["fill_status_next"] == "not_filled"
+        assert st["not_filled_reason_next"] == "open_limit_up_buy_blocked"
+
+
+def test_staged_all_legs_next_blocked():
+    # 三批次日全部一字板：未成交，原因分列
+    df, lc, pb, pdly, bo = _mk_staged_market()
+    _limit_up(df, bo + 1)  # T1 next
+    ev = replay_entries("000001", lc, df, pb, pdly, ReplayConfig(), CostModel())
+    st = ev[ev["strategy"] == "staged_entry"].iloc[0]
+    t2 = bo + 3
+    _limit_up(df, t2 + 1) if False else None  # noqa
+    # 构造 T2 次日也涨停
+    df2, lc2, pb2, pdly2, bo2 = _mk_staged_market()
+    _limit_up(df2, bo2 + 1)
+    _limit_up(df2, bo2 + 4)
+    ev2 = replay_entries("000001", lc2, df2, pb2, pdly2, ReplayConfig(),
+                         CostModel())
+    st2 = ev2[ev2["strategy"] == "staged_entry"].iloc[0]
+    if lc2.iloc[0]["reattack_days"]:
+        t3 = [i for i, ts in enumerate(df2.index)
+              if ts.strftime("%Y-%m-%d")
+              == lc2.iloc[0]["reattack_days"].split("|")[0]][0]
+        _limit_up(df2, t3 + 1)  # T3 次日也涨停
+        ev3 = replay_entries("000001", lc2, df2, pb2, pdly2, ReplayConfig(),
+                             CostModel())
+        st3 = ev3[ev3["strategy"] == "staged_entry"].iloc[0]
+        assert st3["fill_status_next"] == "not_filled"
+        assert st3["not_filled_reason_next"] == "open_limit_up_buy_blocked"
+        assert st3["ret_gross_20_next"] is None
+        assert st3["mfe_20_next"] is None
+    else:
+        assert st2["fill_status_next"] == "not_filled"
+        assert st2["ret_gross_20_next"] is None
+
+
+def test_next_view_mfe_mae_use_open_basis():
+    # 次日开盘基准的 MFE/MAE（先跌后涨构造不对称极值）
+    closes = [8.0] * 25 + [8.6, 8.5, 8.45, 8.5] + [8.6 * 1.02 ** i
+                                                   for i in range(26)]
+    vols = [1000] * 25 + [1100] * 30
+    df, lc, _, _ = build_market(closes, vols)
+    ev = replay_entries("000001", lc, df, [], pd.DataFrame(),
+                        ReplayConfig(), CostModel())
+    d = ev[ev["strategy"] == "direct_chase"].iloc[0]
+    bo = _bo(df, lc)
+    o = df.iloc[bo + 1]["open"]
+    rets = [df.iloc[j]["close"] / o - 1
+            for j in range(bo + 1, bo + 1 + 21)]
+    assert d["mfe_20_next"] == pytest.approx(max(rets) * 100, abs=1e-9)
+    assert d["mae_20_next"] == pytest.approx(min(rets) * 100, abs=1e-9)
+    # 与 close 收盘基准不同（基准不同 -> 数值不同）
+    assert d["mfe_20_next"] != d["mfe_20_close"]
+
+
+def test_staged_nav_path_next_extremes():
+    # 分批 next 视角净值路径极值：手工逐日对照
+    df, lc, pb, pdly, bo = _mk_staged_market()
+    ev = replay_entries("000001", lc, df, pb, pdly, ReplayConfig(), CostModel())
+    st = ev[ev["strategy"] == "staged_entry"].iloc[0]
+    t1n, t2n = bo + 1, bo + 4  # T1/T2 的次日
+    vals = []
+    for j in range(t1n, t1n + 21):
+        v = 1.0 + 0.3 * (df.iloc[j]["close"] / df.iloc[t1n]["open"] - 1.0)
+        if j >= t2n:
+            v += 0.3 * (df.iloc[j]["close"] / df.iloc[t2n]["open"] - 1.0)
+        vals.append(v)
+    assert st["mfe_20_next"] == pytest.approx((max(vals) - 1) * 100, abs=1e-9)
+    assert st["mae_20_next"] == pytest.approx((min(vals) - 1) * 100, abs=1e-9)
