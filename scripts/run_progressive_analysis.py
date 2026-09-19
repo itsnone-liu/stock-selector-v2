@@ -15,6 +15,7 @@
 from __future__ import annotations
 
 import argparse
+import gc
 import json
 import sys
 from pathlib import Path
@@ -30,7 +31,6 @@ from run_e_stage_analysis import build_market_frames  # noqa:E402
 from stock_selector.research.benchmarks import attach_relative_outcomes  # noqa:E402
 from stock_selector.research.background_panel import (attach_pre_context,  # noqa:E402
                                                       holding_context_metrics)
-from stock_selector.research.comparisons import build_progressive_comparisons  # noqa:E402
 from stock_selector.research.contrast import (HORIZONS,  # noqa:E402
                                               block_bootstrap_median_diff)
 from stock_selector.research.context_join import attach_historical_membership  # noqa:E402
@@ -50,7 +50,8 @@ def load_panel(panel_dir: Path) -> dict[str, pd.DataFrame]:
         raise SystemExit(f"stale panel contract: expected {PANEL_VERSION}, got {manifest.get('panel_version')}")
     sig = pd.read_csv(panel_dir / "signal_panel.csv", dtype={"code": str}, low_memory=False)
     out = pd.read_csv(panel_dir / "outcome_panel.csv", dtype={"code": str}, low_memory=False)
-    uni = pd.read_csv(panel_dir / "universe_state_panel.csv", dtype={"code": str}, low_memory=False)
+    uni = pd.read_csv(panel_dir / "universe_state_panel.csv",
+                      usecols=["code", "date", "monthly_pool_spell_age"], dtype={"code": str})
     strat = pd.read_csv(panel_dir / "strategy_episode_panel.csv", dtype={"code": str})
     pat = pd.read_csv(panel_dir / "episode_panel.csv", dtype={"code": str})
     return {"signal": sig, "outcome": out, "universe": uni, "strategy": strat, "pattern": pat,
@@ -93,7 +94,7 @@ def pairwise_bootstrap(frame: pd.DataFrame, horizons, contrasts: list[tuple[str,
         col = f"industry_excess{h}"
         if col not in frame:
             continue
-        x = frame.dropna(subset=[col])
+        x = frame[[c for c in (col, group_col, block_col) if c in frame]].dropna(subset=[col])
         for a, b in contrasts:
             ga, gb = x[x[group_col] == a], x[x[group_col] == b]
             if len(ga) >= min_n and len(gb) >= min_n:
@@ -157,6 +158,13 @@ def main() -> None:
     # ---- 基准（逐日历史行业+前收盘+尾部缓冲，与E阶段同一实现） ----
     merged0 = sig.merge(outcome, on=["code", "date"], how="left",
                         suffixes=("", "_out"), validate="one_to_one")
+    # merge完成后立即释放全量sig/outcome，只保留下游真正需要的slim列
+    keep_out = [c for c in ("code", "date") + tuple(f"fwd{h}" for h in HORIZONS)
+                + ("matured_week", "next_week_return") if c in outcome.columns]
+    outcome_slim = outcome[keep_out].copy()
+    del outcome, sig
+    data["outcome"] = None; data["signal"] = None
+    gc.collect()
     memberships = pd.read_csv(a.membership, dtype={"code": str, "industry_code": str})
     start, end = str(merged0["date"].min()), str(merged0["date"].max())
     returns, prices = build_market_frames(a.tdx_dir, 0, memberships, start, end,
@@ -167,17 +175,41 @@ def main() -> None:
                                                       join_market_context)
     from stock_selector.research.benchmarks import daily_cross_section_benchmarks
     market_daily, industry_daily = daily_cross_section_benchmarks(returns.dropna(subset=["return"]))
+    # 基准小表算完，两个337万行大帧立即释放（固定成本~1.5G）
+    del returns, prices
+    gc.collect()
 
     # ---- 三组对照：设计→收益/基准关联→全量+逐期限非重叠统计 ----
+    # 逐cohort流式构建：写盘一个释放一个，峰值=单cohort而非24帧总和
     design_dir = out / "designs"; design_dir.mkdir(exist_ok=True)
-    designs = build_progressive_comparisons(merged0, horizons=HORIZONS)
     summary_parts, boot_all = [], {}
+    from stock_selector.research.cohorts import (daily_increment_cohort,  # noqa:E402
+                                                 nonoverlapping_anchors,
+                                                 weekly_direct_cohort,
+                                                 weekly_state_within_daily_shape)
+    cohort_builders = {
+        "daily_increment_within_monthly_weekly": daily_increment_cohort,
+        "weekly_state_within_daily_shape": weekly_state_within_daily_shape,
+        "weekly_direct_within_monthly": weekly_direct_cohort,
+    }
+
+    def emit_design(frame, name, key, sample_kind, horizons):
+        f2 = enrich(frame)
+        f2.to_csv(design_dir / f"{key}.csv", index=False)
+        boot_all[key] = compare(f2, name, sample_kind, horizons)
+        del f2
+        gc.collect()
 
     def enrich(frame):
         frame = attach_historical_membership(frame, memberships)
         return attach_relative_outcomes(frame, market_fwd, industry_fwd, horizons=HORIZONS)
 
     def compare(frame, name, sample_kind, horizons):
+        # 先切到统计实际消费的列，避免bootstrap/summary在全宽帧上复制
+        base_cols = {"cohort", "daily_trigger_type", "matured_week", "next_week_return",
+                     "code", "date"}
+        hz_cols = {f"fwd{h}" for h in horizons} | {f"industry_excess{h}" for h in horizons}
+        frame = frame[[c for c in (base_cols | hz_cols) if c in frame]]
         group_cols = ("daily_trigger_type", "cohort") if name == "weekly_state_within_daily_shape" else ("cohort",)
         summary_parts.append(group_summary(frame, horizons, group_cols=group_cols,
                                             comparison=name, sample_kind=sample_kind))
@@ -200,26 +232,30 @@ def main() -> None:
         return result
 
     for name in COHORT_NAMES:
-        all_frame = enrich(designs[f"{name}__all"])
-        all_frame.to_csv(design_dir / f"{name}__all.csv", index=False)
-        boot_all[f"{name}__all"] = compare(all_frame, name, "all", HORIZONS)
+        base = cohort_builders[name](merged0)
+        groups_no = ("code", "daily_trigger_type", "cohort") \
+            if name == "weekly_state_within_daily_shape" else ("code", "cohort")
+        emit_design(base, name, f"{name}__all", "all", HORIZONS)
         for h in HORIZONS:
             key = f"{name}__nonoverlap_h{h}"
-            no_frame = enrich(designs[key])
-            no_frame.to_csv(design_dir / f"{key}.csv", index=False)
-            boot_all[key] = compare(no_frame, name, f"nonoverlap_h{h}", (h,))
+            no_base = nonoverlapping_anchors(base, h, group_columns=groups_no)
+            emit_design(no_base, name, key, f"nonoverlap_h{h}", (h,))
+            del no_base
+            gc.collect()
+        del base
+        gc.collect()
     pd.concat(summary_parts, ignore_index=True).to_csv(out / "progressive_summary.csv", index=False)
     (out / "bootstrap_contrasts.json").write_text(
         json.dumps(boot_all, ensure_ascii=False, indent=2, default=str))
 
     # ---- 策略事件表现（独立于形态事件） ----
     data["strategy"].to_csv(out / "strategy_episode_report_raw.csv", index=False)
-    srep = strategy_report(data["strategy"], outcome, data["universe"])
+    srep = strategy_report(data["strategy"], outcome_slim, data["universe"])
     srep.to_csv(out / "strategy_episode_report.csv", index=False)
 
     # ---- 形态事件表现（单独保留，不与策略事件混表） ----
     pat = data["pattern"].rename(columns={"first_trigger_date": "date"})
-    pat = pat.merge(outcome, on=["code", "date"], how="left", validate="many_to_one")
+    pat = pat.merge(outcome_slim, on=["code", "date"], how="left", validate="many_to_one")
     pat_rows = []
     for stype, g in pat.groupby("signal_type"):
         row = {"signal_type": stype, "episodes": len(g)}
@@ -231,8 +267,14 @@ def main() -> None:
     pd.DataFrame(pat_rows).to_csv(out / "pattern_episode_report.csv", index=False)
 
     # ---- 同结构正负 + 持有期背景（对照A事件日） ----
+    _a_need = {"code", "date", "industry_code", "membership_status", "monthly_pool_spell_age",
+               "weekly_base_pattern", "weekly_weekday_path", "daily_trigger_type",
+               "fwd5", "market_fwd5", "industry_fwd5",
+               "pre_return_20_pct", "dist_to_prior_ma20_pct", "today_close_position",
+               "today_upper_shadow_pct", "t_eff", "eff_delta", "volume_ratio_vs_prev_week"}
     a_rows = pd.read_csv(design_dir / "daily_increment_within_monthly_weekly__all.csv",
-                         dtype={"code": str}, low_memory=False)
+                         usecols=lambda c: c in _a_need,
+                         dtype={"code": str, "industry_code": str}, low_memory=False)
     a_rows = join_market_context(a_rows, market_daily)
     a_rows = join_industry_context(a_rows, industry_daily)
     a_rows = attach_pre_context(a_rows, market_daily,
@@ -287,7 +329,7 @@ def main() -> None:
 
     manifest = {"panel_dir": str(a.panel_dir), "panel_version": PANEL_VERSION,
                 "horizons": list(HORIZONS), "bootstrap_iterations": a.bootstrap_iterations,
-                "events_signal": len(sig), "strategy_episodes": len(data["strategy"]),
+                "events_signal": len(merged0), "strategy_episodes": len(data["strategy"]),
                 "pattern_episodes": len(data["pattern"]),
                 "neutral_band": float(cfg["excess_return_neutral_band"]),
                 "bootstrap_min_n": 30,
