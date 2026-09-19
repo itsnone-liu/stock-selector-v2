@@ -1,0 +1,28 @@
+{
+  "stage": "weekly-state 全量验收报告",
+  "output_dir": "output/research/lifecycle_v1/weekly_state_v1 (服务器端，gitignore)",
+  "status": "complete",
+  "closure_complete": true,
+  "codes": 5588,
+  "covered_codes": 5588,
+  "missing_codes": 0,
+  "overlap_codes": 0,
+  "rows_out": 971463,
+  "result_date_range": [
+    "2024-01-02",
+    "2026-09-01"
+  ],
+  "run_spec_hash": "e2cf0918238fc95c",
+  "run_spec_git_commit": "6f9cb4f7c4180b9b9c7363a9de537bd39b38be5e",
+  "universe_scope": "pool",
+  "universe_source_mode": "parquet",
+  "peak_rss_mb": 197.595136,
+  "done_partitions": 56,
+  "partitions_missing_total": 349,
+  "invalid_data_changed_seen": false,
+  "completed_at": "2026-09-19T19:05:20",
+  "note_start_date": "result 起点为 2024-01-02：01 日为元旦休市无行情，与核心证据层起点一致",
+  "cross_check_rows_vs_core": "971463 == universe_state_panel monthly_pool_state=='in' 行数（DuckDB 全量对账）",
+  "unique_keys": "971463 (code,date) 无重复",
+  "note_missing_349": "missing=349 全部为北交所 920xxx（TDX day 文件不可读）；核心层宇宙中北交所代码为 0 只，不影响池内覆盖与闭合判定（闭合=已计算无输出）"
+}
