@@ -550,6 +550,7 @@ def stage_pullback(args: argparse.Namespace) -> int:
     ps.write_manifest(out, store_info)
 
     weekly_src = weekly_dir / "partitions"
+    market_cal = store.market_calendar()
     for batch_name, batch_codes in ps.iter_code_batches(codes, args.batch, done):
         reason = _assert_data_frozen()
         if reason:
@@ -813,6 +814,7 @@ def stage_lifecycle(args: argparse.Namespace) -> int:
 
     weekly_src = weekly_dir / "partitions"
     pb_ev_src = pb_dir / "events" / "partitions"
+    market_cal = store.market_calendar()
     for batch_name, batch_codes in ps.iter_code_batches(codes, args.batch, done):
         reason = _assert_data_frozen()
         if reason:
@@ -843,7 +845,7 @@ def stage_lifecycle(args: argparse.Namespace) -> int:
                 {"event_id": rec.event_id,
                  "first_day": rec.first_day, "end_day": rec.end_day})
 
-        rows, missing, skipped = [], 0, 0
+        rows, missing = [], 0
         for code in batch_codes:
             daily = store.daily(code)
             if daily is None or daily.empty:
@@ -945,13 +947,16 @@ def stage_entry_replay(args: argparse.Namespace) -> int:
     lman = ps.read_manifest(lc_dir) or {}
     pman = ps.read_manifest(pb_dir) or {}
     EXPECTED_LIFECYCLE = "7f2c8dda08801d27"
+    EXPECTED_PULLBACK = "68cad4022bec6a8b"
     if (not lman.get("run_spec_hash") or lman.get("status") != "complete"
             or lman.get("run_spec_hash") != EXPECTED_LIFECYCLE):
         print(f"上游 lifecycle 指纹不符：期望 {EXPECTED_LIFECYCLE}，"
               f"实际 {lman.get('run_spec_hash')}（{lc_dir}）", file=sys.stderr)
         return 2
-    if not pman.get("run_spec_hash") or pman.get("status") != "complete":
-        print(f"上游 pullback 未完成：{pb_dir}", file=sys.stderr)
+    if (not pman.get("run_spec_hash") or pman.get("status") != "complete"
+            or pman.get("run_spec_hash") != EXPECTED_PULLBACK):
+        print(f"上游 pullback 指纹不符：期望 {EXPECTED_PULLBACK}，"
+              f"实际 {pman.get('run_spec_hash')}（{pb_dir}）", file=sys.stderr)
         return 2
 
     cal_all = store.market_calendar()
@@ -1017,6 +1022,9 @@ def stage_entry_replay(args: argparse.Namespace) -> int:
         lnow = ps.read_manifest(lc_dir) or {}
         if lnow.get("run_spec_hash") != lman["run_spec_hash"]:
             return "上游 lifecycle 口径指纹变化"
+        pnow = ps.read_manifest(pb_dir) or {}
+        if pnow.get("run_spec_hash") != pman["run_spec_hash"]:
+            return "上游 pullback 清单指纹变化"
         return None
 
     log = ps.ResourceLogger(out)
@@ -1034,6 +1042,7 @@ def stage_entry_replay(args: argparse.Namespace) -> int:
     lc_src = lc_dir / "partitions"
     pb_ev_src = pb_dir / "events" / "partitions"
     pb_dly_src = pb_dir / "daily" / "partitions"
+    market_cal = store.market_calendar()
     for batch_name, batch_codes in ps.iter_code_batches(codes, args.batch, done):
         reason = _assert_data_frozen()
         if reason:
@@ -1070,7 +1079,7 @@ def stage_entry_replay(args: argparse.Namespace) -> int:
                 {"event_id": rec.event_id, "date": rec.date,
                  "shrink_volume": bool(rec.shrink_volume)})
 
-        rows, missing, skipped = [], 0, 0
+        rows, missing = [], 0
         for code in batch_codes:
             daily = store.daily(code)
             if daily is None or daily.empty:
@@ -1082,8 +1091,8 @@ def stage_entry_replay(args: argparse.Namespace) -> int:
             ldf = pd.DataFrame(lc_by[code])
             ev = er.replay_entries(
                 code, ldf, daily, pev_by.get(code, []),
-                pd.DataFrame(pdly_by.get(code, [])), cfg, cost)
-            skipped += int(ev.attrs.get("skipped_no_breakout", 0))
+                pd.DataFrame(pdly_by.get(code, [])), cfg, cost,
+                market_cal=market_cal)
             if len(ev):
                 ev = ev[(ev["signal_day"] >= r0) & (ev["signal_day"] <= r1)]
                 if len(ev):
@@ -1100,15 +1109,13 @@ def stage_entry_replay(args: argparse.Namespace) -> int:
             (parts / batch_name).mkdir(parents=True, exist_ok=True)
         rss_state = log.memory_guard(args.memory_limit_mb)
         log.batch(batch_name, len(part), stage="entry-replay",
-                  extra={"missing": missing, "bytes": bytes_out, "guard": rss_state,
-                         "skipped_no_breakout": skipped})
+                  extra={"missing": missing, "bytes": bytes_out, "guard": rss_state})
         ps.mark_partition(manifest_path, batch_name, status="done",
                           rows=len(part), seconds=time.time() - t0,
                           rss_mb=log.peak_rss_mb, missing=missing,
-                          codes=batch_codes, skipped_no_breakout=skipped)
+                          codes=batch_codes)
         print(f"[{batch_name}] codes={len(batch_codes)} rows={len(part)} "
-              f"missing={missing} skipped_nb={skipped} "
-              f"rss={log.peak_rss_mb:.0f}MB")
+              f"missing={missing} rss={log.peak_rss_mb:.0f}MB")
         if rss_state == "stop":
             print("达到内存红线，停止当前阶段。", file=sys.stderr)
             return 5
