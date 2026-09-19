@@ -577,10 +577,11 @@ def run_spec_hash(spec: dict) -> str:
 
 def dir_snapshot(dir_path: str | Path,
                  patterns: Sequence[str] = ("*.day",)) -> dict:
-    """数据目录快照指纹：文件清单（名+大小）排序后哈希。
+    """数据目录快照指纹（stat 级）：文件清单（名+大小+mtime_ns）排序后哈希。
 
-    用于行情数据版本冻结校验：文件增删或内容大小变化都会改变指纹。
-    只扫一层子目录结构（vipdoc/{market}/lday）；5000+ 文件秒级完成。
+    追加写入/增删文件/touch 都会改变指纹；等长度历史修正若不更新 mtime
+    则漏检 -> 收尾时用 dir_content_hash 复核（见 run_research_stage）。
+    只扫 vipdoc/{market}/lday 结构；14.7k 文件 <0.5s。
     """
     root = Path(dir_path)
     entries: list[str] = []
@@ -595,11 +596,51 @@ def dir_snapshot(dir_path: str | Path,
                 continue
             for f in sorted(base.glob(pattern)):
                 st = f.stat()
-                entries.append(f"{f.name}:{st.st_size}")
+                entries.append(f"{f.name}:{st.st_size}:{st.st_mtime_ns}")
                 n_files += 1
                 total_bytes += st.st_size
     h = hashlib.md5("\n".join(entries).encode()).hexdigest()[:16]
-    return {"files": n_files, "bytes": total_bytes, "hash": h}
+    return {"files": n_files, "bytes": total_bytes, "hash": h,
+            "mtime_aware": True}
+
+
+def dir_content_hash(dir_path: str | Path,
+                     patterns: Sequence[str] = ("*.day",)) -> str:
+    """数据目录全内容 md5（收尾复核用）：等长度改写也能检出。
+
+    生产数据实测 14,753 文件 / 321MB ≈ 6.6s，只在阶段收尾调用一次。
+    """
+    root = Path(dir_path)
+    per_file: list[str] = []
+    for pattern in patterns:
+        if (root / "vipdoc").exists():
+            bases = [root / "vipdoc" / m / "lday" for m in ("sh", "sz", "bj")]
+        else:
+            bases = [root]
+        for base in bases:
+            if not base.exists():
+                continue
+            for f in sorted(base.glob(pattern)):
+                h = hashlib.md5()
+                with open(f, "rb") as fh:
+                    for block in iter(lambda: fh.read(1 << 20), b""):
+                        h.update(block)
+                per_file.append(f"{f.name}:{h.hexdigest()[:12]}")
+    return hashlib.md5("\n".join(per_file).encode()).hexdigest()[:16]
+
+
+def git_worktree_dirty(repo_dir: str | Path) -> list[str]:
+    """git status --porcelain 输出行；空列表=全部受管代码已提交。
+
+    git 不可用时返回占位行（按脏处理，保守失败）。
+    """
+    try:
+        out = subprocess.run(
+            ["git", "-C", str(repo_dir), "status", "--porcelain"],
+            capture_output=True, text=True, check=True, timeout=30).stdout
+        return [line for line in out.splitlines() if line.strip()]
+    except Exception:
+        return ["<git-status-unavailable>"]
 
 
 def resolve_mirror_or_csv(core_dir: str | Path,

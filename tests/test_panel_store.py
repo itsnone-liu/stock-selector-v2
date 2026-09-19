@@ -153,7 +153,7 @@ def test_validate_resume_run_spec_gate(tmp_path):
 
 
 def test_dir_snapshot_detects_changes(tmp_path):
-    """行情目录快照：文件增删/大小变化必须改变指纹。"""
+    """行情目录快照：文件增删/大小/mtime/等长度内容变化检测。"""
     lday = tmp_path / "vipdoc" / "sh" / "lday"
     lday.mkdir(parents=True)
     (lday / "sh000001.day").write_bytes(b"x" * 100)
@@ -170,6 +170,46 @@ def test_dir_snapshot_detects_changes(tmp_path):
     (lday / "sh600519.day").write_bytes(b"z" * 10)
     s3 = ps.dir_snapshot(tmp_path)
     assert s3["hash"] != s2["hash"] and s3["files"] == 3
+    # touch（等长度、内容不变）-> stat 级 mtime 也抓
+    import os
+    os.utime(lday / "sh600000.day", ns=(1, 1))
+    s4 = ps.dir_snapshot(tmp_path)
+    assert s4["hash"] != s3["hash"]
+
+
+def test_dir_content_hash_detects_equal_length_rewrite(tmp_path):
+    """全内容哈希：等长度历史修正（mtime 也被伪装修复）仍可检出。"""
+    lday = tmp_path / "vipdoc" / "sh" / "lday"
+    lday.mkdir(parents=True)
+    (lday / "sh600000.day").write_bytes(b"A" * 100)
+    h1 = ps.dir_content_hash(tmp_path)
+    assert ps.dir_content_hash(tmp_path) == h1  # 确定性
+    # 等长度改写内容（并把 mtime 修回，模拟刻意规避）-> 内容哈希必变
+    import os
+    st = (lday / "sh600000.day").stat()
+    (lday / "sh600000.day").write_bytes(b"B" * 100)
+    os.utime(lday / "sh600000.day", ns=(st.st_atime_ns, st.st_mtime_ns))
+    assert ps.dir_content_hash(tmp_path) != h1
+
+
+def test_git_worktree_dirty(tmp_path):
+    """正式运行前：受 Git 管理代码必须全部提交（含 untracked）。"""
+    import subprocess as sp
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    sp.run(["git", "-C", str(repo), "init", "-q"], check=True)
+    sp.run(["git", "-C", str(repo), "config", "user.email", "t@t"], check=True)
+    sp.run(["git", "-C", str(repo), "config", "user.name", "t"], check=True)
+    (repo / "a.py").write_text("print(1)\n")
+    sp.run(["git", "-C", str(repo), "add", "-A"], check=True)
+    sp.run(["git", "-C", str(repo), "commit", "-qm", "init"], check=True)
+    assert ps.git_worktree_dirty(repo) == []  # 干净
+    (repo / "a.py").write_text("print(2)\n")  # 已跟踪文件修改
+    assert ps.git_worktree_dirty(repo)
+    sp.run(["git", "-C", str(repo), "checkout", "--", "a.py"], check=True)
+    assert ps.git_worktree_dirty(repo) == []
+    (repo / "new_untracked.py").write_text("")  # untracked 也算脏
+    assert ps.git_worktree_dirty(repo)
 
 
 def test_run_spec_hash_covers_code_and_snapshot():

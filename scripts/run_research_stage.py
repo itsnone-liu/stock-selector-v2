@@ -78,6 +78,8 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--universe", choices=["pool", "all"], default="pool",
                    help="weekly-state 输出范围：pool=动态月线池内（默认），"
                         "all=全市场事实+池状态标注列")
+    p.add_argument("--allow-dirty", action="store_true",
+                   help="允许工作区有未提交修改（仅冒烟/诊断；正式运行要求干净）")
     return p
 
 
@@ -183,6 +185,7 @@ def _market_days(store: TdxStore, start: str | None, end: str | None):
 def stage_weekly_state(args: argparse.Namespace) -> int:
     """第二批：按股票流式生成周线双轴旁路表（默认动态月线池内，--universe all 可全市场）。"""
     store = TdxStore(args.tdx_dir)
+    repo = Path(__file__).resolve().parents[1]
     # 计算窗口带历史预热；结果窗口仍严格裁剪到 --start/--end。
     full_cal = store.market_calendar()
     if full_cal is None:
@@ -217,10 +220,18 @@ def stage_weekly_state(args: argparse.Namespace) -> int:
         print(f"[weekly-state] 月线池源回退 CSV：{universe_reason}", file=sys.stderr)
     else:
         print(f"[weekly-state] 月线池源用 Parquet 镜像：{universe_reason}")
+    # 正式运行前提：全部受 Git 管理代码无未提交修改（不靠人工默认）。
+    # 临时改动 panel_store.py / tdx.py 等也会被此闸门拦下。
+    dirty = ps.git_worktree_dirty(repo)
+    if dirty and not args.allow_dirty:
+        print(f"工作区不干净：{len(dirty)} 处未提交修改（如 {dirty[0][:70]}）。"
+              "正式运行要求先提交全部代码；冒烟/诊断可加 --allow-dirty。",
+              file=sys.stderr)
+        return 2
+
     pool_only = args.universe == "pool"
     cfg = sa.AxesConfig.from_config(load_config())
     r0, r1 = (result_start.strftime("%Y-%m-%d"), result_end.strftime("%Y-%m-%d"))
-    repo = Path(__file__).resolve().parents[1]
     # 交易日历源文件（与 TdxStore.market_calendar 同一寻径顺序）
     cal_file = None
     for market in ("sh", "sz", "bj"):
@@ -246,11 +257,37 @@ def stage_weekly_state(args: argparse.Namespace) -> int:
             "state_axes": ps.fingerprint(repo / "src/stock_selector/research/state_axes.py")["md5"],
             "run_research_stage": ps.fingerprint(Path(__file__))["md5"],
         },
-        # 数据快照：行情目录清单指纹 + 交易日历源文件 md5
+        # 数据快照：行情目录 stat 级指纹 + 全内容 md5（收尾复核基准）
+        #          + 交易日历源文件 md5
         "tdx_snapshot": ps.dir_snapshot(args.tdx_dir),
+        "tdx_content_md5": ps.dir_content_hash(args.tdx_dir),
         "calendar_md5": ps.fingerprint(cal_file)["md5"] if cal_file else None,
     }
     spec_hash = ps.run_spec_hash(run_spec)
+    # 运行期冻结基准：月线池 stat（内容 md5 已在 run_spec.universe_source_md5）
+    pool_fp0 = ps.fingerprint(core / "universe_state_panel.csv")
+
+    def _mark_invalid(reason: str) -> int:
+        m = ps.read_manifest(out) or {}
+        m["status"] = "invalid_data_changed"
+        m["invalid_reason"] = reason
+        m["closure"] = {"complete": False, "reason": reason}
+        ps.write_manifest(out, m)
+        print(f"运行期间数据变化，任务作废（invalid_data_changed）：{reason}\n"
+              f"禁止宣布闭合；请确认数据稳定后换新版本目录重跑。", file=sys.stderr)
+        return 8
+
+    def _assert_data_frozen() -> str | None:
+        """stat 级校验：行情目录与月线池原件任一变化即返回原因。"""
+        snap_now = ps.dir_snapshot(args.tdx_dir)
+        if snap_now != run_spec["tdx_snapshot"]:
+            return f"行情目录变化 {run_spec['tdx_snapshot']} -> {snap_now}"
+        pool_now = ps.fingerprint(core / "universe_state_panel.csv")
+        if (pool_now["size"], pool_now["mtime_ns"]) != (pool_fp0["size"], pool_fp0["mtime_ns"]):
+            return (f"月线池原件变化 size/mtime "
+                    f"{pool_fp0['size']}/{pool_fp0['mtime_ns']} -> "
+                    f"{pool_now['size']}/{pool_now['mtime_ns']}")
+        return None
 
     out = Path(args.out or "output/research/lifecycle_v1/weekly_state_v1")
     parts = out / "partitions"
@@ -287,6 +324,11 @@ def stage_weekly_state(args: argparse.Namespace) -> int:
     ps.write_manifest(out, store_info)
 
     for batch_name, batch_codes in ps.iter_code_batches(codes, args.batch, done):
+        # 运行期数据冻结校验（每批开始，stat 级，<0.5s）：
+        # 行情更新程序追加日线或月线池被改写都会立即停批作废
+        reason = _assert_data_frozen()
+        if reason:
+            return _mark_invalid(reason)
         t0 = time.time()
         rows = []
         missing = 0
@@ -332,6 +374,16 @@ def stage_weekly_state(args: argparse.Namespace) -> int:
             print("达到内存红线，停止当前阶段。续跑：相同 --batch 加 --resume；"
                   "改变批量请换新版本目录。", file=sys.stderr)
             return 5
+
+    # 收尾复核（全量级）：stat 级再查一次 + 行情全内容 md5 + 月线池内容 md5，
+    # 抓等长度历史修正；任何变化都不得宣布闭合完成
+    reason = _assert_data_frozen()
+    if reason:
+        return _mark_invalid(reason)
+    if ps.dir_content_hash(args.tdx_dir) != run_spec["tdx_content_md5"]:
+        return _mark_invalid("行情目录内容哈希变化（等长度修正/写入）")
+    if ps.fingerprint(core / "universe_state_panel.csv")["md5"] != run_spec["universe_source_md5"]:
+        return _mark_invalid("月线池原件内容 md5 变化")
 
     # 闭合检查：分区覆盖 = 预期股票全集，无重叠；rows_out = 全部 done 分区行之和
     final = ps.read_manifest(out) or store_info
