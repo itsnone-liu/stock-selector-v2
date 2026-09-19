@@ -552,9 +552,10 @@ def validate_resume(old: dict, codes: Sequence[str], batch_size: int,
     """
     if not old.get("partitions"):
         return None
-    if spec_hash is not None and old.get("run_spec_hash") not in (None, spec_hash):
-        return ("运行口径与上次运行不同（起止日期/范围/预热/规则版本/配置/"
-                "数据来源任一变化）；续跑要求口径完全一致，变更请换新版本目录重跑")
+    if spec_hash is not None and old.get("run_spec_hash") != spec_hash:
+        return ("运行口径指纹缺失或不一致（旧版本目录或口径变化：日期/范围/"
+                "规则版本/代码提交/数据快照任一不同）；必须使用全新输出目录，"
+                "禁止新旧口径混入同一目录")
     fp = codes_fingerprint(codes)
     if old.get("universe_fingerprint") != fp:
         return ("股票清单与上次运行不同（universe_fingerprint 不匹配）；"
@@ -572,6 +573,33 @@ def run_spec_hash(spec: dict) -> str:
     return hashlib.md5(
         json.dumps(spec, sort_keys=True, ensure_ascii=False).encode()
     ).hexdigest()[:16]
+
+
+def dir_snapshot(dir_path: str | Path,
+                 patterns: Sequence[str] = ("*.day",)) -> dict:
+    """数据目录快照指纹：文件清单（名+大小）排序后哈希。
+
+    用于行情数据版本冻结校验：文件增删或内容大小变化都会改变指纹。
+    只扫一层子目录结构（vipdoc/{market}/lday）；5000+ 文件秒级完成。
+    """
+    root = Path(dir_path)
+    entries: list[str] = []
+    n_files, total_bytes = 0, 0
+    for pattern in patterns:
+        if (root / "vipdoc").exists():
+            bases = [root / "vipdoc" / m / "lday" for m in ("sh", "sz", "bj")]
+        else:
+            bases = [root]
+        for base in bases:
+            if not base.exists():
+                continue
+            for f in sorted(base.glob(pattern)):
+                st = f.stat()
+                entries.append(f"{f.name}:{st.st_size}")
+                n_files += 1
+                total_bytes += st.st_size
+    h = hashlib.md5("\n".join(entries).encode()).hexdigest()[:16]
+    return {"files": n_files, "bytes": total_bytes, "hash": h}
 
 
 def resolve_mirror_or_csv(core_dir: str | Path,

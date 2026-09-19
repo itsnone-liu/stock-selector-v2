@@ -220,7 +220,15 @@ def stage_weekly_state(args: argparse.Namespace) -> int:
     pool_only = args.universe == "pool"
     cfg = sa.AxesConfig.from_config(load_config())
     r0, r1 = (result_start.strftime("%Y-%m-%d"), result_end.strftime("%Y-%m-%d"))
-    # 运行口径：影响输出语义的全部要素；续跑必须逐字节一致
+    repo = Path(__file__).resolve().parents[1]
+    # 交易日历源文件（与 TdxStore.market_calendar 同一寻径顺序）
+    cal_file = None
+    for market in ("sh", "sz", "bj"):
+        cand = Path(args.tdx_dir) / "vipdoc" / market / "lday" / "sh000001.day"
+        if cand.exists():
+            cal_file = cand
+            break
+    # 运行口径：影响输出语义的全部要素（参数+代码版本+数据快照）；续跑必须一致
     run_spec = {
         "stage": "weekly-state", "rule_version": sa.RULE_VERSION,
         "result_date_range": [r0, r1],
@@ -232,6 +240,15 @@ def stage_weekly_state(args: argparse.Namespace) -> int:
         "universe_source": str(universe_src),
         "universe_source_md5": ps.fingerprint(core / "universe_state_panel.csv")["md5"],
         "codes_limit": args.codes_limit,
+        # 代码版本：git 提交 + 计算相关文件哈希（未提交改动也会失配 -> 拒绝续跑）
+        "git_commit": ps.git_commit(repo),
+        "code_md5": {
+            "state_axes": ps.fingerprint(repo / "src/stock_selector/research/state_axes.py")["md5"],
+            "run_research_stage": ps.fingerprint(Path(__file__))["md5"],
+        },
+        # 数据快照：行情目录清单指纹 + 交易日历源文件 md5
+        "tdx_snapshot": ps.dir_snapshot(args.tdx_dir),
+        "calendar_md5": ps.fingerprint(cal_file)["md5"] if cal_file else None,
     }
     spec_hash = ps.run_spec_hash(run_spec)
 

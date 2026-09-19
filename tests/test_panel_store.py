@@ -144,11 +144,45 @@ def test_validate_resume_run_spec_gate(tmp_path):
     assert ps.validate_resume(old, codes, 3, spec_hash=ps.run_spec_hash(spec1)) is None
     # 换日期/换范围续跑 -> 拒绝（旧分区口径不可比）
     reason = ps.validate_resume(old, codes, 3, spec_hash=ps.run_spec_hash(spec2))
-    assert reason and "运行口径" in reason
-    # 旧清单无口径记录（历史版本）-> 放行不做口径强校验（向后兼容）
+    assert reason and "运行口径指纹缺失或不一致" in reason
+    # 旧版本目录无口径记录 -> 同样拒绝（禁止新旧规则数据混入同一目录）
     m2 = dict(old)
     m2.pop("run_spec_hash")
-    assert ps.validate_resume(m2, codes, 3, spec_hash=ps.run_spec_hash(spec1)) is None
+    reason = ps.validate_resume(m2, codes, 3, spec_hash=ps.run_spec_hash(spec1))
+    assert reason and "运行口径指纹缺失或不一致" in reason
+
+
+def test_dir_snapshot_detects_changes(tmp_path):
+    """行情目录快照：文件增删/大小变化必须改变指纹。"""
+    lday = tmp_path / "vipdoc" / "sh" / "lday"
+    lday.mkdir(parents=True)
+    (lday / "sh000001.day").write_bytes(b"x" * 100)
+    (lday / "sh600000.day").write_bytes(b"y" * 200)
+    s1 = ps.dir_snapshot(tmp_path)
+    assert s1["files"] == 2 and s1["bytes"] == 300
+    # 确定性：重复计算一致
+    assert ps.dir_snapshot(tmp_path) == s1
+    # 大小变化 -> 指纹变
+    (lday / "sh600000.day").write_bytes(b"y" * 250)
+    s2 = ps.dir_snapshot(tmp_path)
+    assert s2["hash"] != s1["hash"] and s2["bytes"] == 350
+    # 增删文件 -> 指纹变
+    (lday / "sh600519.day").write_bytes(b"z" * 10)
+    s3 = ps.dir_snapshot(tmp_path)
+    assert s3["hash"] != s2["hash"] and s3["files"] == 3
+
+
+def test_run_spec_hash_covers_code_and_snapshot():
+    """口径指纹纳入 git 提交、代码哈希与数据快照。"""
+    base = {"git_commit": "aaa", "code_md5": {"state_axes": "m1"},
+            "tdx_snapshot": {"files": 1, "bytes": 2, "hash": "h1"}}
+    changed_code = dict(base, code_md5={"state_axes": "m2"})
+    changed_git = dict(base, git_commit="bbb")
+    changed_data = dict(base, tdx_snapshot={"files": 1, "bytes": 3, "hash": "h2"})
+    h = ps.run_spec_hash(base)
+    assert (ps.run_spec_hash(changed_code) != h
+            and ps.run_spec_hash(changed_git) != h
+            and ps.run_spec_hash(changed_data) != h)
 
 
 def test_resolve_mirror_or_csv_integrity(tmp_path, wide_df):
