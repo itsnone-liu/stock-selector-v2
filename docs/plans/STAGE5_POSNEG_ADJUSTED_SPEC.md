@@ -129,6 +129,18 @@ N_evaluable_K4[strategy,view,h] = 成交且持有 h 日可完整观察的行数�
 - 无突破的 28,224 段为独立对照池，不进入策略排名；报告逐格披露上述全部
   N 值、行级四态计数与每策略成交数
 
+- **3.5% 上限行的唯一处理规则（v7.1 冻结）**：direct_chase 且
+  `capped_entered=false` 的行——Stage4 v5 产物的 `fill_status_close/next`
+  与收益字段保存的是**不限上限的反事实追入结果**（unlimited_chase 诊断），
+  不得进入 capped direct_chase 的策略排名：
+  - K2 = 0，行级状态 = `evaluated_cash`（政策已终结：上限明确放弃）
+  - K3 = 0，按现金处理（该终点日资金现金）
+  - K4 = null，不进条件成交分母
+  - 反事实字段仅在 `unlimited_chase` 诊断视角下单独披露，不与四策略混排
+- **3.5% 上限的作用范围（显式）**：只作用于 direct_chase；
+  **staged_entry 的 T1 不受 3.5% 追入上限影响**（Stage4 v5 冻结语义：
+  T1 始终在突破日建立 30% 仓位），实现不得对 staged T1 作上限过滤
+
 | 口径 | 精确定义 |
 |---|---|
 | K2_h | 全生命周期策略收益：`N_evaluable_K2[strategy,view,h]`（四态状态机）全体计入。已成交部分持有至**该策略自己的共同终点**（见下）；evaluated_cash 行收益 0。策略级 = 分母内资金加权平均 |
