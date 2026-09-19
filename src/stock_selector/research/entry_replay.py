@@ -32,7 +32,7 @@ from stock_selector.decision.execution import (
     EXECUTION_MODEL_VERSION, CostModel, execution_feasibility,
 )
 
-RULE_VERSION = "entry_replay_stage4_v3"
+RULE_VERSION = "entry_replay_stage4_v4"
 RETURN_QUALITY = "unadjusted_exploratory"
 LIMITATION = "approximate_limit_ratio"
 
@@ -115,6 +115,10 @@ def _cols() -> list:
           "t1_ret_20", "t2_ret_20", "t3_ret_20",
           "avg_cost", "capital_position_days", "max_position",
           "fraction_invested"]
+    c += [f"{t}_next_{f}" for t in ("t1", "t2", "t3")
+          for f in ("status", "date", "price", "reason")]
+    c += ["fraction_invested_next", "max_position_next", "avg_cost_next",
+          "capital_position_days_next"]
     return c
 
 
@@ -272,6 +276,15 @@ def _wait_metrics(out: dict, daily: pd.DataFrame, breakout_pos: int,
             (0.0 if w is not None else None)
 
 
+def _harmonic_avg_cost(px_weights: list) -> float | None:
+    """平均持仓成本（按资金比例投入）：Σw / Σ(w/P)，价格含买入滑点。"""
+    if not px_weights:
+        return None
+    tw = sum(w for _, w in px_weights)
+    denom = sum(w / px for px, w in px_weights if px > 0)
+    return tw / denom if denom > 0 else None
+
+
 def _nav_path_extremes(daily: pd.DataFrame, start_pos: int,
                        leg_bases: list, horizon: int = 20) -> tuple:
     """组合净值路径极值（分批专用口径，与全仓策略不可直接比较）。
@@ -312,16 +325,28 @@ def _first_shrink_day(pullback_daily, event_id, pos, end_pos) -> int | None:
     return min(days) if days else None
 
 
-def _staged_legs_next(daily, market_cal, code, legs, cost) -> list:
-    """每批独立检查次日开盘可成交性；被阻断的批不进 next 组合。"""
-    out = []
-    for lp, lpx, lw in legs:
-        npos, pr = _next_fill(daily, market_cal, code, lp, cost)
+def _staged_legs_next(daily, market_cal, code, tspecs, cost,
+                      out: dict) -> list:
+    """按批次身份（t1/t2/t3）独立检查次日可成交性。
+
+    逐批写入 {t}_next_status/date/price/reason；返回成功批次
+    [(npos, price, weight)]（阻断批不进 next 组合）。
+    """
+    weights = {"t1": 0.30, "t2": 0.30, "t3": 0.40}
+    ok = []
+    for tag, tp in tspecs:
+        if tp is None:
+            continue
+        npos, pr = _next_fill(daily, market_cal, code, tp, cost)
         if npos is None:
-            out.append((None, None, lw))
+            out[f"{tag}_next_status"] = "not_filled"
+            out[f"{tag}_next_reason"] = pr
         else:
-            out.append((npos, pr, lw))
-    return out
+            out[f"{tag}_next_status"] = "filled"
+            out[f"{tag}_next_date"] = daily.index[npos].strftime("%Y-%m-%d")
+            out[f"{tag}_next_price"] = pr
+            ok.append((npos, pr, weights[tag]))
+    return ok
 
 
 def replay_entries(code: str, lifecycles: pd.DataFrame, daily: pd.DataFrame,
@@ -434,8 +459,8 @@ def replay_entries(code: str, lifecycles: pd.DataFrame, daily: pd.DataFrame,
                         raw_price(daily, t3p), "buy")
                     legs.append((t3p, out["t3_fill_price"], 0.40))
                 wsum = sum(w for _, _, w in legs)
-                out["avg_cost"] = (sum(px * w for _, px, w in legs) / wsum
-                                   if wsum else None)
+                out["avg_cost"] = _harmonic_avg_cost(
+                    [(px, w) for _, px, w in legs])
                 out["max_position"] = wsum
                 out["fraction_invested"] = wsum
                 out["fill_status_close"] = "filled"
@@ -476,9 +501,15 @@ def replay_entries(code: str, lifecycles: pd.DataFrame, daily: pd.DataFrame,
 
                 # ---- next 视角：每批独立判断次日可成交性；观察窗口起点
                 # = 第一笔实际成功成交批次的次日成交日（T1 失败不丢弃后续） ----
-                legs_n = _staged_legs_next(daily, market_cal, code, legs, cost)
-                ok_legs = [(np_, npx, lw) for np_, npx, lw in legs_n
-                           if np_ is not None]
+                tspecs = [("t1", t1p), ("t2", t2p), ("t3", t3p)]
+                ok_legs = _staged_legs_next(daily, market_cal, code, tspecs,
+                                            cost, out)
+                # next 视角实际仓位（收盘理论 vs 次日实际分开记录）
+                wsum_n = sum(lw for _, _, lw in ok_legs)
+                out["fraction_invested_next"] = wsum_n
+                out["max_position_next"] = wsum_n
+                out["avg_cost_next"] = _harmonic_avg_cost(
+                    [(px, lw) for _, px, lw in ok_legs])
                 if ok_legs:
                     npos_eff = min(np_ for np_, _, _ in ok_legs)
                     first_ok = next(x for x in ok_legs if x[0] == npos_eff)
@@ -514,6 +545,11 @@ def replay_entries(code: str, lifecycles: pd.DataFrame, daily: pd.DataFrame,
                                 port_net += lw * (1.0 + net)
                         out[f"ret_gross_{h}_next"] = (port_gross - 1.0) * 100.0
                         out[f"ret_net_{h}_next"] = (port_net - 1.0) * 100.0
+                    # next 资金占用（窗口末=min(起点+20, 数据末)，非负）
+                    wend20 = min(npos_eff + 20, last)
+                    out["capital_position_days_next"] = sum(
+                        lw * max(0, wend20 - np_)
+                        for np_, _, lw in ok_legs)
                     # 组合净值路径 MFE/MAE（各批 next 开盘基准；分批专用口径）
                     nav_bases = [(np_, raw_price(daily, np_, "open"), lw)
                                  for np_, _, lw in ok_legs]
