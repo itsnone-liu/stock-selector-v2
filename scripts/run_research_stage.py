@@ -34,6 +34,9 @@ from stock_selector.research import panel_store as ps  # noqa: E402
 from stock_selector.research import state_axes as sa  # noqa: E402
 from stock_selector.data.tdx import TdxStore  # noqa: E402
 from stock_selector.config import load_config  # noqa: E402
+from stock_selector.decision.execution import (  # noqa: E402
+    CostModel, EXECUTION_MODEL_VERSION,
+)
 
 STAGES = ["base-check", "weekly-state", "pullback", "lifecycle", "entry-replay",
           "posneg", "chase", "exit-replay", "context-position"]
