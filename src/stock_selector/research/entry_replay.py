@@ -124,6 +124,20 @@ def _cols() -> list:
 
 ENTRY_REPLAY_COLUMNS = _cols()
 
+# 字符串语义列（写出前统一 string dtype，防止全空 object 列被 parquet
+# 推断为 null/整数导致跨分区 schema 漂移）；数值语义列不得列入。
+ENTRY_REPLAY_STR_COLUMNS = frozenset({
+    "code", "lifecycle_id", "strategy", "lifecycle_end_reason",
+    "return_quality", "limitation",
+    "anchor_day", "signal_day", "breakout_day",
+    "fill_status_close", "fill_date_close", "not_filled_reason_close",
+    "fill_status_next", "fill_date_next", "not_filled_reason_next",
+    "failure_path_close", "failure_path_next",
+    "capped_not_entered_reason",
+    "t1_fill_date", "t2_fill_date", "t3_fill_date",
+} | {f"{t}_next_{f}" for t in ("t1", "t2", "t3")
+     for f in ("status", "date", "reason")})
+
 
 def _pos_map(daily: pd.DataFrame) -> dict:
     return {ts.strftime("%Y-%m-%d"): i for i, ts in enumerate(daily.index)}
