@@ -245,7 +245,9 @@ def replay_entries(code: str, lifecycles: pd.DataFrame, daily: pd.DataFrame,
             if not isinstance(e.get("stabilization_day"), str):
                 e["stabilization_day"] = None
         bo = pos.get(lc["breakout_day"])
-        end = pos.get(lc["end_day"])
+        # 生命周期 end 可能在本回放窗口之外（全量表区间 > 窗口末）：
+        # deadline 钳制到可得数据末位（研究窗口语义）
+        end = pos.get(lc["end_day"]) if lc["end_day"] in pos else len(daily) - 1
         if bo is None:
             # 无突破 = 无入场信号（四策略共同前置），跳过并计数，不丢弃总体口径
             skipped_no_breakout += 1
