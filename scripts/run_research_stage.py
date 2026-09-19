@@ -80,6 +80,8 @@ def build_parser() -> argparse.ArgumentParser:
                         "all=全市场事实+池状态标注列")
     p.add_argument("--allow-dirty", action="store_true",
                    help="允许工作区有未提交修改（仅冒烟/诊断；正式运行要求干净）")
+    p.add_argument("--pullback-dir", default="output/research/lifecycle_v1/pullback_v2",
+                   help="上游回调事件目录（pullback_v2）")
     p.add_argument("--weekly-state-dir", default="output/research/lifecycle_v1/weekly_state_v1",
                    help="pullback 阶段消费的周线双轴表目录")
     return p
@@ -650,6 +652,243 @@ def stage_pullback(args: argparse.Namespace) -> int:
     return 0 if complete else 7
 
 
+def stage_lifecycle(args: argparse.Namespace) -> int:
+    """第四批(上)：行情生命周期事实（消费周线双轴 + pullback_v2 事件）。
+
+    只生成生命周期事实表，不做入场回放（entry-replay 独立提交）。
+    池状态保持三态（in/out/None），pool_gap 依赖 None 与 out 的区分。
+    """
+    import stock_selector.research.lifecycle as lc
+
+    cfg = lc.LifecycleConfig.from_config(load_config())
+    store = TdxStore(args.tdx_dir)
+    repo = Path(__file__).resolve().parents[1]
+    dirty = ps.git_worktree_dirty(repo)
+    if dirty and not args.allow_dirty:
+        print(f"工作区不干净：{len(dirty)} 处未提交修改。正式运行要求先提交；"
+              "冒烟可加 --allow-dirty。", file=sys.stderr)
+        return 2
+
+    cal_all = store.market_calendar()
+    r0, r1 = args.start, args.end
+    result_start, result_end = pd.Timestamp(r0), pd.Timestamp(r1)
+    warmup_days = 70  # 与 pullback 一致：保证 anchor 附近回调事件可消费
+    cal_pre = cal_all[cal_all < result_start]
+    compute_start = cal_pre[-warmup_days] if len(cal_pre) >= warmup_days \
+        else cal_pre[0] if len(cal_pre) else result_start
+    compute_end = cal_all[cal_all <= result_end][-1]
+    codes = sorted(store.list_codes())
+    if args.codes_limit:
+        codes = codes[:args.codes_limit]
+    if not codes:
+        print("没有可处理股票", file=sys.stderr)
+        return 2
+
+    core = Path(args.core_dir)
+    universe_src, universe_mode, universe_reason = ps.resolve_mirror_or_csv(
+        core, "universe_state_panel.csv")
+    print(f"[lifecycle] 月线池源：{universe_mode}（{universe_reason}）")
+
+    # 上游冻结链：双轴表 + 回调事件（版本三元组）
+    weekly_dir = Path(args.weekly_state_dir)
+    wman = ps.read_manifest(weekly_dir) or {}
+    pb_dir = Path(args.pullback_dir)
+    pman = ps.read_manifest(pb_dir) or {}
+    for tag, man, d in (("weekly_state", wman, weekly_dir),
+                        ("pullback", pman, pb_dir)):
+        if not man.get("run_spec_hash") or man.get("status") != "complete":
+            print(f"上游{tag}未完成或无口径指纹：{d}", file=sys.stderr)
+            return 2
+
+    run_spec = {
+        "stage": "lifecycle", "rule_version": lc.RULE_VERSION,
+        "result_date_range": [r0, r1],
+        "lifecycle_config": {
+            "breakout_lookback": cfg.breakout_lookback,
+            "max_observation_days": cfg.max_observation_days,
+            "pool_gap_tolerance": cfg.pool_gap_tolerance,
+            "week_trend_ok": list(lc.WEEK_TREND_OK),
+        },
+        "tdx_dir": args.tdx_dir,
+        "universe_source": str(universe_src),
+        "universe_source_md5": ps.fingerprint(core / "universe_state_panel.csv")["md5"],
+        "codes_limit": args.codes_limit,
+        "upstream_weekly_state": {
+            "dir": str(weekly_dir),
+            "run_spec_hash": wman["run_spec_hash"],
+            "rows_out": wman.get("rows_out"),
+            "rule_version": wman.get("run_spec", {}).get("rule_version"),
+        },
+        "upstream_pullback": {
+            "dir": str(pb_dir),
+            "run_spec_hash": pman["run_spec_hash"],
+            "rows_out": pman.get("rows_out"),
+            "rule_version": pman.get("run_spec", {}).get("rule_version"),
+        },
+        "git_commit": ps.git_commit(repo),
+        "code_md5": {
+            "lifecycle": ps.fingerprint(
+                repo / "src/stock_selector/research/lifecycle.py")["md5"],
+            "run_research_stage": ps.fingerprint(Path(__file__))["md5"],
+        },
+        "tdx_snapshot": ps.dir_snapshot(args.tdx_dir),
+        "tdx_content_md5": ps.dir_content_hash(args.tdx_dir),
+        "calendar_md5": _calendar_md5(args.tdx_dir),
+    }
+    spec_hash = ps.run_spec_hash(run_spec)
+    pool_fp0 = ps.fingerprint(core / "universe_state_panel.csv")
+
+    out = Path(args.out or "output/research/lifecycle_v1/lifecycle_v1")
+    parts = out / "partitions"
+    parts.mkdir(parents=True, exist_ok=True)
+    manifest_path = out / "MANIFEST.json"
+    old = ps.read_manifest(out) or {}
+    if old.get("partitions"):
+        reason = ps.validate_resume(old, codes, args.batch, spec_hash=spec_hash)
+        if reason:
+            print(f"拒绝续跑：{reason}", file=sys.stderr)
+            return 6
+    done = ps.completed_partitions(old) if args.resume else set()
+
+    def _mark_invalid(reason_: str) -> int:
+        m = ps.read_manifest(out) or {}
+        m["status"] = "invalid_data_changed"
+        m["invalid_reason"] = reason_
+        m["closure"] = {"complete": False, "reason": reason_}
+        ps.write_manifest(out, m)
+        print(f"运行期间数据变化，任务作废（invalid_data_changed）：{reason_}\n"
+              f"禁止宣布闭合；请确认数据稳定后换新版本目录重跑。", file=sys.stderr)
+        return 8
+
+    def _assert_data_frozen() -> str | None:
+        snap_now = ps.dir_snapshot(args.tdx_dir)
+        if snap_now != run_spec["tdx_snapshot"]:
+            return f"行情目录变化 {run_spec['tdx_snapshot']} -> {snap_now}"
+        pool_now = ps.fingerprint(core / "universe_state_panel.csv")
+        if (pool_now["size"], pool_now["mtime_ns"]) != (pool_fp0["size"], pool_fp0["mtime_ns"]):
+            return "月线池原件变化 size/mtime"
+        wnow = ps.read_manifest(weekly_dir) or {}
+        if wnow.get("run_spec_hash") != wman["run_spec_hash"]:
+            return "上游双轴表口径指纹变化"
+        pnow = ps.read_manifest(pb_dir) or {}
+        if pnow.get("run_spec_hash") != pman["run_spec_hash"]:
+            return "上游回调事件口径指纹变化"
+        return None
+
+    log = ps.ResourceLogger(out)
+    store_info = {
+        "stage": "lifecycle", "rule_version": lc.RULE_VERSION,
+        "tdx_dir": args.tdx_dir,
+        "result_date_range": [r0, r1],
+        "codes": len(codes), "batch_size": args.batch,
+        "universe_source": str(universe_src),
+        "run_spec": run_spec, "run_spec_hash": spec_hash,
+        "memory_limit_mb": args.memory_limit_mb,
+        "upstream_weekly_state": run_spec["upstream_weekly_state"],
+        "upstream_pullback": run_spec["upstream_pullback"],
+        "partitions": old.get("partitions", {}),
+    }
+    ps.write_manifest(out, store_info)
+
+    weekly_src = weekly_dir / "partitions"
+    pb_ev_src = pb_dir / "events" / "partitions"
+    for batch_name, batch_codes in ps.iter_code_batches(codes, args.batch, done):
+        reason = _assert_data_frozen()
+        if reason:
+            return _mark_invalid(reason)
+        t0 = time.time()
+        upool = ps.read_table(universe_src, columns=["code", "date", "monthly_pool_state"],
+                              codes=batch_codes)
+        wax = ps.read_table(weekly_src, columns=["code", "date", "trend_structure",
+                                                 "current_momentum"],
+                            codes=batch_codes)
+        pev = ps.read_table(pb_ev_src, columns=["code", "event_id", "first_day", "end_day"],
+                            codes=batch_codes)
+        # 池状态保持三态：in / out / None（pool_gap 依赖 None 与 out 区分）
+        pool_by_code: dict = {}
+        for rec in upool.drop_duplicates(subset=["code", "date"]).itertuples(index=False):
+            v = rec.monthly_pool_state
+            pool_by_code.setdefault(rec.code, {})[rec.date] = (
+                "in" if v == "in" else "out" if v == "out" else None)
+        week_by_code: dict = {}
+        for rec in (wax.drop_duplicates(subset=["code", "date"])
+                    .sort_values(["code", "date"]).itertuples(index=False)):
+            week_by_code.setdefault(rec.code, []).append(
+                (pd.Timestamp(rec.date), rec.trend_structure, rec.current_momentum))
+        pb_by_code: dict = {}
+        for rec in (pev.drop_duplicates(subset=["event_id"])
+                    .sort_values(["first_day"]).itertuples(index=False)):
+            pb_by_code.setdefault(rec.code, []).append(
+                {"event_id": rec.event_id,
+                 "first_day": rec.first_day, "end_day": rec.end_day})
+
+        rows, missing = [], 0
+        for code in batch_codes:
+            daily = store.daily(code)
+            if daily is None or daily.empty:
+                missing += 1
+                continue
+            daily = daily[(daily.index >= compute_start) & (daily.index <= compute_end)]
+            if daily.empty:
+                missing += 1
+                continue
+            lcs = lc.classify_lifecycle(
+                code, daily, week_by_code.get(code, []),
+                pool_by_code.get(code, {}), pb_by_code.get(code, []), cfg)
+            if len(lcs):
+                lcs = lcs[(lcs["anchor_day"] >= r0) & (lcs["anchor_day"] <= r1)]
+                if len(lcs):
+                    rows.append(lcs)
+        part = pd.concat(rows, ignore_index=True) if rows else \
+            pd.DataFrame(columns=lc.LIFECYCLE_COLUMNS)
+        bytes_out = 0
+        if len(part):
+            info = ps.write_partitioned_parquet(
+                part, parts / batch_name, partition_by="year",
+                date_col="anchor_day")
+            bytes_out = sum(v["bytes"] for v in info["files"].values())
+        else:
+            (parts / batch_name).mkdir(parents=True, exist_ok=True)
+        rss_state = log.memory_guard(args.memory_limit_mb)
+        log.batch(batch_name, len(part), stage="lifecycle",
+                  extra={"missing": missing, "bytes": bytes_out, "guard": rss_state})
+        ps.mark_partition(manifest_path, batch_name, status="done",
+                          rows=len(part), seconds=time.time() - t0,
+                          rss_mb=log.peak_rss_mb, missing=missing,
+                          codes=batch_codes)
+        print(f"[{batch_name}] codes={len(batch_codes)} lifecycles={len(part)} "
+              f"missing={missing} rss={log.peak_rss_mb:.0f}MB")
+        if rss_state == "stop":
+            print("达到内存红线，停止当前阶段。续跑：相同 --batch 加 --resume；"
+                  "改变批量请换新版本目录。", file=sys.stderr)
+            return 5
+
+    reason = _assert_data_frozen()
+    if reason:
+        return _mark_invalid(reason)
+    if ps.dir_content_hash(args.tdx_dir) != run_spec["tdx_content_md5"]:
+        return _mark_invalid("行情目录内容哈希变化（等长度修正/写入）")
+    if ps.fingerprint(core / "universe_state_panel.csv")["md5"] != run_spec["universe_source_md5"]:
+        return _mark_invalid("月线池原件内容 md5 变化")
+
+    final = ps.read_manifest(out) or store_info
+    closure = ps.closure_check(final, codes)
+    complete = closure["complete"]
+    final.update({
+        "rows_out": closure["rows_out"],
+        "peak_rss_mb": log.peak_rss_mb,
+        "status": "complete" if complete else "incomplete",
+        "closure": closure,
+        "completed_at": time.strftime("%Y-%m-%dT%H:%M:%S"),
+    })
+    ps.write_manifest(out, final)
+    print(f"[lifecycle] {'完成' if complete else '未闭合'}：codes={len(codes)} "
+          f"lifecycles={closure['rows_out']} "
+          f"覆盖={closure['covered_codes']}/{len(codes)} peak_rss={log.peak_rss_mb:.0f}MB "
+          f"out={out}")
+    return 0 if complete else 7
+
+
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     if args.workers != 1:
@@ -662,6 +901,8 @@ def main(argv: list[str] | None = None) -> int:
         return stage_weekly_state(args)
     if args.stage == "pullback":
         return stage_pullback(args)
+    if args.stage == "lifecycle":
+        return stage_lifecycle(args)
     print(f"阶段 {args.stage} 属于{BATCH_OF_STAGE[args.stage]}，"
           f"当前只实现 base-check/weekly-state；按方案顺序到对应批次再实现。",
           file=sys.stderr)

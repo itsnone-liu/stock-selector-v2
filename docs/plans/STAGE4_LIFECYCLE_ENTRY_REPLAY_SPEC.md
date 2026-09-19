@@ -40,7 +40,7 @@ weekly_state_run_spec_hash = e2cf0918238fc95c
 | breakout | `close(d) > max(close[d-20:d])`（shift(1) 排除当日）且为本段首次 |
 | confirmation | breakout_day **之后**首个 `close >= breakout_day close`（严格后一日；次日满足即次日） |
 | pullback | pullback_v2 事件 `first_day ∈ [anchor_day, end_day]`（窗口包含，不重检测、不重去重） |
-| reattack | 处于回调事件之后（in_pb 状态）时 `close(d) > max(close[d-20:d])`；与 breakout 同一规则复用 |
+| reattack | **某次回调事件开始后**（first_day 之后）的**首次** `close(d) > max(close[d-20:d])`；与 breakout 同一规则复用；可以恰好发生在该回调事件以 new_high 结束的当日；每次独立回调至多记一次，并记录 `reattack_pullback_event_ids`（与 reattack_days 一一对应） |
 | divergence | `momentum(d) == heavy_volume_decline AND trend(d) ∈ OK`（周轴当日对齐） |
 | decay | `trend(d) == starting_to_damage`（首个出现日） |
 
@@ -48,6 +48,11 @@ weekly_state_run_spec_hash = e2cf0918238fc95c
 > 回调事件进入 > divergence > decay。终止当日不再记录新阶段；其余同日
 可并存，stage_sequence 按此顺序追加。`pullback→reattack` 可循环任意次；
 所有阶段皆可跳过。
+
+**阶段去重（固定）**：preparation、breakout、confirmation、divergence、
+decay 每个生命周期只记录**首次**成立日（连续多日满足不重复追加，含连续
+放量下跌不得每天重复记“分歧”）；pullback 每个独立回调事件各记一次；
+reattack 每次独立回调各至多记一次。
 
 ## §3 终止原因与优先级（回答问题 3）
 
@@ -62,12 +67,13 @@ pool_gap > monthly_exit > structure_break > max_observation > data_end
 | pool_gap | 月线池状态 None（三态 in/out/None）连续 > 5 个交易日，end_day=缺口第 6 日；缺口 ≤5 日期间生命周期继续记录阶段（unknown 仅无证据，不得判失效，同 EpisodeTracker 语义） | — |
 | monthly_exit | 池状态显式 "out" | end_monthly_exit=true |
 | structure_break | 当日周线 trend == broken | end_structure_break=true |
-| max_observation | `end_pos - anchor_pos >= 120` 个交易日 | — |
+| max_observation | `session_count = end_pos - anchor_pos + 1 >= 120`，即含 anchor 恰好第 120 个交易日内结束 | — |
 | data_end | 数据末尾仍 active | end_data_end=true, right_censored=true（右删失，不是行情失败） |
 
 ## §4 生命周期参数（回答问题 4）
 
 ```text
+WEEK_TREND_OK        = {intact, starting_to_damage}  # regime/divergence 判定唯一集合
 breakout_lookback    = 20   # 与 pullback high_lookback 同源，不另设阈值
 max_observation_days = 120  # 生命周期级（回调事件的 40 是事件级，不得混用）
 pool_gap_tolerance   = 5    # 池 None 连续容忍交易日数
@@ -128,7 +134,30 @@ max_position（累计权重，≤1.0）；只落 tranche 级摘要，不落每�
   停牌/缺 bar → missing_bar_or_suspended。不使用前向填充的陈旧价格。
 - 第一轮不加止盈规则；所有策略共享事件总体、路径、窗口与成本。
 
-## §10 等待错失的基准与公式（回答问题 10）
+## §10 入场回放执行细节（lifecycle 门禁期间冻结，暂不编码）
+
+1. **双视角全策略**：四种策略都必须分别输出收盘理论成交（signal_close）
+   与次日开盘可成交（next_session_fill）两列组，不得只对支撑止跌定义。
+2. **模拟资金**：固定每个生命周期 100,000 元初始资金；最低 5 元佣金按
+   此换算为收益率影响。
+3. **卖出价**：观察期第 5/10/20 个交易日收盘价，暂不执行其他退出规则。
+4. **分批口径**：5/10/20 日窗口从**第一笔成交日**起算；收益分母=初始
+   总资金（10 万），未投入现金收益记 0；同时保留各批次单独表现列。
+5. **特殊涨跌停近似**：无历史 ST/特殊处理状态数据，limit_ratio 为近似
+   口径（300/301/688=20%、4/8=30%、其余 10%，5% 特殊限制不可识别），
+   输出必须标注 limitation=approximate_limit_ratio，不得声称完全真实
+   可成交。
+6. **等待成本三指标**（补足 missed_upside 只记 0/W 的盲区）：
+   - wait_window_max_gain_pct：等待期间（breakout_day..fill 日前一日）
+     最高收盘相对突破收盘的涨幅；
+   - fill_price_vs_breakout_pct：成交价相对突破收盘的改善（负）或恶化
+     （正，即买得更贵）；
+   - wait_days：突破日到成交日的交易日数。
+7. **未成交原因分列统计**：no_pullback_before_end、no_stabilization、
+   no_shrink_day、open_limit_up_buy_blocked、missing_bar_or_suspended、
+   right_censored 分别计数，不得统一归并为“未成交失败”。
+
+## §11 等待错失的基准与公式（回答问题 10）
 
 ```text
 基准日   = breakout_day（等待起点）
@@ -140,7 +169,9 @@ missed_upside_pct  = 0                    （已成交）
 missed_upside_rate = missed_upside_pct / W （W=0 时记 0；∈[0,1]）
 ```
 
-## §11 输出与指纹
+等待成本另见 §10 第 6 条三指标，二者并存、不得互相替代。
+
+## §12 输出与指纹
 
 - `lifecycle_events`：1 行/生命周期（LIFECYCLE_COLUMNS 冻结）；
 - `entry_replay`：1 行/生命周期×策略，direct_chase 行内 capped/unlimited
@@ -149,7 +180,7 @@ missed_upside_rate = missed_upside_pct / W （W=0 时记 0；∈[0,1]）
   事件规则版本三元组与本批 rule_version；批次分区、断点续跑、数据冻结
   校验与既有 stage 相同。
 
-## §12 验收顺序
+## §13 验收顺序
 
 人工行情测试（线性突破、跳过准备、回调再上攻循环、五种终止、确定性、
 无未来泄漏、四策略同总体、两视角价差、cap/unlimited、成交/错失、
