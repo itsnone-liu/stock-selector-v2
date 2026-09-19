@@ -1,0 +1,108 @@
+{
+  "stage": "entry-replay",
+  "rule_version": "entry_replay_stage4_v4",
+  "result_dir": "output/research/lifecycle_v1/entry_replay_v4_full",
+  "run_spec_hash": "561f77f6ae950571",
+  "status": "complete",
+  "accepted_at": "2026-09-19T23:29:40",
+  "window": [
+    "2024-01-02",
+    "2026-09-01"
+  ],
+  "upstream": {
+    "lifecycle_run_spec_hash": "7f2c8dda08801d27",
+    "pullback_run_spec_hash": "68cad4022bec6a8b",
+    "pullback_event_rule_version": "pullback_stage2_v1",
+    "outcome_contract_version": "right_censored_v2",
+    "fingerprint_enforcement": "硬校验（不符 exit 2）；运行期复查（变则 invalid_data_changed exit 8）"
+  },
+  "population": {
+    "lifecycles_total": 55646,
+    "rows_total": 222584,
+    "rows_equals_lifecycle_x4": true,
+    "per_lifecycle_exactly_4_strategies": true,
+    "no_breakout_rows": 112896,
+    "with_breakout_rows": 109688
+  },
+  "dual_price_axis": {
+    "raw_price": "信号/成交/涨跌停/滑点（含卖出滑点），TDX 未复权原始价",
+    "adjusted_return": "5/10/20 收益、MFE/MAE、错失涨幅（接口分离，当前实现为未复权价格比）",
+    "return_quality": "unadjusted_exploratory",
+    "limitation": "approximate_limit_ratio",
+    "usage_boundary": "仅限工程验证：管线正确性、成交率、阻断与仓位统计；禁止用于四种入场策略收益比较；禁止据此调整 3.5% 追入上限；策略结论须待复权口径接入并抽验除权样本后另跑"
+  },
+  "fill_statistics_close": {
+    "direct_chase": 0.4928,
+    "staged_entry": 0.4928,
+    "wait_first_pullback": 0.3882,
+    "wait_support_hold": 0.2453
+  },
+  "not_filled_close": {
+    "no_breakout_signal": 112896,
+    "no_pullback_before_end": 11638,
+    "no_stabilization": 7953,
+    "no_shrink_day": 0
+  },
+  "not_filled_next_extra": {
+    "open_limit_up_buy_blocked": 564,
+    "missing_bar_or_suspended": 121
+  },
+  "staged_position": {
+    "conservation_violations": 0,
+    "next_fraction_distribution": {
+      "1.0": 14576,
+      "0.6": 6639,
+      "0.3": 4110,
+      "0.7": 1964,
+      "0.0": 125,
+      "0.4": 8
+    },
+    "avg_cost_formula": "调和平均 Σw/Σ(w/P)（价格含买入滑点），close/next 两视角"
+  },
+  "censoring": {
+    "close_filled": 90097,
+    "close_complete_5d": 89724,
+    "close_complete_10d": 89246,
+    "close_complete_20d": 86991,
+    "next_filled": 89412,
+    "next_complete_20d": 86330,
+    "incomplete_windows_not_counted_as_failure": true
+  },
+  "review_rounds": [
+    {
+      "commit": "e2223a3",
+      "finding": "初版框架"
+    },
+    {
+      "commit": "5ac1335/08be18f",
+      "finding": "parquet NaN 往返、窗口外 deadline 钳制"
+    },
+    {
+      "commit": "0790429",
+      "finding": "用户审出七项计算缺陷：回调跨段、双视角共起点、分批漏现金、复牌日冒充次日、新高边界、卖出滑点、无突破丢弃"
+    },
+    {
+      "commit": "a3b27ab",
+      "finding": "四口径：next 毛收益起点、next 删失引用、分批毛净相同、分批缺 close 视角字段 + 新高 0 天边界"
+    },
+    {
+      "commit": "c8bea21",
+      "finding": "分批 T1 失败整体丢弃、next MFE 基准、组合净值路径口径"
+    },
+    {
+      "commit": "f601b7a",
+      "finding": "next 分批明细字段、调和平均成本、T3 测试真实执行"
+    }
+  ],
+  "gates_before_full": {
+    "50xQ1": "148 行=37x4，四项核对一致",
+    "tests": "32 项 entry-replay 人工行情测试 + 全量回归通过"
+  },
+  "resources": {
+    "peak_rss_mb": 165,
+    "batches": 94,
+    "codes": 5588
+  },
+  "git_head": "f601b7a",
+  "git_log": "f601b7a research(stage4): next-view leg detail fields and harmonic average cost\nc8bea21 research(stage4): staged per-leg next independence and portfolio-path MFE\na3b27ab research(stage4): fix four entry-replay basis defects plus new-high boundary\n459b242 research(stage4): keep no-breakout rows via anchor-day window ownership\n0790429 research(stage4): fix seven entry-replay calculation defects\n08be18f research(stage4): clamp wait deadline when lifecycle end lies beyond replay window"
+}
