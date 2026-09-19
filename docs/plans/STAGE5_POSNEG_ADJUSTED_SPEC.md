@@ -1,13 +1,13 @@
-# 批次5语义规范：复权收益接入与正负路径分析（v5 待审）
+# 批次5语义规范：复权收益接入与正负路径分析（v6 待冻结确认）
 
-> 版本链：v1(d4b43ac)→v2(2f9ceee)→v3(4457bea)→v4(b00c52b)→本版。取代
-> `docs/research/strategy_contract/POSITIVE_NEGATIVE_ANALYSIS.md` 旧稿（保留历史参照）。
-> v5 修订：①path_family 两层化（θ3 移入 path_subtype）；②N_master/N_evaluable_h/
-> N_censored_h 分母体系；③staged K2/K4 共同终点钉死为 T1 后第 h 日（保持 v5
-> 冻结语义）；④复权价值唯一表达（因子比式，禁股数账本双重计算）；⑤稀疏门禁
-> 可执行阈值（裁定点G）；⑥structure_broken_asof_20d 时间边界、group_eventual
-> 删失赋值算法、RC 严格 >、类目改名 reclaim_no_new_high / reclaim_then_fade、
-> 期末跌幅正值公式与 ≤/> 边界统一。
+> 版本链：v1(d4b43ac)→v2(2f9ceee)→v3(4457bea)→v4(b00c52b)→v5(444d487)→本版。
+> v6 修订：①K2/K3/K4 分母按策略×视角×终点分别定义（未成交完整结束=0 与
+> 右删失未成交=null 分开）；②复权成交价显式含滑点（P_adj_*_fill 三段式）；
+> ③group_eventual 训练条件消除矛盾（!= unknown_censored，含 censored-G3）；
+> ④structure_broken_asof_20d 未观察= null；K3 终点日=成交瞬间估值；
+> ⑤裁定点G 按用户数字冻结（100/30/30/30 + bootstrap 2000/95%/固定种子）。
+
+
 
 ## 0. 冻结基线依赖
 
@@ -30,8 +30,10 @@
 | `t2_from_breakout_days` / `t3_from_breakout_days` / `t2_to_t3_days` | 连续交易日数（未出现 null），保存不分析 |
 
 - 守恒门禁：`group_eventual` 四值行数之和 = 27,422；`group_asof_20d` 同
-- 事前识别层只用 `group_eventual ∈ {G1,G2,G3}`（即 status=complete 的确定行）
-  与 `group_asof_20d` 确定标签行
+- 事前识别层训练样本条件（v6 消除矛盾，明确选择）：
+  `group_eventual != unknown_censored`——包含 censored-G3（标签已确定），
+  与 `group_asof_20d` 确定标签行；不采用更保守的 status==complete（两种
+  均可实现，本规范冻结前者，样本更多且标签同样确定）
 - 三形态是入场机会结构标签，绝不作为策略比较筛选条件
 
 ## 2. 行情结局：事件序决策树（path_family 两层）
@@ -88,25 +90,38 @@ never_reclaim 内部：
 | `below_break_bucket_abs` | never_reclaim 族 E 切片：≤15% / >15%（辅助；与 subtype 边界一致：E>0.15 为 failure 侧） |
 | `D`（连续） | 原值 |
 | `D_atr` | `D / ATR%_prev`，`ATR%_prev = ATR14_adj / P_adj(prev)`（比例除以比例）；ATR14 在复权 OHLC 上计算；取突破前一日的确定值；前 14 日不全 → null 并披露 |
-| `structure_broken_asof_20d` | **时间边界 = 突破后第 20 交易日内**是否触发结构破坏（v5 判定语义）；禁止把 120 日生命周期的最终破坏状态混入 20 日结果（未来信息） |
+| `structure_broken_asof_20d` | **时间边界 = 突破后第 20 交易日内**是否触发结构破坏（v5 判定语义）；禁止把 120 日最终破坏状态混入（未来信息）。**null 语义**：20 日窗口不完整且截至数据结束未观察到破坏 → `null`（未观察，不得记 false）；窗口内或截至数据结束已观察到破坏 → `true`；完整 20 日且无破坏 → `false` |
 
 θ 不决定任何 path_family；不依据结果回调边界。
 
 ## 3. 策略比较口径
 
-**总体与分母体系（阻塞点2 修订）**：
+**总体与分母体系（v6 按口径×策略×视角×终点分别定义）**：
 
 ```
-N_master      = 27,422                # 突破生命周期母总体（守恒数，非每格分母）
-N_evaluable_h = 突破后可完整观察 h 日的行数（随 h 变化）
-N_censored_h  = N_master − N_evaluable_h
+N_master = 27,422                     # 突破生命周期母总体（守恒数）
+
+# K3 终点=突破后第 h 日（全局统一）：
+N_evaluable_K3[view,h]      = 突破后可完整观察 h 日的行数
+N_censored_K3[view,h]       = N_master − N_evaluable_K3[view,h]
+
+# K2 终点=各自成交后 h 日（staged=T1 后 h 日），按策略：
+N_evaluable_K2[strategy,view,h] = 已成交且终点可完整观察的行数
+                                   + 生命周期完整结束且未成交的行数（K2=0）
+N_null_K2[strategy,view,h]      = 生命周期因数据结束右删失且尚未成交的行数
+                                   （K2=null，不进分母，不得当 0）
+
+# K4 仅成交行：
+N_filled_K4[strategy,view,h]    = 成交行数
+N_evaluable_K4[strategy,view,h] = 成交且持有 h 日可完整观察的行数（K4 分母）
 ```
 
-- K2_h/K3_h 均值分母 = `N_evaluable_h`（未成交=0 计入分子；右删失=null 
-  **不进分母**——未成交与删失严格分开）
-- 无突破的 28,224 段为独立对照池，不进入策略排名；报告披露 N_master、
-  N_evaluable_h、N_censored_h 与每策略成交数
-- "未成交"= 已突破但该等待策略未成交
+- 例：某行突破后尚可观察 20 日、等待策略第 18 日成交 → K3_20 可评价、
+  K2_20 需突破后第 38 日（不可评价→该格 null）
+- 未成交细分（冻结）：**完整结束未成交 → K2=0**（计入分子与分母）；
+  **右删失且未成交 → K2=null**（分子分母均不进）
+- 无突破的 28,224 段为独立对照池，不进入策略排名；报告逐格披露上述全部
+  N 值与每策略成交数
 
 | 口径 | 精确定义 |
 |---|---|
@@ -122,9 +137,11 @@ N_censored_h  = N_master − N_evaluable_h
 | **staged_entry** | **T1 成交后第 h 交易日**（组合共同终点，保持 Stage4 v5 冻结语义）；T2/T3 仅在终点前实际持有相应天数；**终点后出现的批次保持现金**（0 收益计入） |
 
 - h ∈ {1, 3, 5, 10, 20}，三口径 × 全期限 × 双视角输出
-- 边界细则：K3 终点后才成交→该窗口现金 0；恰在终点日成交→计费用无价格
-  收益；第三批 K3 终点后出现→该 0.40 资金现金；持有终点超出数据→删失
-  （null，不进分母）
+- 边界细则：K3 终点后才成交→该窗口现金 0；**恰在终点日成交→按"成交瞬间
+  估值"**（估值=成交价本身：close 视角=当日收盘成交、next 视角=当日开盘成交，
+  价格收益均为 0，仅计费用——不采用"当日收盘估值"，避免 next 视角混入
+  开盘→收盘收益）；第三批 K3 终点后出现→该 0.40 资金现金；持有终点超出
+  数据→删失（null，不进分母）
 - 未投入现金收益按 0（裁定C）；3.5% 上限不动
 
 ## 4. 事前识别层：三时点 + 时间外验证
@@ -164,21 +181,28 @@ N_censored_h  = N_master − N_evaluable_h
 
 ### 5.3 复权价值唯一表达（阻塞点4 修订）
 
-**冻结唯一表达（因子比式），禁止与股数账本混用**：
+**冻结唯一表达（因子比式，成交价显式含滑点），禁止与股数账本混用**：
 
 ```
-gross_terminal_value = invested_raw_notional × P_adj(exit) / P_adj(entry)
+P_adj_buy_fill  = raw_buy_fill_price  × F_entry    # 含买入滑点的成交价×入场因子
+P_adj_sell_fill = raw_sell_fill_price × F_exit     # 含卖出滑点的成交价×出场因子
 
- invested_raw_notional = 该笔实际成交的原始金额（raw_price × 成交股数，含买入滑点）
- R_net = (gross_terminal_value − 卖出费用) / (invested_raw_notional + 买入费用) − 1
+gross_terminal_value = invested_raw_notional × P_adj_sell_fill / P_adj_buy_fill
+
+buy_fee  = cost(invested_raw_notional, buy)        # 按实际 raw notional（含最低佣金）
+sell_fee = cost(gross_terminal_value, sell)
+R_net    = (gross_terminal_value − sell_fee) / (invested_raw_notional + buy_fee) − 1
 ```
 
-- 分红/送转/拆分**全部**由 `P_adj/P_adj(entry)` 因子比承载，实现中**不得**
-  再维护真实股数或现金分红账本（否则双重计算公司行动）
-- 买卖费用按实际 raw notional（含单笔最低佣金）计
+- `raw_buy_fill_price / raw_sell_fill_price` 为**含对应方向滑点**的成交价；
+  close/next 双视角分别使用各自成交字段（close=fill-day close、next=next open）
+- 分红/送转/拆分**全部**由 `P_adj_sell_fill / P_adj_buy_fill` 因子比承载；
+  生产路径不得维护真实股数或现金分红账本（双重计算禁令不变）
+- 买入滑点闭合：invested_raw_notional 与 P_adj_buy_fill 同源（同一含滑点
+  成交价），收益路径中不消失
 - 分批策略逐批按上式，再加未投入现金，组合资金加权
-- 人工公司行动样本验证 = 上式结果与"原始价+股数账本"的**外部手工对照**
-  （账本仅用于验证，不进生产路径）
+- 人工公司行动样本验证 = 上式结果与"原始价+股数账本"外部手工对照
+  （账本仅验证，不进生产路径）
 
 ## 6. 统计口径与稀疏分组门禁
 
@@ -193,6 +217,9 @@ gross_terminal_value = invested_raw_notional × P_adj(exit) / P_adj(entry)
 | `min_unique_stocks` | 格内独立股票数下限；不足 → 只描述 |
 | `min_signal_dates` | 格内独立信号日期数下限；不足 → 只描述 |
 | `min_bootstrap_blocks` | 股票块/日期块各自块数下限；不足 → 不做区间结论 |
+| `bootstrap_repeats` | 2000（有放回重抽样次数） |
+| `confidence_level` | 95%（双块各出区间） |
+| `random_seed` | 固定值入 run_spec（首版 20260919），变更须升 RULE_VERSION |
 
 - 每格披露事件数、股票数、信号日期数；**不按结果合并小组**
 - 分层最低要求：group_asof_20d（确定标签）、path_family、期限、视角；
@@ -224,8 +251,9 @@ RULE_VERSION：`adjustment_v1`、`retcalc_stage5_v1`、`posneg_stage5_v1`。
 2. 等价性：无除权样本内部重算 `1e-9`；外部按源精度容差
 3. 标签守恒：`group_eventual` 四值之和 = 27,422；`group_asof_20d` 同；
    path_family 非删失互斥恰居一类；六情形构造测试逐一断言
-4. 口径完整：三口径 × 5 期限 × 双视角全输出；N_evaluable_h 逐期限披露；
-   staged 共同终点=T1 后 h 日有专项测试（终点后批次现金）
+4. 口径完整：三口径 × 5 期限 × 双视角全输出；N_evaluable_K3/K2、N_null_K2、
+   N_filled/N_evaluable_K4 逐策略×视角×期限披露；staged 共同终点=T1 后 h 日
+   专项测试（终点后批次现金）；右删失未成交 K2=null 专项测试
 5. 稀疏门禁生效：阈值在 run_spec 中冻结后不可视结果调整
 6. 阶梯：50×3mo → 300×1y → 全量；每级四项核对表
 
@@ -234,6 +262,6 @@ RULE_VERSION：`adjustment_v1`、`retcalc_stage5_v1`、`posneg_stage5_v1`。
 | # | 状态 |
 |---|---|
 | A–F | 已闭合（见 v4 记录；E 类名 `high_then_pullback_reclaimed`，F 同日/非 strict 规则固化） |
-| **G（新增）** | `min_events / min_unique_stocks / min_signal_dates / min_bootstrap_blocks` 的具体数字——**必须在任何结果跑出前裁定并写入 run_spec**；建议初值 30 / 10 / 5 / 30（可裁） |
+| G | **已裁定（v6 冻结）**：min_events=100、min_unique_stocks=30、min_signal_dates=30、min_bootstrap_blocks=30；bootstrap_repeats=2000、confidence_level=95%、random_seed=固定值写入 run_spec（首版 20260919，变更须升版本）；未达标格子完整展示但禁止"更优"与区间结论 |
 
-G 裁定后本版冻结为 `posneg_stage5_v1` 语义基线。
+全部裁定点（A–G）已闭合。本版冻结为 `posneg_stage5_v1` 语义基线。
