@@ -145,6 +145,15 @@ N_evaluable_K4[strategy,view,h] = 成交且持有 h 日可完整观察的行数�
   不跨 0 才允许写"更优"**；两套冲突时只报告差异，不下方向性结论
 - K4 是条件成交诊断（成交样本天然不同），**不得**用于四策略总体排名
 - 配对交集样本量同样受稀疏门禁约束（min_events 等按 S_AB 计）
+- **多重比较规则（v7.1 冻结）**：6 策略对 × 5 期限 × 2 视角 × K2/K3 ≥120 组
+  检验，独立 95% 区间必产偶然"更优"。冻结为两层：
+  - **primary ranking（确认性）**：只对未分层总体作策略排名；同一
+    metric×view×horizon 下的 6 个策略对使用 **Holm 校正**（族内
+    α=0.05，双侧）；校正后通过才可写"更优"
+  - **形态×路径等一切分层交叉表（探索性）**：即使双块区间都不跨 0，
+    也只写"开发样本中的探索性优势信号"，不作确认性结论
+  - 本批全部数据为开发样本：任何 primary ranking 结论亦须标注
+    "开发样本，待时间外验证"
 
 **共同终点规则（阻塞点3 修订，单一策略语义不因口径改变）**：
 
@@ -237,7 +246,7 @@ R_net    = (gross_terminal_value − sell_fee) / (invested_raw_notional + buy_fe
 | `bootstrap_repeats` | 2000（有放回重抽样次数） |
 | `interval_method` | **percentile**（lower/upper = 2.5% / 97.5% 分位；不用 basic/BCa） |
 | `confidence_level` | 95%（双块各出区间） |
-| `date_block_key` | `signal_date`（日期块按信号日聚合） |
+| `date_block_key` | **`breakout_day`**（配对比较需要双方共同且唯一的日期锚点；不用策略各自成交日/等待信号日——同一 delta_i 必须有唯一日期块归属） |
 | `comparison_statistic` | **paired mean difference**（配对差均值，见 §3 配对口径） |
 | `random_seed` | 固定值入 run_spec（首版 20260919），变更须升 RULE_VERSION |
 
@@ -293,4 +302,4 @@ RULE_VERSION：`adjustment_v1`、`retcalc_stage5_v1`、`posneg_stage5_v1`。
 | A–F | 已闭合（见 v4 记录；E 类名 `high_then_pullback_reclaimed`，F 同日/非 strict 规则固化） |
 | G | **已裁定（v6 冻结）**：min_events=100、min_unique_stocks=30、min_signal_dates=30、min_bootstrap_blocks=30；bootstrap_repeats=2000、confidence_level=95%、random_seed=固定值写入 run_spec（首版 20260919，变更须升版本）；未达标格子完整展示但禁止"更优"与区间结论 |
 
-全部裁定点（A–G）已闭合。本版即为 `posneg_stage5_v1` 语义基线（冻结）。
+全部裁定点（A–G）已闭合。本版即为 `posneg_stage5_v1` 语义基线（正式冻结，v7.1）。
