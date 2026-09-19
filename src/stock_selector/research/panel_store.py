@@ -309,7 +309,7 @@ def _paged_chunks_source(source_sql: str, columns, where_sql: str,
         q = f"SELECT {sel} FROM {source_sql}"
         if where_sql:
             q += " WHERE " + where_sql
-        q += " ORDER BY code, date"
+        q += f" ORDER BY code, {_quote_ident(_norm_col)}"
         offset = 0
         while True:
             df = _normalize_dates(
@@ -541,14 +541,20 @@ def mark_partition(manifest_path: Path, name: str, *, status: str,
     manifest_path.write_text(json.dumps(m, ensure_ascii=False, indent=2))
 
 
-def validate_resume(old: dict, codes: Sequence[str], batch_size: int) -> str | None:
+def validate_resume(old: dict, codes: Sequence[str], batch_size: int,
+                    spec_hash: str | None = None) -> str | None:
     """断点续跑一致性闸门：通过返回 None，否则返回拒绝原因。
 
+    - 运行口径指纹（spec_hash）：起止日期/范围/预热/规则版本/配置/数据源
+      等，与上次运行必须完全一致，否则旧分区口径不可比
     - 股票清单指纹必须与上次运行一致（universe_fingerprint）
     - 已完成分区名必须全部落在当前批次划分内（--batch 不变）
     """
     if not old.get("partitions"):
         return None
+    if spec_hash is not None and old.get("run_spec_hash") not in (None, spec_hash):
+        return ("运行口径与上次运行不同（起止日期/范围/预热/规则版本/配置/"
+                "数据来源任一变化）；续跑要求口径完全一致，变更请换新版本目录重跑")
     fp = codes_fingerprint(codes)
     if old.get("universe_fingerprint") != fp:
         return ("股票清单与上次运行不同（universe_fingerprint 不匹配）；"
@@ -559,6 +565,48 @@ def validate_resume(old: dict, codes: Sequence[str], batch_size: int) -> str | N
         return (f"{len(stale)} 个已完成分区不属于当前批次划分（--batch 或清单顺序变化）；"
                 "请保持与上次相同的 --batch 续跑，或换新版本目录重跑")
     return None
+
+
+def run_spec_hash(spec: dict) -> str:
+    """运行口径指纹：影响输出语义的全部参数。续跑必须逐字节一致。"""
+    return hashlib.md5(
+        json.dumps(spec, sort_keys=True, ensure_ascii=False).encode()
+    ).hexdigest()[:16]
+
+
+def resolve_mirror_or_csv(core_dir: str | Path,
+                          csv_name: str) -> tuple[Path, str, str]:
+    """解析数据源：完整校验通过的 parquet 镜像优先，否则回退 CSV 原件。
+
+    镜像可用条件（全部满足才用）：
+    - 镜像目录 + MANIFEST.json 存在
+    - manifest.parity[csv_name] is True（转换时行数对账通过）
+    - manifest.upstream[csv_name].md5 == 当前 CSV 的 md5（上游未变）
+    - 镜像目录下存在 parquet 数据文件
+
+    返回 (source_path, mode, reason)。CSV 原件是 source of truth。
+    """
+    core = Path(core_dir)
+    csv = core / csv_name
+    if not csv.exists():
+        raise FileNotFoundError(f"核心层文件缺失: {csv}")
+    stem = csv_name.removesuffix(".csv")
+    mirror_root = core.parent / f"{core.name}_parquet"
+    mirror = mirror_root / stem
+    # 清单在镜像根目录（base-check --build-parquet 的写入位置）
+    m = read_manifest(mirror_root)
+    if m is None:
+        return csv, "csv", f"镜像无清单({mirror_root})"
+    parity = m.get("parity", {}).get(csv_name)
+    if parity is not True:
+        return csv, "csv", f"镜像对账未通过 parity={parity}"
+    upstream = m.get("upstream", {}).get(csv_name)
+    csv_md5 = fingerprint(csv)["md5"]
+    if not isinstance(upstream, dict) or upstream.get("md5") != csv_md5:
+        return csv, "csv", "上游CSV与镜像指纹不一致（转换后原件已变化）"
+    if not any(mirror.rglob("*.parquet")):
+        return csv, "csv", "镜像目录无 parquet 数据文件"
+    return mirror, "parquet", "镜像完整且对账通过"
 
 
 def closure_check(manifest: dict, expected_codes: Sequence[str]) -> dict:

@@ -208,15 +208,32 @@ def stage_weekly_state(args: argparse.Namespace) -> int:
         print("没有可处理股票", file=sys.stderr)
         return 2
 
-    # 月线池 PIT 状态来源：核心层 universe_state_panel（优先 parquet 镜像）
+    # 月线池 PIT 状态来源：镜像须通过完整性校验（清单+对账+上游指纹一致），
+    # 否则回退 CSV 原件（source of truth）
     core = Path(args.core_dir)
-    universe_src = core.parent / f"{core.name}_parquet" / "universe_state_panel"
-    if not universe_src.exists():
-        universe_src = core / "universe_state_panel.csv"
-    if not universe_src.exists():
-        print(f"月线池状态表缺失：{universe_src}", file=sys.stderr)
-        return 2
+    universe_src, universe_mode, universe_reason = ps.resolve_mirror_or_csv(
+        core, "universe_state_panel.csv")
+    if universe_mode == "csv":
+        print(f"[weekly-state] 月线池源回退 CSV：{universe_reason}", file=sys.stderr)
+    else:
+        print(f"[weekly-state] 月线池源用 Parquet 镜像：{universe_reason}")
     pool_only = args.universe == "pool"
+    cfg = sa.AxesConfig.from_config(load_config())
+    r0, r1 = (result_start.strftime("%Y-%m-%d"), result_end.strftime("%Y-%m-%d"))
+    # 运行口径：影响输出语义的全部要素；续跑必须逐字节一致
+    run_spec = {
+        "stage": "weekly-state", "rule_version": sa.RULE_VERSION,
+        "result_date_range": [r0, r1],
+        "universe_scope": args.universe,
+        "min_history": args.min_history,
+        "axes_config": {"min_volume_ratio": cfg.min_volume_ratio,
+                        "veto_ratio": cfg.veto_ratio},
+        "tdx_dir": args.tdx_dir,
+        "universe_source": str(universe_src),
+        "universe_source_md5": ps.fingerprint(core / "universe_state_panel.csv")["md5"],
+        "codes_limit": args.codes_limit,
+    }
+    spec_hash = ps.run_spec_hash(run_spec)
 
     out = Path(args.out or "output/research/lifecycle_v1/weekly_state_v1")
     parts = out / "partitions"
@@ -224,9 +241,9 @@ def stage_weekly_state(args: argparse.Namespace) -> int:
     old = ps.read_manifest(out) or {}
     universe_fp = ps.codes_fingerprint(codes)
 
-    # 断点续跑一致性闸门（清单指纹 + 批次划分）；变更需换新版本目录
+    # 断点续跑一致性闸门（运行口径+清单+批次划分）；变更需换新版本目录
     if args.resume:
-        reason = ps.validate_resume(old, codes, args.batch)
+        reason = ps.validate_resume(old, codes, args.batch, spec_hash=spec_hash)
         if reason:
             print(f"断点续跑失败：{reason}", file=sys.stderr)
             return 6
@@ -238,7 +255,6 @@ def stage_weekly_state(args: argparse.Namespace) -> int:
     parts.mkdir(parents=True, exist_ok=True)
     done = ps.completed_partitions(old) if args.resume else set()
     log = ps.ResourceLogger(out)
-    cfg = sa.AxesConfig.from_config(load_config())
     store_info = {"stage": "weekly-state", "rule_version": sa.RULE_VERSION,
                   "tdx_dir": args.tdx_dir,
                   "compute_date_range": [str(cal.min().date()), str(cal.max().date())],
@@ -247,11 +263,12 @@ def stage_weekly_state(args: argparse.Namespace) -> int:
                   "universe_fingerprint": universe_fp,
                   "universe_scope": args.universe,
                   "universe_source": str(universe_src),
+                  "universe_source_mode": universe_mode,
+                  "run_spec": run_spec, "run_spec_hash": spec_hash,
                   "memory_limit_mb": args.memory_limit_mb,
                   "partitions": old.get("partitions", {})}
     ps.write_manifest(out, store_info)
 
-    r0, r1 = (result_start.strftime("%Y-%m-%d"), result_end.strftime("%Y-%m-%d"))
     for batch_name, batch_codes in ps.iter_code_batches(codes, args.batch, done):
         t0 = time.time()
         rows = []

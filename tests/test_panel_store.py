@@ -121,6 +121,97 @@ def test_closure_check_missing_overlap_and_rows():
     assert res["partition_overlap"]
 
 
+def test_validate_resume_run_spec_gate(tmp_path):
+    """续跑必须校验完整运行口径（日期/范围/规则版本/配置/数据源）。"""
+    codes = [f"{i:06d}" for i in range(6)]
+    manifest_path = tmp_path / ps.MANIFEST_NAME
+    for name, batch in ps.iter_code_batches(codes, 3):
+        ps.mark_partition(manifest_path, name, status="done", codes=batch)
+    spec1 = {"result_date_range": ["2024-01-01", "2024-12-31"],
+             "universe_scope": "pool", "rule_version": "v1"}
+    spec2 = {"result_date_range": ["2024-01-01", "2026-09-01"],
+             "universe_scope": "all", "rule_version": "v1"}
+    assert ps.run_spec_hash(spec1) != ps.run_spec_hash(spec2)
+    # 口径确定可比对：同 dict 同 hash，键序无关
+    assert ps.run_spec_hash(dict(reversed(list(spec1.items())))) == ps.run_spec_hash(spec1)
+
+    m = json.loads(manifest_path.read_text())
+    m["universe_fingerprint"] = ps.codes_fingerprint(codes)
+    m["run_spec_hash"] = ps.run_spec_hash(spec1)
+    manifest_path.write_text(json.dumps(m))
+    old = json.loads(manifest_path.read_text())
+    # 同口径 -> 放行
+    assert ps.validate_resume(old, codes, 3, spec_hash=ps.run_spec_hash(spec1)) is None
+    # 换日期/换范围续跑 -> 拒绝（旧分区口径不可比）
+    reason = ps.validate_resume(old, codes, 3, spec_hash=ps.run_spec_hash(spec2))
+    assert reason and "运行口径" in reason
+    # 旧清单无口径记录（历史版本）-> 放行不做口径强校验（向后兼容）
+    m2 = dict(old)
+    m2.pop("run_spec_hash")
+    assert ps.validate_resume(m2, codes, 3, spec_hash=ps.run_spec_hash(spec1)) is None
+
+
+def test_resolve_mirror_or_csv_integrity(tmp_path, wide_df):
+    """镜像只在清单+对账+上游指纹一致时采用；否则回退 CSV 原件。"""
+    core = tmp_path / "core"
+    core.mkdir()
+    wide = wide_df
+    csv = core / "universe_state_panel.csv"
+    wide.to_csv(csv, index=False)
+    mirror_root = tmp_path / "core_parquet"
+    mirror = mirror_root / "universe_state_panel"
+
+    # 无镜像 -> csv
+    src, mode, _ = ps.resolve_mirror_or_csv(core, "universe_state_panel.csv")
+    assert mode == "csv" and src == csv
+    # 建镜像但无清单 -> csv
+    ps.write_partitioned_parquet(wide, mirror)
+    src, mode, reason = ps.resolve_mirror_or_csv(core, "universe_state_panel.csv")
+    assert mode == "csv" and "清单" in reason
+    # 清单在但对账缺失 -> csv
+    ps.write_manifest(mirror_root, {"parity": {}, "upstream": {}})
+    _, mode, reason = ps.resolve_mirror_or_csv(core, "universe_state_panel.csv")
+    assert mode == "csv" and "对账" in reason
+    # 对账过但上游指纹缺失 -> csv
+    ps.write_manifest(mirror_root, {
+        "parity": {"universe_state_panel.csv": True},
+        "upstream": {"universe_state_panel.csv": {"md5": "deadbeef"}}})
+    _, mode, reason = ps.resolve_mirror_or_csv(core, "universe_state_panel.csv")
+    assert mode == "csv" and "不一致" in reason
+    # 全部通过 -> 镜像
+    ps.write_manifest(mirror_root, {
+        "parity": {"universe_state_panel.csv": True},
+        "upstream": {"universe_state_panel.csv": ps.fingerprint(csv)}})
+    src, mode, _ = ps.resolve_mirror_or_csv(core, "universe_state_panel.csv")
+    assert mode == "parquet" and src == mirror
+    # 上游 CSV 变化 -> 回退 csv
+    wide.iloc[0, 0] = "999999"
+    wide.to_csv(csv, index=False)
+    _, mode, reason = ps.resolve_mirror_or_csv(core, "universe_state_panel.csv")
+    assert mode == "csv" and "不一致" in reason
+
+
+def test_paged_chunks_order_by_event_date(tmp_path):
+    """分块读取事件表按 first_trigger_date 排序（不再写死 date）。"""
+    rows = [{"code": f"{c:06d}", "first_trigger_date": d, "signal": 1}
+            for c in (2, 1)
+            for d in pd.bdate_range("2024-01-01", periods=10).strftime("%Y-%m-%d")]
+    parquet_dir = tmp_path / "pq"
+    ps.write_partitioned_parquet(pd.DataFrame(rows), parquet_dir,
+                                 date_col="first_trigger_date")
+    chunks = list(ps.read_table(parquet_dir, chunk_rows=7,
+                                date_col="first_trigger_date"))
+    assert len(chunks) >= 2
+    seen = []
+    for ch in chunks:
+        pairs = list(zip(ch["code"], ch["first_trigger_date"]))
+        assert pairs == sorted(pairs)  # 块内 (code, 事件日期) 有序
+        seen.extend(pairs)
+    keys = [(c, d) for c in ("000001", "000002")
+            for d in pd.bdate_range("2024-01-01", periods=10).strftime("%Y-%m-%d")]
+    assert seen == sorted(keys)  # 全局有序：code, first_trigger_date
+
+
 def test_read_table_date_col_event_table(tmp_path):
     """事件表用 first_trigger_date 过滤（episode 类），不是 date。"""
     rows = [{"code": "000001", "first_trigger_date": d, "signal": i}
