@@ -1,0 +1,48 @@
+{
+  "stage": "pullback 全量验收报告（第三批/阶段二）",
+  "output_dir": "output/research/lifecycle_v1/pullback_v1 (服务器端，gitignore)",
+  "status": "complete",
+  "closure_complete": true,
+  "codes": 5588,
+  "covered_codes": 5588,
+  "missing_codes": 0,
+  "overlap_codes": 0,
+  "rows_out_events": 76290,
+  "rows_daily": 558224,
+  "result_date_range": [
+    "2024-01-02",
+    "2026-09-01"
+  ],
+  "run_spec_hash": "af0137183825ec1b",
+  "run_spec_git_commit": "ead2c66a8efa182ec6373f0319d30c3df57555d8",
+  "upstream_weekly_state": {
+    "dir": "output/research/lifecycle_v1/weekly_state_v1",
+    "run_spec_hash": "e2cf0918238fc95c",
+    "rows_out": 971463,
+    "rule_version": "state_axes_stage1_v1"
+  },
+  "peak_rss_mb": 191.520768,
+  "done_partitions": 56,
+  "invalid_data_changed_seen": false,
+  "audit": {
+    "event_id_unique": "76290/76290",
+    "interval_first<=lowest<=end_violations": 0,
+    "end_reason_dist": {
+      "new_high": 32774,
+      "structure_break": 21064,
+      "pool_exit": 17833,
+      "volume_breakdown": 3888,
+      "data_end": 567,
+      "timeout": 164
+    },
+    "stabilization_rate": 0.6646,
+    "touch_rates": {
+      "ma10": 0.864,
+      "ma20": 0.715,
+      "platform": 0.456
+    },
+    "orphan_daily_rows": 0,
+    "first_day_weekday_even": "周一~周五 15.8k-16.7k 均匀"
+  },
+  "note_start_date": "2024-01-02 起（01 日元旦休市），与核心层/双轴表一致"
+}
