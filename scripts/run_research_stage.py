@@ -1062,7 +1062,8 @@ def stage_entry_replay(args: argparse.Namespace) -> int:
         lc_by: dict = {}
         for rec in lcs.itertuples(index=False):
             lc_by.setdefault(rec.code, []).append({
-                "lifecycle_id": rec.lifecycle_id, "anchor_day": rec.anchor_day,
+                "lifecycle_id": rec.lifecycle_id,
+                "anchor_day": rec.anchor_day if isinstance(rec.anchor_day, str) else None,
                 "breakout_day": rec.breakout_day,
                 "reattack_days": rec.reattack_days, "end_day": rec.end_day,
                 "end_reason": rec.end_reason,
@@ -1094,7 +1095,10 @@ def stage_entry_replay(args: argparse.Namespace) -> int:
                 pd.DataFrame(pdly_by.get(code, [])), cfg, cost,
                 market_cal=market_cal)
             if len(ev):
-                ev = ev[(ev["signal_day"] >= r0) & (ev["signal_day"] <= r1)]
+                ev = ev[((ev["signal_day"] >= r0) & (ev["signal_day"] <= r1))
+                        | (ev["signal_day"].isna()
+                           & (ev["anchor_day"] >= r0)
+                           & (ev["anchor_day"] <= r1))]
                 if len(ev):
                     rows.append(ev)
         part = pd.concat(rows, ignore_index=True) if rows else \
@@ -1103,7 +1107,7 @@ def stage_entry_replay(args: argparse.Namespace) -> int:
         if len(part):
             info = ps.write_partitioned_parquet(
                 part, parts / batch_name, partition_by="year",
-                date_col="signal_day")
+                date_col="anchor_day")
             bytes_out = sum(v["bytes"] for v in info["files"].values())
         else:
             (parts / batch_name).mkdir(parents=True, exist_ok=True)

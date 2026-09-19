@@ -90,7 +90,7 @@ def adjusted_path_max(daily: pd.DataFrame, p0: int, p1: int) -> tuple:
 def _cols() -> list:
     c = ["code", "lifecycle_id", "strategy", "lifecycle_end_reason",
          "right_censored", "return_quality", "limitation",
-         "signal_day", "signal_day_gain_pct",
+         "anchor_day", "signal_day", "signal_day_gain_pct",
          "fill_status_close", "fill_date_close", "fill_price_close",
          "not_filled_reason_close",
          "fill_status_next", "fill_date_next", "fill_price_next",
@@ -336,6 +336,7 @@ def replay_entries(code: str, lifecycles: pd.DataFrame, daily: pd.DataFrame,
 
         for strategy in STRATEGIES:
             out = _blank_row(code, lc, strategy)
+            out["anchor_day"] = lc["anchor_day"]
             out["signal_day"] = lc["breakout_day"]
             out["signal_day_gain_pct"] = sig_gain
 
