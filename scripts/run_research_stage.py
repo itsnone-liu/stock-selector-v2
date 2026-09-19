@@ -1108,6 +1108,11 @@ def stage_entry_replay(args: argparse.Namespace) -> int:
                     rows.append(ev)
         part = pd.concat(rows, ignore_index=True) if rows else \
             pd.DataFrame(columns=er.ENTRY_REPLAY_COLUMNS)
+        # 全空 object 列会被 parquet 推断为 null/数值类型，导致跨分区
+        # schema 漂移（如 t3_fill_date 读回 INTEGER）；统一为 string。
+        for _c in part.columns:
+            if part[_c].dtype == object:
+                part[_c] = part[_c].astype("string")
         bytes_out = 0
         if len(part):
             info = ps.write_partitioned_parquet(
