@@ -1,0 +1,52 @@
+{
+  "stage": "pullback 全量验收报告（右删失修正版）",
+  "output_dir": "output/research/lifecycle_v1/pullback_v2 (服务器端，gitignore)",
+  "status": "complete",
+  "closure_complete": true,
+  "codes": 5588,
+  "covered_codes": 5588,
+  "missing_codes": 0,
+  "overlap_codes": 0,
+  "rows_out_events": 76290,
+  "rows_daily": 558224,
+  "result_date_range": [
+    "2024-01-02",
+    "2026-09-01"
+  ],
+  "run_spec_hash": "68cad4022bec6a8b",
+  "run_spec_git_commit": "5a214e262f1cc94be65ea8cd1c10554fbb2d6ddf",
+  "upstream_weekly_state": {
+    "dir": "output/research/lifecycle_v1/weekly_state_v1",
+    "run_spec_hash": "e2cf0918238fc95c",
+    "rows_out": 971463,
+    "rule_version": "state_axes_stage1_v1"
+  },
+  "peak_rss_mb": 193.880064,
+  "done_partitions": 56,
+  "invalid_data_changed_seen": false,
+  "audits": {
+    "adjacent_event_overlap_violations": 0,
+    "daily_code_date_multi_event": 0,
+    "daily_duplicate_rows": 0,
+    "outcome_denominators": "only stabilization_day present and horizon complete rows; censored excluded",
+    "outcomes": {
+      "5d": {
+        "stabilized_total": 50702,
+        "valid_complete": 50487,
+        "censored": 215
+      },
+      "10d": {
+        "stabilized_total": 50702,
+        "valid_complete": 50145,
+        "censored": 557
+      },
+      "20d": {
+        "stabilized_total": 50702,
+        "valid_complete": 49553,
+        "censored": 1149
+      }
+    },
+    "no_stabilization_events": 25588
+  },
+  "note": "outcome_new_high_within_20 is null unless full 20-session window observed; outcome_ret_5/10/20 likewise null when incomplete."
+}
