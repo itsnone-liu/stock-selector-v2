@@ -64,6 +64,9 @@ EVENT_COLUMNS = [
     "code", "event_id", "first_day", "lowest_day", "lowest_close",
     "stabilization_day", "stabilization_support",
     "touched_ma10", "touched_ma20", "touched_platform",
+    "first_touch_ma10_day", "first_touch_ma10_pct",
+    "first_touch_ma20_day", "first_touch_ma20_pct",
+    "first_touch_platform_day", "first_touch_platform_pct",
     "end_day", "end_reason",
     "days_total", "days_to_low", "max_drawdown_pct",
     "min_volume_ratio_in_event",
@@ -131,46 +134,95 @@ def _prepare_features(daily: pd.DataFrame, cfg: PullbackConfig) -> pd.DataFrame:
     return df
 
 
-def _align_week_axis(daily_index: pd.DatetimeIndex, week_map: dict) -> tuple:
-    """日线 -> 所在 ISO 周的双轴状态（池内周必有；缺周回退最近已知）。"""
+def _align_week_axis(daily_index: pd.DatetimeIndex, week_rows: list) -> tuple:
+    """日线 -> 最后已完整结束周的双轴状态（PIT：不得用本周五结果判周一）。
+
+    week_rows: [(周行date, trend, momentum)] 按日期升序；
+    日线 d 使用 date < d 的最近周行——周五收盘后确立的状态，
+    下一个交易日才可见；周内（周一~周五）一律用上一完整周。
+    """
     trends, momentums = [], []
-    last = (None, None)
+    i = -1
     for ts in daily_index:
-        key = _iso_week_key(ts)
-        if key in week_map:
-            last = week_map[key]
-        trends.append(last[0])
-        momentums.append(last[1])
+        while i + 1 < len(week_rows) and week_rows[i + 1][0] < ts:
+            i += 1
+        if i >= 0:
+            trends.append(week_rows[i][1])
+            momentums.append(week_rows[i][2])
+        else:
+            trends.append(None)
+            momentums.append(None)
     return trends, momentums
 
 
 def classify_pullback(code: str, daily: pd.DataFrame,
-                      week_map: dict, pool_mask: dict,
+                      week_rows: list, pool_mask: dict,
                       cfg: PullbackConfig) -> tuple[pd.DataFrame, pd.DataFrame]:
     """单股票：跑回调状态机，返回 (事件表 1行/事件, 每日明细表)。
 
-    week_map: ISO周 -> (trend_structure, current_momentum)
-    pool_map: date(YYYY-MM-DD) -> bool 池内
+    week_rows: [(周行date, trend_structure, current_momentum)] 升序——
+               使用最后已完整结束周（PIT，见 _align_week_axis）。
+    pool_mask: date(YYYY-MM-DD) -> bool 池内。
     """
     df = _prepare_features(daily, cfg)
-    df["week_trend"], df["week_momentum"] = _align_week_axis(df.index, week_map)
+    df["week_trend"], df["week_momentum"] = _align_week_axis(df.index, week_rows)
     df["in_pool"] = [bool(pool_mask.get(ts.strftime("%Y-%m-%d"), False))
                      for ts in df.index]
 
+    SUPPORTS = ("ma10", "ma20", "platform")
     daily_rows, events = [], []
     cur = None  # 当前事件 dict
+
+    def _update_event_facts(e: dict, pos: int) -> None:
+        """事件事实更新（开事件当天与事件内每天同样适用——
+        首日踩线窗口不丢失）。"""
+        ts = df.index[pos]
+        row = df.iloc[pos]
+        dstr = ts.strftime("%Y-%m-%d")
+        for s in SUPPORTS:
+            if row[f"touched_{s}"]:
+                e[f"touched_{s}"] = True
+                if e[f"first_touch_{s}_day"] is None:  # 各支撑独立首触记录
+                    e[f"first_touch_{s}_day"] = dstr
+                    e[f"first_touch_{s}_pct"] = float(row[f"dist_{s}_pct"])
+                if e["dist_at_touch_pct"] is None:      # 首个任意触线（总览）
+                    e["dist_at_touch_pct"] = float(row[f"dist_{s}_pct"])
+                    atr_pct = (row["atr14"] / row["close"] * 100.0
+                               if row["atr14"] else None)
+                    e["dist_at_touch_atr"] = (
+                        e["dist_at_touch_pct"] / atr_pct if atr_pct else None)
+                    e["touch_within_1pct"] = (
+                        abs(e["dist_at_touch_pct"]) <= 1.0)
+                e["_last_support"] = s
+        if row["close"] < e["_low"]:
+            e["_low"] = row["close"]
+            e["lowest_day"] = dstr
+            e["lowest_close"] = float(row["close"])
+            e["_low_pos"] = pos
+        if pd.notna(row["volume_ratio"]):
+            if e["min_volume_ratio_in_event"] is None:
+                e["min_volume_ratio_in_event"] = float(row["volume_ratio"])
+            else:
+                e["min_volume_ratio_in_event"] = min(
+                    e["min_volume_ratio_in_event"], float(row["volume_ratio"]))
+        # 止跌：已触支撑 S 且 close>=S 且收高（候选主买点，不是信号）
+        if (e.get("stabilization_day") is None
+                and e.get("_last_support") is not None):
+            s = e["_last_support"]
+            if row["close_up"] and row["close"] >= row[s]:
+                e["stabilization_day"] = dstr
+                e["stabilization_support"] = s
+                e["_stb_pos"] = pos
 
     def _close_event(pos: int, reason: str) -> None:
         nonlocal cur
         e = cur
         ts = df.index[pos]
-        row = df.iloc[pos]
         e["end_day"] = ts.strftime("%Y-%m-%d")
         e["end_reason"] = reason
         e["days_total"] = pos - e["_start_pos"]
         e["days_to_low"] = e["_low_pos"] - e["_start_pos"]
         e["max_drawdown_pct"] = _pct(e["lowest_close"], e["_start_high20"])
-        # outcome：仅从止跌日起算 forward（PIT：写入事件表，不进日线特征）
         stb = e.get("stabilization_day")
         if stb is not None:
             loc = e["_stb_pos"]
@@ -189,74 +241,48 @@ def classify_pullback(code: str, daily: pd.DataFrame,
         events.append(e)
         cur = None
 
+    def _new_event(pos: int) -> None:
+        nonlocal cur
+        ts = df.index[pos]
+        row = df.iloc[pos]
+        dstr = ts.strftime("%Y-%m-%d")
+        e = {"code": code, "event_id": f"{code}_{dstr}", "first_day": dstr,
+             "lowest_day": dstr, "lowest_close": float(row["close"]),
+             "stabilization_day": None, "stabilization_support": None,
+             "touched_ma10": False, "touched_ma20": False, "touched_platform": False,
+             "first_touch_ma10_day": None, "first_touch_ma10_pct": None,
+             "first_touch_ma20_day": None, "first_touch_ma20_pct": None,
+             "first_touch_platform_day": None, "first_touch_platform_pct": None,
+             "end_day": None, "end_reason": None,
+             "days_to_low": None, "max_drawdown_pct": None,
+             "min_volume_ratio_in_event": (
+                 float(row["volume_ratio"])
+                 if pd.notna(row["volume_ratio"]) else None),
+             "dist_at_touch_pct": None, "dist_at_touch_atr": None,
+             "touch_within_1pct": None,
+             "outcome_ret_5": None, "outcome_ret_10": None, "outcome_ret_20": None,
+             "outcome_new_high_within_20": None,
+             "_start_high20": float(row["high20"]),
+             "_start_pos": pos,
+             "_low": float(row["close"]),
+             "_low_pos": pos,
+             "_stb_pos": None,
+             "_last_support": None}
+        cur = e
+        _update_event_facts(e, pos)  # 首日踩线同样记录（修复：首日触线丢失）
+
     for pos, (ts, row) in enumerate(df.iterrows()):
         dstr = ts.strftime("%Y-%m-%d")
         trend = row["week_trend"]
         if cur is not None:
-            # ---- 事件内逐日事实 ----
-            touched = {s: bool(row[f"touched_{s}"]) for s in
-                       ("ma10", "ma20", "platform")}
-            for s in ("ma10", "ma20", "platform"):
-                if touched[s]:
-                    cur[f"touched_{s}"] = True
-                    if cur.get("dist_at_touch_pct") is None:
-                        cur["dist_at_touch_pct"] = float(row[f"dist_{s}_pct"])
-                        atr_pct = (row["atr14"] / row["close"] * 100.0
-                                   if row["atr14"] else None)
-                        cur["dist_at_touch_atr"] = (
-                            cur["dist_at_touch_pct"] / atr_pct
-                            if atr_pct else None)
-                        cur["touch_within_1pct"] = (
-                            abs(cur["dist_at_touch_pct"]) <= 1.0)
-                    cur["_last_support"] = s
-            if row["close"] < cur["_low"]:
-                cur["_low"] = row["close"]
-                cur["lowest_day"] = dstr
-                cur["lowest_close"] = float(row["close"])
-                cur["_low_pos"] = pos
-            if pd.notna(row["volume_ratio"]):
-                cur["min_volume_ratio_in_event"] = min(
-                    cur["min_volume_ratio_in_event"],
-                    float(row["volume_ratio"]))
-            # 止跌：已触支撑 S 且 close>=S 且收高（候选主买点，不是信号）
-            if (cur.get("stabilization_day") is None
-                    and cur.get("_last_support") is not None):
-                s = cur["_last_support"]
-                if row["close_up"] and row["close"] >= row[s]:
-                    cur["stabilization_day"] = dstr
-                    cur["stabilization_support"] = s
-                    cur["_stb_pos"] = pos
+            _update_event_facts(cur, pos)
         elif (row["in_pool"] and trend in WEEK_TREND_OK
                 and bool(row["shrink_volume"])
                 and pd.notna(row["drawdown_from_high20_pct"])
                 and row["drawdown_from_high20_pct"] < 0
                 and pd.notna(row["ma20"])):
-            # ---- 开新事件：缩量回调开始（价格回落+缩量+周线未破+池内）----
-            cur = {
-                "code": code,
-                "event_id": f"{code}_{dstr}",
-                "first_day": dstr,
-                "lowest_day": dstr, "lowest_close": float(row["close"]),
-                "stabilization_day": None, "stabilization_support": None,
-                "touched_ma10": False, "touched_ma20": False,
-                "touched_platform": False,
-                "end_day": None, "end_reason": None,
-                "days_to_low": None, "max_drawdown_pct": None,
-                "min_volume_ratio_in_event": (
-                    float(row["volume_ratio"])
-                    if pd.notna(row["volume_ratio"]) else None),
-                "dist_at_touch_pct": None, "dist_at_touch_atr": None,
-                "touch_within_1pct": None,
-                "outcome_ret_5": None, "outcome_ret_10": None,
-                "outcome_ret_20": None,
-                "outcome_new_high_within_20": None,
-                "_start_high20": float(row["high20"]),
-                "_start_pos": pos,
-                "_low": float(row["close"]),
-                "_low_pos": pos,
-                "_stb_pos": None,
-                "_last_support": None,
-            }
+            # 开新事件：缩量回调开始（价格回落+缩量+周线未破+池内）
+            _new_event(pos)
         # ---- 当日明细（含事件结束日：结束是事件的一部分）----
         if cur is not None:
             daily_rows.append({

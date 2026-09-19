@@ -558,11 +558,12 @@ def stage_pullback(args: argparse.Namespace) -> int:
         for rec in upool.drop_duplicates(subset=["code", "date"]).itertuples(index=False):
             pool_by_code.setdefault(rec.code, {})[rec.date] = \
                 (rec.monthly_pool_state == "in")
+        # 周行列表（date, trend, momentum）升序：日线用最后已完整结束周（PIT）
         week_by_code: dict = {}
-        for rec in wax.drop_duplicates(subset=["code", "date"]).itertuples(index=False):
-            y, w, _ = pd.Timestamp(rec.date).isocalendar()
-            week_by_code.setdefault(rec.code, {})[f"{y}-W{w:02d}"] = \
-                (rec.trend_structure, rec.current_momentum)
+        for rec in (wax.drop_duplicates(subset=["code", "date"])
+                    .sort_values(["code", "date"]).itertuples(index=False)):
+            week_by_code.setdefault(rec.code, []).append(
+                (pd.Timestamp(rec.date), rec.trend_structure, rec.current_momentum))
 
         ev_rows, dly_rows, missing = [], [], 0
         for code in batch_codes:

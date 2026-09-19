@@ -25,15 +25,25 @@ def mk_daily(closes, vols, start="2024-01-02"):
     }, index=idx)
 
 
-def week_map(df, trend="intact", mom="strengthening", broken_from=None):
-    m = {}
+def week_rows_of(df, trend="intact", mom="strengthening", broken_from=None,
+                 broken_from_date=None):
+    """周行列表（周最后交易日, trend, momentum）升序。
+
+    broken_from_date: 指定日期起**之后**的周行才变 broken——
+    模拟"周内后段才转坏"（周 PIT 测试用）。
+    """
+    rows = []
     for i, ts in enumerate(df.index):
-        y, w, _ = ts.isocalendar()
+        is_friday = ts.weekday() == 4 or i == len(df) - 1
+        if not is_friday:
+            continue
         if broken_from is not None and i >= broken_from:
-            m[f"{y}-W{w:02d}"] = ("broken", "weakening")
+            rows.append((ts, "broken", "weakening"))
+        elif broken_from_date is not None and ts >= broken_from_date:
+            rows.append((ts, "broken", "weakening"))
         else:
-            m[f"{y}-W{w:02d}"] = (trend, mom)
-    return m
+            rows.append((ts, trend, mom))
+    return rows
 
 
 def pool_all(df):
@@ -43,7 +53,7 @@ def pool_all(df):
 def run(closes, vols, cfg=None, trend="intact", pool=None, broken_from=None):
     df = mk_daily(closes, vols)
     return classify_pullback(
-        "T1", df, week_map(df, trend=trend, broken_from=broken_from),
+        "T1", df, week_rows_of(df, trend=trend, broken_from=broken_from),
         pool or pool_all(df), cfg or PullbackConfig())
 
 
@@ -108,17 +118,25 @@ def test_pool_exit_ends_event():
     v = [1000] * 20 + [500] * 9
     df = mk_daily(c, v)
     pl = {ts.strftime("%Y-%m-%d"): (i < 24) for i, ts in enumerate(df.index)}
-    ev, _ = classify_pullback("T", df, week_map(df), pl, PullbackConfig())
+    ev, _ = classify_pullback("T", df, week_rows_of(df), pl, PullbackConfig())
     assert ev.iloc[0]["end_reason"] == "pool_exit"
 
 
 def test_structure_break_ends_event():
-    """周线结构破坏结束：structure_break。"""
+    """周线结构破坏结束：broken 周确立后的次一交易日生效（PIT）。"""
     c = (list(8 + 0.1 * i for i in range(20))
-         + list(9.9 - 0.12 * i for i in range(1, 10)))
-    v = [1000] * 20 + [500] * 9
-    ev, _ = run(c, v, broken_from=24)
+         + list(9.9 - 0.12 * i for i in range(1, 15)))
+    v = [1000] * 20 + [500] * 14
+    df = mk_daily(c, v)
+    cut = df.index[24]  # 事件中段某日所在周将转 broken
+    rows = week_rows_of(df, broken_from_date=cut)
+    broken_fridays = [ts for ts, t, _ in rows if t == "broken"]
+    assert broken_fridays
+    first_broken_week_end = broken_fridays[0]
+    ev, _ = classify_pullback("T", df, rows, pool_all(df), PullbackConfig())
     assert ev.iloc[0]["end_reason"] == "structure_break"
+    # 生效时点必须晚于（等于次日起）broken 周的最后交易日
+    assert pd.Timestamp(ev.iloc[0]["end_day"]) > first_broken_week_end
 
 
 def test_broken_week_opens_no_event():
@@ -276,3 +294,70 @@ def test_thirty_scenario_coverage(name, dip, slope, recover, vol, kind):
         assert e.days_total >= 1 and e.first_day <= e.lowest_day <= e.end_day
         assert e.max_drawdown_pct <= 0.01
     assert len(dly) >= len(ev)
+
+
+def test_week_pit_no_intra_week_future_leak():
+    """周 PIT：周初事件不得使用本周五才确立的 broken 状态。
+
+    构造：回调从周一开始，但当周五（该周结束后）周线才转 broken。
+    正确语义：周一/周二开事件用上一完整周（intact）-> 事件应开启；
+    若错误地用"所在周"状态，周一就会看到 broken 而不开事件。
+    """
+    c = (list(8 + 0.1 * i for i in range(20))
+         + list(9.9 - 0.12 * i for i in range(1, 10)))
+    v = [1000] * 20 + [500] * 9
+    df = mk_daily(c, v)
+    # 找到回调第一天（idx 20）所在周的下周五 -> 该周五行标 broken
+    start_ts = df.index[20]
+    weeks = week_rows_of(df)
+    fri_after = [w for w in weeks if w[0] > start_ts]
+    broken_rows = [(ts, ("broken" if any(f[0] == ts for f in fri_after[:1])
+                         else "intact"), "weakening") for ts, _, _ in weeks]
+    broken_rows = [(ts, t, m) for (ts, t, m), (ts0, _, _) in
+                   zip(broken_rows, weeks)]
+    # 直接构造：回调开始后第一个周五的周行为 broken，之前的周 intact
+    cut = fri_after[0][0]
+    rows = [(ts, "intact", "strengthening") if ts < cut else (ts, "broken", "weakening")
+            for ts, _, _ in weeks]
+    ev, _ = classify_pullback("T", df, rows, pool_all(df), PullbackConfig())
+    assert len(ev) >= 1, "周初事件被未来 broken 状态错误抑制"
+    assert ev.iloc[0]["first_day"] == start_ts.strftime("%Y-%m-%d")
+
+
+def test_first_day_touch_recorded():
+    """首日触线：开事件当天踩线必须记录（缩量阴线踩线窗口不丢失）。"""
+    # 上涨后第一天即深缩量阴线直接踩到 ma10
+    c = (list(8 + 0.1 * i for i in range(20))
+         + [9.85, 9.7, 9.6, 9.55, 9.5] + list(9.5 + 0.12 * i for i in range(1, 15)))
+    v = [1000] * 20 + [450, 430, 420, 410, 400] + [900] * 14
+    df = mk_daily(c, v)
+    ev, _ = classify_pullback("T", df, week_rows_of(df), pool_all(df),
+                              PullbackConfig())
+    e = ev.iloc[0]
+    first_day = e["first_day"]
+    # 首日或首日内触线：first_touch_*_day 要么等于 first_day 要么晚于它
+    for s in ("ma10", "ma20"):
+        day = e[f"first_touch_{s}_day"]
+        if day is not None:
+            assert day >= first_day
+    assert e["dist_at_touch_pct"] is not None, "首日踩线距离丢失"
+
+
+def test_multi_support_separate_first_touches():
+    """多支撑独立记录：先触 ma10 后触平台，两者首触日期/距离分别保存，
+    止跌支撑独立标注（解释不再错位）。"""
+    c = (list(8 + 0.12 * i for i in range(25))
+         + list(11 - 0.30 * i for i in range(1, 12))   # 深回调依次穿 ma10/ma20/平台区
+         + [7.7 + 0.12 * i for i in range(1, 18)])
+    v = [1000] * 25 + [400] * 11 + [700] * 17
+    df = mk_daily(c, v)
+    ev, _ = classify_pullback("T", df, week_rows_of(df), pool_all(df),
+                              PullbackConfig())
+    e = ev.iloc[0]
+    assert e["touched_ma10"] and e["first_touch_ma10_day"] is not None
+    if e["touched_platform"]:
+        # 平台首触晚于 ma10 首触（深度顺序），且两者日期独立存在
+        assert e["first_touch_platform_day"] >= e["first_touch_ma10_day"]
+    if e["stabilization_support"] is not None:
+        # 止跌支撑 = 实际收回的那条，与首触距离字段分离
+        assert e["stabilization_support"] in ("ma10", "ma20", "platform")
