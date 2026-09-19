@@ -1,4 +1,0 @@
-sv_rebound,n,overnight_gap_med,overnight_gap_pos,next_day_open_to_close_med,next_day_open_to_close_pos,fwd1_med,fwd1_pos,fwd2_med,fwd2_pos,fwd3_med,fwd3_pos,fwd30_med,fwd30_pos,peak3_return_med,peak3_return_pos,giveback_from_peak3_med,giveback_from_peak3_pos,mae3_full_med,mae3_full_pos,mfe3_full_med,mfe3_full_pos
-,738611,0.0,0.3835,0.0,0.4891,-0.00072,0.4752,-0.00132,0.4763,-0.0012,0.482,-0.00683,0.4783,0.02775,0.9231,-0.03014,0.0,-0.02711,0.0469,0.02775,0.9231
-False,24385,0.0,0.4438,0.0,0.4626,0.0,0.4928,0.0,0.4946,0.0,0.4908,-0.00863,0.476,0.03206,0.9318,-0.03238,0.0,-0.02745,0.0683,0.03209,0.932
-True,103996,0.0,0.3999,0.0,0.4924,0.0,0.4862,-0.00126,0.4773,-0.00148,0.4785,-0.00516,0.4822,0.02632,0.9221,-0.02914,0.0,-0.02568,0.0516,0.02632,0.922
