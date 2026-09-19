@@ -26,9 +26,14 @@ import sys
 import time
 from pathlib import Path
 
+import pandas as pd
+
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 from stock_selector.research import panel_store as ps  # noqa: E402
+from stock_selector.research import state_axes as sa  # noqa: E402
+from stock_selector.data.tdx import TdxStore  # noqa: E402
+from stock_selector.config import load_config  # noqa: E402
 
 STAGES = ["base-check", "weekly-state", "pullback", "lifecycle", "entry-replay",
           "posneg", "chase", "exit-replay", "context-position"]
@@ -68,6 +73,8 @@ def build_parser() -> argparse.ArgumentParser:
                    help="base-check 附带：核心层转分区 Parquet 镜像")
     p.add_argument("--rule-version", default="stage0_v1")
     p.add_argument("--config-fingerprint", default="{}")
+    p.add_argument("--tdx-dir", default="/root/tdx_data", help="TDX日线根目录")
+    p.add_argument("--min-history", type=int, default=130)
     return p
 
 
@@ -162,6 +169,109 @@ def stage_base_check(args: argparse.Namespace) -> int:
     return 0
 
 
+def _market_days(store: TdxStore, start: str | None, end: str | None):
+    cal = store.market_calendar()
+    if cal is None:
+        raise RuntimeError("缺少指数交易日历；正式阶段禁止用首股回退")
+    return cal[(cal >= pd.Timestamp(start or cal.min())) &
+               (cal <= pd.Timestamp(end or cal.max()))]
+
+
+def stage_weekly_state(args: argparse.Namespace) -> int:
+    """第二批：按股票流式生成周线双轴旁路表。"""
+    import pandas as pd
+    from stock_selector.data.tdx import TdxStore
+
+    store = TdxStore(args.tdx_dir)
+    # 计算窗口带历史预热；结果窗口仍严格裁剪到 --start/--end。
+    full_cal = store.market_calendar()
+    if full_cal is None:
+        raise RuntimeError("缺少指数交易日历；正式阶段禁止用首股回退")
+    result_start = pd.Timestamp(args.start or full_cal.min())
+    result_end = pd.Timestamp(args.end or full_cal.max())
+    prior = full_cal[full_cal < result_start]
+    warmup_days = max(args.min_history + 10, 130)
+    compute_start = prior[max(0, len(prior) - warmup_days)] if len(prior) else result_start
+    # 日历延伸到截止日所在周的完整计划；价格数据仍严格截到 result_end，
+    # 防止周二截止被误判为短周周末完整确认。
+    end_iso = result_end.isocalendar()
+    same_end_week = full_cal[
+        (full_cal.isocalendar().year == end_iso.year) &
+        (full_cal.isocalendar().week == end_iso.week)
+    ]
+    compute_calendar_end = max(result_end, same_end_week.max() if len(same_end_week) else result_end)
+    cal = full_cal[(full_cal >= compute_start) & (full_cal <= compute_calendar_end)]
+    codes = sorted(store.list_codes())
+    if args.codes_limit:
+        codes = codes[:args.codes_limit]
+    if not codes:
+        print("没有可处理股票", file=sys.stderr)
+        return 2
+    out = Path(args.out or "output/research/lifecycle_v1/weekly_state_v1")
+    parts = out / "partitions"
+    parts.mkdir(parents=True, exist_ok=True)
+    manifest_path = out / ps.MANIFEST_NAME
+    old = ps.read_manifest(out) or {}
+    done = ps.completed_partitions(old) if args.resume else set()
+    log = ps.ResourceLogger(out)
+    cfg = sa.AxesConfig.from_config(load_config())
+    store_info = {"stage": "weekly-state", "rule_version": sa.RULE_VERSION,
+                  "tdx_dir": args.tdx_dir,
+                  "compute_date_range": [str(cal.min().date()), str(cal.max().date())],
+                  "result_date_range": [str(result_start.date()), str(result_end.date())],
+                  "codes": len(codes), "batch_size": args.batch,
+                  "memory_limit_mb": args.memory_limit_mb,
+                  "partitions": old.get("partitions", {})}
+    ps.write_manifest(out, store_info)
+    total = 0
+    for batch_name, batch_codes in ps.iter_code_batches(codes, args.batch, done):
+        t0 = time.time()
+        rows = []
+        missing = 0
+        for code in batch_codes:
+            daily = store.daily(code)
+            if daily is None or daily.empty:
+                missing += 1
+                continue
+            daily = daily[(daily.index >= cal.min()) & (daily.index <= cal.max())]
+            df = sa.classify_stock(code, daily, cal, cfg, min_history=args.min_history)
+            if len(df):
+                df = df[(df["date"] >= result_start.strftime("%Y-%m-%d")) &
+                        (df["date"] <= result_end.strftime("%Y-%m-%d"))]
+                if len(df):
+                    rows.append(df)
+        part = pd.concat(rows, ignore_index=True) if rows else pd.DataFrame(columns=sa.AXES_COLUMNS)
+        target = parts / f"{batch_name}.parquet"
+        if len(part):
+            info = ps.write_partitioned_parquet(part, target.parent / batch_name,
+                                                partition_by="year")
+            # 一个批次目录按年份分区；manifest记录目录而不是假设单文件
+            output_bytes = sum(v["bytes"] for v in info["files"].values())
+        else:
+            target.parent.mkdir(parents=True, exist_ok=True)
+            output_bytes = 0
+        total += len(part)
+        rss_state = log.memory_guard(args.memory_limit_mb)
+        log.batch(batch_name, len(part), stage="weekly-state",
+                  extra={"missing": missing, "bytes": output_bytes, "guard": rss_state})
+        ps.mark_partition(manifest_path, batch_name, status="done", rows=len(part),
+                          seconds=time.time() - t0, rss_mb=log.peak_rss_mb,
+                          missing=missing)
+        print(f"[{batch_name}] codes={len(batch_codes)} rows={len(part)} "
+              f"missing={missing} rss={log.peak_rss_mb:.0f}MB")
+        if rss_state == "stop":
+            print("达到内存红线，停止当前阶段；降低 --batch 后 --resume 续跑。",
+                  file=sys.stderr)
+            return 5
+    final = ps.read_manifest(out) or store_info
+    final.update({"rows_out": total, "peak_rss_mb": log.peak_rss_mb,
+                  "status": "complete", "completed_at": time.strftime("%Y-%m-%dT%H:%M:%S")})
+    ps.write_manifest(out, final)
+    print(f"[weekly-state] 完成：codes={len(codes)} rows={total} "
+          f"peak_rss={log.peak_rss_mb:.0f}MB out={out}")
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     if args.workers != 1:
@@ -170,8 +280,10 @@ def main(argv: list[str] | None = None) -> int:
         return 2
     if args.stage == "base-check":
         return stage_base_check(args)
+    if args.stage == "weekly-state":
+        return stage_weekly_state(args)
     print(f"阶段 {args.stage} 属于{BATCH_OF_STAGE[args.stage]}，"
-          f"阶段零只实现 base-check；按方案顺序到对应批次再实现。",
+          f"当前只实现 base-check/weekly-state；按方案顺序到对应批次再实现。",
           file=sys.stderr)
     return 3
 
