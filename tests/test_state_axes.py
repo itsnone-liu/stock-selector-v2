@@ -178,6 +178,44 @@ def test_no_future_leakage():
             == merged["prev_week_class_f"].fillna("__na__")).all()
 
 
+def test_recovery_eff_price_invariant():
+    """恢复效率必须无量纲：相同百分比走势在 10 元和 100 元基准下结果一致。"""
+    effs = []
+    for base in (10.0, 100.0):
+        df = make_daily([("u", 5, 1.0), ("u", 6, 1.2), ("d", 4, 0.6), ("u", 6, 1.1)],
+                        base=base)
+        res = axes_of(df)
+        r = last_row(res)
+        assert r["current_momentum"] == sa.MOM_RECOVERING
+        effs.append(r["cross_week_recovery_eff"])
+    assert effs[0] == effs[1] and effs[0] > 0
+
+
+def test_monday_veto_prorated_volume():
+    """周一放量阴否决按周完成度折算：单日 40% 周量、折算 2 倍于上周即触发。"""
+    df = make_daily([("u", 5, 1.0), ("u", 6, 1.2), ("u", 4, 1.0), ("u", 5, 1.0)])
+    # 重写最后一周：周一巨量阴线 = 0.4 * (2.0 * 上周量) -> 折算量比 2.0 >= 1.5
+    i_open = df.columns.get_loc("open")
+    i_vol = df.columns.get_loc("volume")
+    prev_week_vol = float(df["volume"].iloc[-10:-5].sum())
+    mon = df.index[-5]
+    df.loc[mon, "open"] = df.loc[mon, "close"] * 1.03  # 阴线
+    df.loc[mon, "volume"] = 0.4 * 2.0 * prev_week_vol
+    res = sa.classify_stock_axes(df, pd.DatetimeIndex(df.index), CFG, min_history=10)
+    monday = res[res["session_ordinal_in_week"] == 1].iloc[-1]
+    assert monday["current_momentum"] == sa.MOM_HEAVY_DECLINE
+    assert monday["weekday_path"] == "monday_veto"
+    assert monday["evidence_completeness"] == "intraday_veto"
+    # 反例：同样巨量但阳线 -> 不否决，沿用上周
+    df2 = make_daily([("u", 5, 1.0), ("u", 6, 1.2), ("u", 4, 1.0), ("u", 5, 1.0)])
+    df2.loc[mon, "open"] = df2.loc[mon, "close"] * 0.97  # 阳线
+    df2.loc[mon, "volume"] = 0.4 * 2.0 * prev_week_vol
+    res2 = sa.classify_stock_axes(df2, pd.DatetimeIndex(df2.index), CFG, min_history=10)
+    monday2 = res2[res2["session_ordinal_in_week"] == 1].iloc[-1]
+    assert monday2["weekday_path"] == "monday_carry"
+    assert monday2["current_momentum"] == sa.MOM_STRENGTHENING
+
+
 def test_every_day_one_row_and_columns():
     df = make_daily([("u", 5, 1.0), ("u", 6, 1.2), ("u", 4, 1.0), ("d", 3, 0.5),
                      ("u", 6, 1.1)])

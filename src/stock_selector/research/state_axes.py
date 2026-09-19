@@ -232,9 +232,12 @@ def classify_stock_axes(daily: pd.DataFrame, calendar: pd.DatetimeIndex,
             mom, mom_reason, path, comp = (MOM_UNCLEAR, "no_completed_week",
                                            "early", "insufficient")
         elif session == 1:
-            # 周一：完整周基础 + 当日只增证据（放量阴否决）
+            # 周一：完整周基础 + 当日只增证据（放量阴否决，量按周完成度折算，
+            # 与周三四同口径，防止周一单日量被整周量稀释而漏判）
             day_open = float(day["open"])
-            ratio = cbar["volume"] / float(prev1["volume"]) if float(prev1["volume"]) > 0 else 0.0
+            prev_vol1 = float(prev1["volume"])
+            prorated = cbar["volume"] / completion if 0 < completion <= 1 else cbar["volume"]
+            ratio = prorated / prev_vol1 if prev_vol1 > 0 else 0.0
             if day["close"] < day_open and ratio >= cfg.veto_ratio:
                 mom, mom_reason = MOM_HEAVY_DECLINE, "monday_intraday_heavy_decline_veto"
                 path, comp = "monday_veto", "intraday_veto"
@@ -278,9 +281,12 @@ def classify_stock_axes(daily: pd.DataFrame, calendar: pd.DatetimeIndex,
 
         rec_eff = None
         if mom == MOM_RECOVERING and prev1 is not None:
-            prev_drop = float(prev1["open"]) - float(prev1["close"])
-            realized = _pct(cbar["close"], cbar["open"])
-            rec_eff = round(realized / prev_drop, 4) if prev_drop > 0 else None
+            # 双阳恢复跨周效率：当周已实现涨幅% / 前周跌幅%（%/% 无量纲，
+            # 与股价绝对价位无关；=1 表示恰好收复前周全部跌幅）。
+            # 负值=周二恢复路径特有：已收上前周收盘但本周至今仍净跌。
+            prev_drop_pct = _pct(float(prev1["close"]), float(prev1["open"]))  # 负
+            realized = _pct(cbar["close"], cbar["open"])                       # 正
+            rec_eff = round(realized / abs(prev_drop_pct), 4) if prev_drop_pct < 0 else None
 
         prev_vol1 = float(prev1["volume"]) if prev1 else None
         prorated_ratio = (round(cbar["volume"] / completion / prev_vol1, 4)

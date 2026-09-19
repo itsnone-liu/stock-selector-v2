@@ -230,11 +230,13 @@ def read_table(source: str | Path, *,
                columns: Sequence[str] | None = None,
                start: str | None = None, end: str | None = None,
                codes: Sequence[str] | None = None,
-               chunk_rows: int | None = None) -> pd.DataFrame | Iterator[pd.DataFrame]:
+               chunk_rows: int | None = None,
+               date_col: str = "date") -> pd.DataFrame | Iterator[pd.DataFrame]:
     """统一读取入口。
 
     - columns: 列裁剪（parquet 走投影下推；csv 走 usecols，均不整帧加载）
-    - start/end: 闭区间日期过滤（YYYY-MM-DD）
+    - start/end: 闭区间日期过滤（YYYY-MM-DD），作用于 date_col 指定的
+      日期列（默认 "date"；episode 类事件表传 first_trigger_date）
     - codes: 股票代码过滤
     - chunk_rows: 给定则返回迭代器（分块流式），否则返回单个 DataFrame
     """
@@ -244,9 +246,9 @@ def read_table(source: str | Path, *,
     if backend in ("csv", "csvzst"):
         it = _iter_csv_like(p, columns, chunk_rows)
         if chunk_rows:
-            return _filtered_chunks(it, start, end, codes)
+            return _filtered_chunks(it, start, end, codes, date_col)
         df = next(it)
-        return _filter_frame(df, start, end, codes)
+        return _filter_frame(df, start, end, codes, date_col)
 
     if not HAS_DUCKDB:
         raise RuntimeError("parquet 后端需要 duckdb（pip 安装 duckdb>=1.5）")
@@ -256,7 +258,7 @@ def read_table(source: str | Path, *,
         frames = []
         for f in sorted(p.rglob("*.csv")) + sorted(p.rglob("*.csv.zst")):
             frames.append(read_table(f, columns=columns, start=start, end=end,
-                                     codes=codes))
+                                     codes=codes, date_col=date_col))
         df = pd.concat(frames, ignore_index=True) if frames else pd.DataFrame()
         return _chunked_or_single(df, chunk_rows)
 
@@ -264,33 +266,34 @@ def read_table(source: str | Path, *,
     if chunk_rows:
         # 分页生成器自持连接（惰性求值，不能被 finally 提前关闭）
         return _paged_chunks_source(_sql_source(backend, p), columns,
-                                    _where_sql(start, end, codes), chunk_rows)
+                                    _where_sql(start, end, codes, date_col),
+                                    chunk_rows, _norm_col=date_col)
     con = duckdb.connect()
     try:
         sel = ", ".join(_quote_ident(c) for c in columns) if columns else "*"
-        where = _where_sql(start, end, codes)
+        where = _where_sql(start, end, codes, date_col)
         q = f"SELECT {sel} FROM {_sql_source(backend, p)}"
         if where:
             q += " WHERE " + where
-        return _normalize_dates(con.execute(q).df())
+        return _normalize_dates(con.execute(q).df(), date_col)
     finally:
         con.close()
 
 
-def _normalize_dates(df: pd.DataFrame) -> pd.DataFrame:
-    """接口契约：date 列统一为 ISO 字符串（与 CSV 路径一致），后端无感知。"""
-    if "date" in df.columns and not pd.api.types.is_object_dtype(df["date"]):
+def _normalize_dates(df: pd.DataFrame, date_col: str = "date") -> pd.DataFrame:
+    """接口契约：日期键列统一为 ISO 字符串（与 CSV 路径一致），后端无感知。"""
+    if date_col in df.columns and not pd.api.types.is_object_dtype(df[date_col]):
         df = df.copy()
-        df["date"] = pd.to_datetime(df["date"]).dt.strftime("%Y-%m-%d")
+        df[date_col] = pd.to_datetime(df[date_col]).dt.strftime("%Y-%m-%d")
     return df
 
 
-def _where_sql(start, end, codes) -> str:
+def _where_sql(start, end, codes, date_col: str = "date") -> str:
     parts = []
     if start or end:
         lo = start or "0000-01-01"
         hi = end or "9999-12-31"
-        parts.append(f"date BETWEEN '{lo}' AND '{hi}'")
+        parts.append(f"{_quote_ident(date_col)} BETWEEN '{lo}' AND '{hi}'")
     if codes:
         vals = ", ".join("'" + c.replace("'", "''") + "'"
                          for c in dict.fromkeys(codes))
@@ -299,7 +302,7 @@ def _where_sql(start, end, codes) -> str:
 
 
 def _paged_chunks_source(source_sql: str, columns, where_sql: str,
-                         n: int) -> Iterator[pd.DataFrame]:
+                         n: int, _norm_col: str = "date") -> Iterator[pd.DataFrame]:
     con = duckdb.connect()
     try:
         sel = ", ".join(_quote_ident(c) for c in columns) if columns else "*"
@@ -309,7 +312,9 @@ def _paged_chunks_source(source_sql: str, columns, where_sql: str,
         q += " ORDER BY code, date"
         offset = 0
         while True:
-            df = _normalize_dates(con.execute(f"{q} LIMIT {n} OFFSET {offset}").df())
+            df = _normalize_dates(
+                con.execute(f"{q} LIMIT {n} OFFSET {offset}").df(),
+                _norm_col)
             if not len(df):
                 return
             yield df
@@ -318,19 +323,20 @@ def _paged_chunks_source(source_sql: str, columns, where_sql: str,
         con.close()
 
 
-def _filter_frame(df: pd.DataFrame, start, end, codes) -> pd.DataFrame:
+def _filter_frame(df: pd.DataFrame, start, end, codes,
+                  date_col: str = "date") -> pd.DataFrame:
     if start or end:
         lo = start or "0000-01-01"
         hi = end or "9999-12-31"
-        df = df[(df["date"] >= lo) & (df["date"] <= hi)]
+        df = df[(df[date_col] >= lo) & (df[date_col] <= hi)]
     if codes:
         df = df[df["code"].isin(set(codes))]
     return df.reset_index(drop=True)
 
 
-def _filtered_chunks(it, start, end, codes) -> Iterator[pd.DataFrame]:
+def _filtered_chunks(it, start, end, codes, date_col: str = "date") -> Iterator[pd.DataFrame]:
     for chunk in it:
-        out = _filter_frame(chunk, start, end, codes)
+        out = _filter_frame(chunk, start, end, codes, date_col)
         if len(out):
             yield out
 
@@ -352,11 +358,13 @@ def _simple_chunks(df: pd.DataFrame, n: int) -> Iterator[pd.DataFrame]:
 
 def write_partitioned_parquet(df: pd.DataFrame, out_dir: str | Path, *,
                               partition_by: str = "year",
-                              sort_by: Sequence[str] = ("code", "date"),
+                              date_col: str = "date",
+                              sort_by: Sequence[str] | None = None,
                               row_group_size: int = 200_000,
                               single_file_max_gb: float = 2.0) -> dict:
     """按年份分区写出 Parquet(ZSTD)。确定性：列序=df 列序，行序=sort_by。
 
+    date_col 指定分区键日期列（默认 "date"；事件表可传 first_trigger_date）。
     single_file_max_gb 为软约束：单分区超出时按股票代码段再切分，
     禁止生成超限单体文件。
     """
@@ -366,12 +374,14 @@ def write_partitioned_parquet(df: pd.DataFrame, out_dir: str | Path, *,
     out.mkdir(parents=True, exist_ok=True)
     if partition_by != "year":
         raise ValueError("阶段零仅支持 year 分区")
-    if "date" not in df.columns:
-        raise ValueError("分区键需要 date 列")
+    if date_col not in df.columns:
+        raise ValueError(f"分区键需要 {date_col} 列")
+    if sort_by is None:
+        sort_by = ("code", date_col)
 
     work = df.copy()
-    work["date"] = work["date"].astype(str)
-    work["_year"] = work["date"].str.slice(0, 4)
+    work[date_col] = work[date_col].astype(str)
+    work["_year"] = work[date_col].str.slice(0, 4)
     work = work.sort_values(list(sort_by)).reset_index(drop=True)
 
     written = {}
@@ -488,24 +498,94 @@ def stable_event_id(codes: Iterable[str], dates: Iterable[str],
 # 股票批次与断点续跑
 # --------------------------------------------------------------------------
 
+def codes_fingerprint(codes: Sequence[str]) -> str:
+    """批次代码集合指纹：排序去重后 md5[:12]，作为分区身份。"""
+    joined = ",".join(sorted(dict.fromkeys(codes)))
+    return hashlib.md5(joined.encode()).hexdigest()[:12]
+
+
 def iter_code_batches(codes: Sequence[str], batch_size: int,
-                      resume_from: set[str] | None = None) -> Iterator[tuple[str, list[str]]]:
-    """股票分批；resume_from 中的批次名直接跳过（已完成分区复用）。"""
+                      resume_from: set[str] | None = None
+                      ) -> Iterator[tuple[str, list[str]]]:
+    """股票分批；分区名 = 序号+首尾码+集合指纹。
+
+    批次身份由代码集合决定而非序号：改变 --batch 重新划分后，
+    旧序号分区不会与新批次混淆（不同集合指纹必然不同名）。
+    resume_from 匹配的是完整分区名，因此只有集合完全一致时才复用。
+    """
     ordered = sorted(dict.fromkeys(codes))
     n_batches = (len(ordered) + batch_size - 1) // batch_size
     for i in range(n_batches):
-        name = f"batch_{i:04d}"
+        chunk = ordered[i * batch_size:(i + 1) * batch_size]
+        name = f"batch_{i:04d}_{chunk[0]}-{chunk[-1]}_{codes_fingerprint(chunk)}"
         if resume_from and name in resume_from:
             continue
-        yield name, ordered[i * batch_size:(i + 1) * batch_size]
+        yield name, chunk
 
 
 def mark_partition(manifest_path: Path, name: str, *, status: str,
                    rows: int = 0, seconds: float = 0.0, rss_mb: float = 0.0,
+                   codes: Sequence[str] | None = None,
                    **extra) -> None:
-    """原子更新清单中的分区状态（读-改-写，单进程约定下安全）。"""
+    """原子更新清单中的分区状态（读-改-写，单进程约定下安全）。
+
+    codes 记录该批次的股票清单，闭合检查据此验证覆盖无遗漏。
+    """
     m = json.loads(manifest_path.read_text()) if manifest_path.exists() else {"partitions": {}}
-    m.setdefault("partitions", {})[name] = {
-        "status": status, "rows": rows, "seconds": round(seconds, 2),
-        "rss_mb": round(rss_mb, 1), **extra}
+    rec = {"status": status, "rows": rows, "seconds": round(seconds, 2),
+           "rss_mb": round(rss_mb, 1), **extra}
+    if codes is not None:
+        rec["codes"] = sorted(codes)
+        rec["n_codes"] = len(rec["codes"])
+    m.setdefault("partitions", {})[name] = rec
     manifest_path.write_text(json.dumps(m, ensure_ascii=False, indent=2))
+
+
+def validate_resume(old: dict, codes: Sequence[str], batch_size: int) -> str | None:
+    """断点续跑一致性闸门：通过返回 None，否则返回拒绝原因。
+
+    - 股票清单指纹必须与上次运行一致（universe_fingerprint）
+    - 已完成分区名必须全部落在当前批次划分内（--batch 不变）
+    """
+    if not old.get("partitions"):
+        return None
+    fp = codes_fingerprint(codes)
+    if old.get("universe_fingerprint") != fp:
+        return ("股票清单与上次运行不同（universe_fingerprint 不匹配）；"
+                "续跑要求相同股票范围，清单变更请换新版本目录重跑")
+    current = {name for name, _ in iter_code_batches(codes, batch_size)}
+    stale = set(old["partitions"]) - current
+    if stale:
+        return (f"{len(stale)} 个已完成分区不属于当前批次划分（--batch 或清单顺序变化）；"
+                "请保持与上次相同的 --batch 续跑，或换新版本目录重跑")
+    return None
+
+
+def closure_check(manifest: dict, expected_codes: Sequence[str]) -> dict:
+    """闭合检查：done 分区代码并集 = 预期全集且两两不重叠。
+
+    rows_out 取全部 done 分区行之和（而非本次运行累计），
+    防止续跑后清单错误宣布完成。
+    """
+    done_rec = {n: r for n, r in manifest.get("partitions", {}).items()
+                if r.get("status") == "done"}
+    covered: set[str] = set()
+    overlap: set[str] = set()
+    for rec in done_rec.values():
+        cs = set(rec.get("codes", []))
+        overlap |= covered & cs
+        covered |= cs
+    expected = set(expected_codes)
+    missing = sorted(expected - covered)
+    rows_total = sum(int(r.get("rows", 0)) for r in done_rec.values())
+    complete = not missing and not overlap
+    return {
+        "expected_codes": len(expected),
+        "covered_codes": len(covered & expected),
+        "missing_count": len(missing),
+        "missing_codes_head": missing[:20],
+        "partition_overlap": sorted(overlap)[:20],
+        "done_partitions": len(done_rec),
+        "rows_out": rows_total,
+        "complete": complete,
+    }

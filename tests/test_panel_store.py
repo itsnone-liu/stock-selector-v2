@@ -35,20 +35,112 @@ def test_resume_skips_completed_partitions(tmp_path):
     codes = [f"{i:06d}" for i in range(10)]
     manifest_path = tmp_path / ps.MANIFEST_NAME
     done = set()
+    all_names = []
     for name, batch in ps.iter_code_batches(codes, 3, resume_from=done):
-        ps.mark_partition(manifest_path, name, status="done", rows=len(batch))
+        ps.mark_partition(manifest_path, name, status="done", rows=len(batch),
+                          codes=batch)
         done.add(name)
-    assert done == {f"batch_{i:04d}" for i in range(4)}
+        all_names.append(name)
+    assert len(all_names) == 4
+    # 分区名 = 序号+首尾码+集合指纹（批次身份稳定，含代码范围）
+    assert all(n.startswith("batch_") for n in all_names)
+    for n, b in zip(all_names, [codes[0:3], codes[3:6], codes[6:9], codes[9:10]]):
+        assert b[0] in n and b[-1] in n and ps.codes_fingerprint(b) in n
 
-    # 人为中断：batch_0002 标记失败
+    # 人为中断：第二批次标记失败
     m = json.loads(manifest_path.read_text())
-    m["partitions"]["batch_0002"]["status"] = "failed"
+    m["partitions"][all_names[1]]["status"] = "failed"
     manifest_path.write_text(json.dumps(m))
 
     resumed = {name for name, _ in
                ps.iter_code_batches(codes, 3, resume_from=ps.completed_partitions(
                    json.loads(manifest_path.read_text())))}
-    assert resumed == {"batch_0002"}  # 只重算失败分区
+    assert resumed == {all_names[1]}  # 只重算失败分区
+
+
+def test_batch_identity_changes_with_batch_size_and_codes():
+    codes = [f"{i:06d}" for i in range(10)]
+    names_b3 = [n for n, _ in ps.iter_code_batches(codes, 3)]
+    names_b5 = [n for n, _ in ps.iter_code_batches(codes, 5)]
+    # 改变批量 -> 划分不同，分区名必然不同（不会串档复用）
+    assert not (set(names_b3) & set(names_b5))
+    # 相同批量+清单 -> 确定性身份
+    again = [n for n, _ in ps.iter_code_batches(codes, 3)]
+    assert again == names_b3
+    # 清单裁剪 -> 分区数减少；同名分区（相同代码集合）复用是安全的，
+    # 身份=代码集合：同名必然同集合
+    codes2 = codes[:-1]
+    m1 = dict(ps.iter_code_batches(codes, 3))
+    m2 = dict(ps.iter_code_batches(codes2, 3))
+    assert len(m2) == 3  # 9 只 -> 3 批
+    for n in set(m1) & set(m2):
+        assert m1[n] == m2[n]
+    assert sorted(c for cs in m2.values() for c in cs) == codes2
+
+
+def test_validate_resume_rejects_universe_and_batch_change(tmp_path):
+    codes = [f"{i:06d}" for i in range(10)]
+    manifest_path = tmp_path / ps.MANIFEST_NAME
+    for name, batch in ps.iter_code_batches(codes, 3):
+        ps.mark_partition(manifest_path, name, status="done", codes=batch)
+    manifest = json.loads(manifest_path.read_text())
+    manifest["universe_fingerprint"] = ps.codes_fingerprint(codes)
+    manifest_path.write_text(json.dumps(manifest))
+
+    # 完全一致 -> 放行
+    assert ps.validate_resume(json.loads(manifest_path.read_text()), codes, 3) is None
+    # 清单变化 -> 拒绝
+    reason = ps.validate_resume(json.loads(manifest_path.read_text()),
+                                codes + ["999999"], 3)
+    assert reason and "清单" in reason
+    # 批量变化 -> 拒绝（旧分区名不在新划分中）
+    reason = ps.validate_resume(json.loads(manifest_path.read_text()), codes, 5)
+    assert reason and "--batch" in reason
+
+
+def test_closure_check_missing_overlap_and_rows():
+    codes = [f"{i:06d}" for i in range(9)]
+    manifest = {"partitions": {
+        "p1": {"status": "done", "rows": 10, "codes": codes[0:3]},
+        "p2": {"status": "done", "rows": 20, "codes": codes[3:6]},
+        "p3": {"status": "failed", "rows": 5, "codes": codes[6:9]},
+    }}
+    res = ps.closure_check(manifest, codes)
+    assert res["complete"] is False
+    assert res["missing_codes_head"] == codes[6:9]
+    assert res["rows_out"] == 30  # 只算 done 分区
+    # 修复后闭合
+    manifest["partitions"]["p3"] = {"status": "done", "rows": 5, "codes": codes[6:9]}
+    res = ps.closure_check(manifest, codes)
+    assert res["complete"] is True
+    assert res["rows_out"] == 35
+    # 分区重叠 -> 不闭合（防重复落盘宣布完成）
+    manifest["partitions"]["p4"] = {"status": "done", "rows": 7, "codes": codes[0:2]}
+    res = ps.closure_check(manifest, codes)
+    assert res["complete"] is False
+    assert res["partition_overlap"]
+
+
+def test_read_table_date_col_event_table(tmp_path):
+    """事件表用 first_trigger_date 过滤（episode 类），不是 date。"""
+    rows = [{"code": "000001", "first_trigger_date": d, "signal": i}
+            for i, d in enumerate(pd.bdate_range("2024-01-01", periods=20)
+                                  .strftime("%Y-%m-%d"))]
+    csv = tmp_path / "events.csv"
+    pd.DataFrame(rows).to_csv(csv, index=False)
+    mid = ps.read_table(csv, start="2024-01-15", end="2024-01-31",
+                        date_col="first_trigger_date")
+    assert len(mid) == 10  # 1/15..1/26 的 10 个工作日
+    assert (mid["first_trigger_date"] >= "2024-01-15").all()
+    parquet_dir = tmp_path / "pq"
+    ps.write_partitioned_parquet(pd.DataFrame(rows), parquet_dir,
+                                 date_col="first_trigger_date")
+    mid_pq = ps.read_table(parquet_dir, start="2024-01-15", end="2024-01-31",
+                           date_col="first_trigger_date")
+    assert len(mid_pq) == 10
+    # 默认 date_col=date：无该列时过滤报错/不过滤的契约不适用事件表
+    with pytest.raises(Exception):
+        ps.read_table(csv, start="2024-01-15", end="2024-01-31")
 
 
 # ---------------------------------------------------------------- 2. 列裁剪

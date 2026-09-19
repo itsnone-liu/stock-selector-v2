@@ -69,6 +69,19 @@ $PY scripts/run_research_stage.py --stage base-check \
     --build-parquet --memory-limit-mb 2500
 ```
 
+周线双轴旁路表（阶段一，`state_axes.py`：趋势结构 × 当前动能，星期分支
++短周口径，人工行情语义测试在 `tests/test_state_axes.py`）：
+
+```bash
+$PY scripts/run_research_stage.py --stage weekly-state \
+    --start 2024-01-01 --end 2024-12-31 --batch 100 \
+    --out output/research/lifecycle_v1/weekly_state_v1 --memory-limit-mb 2500
+# 默认只输出动态月线池内(in)的行；--universe all 输出全市场事实+池状态标注列。
+# 断点续跑：--resume 要求与上次相同的 --batch 与股票清单（分区身份=代码集合
+# 指纹）；改变批量或清单请换新版本目录。完成时 manifest 闭合检查校验覆盖与
+# 分区无重叠，rows_out 取全部 done 分区行之和。
+```
+
 运行时资源约束（内存红线/批量/单文件上限/运行阶梯）见
 `config/research/staged/runtime.yaml`。核心层 Parquet 镜像在
 `output/research/momentum_panel_v3_parquet/`（ZSTD、year 分区；CSV 原件仍是
