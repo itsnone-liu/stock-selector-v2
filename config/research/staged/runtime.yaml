@@ -1,0 +1,29 @@
+# 分阶段研究运行时约束（docs/plans/STAGED_RESEARCH_PLAN_20260919.md 第三节）
+# 阶段零起生效；修改需递增 version，不覆盖旧产物约定
+version: stage0_runtime_v1
+
+resource_limits:
+  peak_memory_mb: 2500        # 硬顶：达到即停当前分区并降低批量
+  warn_memory_mb: 2200        # 预警线
+  batch_codes_default: 100    # 每批股票数；低内存服务器从 50 起步
+  batch_codes_low_memory: 50
+  workers: 1                  # 单进程；独立机器或内存确认后才开放分区并行
+  intermediate_file_max_gb: 2 # 单个中间文件上限，超限按年份/代码段再分区
+
+storage:
+  default_backend: parquet    # 旁路表默认 Parquet(ZSTD, year 分区)
+  result_tables: parquet      # 结果层同样默认 parquet，禁止 13GB 单体宽表
+  csv_source_of_truth: true   # 核心层 CSV 原件保留，parquet 为镜像
+  holding_context: event_aggregated  # 持有期背景按事件聚合，不落盘逐日明细
+
+run_ladder:                   # 运行阶梯：全量前必须逐级通过
+  - unit_tests            # 人工行情，数秒
+  - manual_samples        # 20-30 只已知股票可视化核对
+  - smoke_50_3m           # 50 股 x 3 个月冒烟
+  - medium_300_1y         # 300 股 x 1 年中等样本，估算全量资源
+  - partitioned_full      # 分区全量构建（断点续跑）
+  - light_summary         # 轻量汇总：只读必要列
+
+promotion_guard:
+  full_run_per_stage_max: 1   # 每阶段全量最多跑一次
+  medium_extrapolation_required: true  # 中等样本推算超预算必须先缩字段

@@ -11,6 +11,7 @@ dependencies = ["pandas>=2.0", "numpy>=1.24", "mootdx>=0.11", "PyYAML>=6.0", "re
 
 [project.optional-dependencies]
 dev = ["pytest>=8"]
+research = ["duckdb>=1.5"]  # 分阶段研究存储接口的 parquet 后端（阶段零）
 
 [project.scripts]
 stock-selector = "stock_selector.cli:main"

@@ -53,8 +53,26 @@ PY=/root/.hermes/hermes-agent/venv/bin/python3
 
 ```bash
 python3 -m venv .venv
-.venv/bin/pip install -e '.[dev]'
+.venv/bin/pip install -e '.[dev, research]'
 ```
+
+## 分阶段研究入口（阶段零起）
+
+方案见 `docs/plans/STAGED_RESEARCH_PLAN_20260919.md`；统一存储接口
+`src/stock_selector/research/panel_store.py`（csv / csv.zst / parquet 多后端，
+列裁剪、分区、断点续跑、清单、资源日志），统一命令：
+
+```bash
+$PY scripts/run_research_stage.py --stage base-check \
+    --core-dir output/research/momentum_panel_v3 \
+    --out output/research/lifecycle_v1/base_check \
+    --build-parquet --memory-limit-mb 2500
+```
+
+运行时资源约束（内存红线/批量/单文件上限/运行阶梯）见
+`config/research/staged/runtime.yaml`。核心层 Parquet 镜像在
+`output/research/momentum_panel_v3_parquet/`（ZSTD、year 分区；CSV 原件仍是
+source of truth）。
 
 ## 命令
 
