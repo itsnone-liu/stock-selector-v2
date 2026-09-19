@@ -27,19 +27,15 @@ def mk_daily(closes, vols, start="2024-01-02"):
 
 def week_rows_of(df, trend="intact", mom="strengthening", broken_from=None,
                  broken_from_date=None):
-    """周行列表（周最后交易日, trend, momentum）升序。
+    """双轴行列表（每交易日一行, date, trend, momentum）升序。
 
-    broken_from_date: 指定日期起**之后**的周行才变 broken——
-    模拟"周内后段才转坏"（周 PIT 测试用）。
+    与阶段一双轴表粒度一致：每行只含截至当日收盘的数据。
+    broken_from / broken_from_date：自该日线位置/日期起状态变 broken。
     """
     rows = []
     for i, ts in enumerate(df.index):
-        is_friday = ts.weekday() == 4 or i == len(df) - 1
-        if not is_friday:
-            continue
-        if broken_from is not None and i >= broken_from:
-            rows.append((ts, "broken", "weakening"))
-        elif broken_from_date is not None and ts >= broken_from_date:
+        if (broken_from is not None and i >= broken_from) or (
+                broken_from_date is not None and ts >= broken_from_date):
             rows.append((ts, "broken", "weakening"))
         else:
             rows.append((ts, trend, mom))
@@ -135,8 +131,8 @@ def test_structure_break_ends_event():
     first_broken_week_end = broken_fridays[0]
     ev, _ = classify_pullback("T", df, rows, pool_all(df), PullbackConfig())
     assert ev.iloc[0]["end_reason"] == "structure_break"
-    # 生效时点必须晚于（等于次日起）broken 周的最后交易日
-    assert pd.Timestamp(ev.iloc[0]["end_day"]) > first_broken_week_end
+    # 生效时点 = broken 双轴行当日（收盘后证据同日联用）
+    assert pd.Timestamp(ev.iloc[0]["end_day"]) >= first_broken_week_end
 
 
 def test_broken_week_opens_no_event():
@@ -296,32 +292,46 @@ def test_thirty_scenario_coverage(name, dip, slope, recover, vol, kind):
     assert len(dly) >= len(ev)
 
 
-def test_week_pit_no_intra_week_future_leak():
-    """周 PIT：周初事件不得使用本周五才确立的 broken 状态。
+def test_same_day_axis_alignment_monday_veto():
+    """同日联用：周一放量下跌，当日即见否决/负状态（不延迟一天）。
 
-    构造：回调从周一开始，但当周五（该周结束后）周线才转 broken。
-    正确语义：周一/周二开事件用上一完整周（intact）-> 事件应开启；
-    若错误地用"所在周"状态，周一就会看到 broken 而不开事件。
+    双轴表每交易日一行且只含截至当日数据——日线特征与当日双轴状态
+    同为收盘后证据。构造：broken 双轴行出现在周一，事件应在周一
+    当日（而非周二）结束。
     """
     c = (list(8 + 0.1 * i for i in range(20))
          + list(9.9 - 0.12 * i for i in range(1, 10)))
     v = [1000] * 20 + [500] * 9
     df = mk_daily(c, v)
-    # 找到回调第一天（idx 20）所在周的下周五 -> 该周五行标 broken
-    start_ts = df.index[20]
-    weeks = week_rows_of(df)
-    fri_after = [w for w in weeks if w[0] > start_ts]
-    broken_rows = [(ts, ("broken" if any(f[0] == ts for f in fri_after[:1])
-                         else "intact"), "weakening") for ts, _, _ in weeks]
-    broken_rows = [(ts, t, m) for (ts, t, m), (ts0, _, _) in
-                   zip(broken_rows, weeks)]
-    # 直接构造：回调开始后第一个周五的周行为 broken，之前的周 intact
-    cut = fri_after[0][0]
-    rows = [(ts, "intact", "strengthening") if ts < cut else (ts, "broken", "weakening")
-            for ts, _, _ in weeks]
-    ev, _ = classify_pullback("T", df, rows, pool_all(df), PullbackConfig())
-    assert len(ev) >= 1, "周初事件被未来 broken 状态错误抑制"
-    assert ev.iloc[0]["first_day"] == start_ts.strftime("%Y-%m-%d")
+    mondays = [ts for ts in df.index if ts.weekday() == 0]
+    assert mondays, "测试数据应覆盖至少一个周一"
+    first_monday_in_event = [ts for ts in mondays
+                             if ts > df.index[20]][0]
+    rows = week_rows_of(df, broken_from_date=first_monday_in_event)
+    ev, dly = classify_pullback("T", df, rows, pool_all(df), PullbackConfig())
+    e = ev.iloc[0]
+    assert e["end_reason"] == "structure_break"
+    assert e["end_day"] == first_monday_in_event.strftime("%Y-%m-%d"), \
+        "周一 broken 状态必须当日生效，不得延迟到周二"
+
+
+def test_same_day_axis_alignment_daily_rows_carry_current_state():
+    """每日明细的 week_trend/week_momentum 取当日双轴行（<= 对齐），
+    周一用周一、周二用周二——周内逐日演化不整体延迟。"""
+    c = (list(8 + 0.1 * i for i in range(20))
+         + list(9.9 - 0.12 * i for i in range(1, 8)))
+    v = [1000] * 20 + [500] * 7
+    df = mk_daily(c, v)
+    # 双轴动能在事件第 3 天转 weakening：明细该日应立刻是 weakening
+    switch_ts = df.index[22]
+    rows = [(ts, "intact", "weakening" if ts >= switch_ts else "strengthening")
+            for ts in df.index]
+    ev, dly = classify_pullback("T", df, rows, pool_all(df), PullbackConfig())
+    row3 = dly[dly["date"] == switch_ts.strftime("%Y-%m-%d")]
+    assert len(row3) == 1
+    assert row3.iloc[0]["week_momentum"] == "weakening", "当日状态必须当日可见"
+    row2 = dly[dly["date"] == df.index[21].strftime("%Y-%m-%d")]
+    assert row2.iloc[0]["week_momentum"] == "strengthening"
 
 
 def test_first_day_touch_recorded():

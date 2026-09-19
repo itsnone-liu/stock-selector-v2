@@ -5,7 +5,8 @@
 
 研究范围：
 - 只在月线池内（monthly_pool_state=='in'）的日线段上识别回调；
-- 周线状态来自阶段一双轴表（trend_structure/current_momentum，按 ISO 周对齐）；
+- 周线状态来自阶段一双轴表（每交易日一行、只含截至当日收盘数据）；
+  日线回调特征与当日双轴状态同为收盘后证据，同日联用（date<=d 对齐）；
 - 出池强制结束当前事件（pool_exit）——池外不产生、不延续事件。
 
 事件定义（去重核心）：
@@ -135,16 +136,18 @@ def _prepare_features(daily: pd.DataFrame, cfg: PullbackConfig) -> pd.DataFrame:
 
 
 def _align_week_axis(daily_index: pd.DatetimeIndex, week_rows: list) -> tuple:
-    """日线 -> 最后已完整结束周的双轴状态（PIT：不得用本周五结果判周一）。
+    """日线 -> 截至当日的双轴状态（date <= d 的最近周行）。
 
-    week_rows: [(周行date, trend, momentum)] 按日期升序；
-    日线 d 使用 date < d 的最近周行——周五收盘后确立的状态，
-    下一个交易日才可见；周内（周一~周五）一律用上一完整周。
+    第一阶段双轴表为每交易日一行、每行只使用截至当天收盘的数据
+    （周一 carry/否决、周二恢复路径均为当周内逐日演化）——日线回调
+    特征与当日双轴状态同为收盘后证据，可以同日联用：
+    周一放量下跌当日即可见否决状态、周二恢复路径当日可见。
+    若未来研究盘中执行，需另建盘中可见版本，不得与收盘状态混用。
     """
     trends, momentums = [], []
     i = -1
     for ts in daily_index:
-        while i + 1 < len(week_rows) and week_rows[i + 1][0] < ts:
+        while i + 1 < len(week_rows) and week_rows[i + 1][0] <= ts:
             i += 1
         if i >= 0:
             trends.append(week_rows[i][1])

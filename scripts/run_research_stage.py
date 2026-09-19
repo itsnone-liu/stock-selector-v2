@@ -558,7 +558,7 @@ def stage_pullback(args: argparse.Namespace) -> int:
         for rec in upool.drop_duplicates(subset=["code", "date"]).itertuples(index=False):
             pool_by_code.setdefault(rec.code, {})[rec.date] = \
                 (rec.monthly_pool_state == "in")
-        # 周行列表（date, trend, momentum）升序：日线用最后已完整结束周（PIT）
+        # 双轴行列表（date, trend, momentum）升序：当日收盘状态当日可用（<=）
         week_by_code: dict = {}
         for rec in (wax.drop_duplicates(subset=["code", "date"])
                     .sort_values(["code", "date"]).itertuples(index=False)):
