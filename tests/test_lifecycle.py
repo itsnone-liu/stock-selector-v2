@@ -206,3 +206,85 @@ def test_empty_inputs_and_short_history():
                              [], LifecycleConfig())
     assert len(out) == 0
     assert list(out.columns) == LIFECYCLE_COLUMNS
+
+
+def test_max_gain_recorded_in_percent():
+    # anchor 收盘 10.0，窗口最高 11.1 -> 上涨11% 应记录约11（非0.11）
+    c = [10.0] * 25 + [10.2 + 0.1 * i for i in range(10)] + [11.0] + [10.5] * 3
+    v = [1000] * len(c)
+    lc = run(c, v)
+    assert len(lc) >= 1
+    assert abs(lc.iloc[-1]["max_gain_from_anchor_pct"] - 11.0) < 0.01
+
+
+def test_anchor_day_stages_not_lost():
+    # 起点当天同时突破 + starting_to_damage -> 序列应含 breakout 后接 decay
+    # warmup 满后首个 regime 日即跳空突破（8.6>8.0），当日周线已 starting_to_damage
+    c = [8.0] * 20 + [8.6, 8.65, 8.7, 8.75, 8.8]
+    v = [1000] * len(c)
+    df = mk_daily(c, v)
+    anchor = df.index[20]  # 当日即突破
+    rows = [(ts, "starting_to_damage", "strengthening") for ts in df.index]
+    lc = classify_lifecycle("000001", df, rows, pool_all(df), [],
+                            LifecycleConfig())
+    assert len(lc) == 1
+    seq = lc.iloc[0]["stage_sequence"]
+    assert seq.startswith("breakout|decay"), seq  # 同日并存：突破当日即记衰减
+    assert lc.iloc[0]["decay_day"] == anchor.strftime("%Y-%m-%d")
+    assert lc.iloc[0]["breakout_day"] == anchor.strftime("%Y-%m-%d")
+
+
+def test_120_session_count_exact():
+    c = [8.0] * 150  # 长横盘：一直 preparation 直到 max_observation
+    v = [1000] * 150
+    lc = run(c, v, cfg=LifecycleConfig(max_observation_days=120))
+    mo = lc[lc["end_reason"] == "max_observation"]
+    assert len(mo) == 1
+    # 恰好第 120 个交易日结束：days_total（不含 anchor）+1 == 120
+    assert mo.iloc[0]["days_total"] + 1 == 120
+
+
+def test_same_day_termination_priority():
+    # 同日 pool out + trend broken -> 只记 monthly_exit（优先级更高）
+    c = [8.0] * 60
+    v = [1000] * 60
+    df = mk_daily(c, v)
+    rows = [(ts, "intact" if ts < df.index[40] else "broken", "strengthening")
+            for ts in df.index]
+    pool = {ts.strftime("%Y-%m-%d"):
+            ("out" if ts >= df.index[40] else "in") for ts in df.index}
+    lc = classify_lifecycle("000001", df, rows, pool, [], LifecycleConfig())
+    assert lc.iloc[0]["end_reason"] == "monthly_exit"
+    assert bool(lc.iloc[0]["end_monthly_exit"]) is True
+    assert bool(lc.iloc[0]["end_structure_break"]) is False
+
+
+def test_adjacent_lifecycles_never_overlap():
+    # 反复 out/in：任意相邻两段 next anchor_day > prev end_day
+    c = [8.0] * 120
+    v = [1000] * 120
+    df = mk_daily(c, v)
+    pool = {ts.strftime("%Y-%m-%d"):
+            ("out" if 30 <= i < 40 or 60 <= i < 70 else "in")
+            for i, ts in enumerate(df.index)}
+    lc = classify_lifecycle("000001", df, week_rows_of(df), pool, [],
+                            LifecycleConfig())
+    assert len(lc) >= 2
+    prev_end = None
+    for row in lc.itertuples(index=False):
+        if prev_end is not None:
+            assert pd.Timestamp(row.anchor_day) > pd.Timestamp(prev_end)
+        prev_end = row.end_day
+
+
+def test_truncating_future_keeps_past_stages():
+    # 截断未来数据：截断日前的阶段序列不得改变
+    c = [8.0] * 25 + [8.6 + 0.05 * i for i in range(20)] + [9.6] * 30
+    v = [1000] * len(c)
+    full = run(c, v)
+    cut = 50
+    trunc = run(c[:cut], v[:cut])
+    f = full.iloc[0]["stage_sequence"]
+    t = trunc.iloc[0]["stage_sequence"]
+    assert t.replace("|end", "") == f[:len(t.replace("|end", ""))]
+    assert trunc.iloc[0]["anchor_day"] == full.iloc[0]["anchor_day"]

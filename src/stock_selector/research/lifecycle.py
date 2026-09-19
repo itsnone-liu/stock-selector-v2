@@ -162,8 +162,6 @@ def classify_lifecycle(code: str, daily: pd.DataFrame, week_rows: list,
                 else None,
             }
             pb_pending = None
-            if not is_break:
-                continue  # preparation 开启当日不再判突破之外的事
         else:
             # ---- 进行中：突破 / 再上攻（同一规则，排除当日的前高）----
             prior = prior_max.iloc[i]
@@ -178,36 +176,40 @@ def classify_lifecycle(code: str, daily: pd.DataFrame, week_rows: list,
                     cur["stage_seq"].append("reattack")
                     pb_pending = None
 
-            # ---- 确认：突破日之后首个不低于突破收盘的日子 ----
-            if (cur["confirmation_day"] is None
-                    and cur["breakout_day"] is not None
-                    and dstr > cur["breakout_day"]
-                    and daily["close"].iloc[i] >= cur["_breakout_close"]):
-                cur["confirmation_day"] = dstr
-                cur["stage_seq"].append("confirmation")
+        # ---- 开段当日与进行中统一执行的当日阶段（§2 同日并存）----
+        # 开段日确认/再上攻天然不成立：dstr==breakout_day（不严格后一日）、
+        # 开段时 pb_pending 必为 None；分歧/衰减/回调关联不因开段漏记。
 
-            # ---- 回调事件进入窗口（消费 pullback_v2，不重检测）----
-            while (pb_i < len(pb_sorted)
-                    and pb_sorted[pb_i]["first_pos"] <= i):
-                ev = pb_sorted[pb_i]
-                if ev["first_pos"] >= cur["_anchor_pos"]:
-                    if cur["first_pullback_day"] is None:
-                        cur["first_pullback_day"] = daily.index[
-                            ev["first_pos"]].strftime("%Y-%m-%d")
-                    cur["stage_seq"].append("pullback")
-                    cur["pullback_event_ids"].append(ev["event_id"])
-                    pb_pending = ev["event_id"]
-                pb_i += 1
+        # 确认：突破日之后首个不低于突破收盘的日子
+        if (cur["confirmation_day"] is None
+                and cur["breakout_day"] is not None
+                and dstr > cur["breakout_day"]
+                and daily["close"].iloc[i] >= cur["_breakout_close"]):
+            cur["confirmation_day"] = dstr
+            cur["stage_seq"].append("confirmation")
 
-            # ---- 高位分歧 / 动能衰减（周线轴，当日对齐）----
-            if (cur["divergence_day"] is None
-                    and momentums[i] == "heavy_volume_decline"
-                    and trend in WEEK_TREND_OK):
-                cur["divergence_day"] = dstr
-                cur["stage_seq"].append("divergence")
-            if cur["decay_day"] is None and trend == "starting_to_damage":
-                cur["decay_day"] = dstr
-                cur["stage_seq"].append("decay")
+        # 回调事件进入窗口（消费 pullback_v2，不重检测）
+        while (pb_i < len(pb_sorted)
+                and pb_sorted[pb_i]["first_pos"] <= i):
+            ev = pb_sorted[pb_i]
+            if ev["first_pos"] >= cur["_anchor_pos"]:
+                if cur["first_pullback_day"] is None:
+                    cur["first_pullback_day"] = daily.index[
+                        ev["first_pos"]].strftime("%Y-%m-%d")
+                cur["stage_seq"].append("pullback")
+                cur["pullback_event_ids"].append(ev["event_id"])
+                pb_pending = ev["event_id"]
+            pb_i += 1
+
+        # 高位分歧 / 动能衰减（周线轴，当日对齐）
+        if (cur["divergence_day"] is None
+                and momentums[i] == "heavy_volume_decline"
+                and trend in WEEK_TREND_OK):
+            cur["divergence_day"] = dstr
+            cur["stage_seq"].append("divergence")
+        if cur["decay_day"] is None and trend == "starting_to_damage":
+            cur["decay_day"] = dstr
+            cur["stage_seq"].append("decay")
 
     # 窗口尾部仍 active -> 右删失（不是失败）
     if cur is not None:
@@ -243,7 +245,7 @@ def _close_lifecycle(cur: dict, end_pos: int, reason: str,
         "right_censored": reason == "data_end",
         "days_total": end_pos - cur["_anchor_pos"],
         "max_gain_from_anchor_pct": (
-            float(seg["close"].max()) / cur["_anchor_close"] - 1.0
+            (float(seg["close"].max()) / cur["_anchor_close"] - 1.0) * 100.0
             if len(seg) else 0.0),
         "pullback_event_ids": "|".join(cur["pullback_event_ids"]) or None,
     }

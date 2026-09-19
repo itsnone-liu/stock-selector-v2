@@ -672,7 +672,9 @@ def stage_lifecycle(args: argparse.Namespace) -> int:
     cal_all = store.market_calendar()
     r0, r1 = args.start, args.end
     result_start, result_end = pd.Timestamp(r0), pd.Timestamp(r1)
-    warmup_days = 70  # 与 pullback 一致：保证 anchor 附近回调事件可消费
+    # warmup >= max_observation_days(120) + breakout_lookback(20)，加缓冲 150：
+    # 窗口前已启动的生命周期用于恢复状态，但 anchor_day 在窗口前的不进样本
+    warmup_days = 150
     cal_pre = cal_all[cal_all < result_start]
     compute_start = cal_pre[-warmup_days] if len(cal_pre) >= warmup_days \
         else cal_pre[0] if len(cal_pre) else result_start
@@ -694,10 +696,22 @@ def stage_lifecycle(args: argparse.Namespace) -> int:
     wman = ps.read_manifest(weekly_dir) or {}
     pb_dir = Path(args.pullback_dir)
     pman = ps.read_manifest(pb_dir) or {}
+    # 上游冻结三元组：完整且指纹精确匹配（防换目录跑错口径）
+    expected_upstream = {
+        "weekly_state": ("e2cf0918238fc95c",
+                         wman.get("run_spec_hash")),
+        "pullback": ("68cad4022bec6a8b",
+                     pman.get("run_spec_hash")),
+    }
     for tag, man, d in (("weekly_state", wman, weekly_dir),
                         ("pullback", pman, pb_dir)):
         if not man.get("run_spec_hash") or man.get("status") != "complete":
             print(f"上游{tag}未完成或无口径指纹：{d}", file=sys.stderr)
+            return 2
+        want, got = expected_upstream[tag]
+        if got != want:
+            print(f"上游{tag}口径指纹不符：期望 {want}，实际 {got}；"
+                  f"拒绝运行（{d}）", file=sys.stderr)
             return 2
 
     run_spec = {
@@ -724,6 +738,8 @@ def stage_lifecycle(args: argparse.Namespace) -> int:
             "run_spec_hash": pman["run_spec_hash"],
             "rows_out": pman.get("rows_out"),
             "rule_version": pman.get("run_spec", {}).get("rule_version"),
+            "event_rule_version": "pullback_stage2_v1",
+            "outcome_contract_version": "right_censored_v2",
         },
         "git_commit": ps.git_commit(repo),
         "code_md5": {
