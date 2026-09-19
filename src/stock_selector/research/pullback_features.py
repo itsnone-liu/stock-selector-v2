@@ -73,6 +73,8 @@ EVENT_COLUMNS = [
     "min_volume_ratio_in_event",
     "dist_at_touch_pct", "dist_at_touch_atr", "touch_within_1pct",
     "outcome_ret_5", "outcome_ret_10", "outcome_ret_20",
+    "outcome_5d_complete", "outcome_10d_complete", "outcome_20d_complete",
+    "outcome_5d_observed_days", "outcome_10d_observed_days", "outcome_20d_observed_days",
     "outcome_new_high_within_20",
 ]
 
@@ -232,12 +234,17 @@ def classify_pullback(code: str, daily: pd.DataFrame,
             base = df.iloc[loc]["close"]
             high_ref = e["_start_high20"]
             for h in cfg.outcome_horizons:
+                observed = min(h, max(0, len(df) - loc - 1))
+                complete = observed == h
+                e[f"outcome_{h}d_observed_days"] = observed
+                e[f"outcome_{h}d_complete"] = complete
                 j = loc + h
-                r = df.iloc[j]["close"] if j < len(df) else None
+                r = df.iloc[j]["close"] if complete else None
                 e[f"outcome_ret_{h}"] = _pct(r, base) if r is not None else None
             window = df.iloc[loc + 1: loc + 1 + cfg.outcome_horizons[-1]]
-            e["outcome_new_high_within_20"] = bool(
-                len(window) and (window["close"] >= high_ref).any())
+            e["outcome_new_high_within_20"] = (
+                bool((window["close"] >= high_ref).any())
+                if len(window) >= 20 else None)
         for k in ("_start_high20", "_last_support", "_start_pos",
                   "_low_pos", "_stb_pos"):
             e.pop(k, None)
@@ -264,6 +271,10 @@ def classify_pullback(code: str, daily: pd.DataFrame,
              "dist_at_touch_pct": None, "dist_at_touch_atr": None,
              "touch_within_1pct": None,
              "outcome_ret_5": None, "outcome_ret_10": None, "outcome_ret_20": None,
+             "outcome_5d_complete": None, "outcome_10d_complete": None,
+             "outcome_20d_complete": None,
+             "outcome_5d_observed_days": 0, "outcome_10d_observed_days": 0,
+             "outcome_20d_observed_days": 0,
              "outcome_new_high_within_20": None,
              "_start_high20": float(row["high20"]),
              "_start_pos": pos,

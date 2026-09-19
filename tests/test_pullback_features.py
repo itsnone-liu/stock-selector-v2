@@ -71,7 +71,7 @@ def test_healthy_pullback_recovers_to_new_high():
     assert e["touched_ma10"] and e["stabilization_day"] is not None
     assert e["stabilization_support"] in ("ma10", "ma20")
     assert e["outcome_ret_5"] > 0
-    assert bool(e["outcome_new_high_within_20"])
+    assert e["outcome_new_high_within_20"] is None  # 20日证据不足，不能当作 False
     assert set(dly.columns) == set(DAILY_COLUMNS)
 
 
@@ -371,3 +371,20 @@ def test_multi_support_separate_first_touches():
     if e["stabilization_support"] is not None:
         # 止跌支撑 = 实际收回的那条，与首触距离字段分离
         assert e["stabilization_support"] in ("ma10", "ma20", "platform")
+
+
+def test_right_censored_outcomes_are_missing_not_failures():
+    """窗口尾部不足 horizon 时：收益与创新高标签缺失，complete 明确为 false。"""
+    c = (list(8 + 0.1 * i for i in range(20))
+         + list(9.9 - 0.12 * i for i in range(1, 6))
+         + [9.3, 9.35, 9.42, 9.55])
+    v = [1000] * 20 + [600, 500, 460, 440, 430] + [500, 480, 500, 550]
+    df = mk_daily(c, v)
+    ev, _ = classify_pullback("CENS", df, week_rows_of(df), pool_all(df), PullbackConfig())
+    assert len(ev) >= 1
+    e = ev.iloc[0]
+    assert e["stabilization_day"] is not None
+    assert bool(e["outcome_5d_complete"]) is False
+    assert e["outcome_ret_5"] is None
+    assert e["outcome_5d_observed_days"] < 5
+    assert e["outcome_new_high_within_20"] is None
