@@ -1,0 +1,85 @@
+{
+  "stage": "lifecycle 全量验收报告（第四批上）",
+  "output_dir": "output/research/lifecycle_v1/lifecycle_stage4_v1_full (服务器端，gitignore)",
+  "status": "complete",
+  "closure_complete": true,
+  "codes": 5588,
+  "covered_codes": 5588,
+  "missing_codes": 0,
+  "rows_out": 55646,
+  "result_date_range": [
+    "2024-01-02",
+    "2026-09-01"
+  ],
+  "run_spec_hash": "7f2c8dda08801d27",
+  "run_spec_git_commit": "c451ab914377937d6afbaaebe3911204a9d3b323",
+  "upstream": {
+    "weekly_state_run_spec_hash": "e2cf0918238fc95c",
+    "pullback_run_spec_hash": "68cad4022bec6a8b",
+    "event_rule_version": "pullback_stage2_v1",
+    "outcome_contract_version": "right_censored_v2"
+  },
+  "peak_rss_mb": 182.1,
+  "done_partitions": 56,
+  "invalid_data_changed_seen": false,
+  "audits": {
+    "lifecycle_id_unique": "55646/55646",
+    "end_reason_dist": {
+      "monthly_exit": 29980,
+      "structure_break": 24778,
+      "data_end": 879,
+      "max_observation": 9
+    },
+    "right_censored": 879,
+    "adjacent_overlap_violations": 0,
+    "stage_hit": {
+      "breakout": 27422,
+      "confirmation": 21266,
+      "first_pullback": 44140,
+      "reattack": 16719,
+      "divergence": 15388,
+      "decay": 17706
+    },
+    "top_sequences": [
+      [
+        "preparation|pullback|end",
+        11573
+      ],
+      [
+        "preparation|end",
+        6164
+      ],
+      [
+        "preparation|pullback|decay|end",
+        2376
+      ],
+      [
+        "preparation|decay|pullback|end",
+        1409
+      ],
+      [
+        "preparation|decay|end",
+        1394
+      ],
+      [
+        "breakout|end",
+        1318
+      ]
+    ],
+    "reattack_event_id_anomalies": 0,
+    "sessions_over_120": 0,
+    "max_gain_pct": {
+      "min": 0.0,
+      "max": 1320.1,
+      "avg": 10.8,
+      "over_500pct": 8,
+      "note": "均为2025-2026真实妖股/科创板新股（未复权），非数据异常"
+    },
+    "cycles": {
+      "ge1": 16719,
+      "ge2": 7653,
+      "ge3": 3840
+    }
+  },
+  "note": "warmup 150 日；窗口前启动段仅恢复状态不进样本；三元组与双上游指纹已强制锁定。"
+}
