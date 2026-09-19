@@ -1,4 +1,4 @@
-# 批次5语义规范：复权收益接入与正负路径分析（v6 待冻结确认）
+# 批次5语义规范：复权收益接入与正负路径分析（v7 冻结版）
 
 > 版本链：v1(d4b43ac)→v2(2f9ceee)→v3(4457bea)→v4(b00c52b)→v5(444d487)→本版。
 > v6 修订：①K2/K3/K4 分母按策略×视角×终点分别定义（未成交完整结束=0 与
@@ -90,7 +90,7 @@ never_reclaim 内部：
 | `below_break_bucket_abs` | never_reclaim 族 E 切片：≤15% / >15%（辅助；与 subtype 边界一致：E>0.15 为 failure 侧） |
 | `D`（连续） | 原值 |
 | `D_atr` | `D / ATR%_prev`，`ATR%_prev = ATR14_adj / P_adj(prev)`（比例除以比例）；ATR14 在复权 OHLC 上计算；取突破前一日的确定值；前 14 日不全 → null 并披露 |
-| `structure_broken_asof_20d` | **时间边界 = 突破后第 20 交易日内**是否触发结构破坏（v5 判定语义）；禁止把 120 日最终破坏状态混入（未来信息）。**null 语义**：20 日窗口不完整且截至数据结束未观察到破坏 → `null`（未观察，不得记 false）；窗口内或截至数据结束已观察到破坏 → `true`；完整 20 日且无破坏 → `false` |
+| `structure_broken_asof_20d` | **公式冻结**：`cutoff = min(breakout_day+20 交易日, last_available_day)`，取生命周期内 v5 结构破坏判定的 break_date：`break_date <= cutoff` → **true**（第 20 日之后发生的破坏绝不算入）；20 日窗口完整且 cutoff 前未破坏 → **false**；20 日窗口不完整且 cutoff 前未破坏 → **null** |
 
 θ 不决定任何 path_family；不依据结果回调边界。
 
@@ -105,29 +105,46 @@ N_master = 27,422                     # 突破生命周期母总体（守恒数�
 N_evaluable_K3[view,h]      = 突破后可完整观察 h 日的行数
 N_censored_K3[view,h]       = N_master − N_evaluable_K3[view,h]
 
-# K2 终点=各自成交后 h 日（staged=T1 后 h 日），按策略：
-N_evaluable_K2[strategy,view,h] = 已成交且终点可完整观察的行数
-                                   + 生命周期完整结束且未成交的行数（K2=0）
-N_null_K2[strategy,view,h]      = 生命周期因数据结束右删失且尚未成交的行数
-                                   （K2=null，不进分母，不得当 0）
+# K2 终点=各自成交后 h 日（staged=T1 后 h 日），按策略。
+# 行级四态状态机（每 strategy×view×h 逐行判定）：
+#   evaluated_position  已成交且策略终点可观察        → K2=有效收益
+#   evaluated_cash      入场政策已终结且最终未成交      → K2=0
+#   null_holding_tail   已成交但持有终点超出数据        → K2=null
+#   null_entry_pending  数据结束时策略仍可能在未来成交  → K2=null
+# "政策已终结"判定：数据结束前策略层面已无入场可能——含 3.5% 上限明确放弃、
+# 唯一成交机会被涨停/停牌阻断且规则不允许重试、等待期限届满等；即使生命
+# 周期右删失，只要政策已终结即 evaluated_cash（=0），不因删失改 null
+N_evaluable_K2[strategy,view,h] = evaluated_position + evaluated_cash 行数
+N_null_K2[strategy,view,h]      = null_holding_tail + null_entry_pending 行数
 
 # K4 仅成交行：
 N_filled_K4[strategy,view,h]    = 成交行数
 N_evaluable_K4[strategy,view,h] = 成交且持有 h 日可完整观察的行数（K4 分母）
 ```
 
+- **守恒式（每 strategy×view×h，门禁校验）**：
+  `N_master = N_evaluable_K2[strategy,view,h] + N_null_K2[strategy,view,h]`
 - 例：某行突破后尚可观察 20 日、等待策略第 18 日成交 → K3_20 可评价、
-  K2_20 需突破后第 38 日（不可评价→该格 null）
-- 未成交细分（冻结）：**完整结束未成交 → K2=0**（计入分子与分母）；
-  **右删失且未成交 → K2=null**（分子分母均不进）
+  K2_20 需突破后第 38 日（null_holding_tail，该格 null）
 - 无突破的 28,224 段为独立对照池，不进入策略排名；报告逐格披露上述全部
-  N 值与每策略成交数
+  N 值、行级四态计数与每策略成交数
 
 | 口径 | 精确定义 |
 |---|---|
 | K2_h | 全生命周期策略收益：`N_evaluable_h` 全体计入。已成交部分持有至**该策略自己的共同终点**（见下）；未成交收益 0。策略级 = 分母内资金加权平均 |
 | K3_h | 相同终点收益：统一在**突破后第 h 交易日**估值；未成交资金现金 0 |
 | K4_h | 条件成交诊断：仅已成交事件，从成交起按策略共同终点估值 |
+
+**策略排名：共同样本配对差（v7 新增，取代独立均值相减）**：
+
+- 各策略 N_evaluable_K2 不同（等待策略成交晚、尾部不可评价更多），独立
+  均值来自不同年份/市场日期组合，直接相减有样本构成偏差
+- 配对比较：`S_AB` = 策略 A 与 B 的 K2（或 K3）**都非 null** 的生命周期交集；
+  `delta_i = K2_A_i − K2_B_i`；**"更优"只能基于 delta_i**
+- 股票块与日期块分别 bootstrap `mean(delta)`；**两套 95% 区间方向一致且都
+  不跨 0 才允许写"更优"**；两套冲突时只报告差异，不下方向性结论
+- K4 是条件成交诊断（成交样本天然不同），**不得**用于四策略总体排名
+- 配对交集样本量同样受稀疏门禁约束（min_events 等按 S_AB 计）
 
 **共同终点规则（阻塞点3 修订，单一策略语义不因口径改变）**：
 
@@ -218,13 +235,19 @@ R_net    = (gross_terminal_value − sell_fee) / (invested_raw_notional + buy_fe
 | `min_signal_dates` | 格内独立信号日期数下限；不足 → 只描述 |
 | `min_bootstrap_blocks` | 股票块/日期块各自块数下限；不足 → 不做区间结论 |
 | `bootstrap_repeats` | 2000（有放回重抽样次数） |
+| `interval_method` | **percentile**（lower/upper = 2.5% / 97.5% 分位；不用 basic/BCa） |
 | `confidence_level` | 95%（双块各出区间） |
+| `date_block_key` | `signal_date`（日期块按信号日聚合） |
+| `comparison_statistic` | **paired mean difference**（配对差均值，见 §3 配对口径） |
 | `random_seed` | 固定值入 run_spec（首版 20260919），变更须升 RULE_VERSION |
 
 - 每格披露事件数、股票数、信号日期数；**不按结果合并小组**
 - 分层最低要求：group_asof_20d（确定标签）、path_family、期限、视角；
   行业/大盘仅解释层
-- 删失：仅 `outcome_{h}d_complete=TRUE` 进对应期限分母；删失率逐格披露
+- 删失：**各口径使用其专属 completion/evaluable 状态**——K3 用突破锚定
+  完成标记（`outcome_{h}d_complete`）；K2/K4 用策略成交终点完成标记（四态
+  状态机）；K2 的 evaluated_cash 行（政策终结未成交=0）不需要未来股价窗口；
+  删失率逐格披露
 
 ## 7. 产物 schema
 
@@ -234,8 +257,12 @@ output/research/retcalc_v1/      # K2/K3/K4(1/3/5/10/20) + path_family/path_subt
                                  #   + D/D_atr + bucket 字段 + structure_broken_asof_20d
                                  #   + group_eventual(_status)/group_asof_20d + 天数字段
 output/research/posneg_v1/
-  posneg_panel:      上述全部 + N_evaluable_h/N_censored_h 标记 + strategy + view
-                     + R_net(因子比式) + complete flags
+  posneg_panel:      上述全部 + strategy + view + R_net(因子比式含滑点)
+                     + 行级四态(evaluated_position/evaluated_cash/
+                        null_holding_tail/null_entry_pending)
+                     + 口径专属 completion 标记(K3 突破锚定 / K2-K4 成交锚定)
+  posneg_paired:     S_AB 交集计数 + delta_i 分布 + paired mean difference
+                     + 股票块/日期块 percentile 区间 + 门禁判定
   posneg_summary:    形态×结局×策略×视角×期限 效应量、双块区间、
                      事件/股票/日期数、删失率、稀疏门禁标记
   identify_breakout_day / identify_first_shrink_day / identify_stabilization_day
@@ -251,9 +278,11 @@ RULE_VERSION：`adjustment_v1`、`retcalc_stage5_v1`、`posneg_stage5_v1`。
 2. 等价性：无除权样本内部重算 `1e-9`；外部按源精度容差
 3. 标签守恒：`group_eventual` 四值之和 = 27,422；`group_asof_20d` 同；
    path_family 非删失互斥恰居一类；六情形构造测试逐一断言
-4. 口径完整：三口径 × 5 期限 × 双视角全输出；N_evaluable_K3/K2、N_null_K2、
-   N_filled/N_evaluable_K4 逐策略×视角×期限披露；staged 共同终点=T1 后 h 日
-   专项测试（终点后批次现金）；右删失未成交 K2=null 专项测试
+4. 口径完整：三口径 × 5 期限 × 双视角全输出；K2 守恒式
+   N_master=N_evaluable_K2+N_null_K2 逐策略×视角×期限校验（四态行级
+   计数披露）；staged 共同终点=T1 后 h 日专项测试（终点后批次现金）；
+   evaluated_cash（政策终结未成交=0）与 null_entry_pending（数据结束仍可能
+   成交）区分有专项测试；配对差排名管线与两套区间一致门禁有专项测试
 5. 稀疏门禁生效：阈值在 run_spec 中冻结后不可视结果调整
 6. 阶梯：50×3mo → 300×1y → 全量；每级四项核对表
 
@@ -264,4 +293,4 @@ RULE_VERSION：`adjustment_v1`、`retcalc_stage5_v1`、`posneg_stage5_v1`。
 | A–F | 已闭合（见 v4 记录；E 类名 `high_then_pullback_reclaimed`，F 同日/非 strict 规则固化） |
 | G | **已裁定（v6 冻结）**：min_events=100、min_unique_stocks=30、min_signal_dates=30、min_bootstrap_blocks=30；bootstrap_repeats=2000、confidence_level=95%、random_seed=固定值写入 run_spec（首版 20260919，变更须升版本）；未达标格子完整展示但禁止"更优"与区间结论 |
 
-全部裁定点（A–G）已闭合。本版冻结为 `posneg_stage5_v1` 语义基线。
+全部裁定点（A–G）已闭合。本版即为 `posneg_stage5_v1` 语义基线（冻结）。
