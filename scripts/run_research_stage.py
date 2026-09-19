@@ -843,7 +843,7 @@ def stage_lifecycle(args: argparse.Namespace) -> int:
                 {"event_id": rec.event_id,
                  "first_day": rec.first_day, "end_day": rec.end_day})
 
-        rows, missing = [], 0
+        rows, missing, skipped = [], 0, 0
         for code in batch_codes:
             daily = store.daily(code)
             if daily is None or daily.empty:
@@ -1070,7 +1070,7 @@ def stage_entry_replay(args: argparse.Namespace) -> int:
                 {"event_id": rec.event_id, "date": rec.date,
                  "shrink_volume": bool(rec.shrink_volume)})
 
-        rows, missing = [], 0
+        rows, missing, skipped = [], 0, 0
         for code in batch_codes:
             daily = store.daily(code)
             if daily is None or daily.empty:
@@ -1083,6 +1083,7 @@ def stage_entry_replay(args: argparse.Namespace) -> int:
             ev = er.replay_entries(
                 code, ldf, daily, pev_by.get(code, []),
                 pd.DataFrame(pdly_by.get(code, [])), cfg, cost)
+            skipped += int(ev.attrs.get("skipped_no_breakout", 0))
             if len(ev):
                 ev = ev[(ev["signal_day"] >= r0) & (ev["signal_day"] <= r1)]
                 if len(ev):
@@ -1099,13 +1100,15 @@ def stage_entry_replay(args: argparse.Namespace) -> int:
             (parts / batch_name).mkdir(parents=True, exist_ok=True)
         rss_state = log.memory_guard(args.memory_limit_mb)
         log.batch(batch_name, len(part), stage="entry-replay",
-                  extra={"missing": missing, "bytes": bytes_out, "guard": rss_state})
+                  extra={"missing": missing, "bytes": bytes_out, "guard": rss_state,
+                         "skipped_no_breakout": skipped})
         ps.mark_partition(manifest_path, batch_name, status="done",
                           rows=len(part), seconds=time.time() - t0,
                           rss_mb=log.peak_rss_mb, missing=missing,
-                          codes=batch_codes)
+                          codes=batch_codes, skipped_no_breakout=skipped)
         print(f"[{batch_name}] codes={len(batch_codes)} rows={len(part)} "
-              f"missing={missing} rss={log.peak_rss_mb:.0f}MB")
+              f"missing={missing} skipped_nb={skipped} "
+              f"rss={log.peak_rss_mb:.0f}MB")
         if rss_state == "stop":
             print("达到内存红线，停止当前阶段。", file=sys.stderr)
             return 5

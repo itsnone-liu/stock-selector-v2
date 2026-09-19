@@ -236,10 +236,19 @@ def replay_entries(code: str, lifecycles: pd.DataFrame, daily: pd.DataFrame,
     cost = cost or CostModel()
     pos = _pos_map(daily)
     rows: list[dict] = []
+    skipped_no_breakout = 0
     for lc in (lifecycles.to_dict("records") if len(lifecycles) else []):
+        # parquet 往返后 None 列变 NaN(float)：一律先归一化为 None
+        for k in ("breakout_day", "reattack_days", "end_day", "anchor_day"):
+            lc[k] = lc[k] if isinstance(lc[k], str) else None
+        for e in pullback_events:
+            if not isinstance(e.get("stabilization_day"), str):
+                e["stabilization_day"] = None
         bo = pos.get(lc["breakout_day"])
         end = pos.get(lc["end_day"])
         if bo is None:
+            # 无突破 = 无入场信号（四策略共同前置），跳过并计数，不丢弃总体口径
+            skipped_no_breakout += 1
             continue
         bo_close = raw_price(daily, bo)
         prev_close = raw_price(daily, bo - 1) if bo > 0 else None
@@ -251,14 +260,15 @@ def replay_entries(code: str, lifecycles: pd.DataFrame, daily: pd.DataFrame,
         first_pb = pbs[0] if pbs else None
         shrink_day = None
         stab_day = None
-        if first_pb is not None and len(pullback_daily):
-            dd = pullback_daily[
-                (pullback_daily["event_id"] == first_pb["event_id"])
-                & (pullback_daily["shrink_volume"] == True)]  # noqa: E712
-            if len(dd):
-                shrink_day = pos.get(str(dd.iloc[0]["date"]))
-            stab_day = pos.get(first_pb.get("stabilization_day")) \
-                if first_pb.get("stabilization_day") else None
+        if first_pb is not None:
+            if len(pullback_daily):
+                dd = pullback_daily[
+                    (pullback_daily["event_id"] == first_pb["event_id"])
+                    & (pullback_daily["shrink_volume"] == True)]  # noqa: E712
+                if len(dd):
+                    shrink_day = pos.get(str(dd.iloc[0]["date"]))
+            if first_pb.get("stabilization_day"):
+                stab_day = pos.get(first_pb["stabilization_day"])
 
         for strategy in STRATEGIES:
             out = {"code": code, "lifecycle_id": lc["lifecycle_id"],
@@ -332,7 +342,7 @@ def replay_entries(code: str, lifecycles: pd.DataFrame, daily: pd.DataFrame,
                 t1p = bo
                 t2p = shrink_day
                 t3p = pos.get(lc["reattack_days"].split("|")[0]) \
-                    if lc["reattack_days"] else None
+                    if lc["reattack_days"] else None  # 已归一化为 str|None
                 out["t1_fill_date"] = daily.index[t1p].strftime("%Y-%m-%d")
                 out["t1_fill_price"] = _slip(cost, raw_price(daily, t1p))
                 legs = [(t1p, out["t1_fill_price"], cfg.staged_tranches[0][0])]
@@ -395,4 +405,9 @@ def replay_entries(code: str, lifecycles: pd.DataFrame, daily: pd.DataFrame,
                     out["failure_path"] = "right_censored"
                 _wait_metrics(out, daily, bo, t2p, end, bo_close, None)
             rows.append(out)
-    return pd.DataFrame(rows, columns=ENTRY_REPLAY_COLUMNS)
+    if skipped_no_breakout:
+        # 不静默：跳过数留在帧属性之外由调用方统计（runner 分区 extra）
+        pass
+    df = pd.DataFrame(rows, columns=ENTRY_REPLAY_COLUMNS)
+    df.attrs["skipped_no_breakout"] = skipped_no_breakout
+    return df
