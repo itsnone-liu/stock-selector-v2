@@ -1,0 +1,78 @@
+{
+  "stage": "entry-replay",
+  "rule_version": "entry_replay_stage4_v5",
+  "result_dir": "output/research/lifecycle_v1/entry_replay_v5_full",
+  "run_spec_hash": "8ebdc40bacd5bcec",
+  "status": "complete",
+  "accepted_at": "2026-09-20T00:15:08",
+  "supersedes": "v4 partial_pass（分批 T3 事件关联错误，见 ENTRY_REPLAY_STAGE4_V4_FULL_ACCEPTANCE.json）",
+  "window": [
+    "2024-01-02",
+    "2026-09-01"
+  ],
+  "upstream": {
+    "lifecycle_run_spec_hash": "7f2c8dda08801d27",
+    "pullback_run_spec_hash": "68cad4022bec6a8b",
+    "note": "修复仅 entry-replay 层；周线/回调/生命周期未重跑"
+  },
+  "population": {
+    "lifecycles_total": 55646,
+    "rows_total": 222584,
+    "rows_equals_lifecycle_x4": true,
+    "codes": 5588,
+    "batches": 94
+  },
+  "t3_pairing_fix": {
+    "error": "v4 取 reattack_days 第一位（全段首个再上攻），未配对 T2 的突破后首次回调事件；突破前回调的再上攻可被借用，T3 可早于 T2",
+    "fix": "按 reattack_pullback_event_ids 与 T2 事件一一配对；无配对则 T3 不成交；T3 存在要求 T2 存在",
+    "gates": {
+      "t3_without_t2": 0,
+      "t3_date_le_t2": 0,
+      "close_theory_positions": "仅 30/60/100（1.0x11526, 0.6x10077, 0.3x5819）",
+      "v4_residual_70pct_1964_plus_40pct_8": "全部消除并归位（0.6/0.3/0.0），总数 27,422 守恒",
+      "next_70_40_reconstructible": "115/115 由各批阻断原因严格还原"
+    },
+    "close_theory_shift_v4_to_v5": "1.0: 14576->11526; 0.6: 6639->10077; 0.3: 4110->5819; 0.7: 1964->0; 0.4: 8->0; 0.0: 125->133"
+  },
+  "fill_statistics_close": {
+    "direct_chase": 0.4928,
+    "staged_entry": 0.4928,
+    "wait_first_pullback": 0.3882,
+    "wait_support_hold": 0.2453
+  },
+  "not_filled_close": {
+    "no_breakout_signal": 112896,
+    "no_pullback_before_end": 11638,
+    "no_stabilization": 7953
+  },
+  "not_filled_next_extra": {
+    "open_limit_up_buy_blocked": 571,
+    "missing_bar_or_suspended": 122
+  },
+  "censoring": {
+    "close_filled": 90097,
+    "close_complete_20d": 86991,
+    "next_filled": 89404,
+    "next_complete_20d": 86322,
+    "incomplete_not_failure": true
+  },
+  "dual_price_axis": {
+    "return_quality": "unadjusted_exploratory",
+    "limitation": "approximate_limit_ratio",
+    "usage_boundary": "仅工程验证（成交率/阻断/仓位/删失）；禁止策略收益比较；禁止 3.5% 调整",
+    "adjusted_return_note": "当前 5/10/20 毛收益、MFE/MAE、错失涨幅直接以原始价格计算，未统一经过 adjusted_return 接口；接入复权须统一改造收益函数，非接口替换"
+  },
+  "lifecycle_funnel": {
+    "all": 55646,
+    "breakout": 27422,
+    "post_breakout_pullback": 21603,
+    "post_pullback_stabilization": 13650
+  },
+  "parquet_schema_pinning": "ENTRY_REPLAY_STR_COLUMNS 写前统一 string（防全空列推断漂移），数值列不受影响",
+  "resources": {
+    "peak_rss_mb": 162
+  },
+  "tests": "37 项 entry-replay 测试（含 T3 配对五门禁）+ 全量回归通过",
+  "git_head": "2b58022",
+  "review_chain": "e2223a3->5ac1335/08be18f->0790429->a3b27ab->c8bea21->f601b7a->233c247"
+}
