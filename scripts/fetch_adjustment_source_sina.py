@@ -11,6 +11,7 @@ GET https://finance.sina.com.cn/realstock/company/{sh600000|sz000001}/hfq.js
 GBK 编码，需 Referer。输出：data/adjustment_sina/factors/{code}.json.gz
 """
 import gzip, hashlib, json, random, socket, sys, time
+import urllib.error
 import urllib.request
 from datetime import datetime, timezone
 from pathlib import Path
@@ -28,6 +29,8 @@ def universe() -> list[str]:
     for mkt, prefixes in (("sh", ("6",)), ("sz", ("0", "3"))):
         for f in Path(f"/root/tdx_data/vipdoc/{mkt}/lday").glob("*.day"):
             c = f.stem[2:]
+            if c.startswith(("399", "880", "800")):
+                continue          # 深市指数/板块指数：非股票（erratum 2026-09-20）
             if c.startswith(prefixes):
                 codes.append(f"{mkt}.{c}")
     return sorted(set(codes))
@@ -54,12 +57,19 @@ def fetch_factors(code: str) -> dict:
     obj, _ = json.JSONDecoder().raw_decode(raw[i:])
     ev = [(x["d"], float(x["f"])) for x in obj.get("data", [])]
     ev = [(d, f) for d, f in ev if d >= "1990-01-01"]        # 去 1900 哨兵
-    # 语义校验：因子>0；若按时间升序排则因子非降（累积后复权）
+    # 语义校验：因子>0；下降点区分精度噪声(>-0.5%)与真实结构事件(配股类)，
+    # 后者记录进 payload 供审计复核，不在采集层卡死（baostock 交叉验证兜底）
     asc = sorted(ev)
     fvals = [f for _, f in asc]
     assert all(f > 0 for f in fvals), "factor<=0"
-    assert fvals == sorted(fvals), "cumulative factor not non-decreasing"
+    drops = []
+    for i in range(1, len(asc)):
+        chg = fvals[i] / fvals[i - 1] - 1
+        if chg < -0.005:
+            drops.append({"date": asc[i][0], "prev": asc[i - 1][1],
+                          "factor": asc[i][1], "chg": chg})
     return {"code": code,
+            "n_factor_drops": len(drops), "factor_drops": drops,
             "params": {"source": "sina-hfq.js", "semantics":
                        "cumulative hfq factor effective ON/AFTER event date"},
             "fetched_at": datetime.now(timezone.utc).isoformat(),
@@ -91,7 +101,13 @@ def main() -> int:
         state = json.loads(manifest.read_text())
     blob = "\n".join(codes).encode()
     uni_sha = hashlib.sha256(blob).hexdigest()
-    if state.get("universe_sha256") in (None, uni_sha):
+    old_full = state.get("universe_sha256") or ""
+    if old_full.startswith("1b2ac933635a"):
+        # 旧全量清单(含指数) → 股票子集迁移：丢弃指数码记录，保留全部股票进度
+        stock_set = set(codes)
+        state["stocks"] = {c: v for c, v in state["stocks"].items() if c in stock_set}
+        state["universe_sha256"] = uni_sha
+    elif state.get("universe_sha256") in (None, uni_sha):
         state["universe_sha256"] = uni_sha
     else:
         print(f"[FATAL] universe changed: {state['universe_sha256']} != {uni_sha}")
@@ -118,6 +134,12 @@ def main() -> int:
                                          "n_events": payload["n_events"]}
                 ok = True
                 break
+            except urllib.error.HTTPError as e:
+                if e.code == 404:
+                    print(f"[FAIL-permanent] {code}: HTTP 404 -- no retry", flush=True)
+                    state["stocks"][code] = {"status": "validate_fail", "err": "http404"}
+                    break
+                raise
             except AssertionError as e:
                 print(f"[FAIL-validate] {code}: {e} -- permanent, no retry",
                       flush=True)

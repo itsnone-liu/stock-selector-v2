@@ -66,6 +66,8 @@ def universe() -> list[str]:
     for mkt, prefixes in (("sh", ("6",)), ("sz", ("0", "3"))):
         for f in Path(f"/root/tdx_data/vipdoc/{mkt}/lday").glob("*.day"):
             c = f.stem[2:]
+            if c.startswith(("399", "880", "800")):
+                continue          # 深市指数/板块指数：非股票（erratum 2026-09-20）
             if c.startswith(prefixes):
                 codes.append(f"{mkt}.{c}")
     return sorted(set(codes))
@@ -140,7 +142,13 @@ def main() -> int:
         state = json.loads(manifest.read_text())
     blob = "\n".join(codes).encode()
     uni_sha = hashlib.sha256(blob).hexdigest()
-    if state.get("universe_sha256") in (None, uni_sha):
+    old_full = state.get("universe_sha256") or ""
+    if old_full.startswith("1b2ac933635a"):
+        # 旧全量清单(含指数) → 股票子集迁移：丢弃指数码记录，保留全部股票进度
+        stock_set = set(codes)
+        state["stocks"] = {c: v for c, v in state["stocks"].items() if c in stock_set}
+        state["universe_sha256"] = uni_sha
+    elif state.get("universe_sha256") in (None, uni_sha):
         state["universe_sha256"] = uni_sha
     else:
         print(f"[FATAL] universe changed: {state['universe_sha256']} != {uni_sha}")
