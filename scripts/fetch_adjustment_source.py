@@ -8,11 +8,50 @@ docs/reports/ADJUSTMENT_V1_SOURCE_AUDIT.md 与用户放行范围：
 - 有限重试 + 指数退避 + 随机抖动；登录失败/连续失败 → 停止不无限重试
 - 轻校验：行数>0、日期升序无重复、close>0；深度 fail-fast 审计由独立脚本做
 """
-import gzip, hashlib, json, random, sys, time
+import gzip, hashlib, json, random, signal, socket, sys, time
 from datetime import datetime, timezone
 from pathlib import Path
 
 import baostock as bs
+
+# 内核级 socket 超时（对 baostock 新建连接生效）：服务端挂起时 send/recv
+# 60s 后抛 socket.timeout，不依赖 SIGALRM 是否能打断 C 层阻塞。
+socket.setdefaulttimeout(60)
+
+
+class FetchTimeout(Exception):
+    """baostock 服务端挂起（连接 ESTAB 但不回包），watchdog 触发。"""
+
+
+def _on_alarm(_sig, _frm):
+    raise FetchTimeout()
+
+
+def with_timeout(fn, seconds=90):
+    """主线程 SIGALRM watchdog：单请求限时，超时抛 FetchTimeout。"""
+    signal.signal(signal.SIGALRM, _on_alarm)
+    signal.alarm(seconds)
+    try:
+        return fn()
+    finally:
+        signal.alarm(0)
+
+
+def relogin():
+    """挂死后重建会话（logout 也可能挂，双保险限时）。"""
+    try:
+        with_timeout(bs.logout, 10)
+    except Exception:
+        pass
+    for attempt in range(3):
+        try:
+            lg = with_timeout(bs.login, 15)
+            if lg.error_code == '0':
+                return True
+        except Exception:
+            pass
+        time.sleep(3 + 2 ** attempt)
+    return False
 
 OUT = Path("/root/project/workspace/stock-selector-v2/data/adjustment_baostock")
 RAW_DIR = OUT / "per_stock"
@@ -41,15 +80,17 @@ def sha256_file(fp: Path) -> str:
 
 
 def fetch_series(code: str, flag: str) -> list[list[str]]:
-    rs = bs.query_history_k_data_plus(code, FIELDS, start_date=START_DATE,
-                                      end_date=END_DATE, frequency="d",
-                                      adjustflag=flag)
-    if rs.error_code != "0":
-        raise RuntimeError(f"query err {rs.error_code}: {rs.error_msg}")
-    rows = []
-    while rs.error_code == "0" and rs.next():
-        rows.append(rs.get_row_data())
-    return rows
+    def _run():
+        rs = bs.query_history_k_data_plus(code, FIELDS, start_date=START_DATE,
+                                          end_date=END_DATE, frequency="d",
+                                          adjustflag=flag)
+        if rs.error_code != "0":
+            raise RuntimeError(f"query err {rs.error_code}: {rs.error_msg}")
+        rows = []
+        while rs.error_code == "0" and rs.next():
+            rows.append(rs.get_row_data())
+        return rows
+    return with_timeout(_run, 90)
 
 
 def validate(rows: list[list[str]]) -> None:
@@ -147,8 +188,13 @@ def main() -> int:
                 state["stocks"][code] = {"status": "validate_fail", "err": str(e)}
                 break
             except Exception as e:                        # 网络/接口：退避+抖动
+                if isinstance(e, (FetchTimeout, TimeoutError, socket.timeout)):
+                    print(f"[timeout] {code}: baostock hang, relogin...", flush=True)
+                    if not relogin():
+                        print("[FATAL] relogin failed 3x -- stop")
+                        fam = FAMILY_STOP
                 wait = min(60, 2 ** attempt * 2) + random.uniform(0, 1.5)
-                print(f"[retry {attempt}] {code}: {type(e).__name__} {e}; sleep {wait:.1f}s")
+                print(f"[retry {attempt}] {code}: {type(e).__name__} {e}; sleep {wait:.1f}s", flush=True)
                 time.sleep(wait)
         if not ok and state["stocks"].get(code, {}).get("status") != "validate_fail":
             state["stocks"][code] = {"status": "fetch_fail"}
@@ -163,7 +209,12 @@ def main() -> int:
             el = time.time() - t0
             print(f"[progress] {i + 1}/{len(todo)} elapsed {el / 60:.1f}m "
                   f"eta {(el / max(i + 1, 1) * (len(todo) - i - 1)) / 60:.1f}m", flush=True)
-        time.sleep(0.35)                                  # 礼貌限速
+        time.sleep(1.2)                                   # 礼貌限速（0.35s 触发服务端挂连接）
+        if (i + 1) % 20 == 0:                              # 每 20 股主动换连接，清半死 socket
+            try:
+                relogin()
+            except Exception:
+                pass
     tmp_m = manifest.with_suffix(".tmp")
     tmp_m.write_text(json.dumps(state, ensure_ascii=False))
     tmp_m.rename(manifest)
