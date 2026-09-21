@@ -72,8 +72,14 @@ def _d(s: str) -> date:
 
 def k3_view(sf: StockFrame, cost: CostModel, view: str,
             anchor_pos: int, buy_pos: int | None, buy_price: float | None,
-            capped_cash: bool = False) -> dict:
-    """K3: 统一突破日终点. 未成交→现金0; capped 未进→现金0(spec v7.1)."""
+            capped_cash: bool = False,
+            legs: list[tuple[str, int, float]] | None = None) -> dict:
+    """K3: 统一突破日终点. 未成交→现金0; capped 未进→现金0(spec v7.1).
+
+    legs 非空 = staged 分批语义(spec §3): 各批独立——终点前成交批持有至
+    K3 终点(因子比), 终点日恰成交批=瞬间估值仅费用, 终点后/未成交批=现金0,
+    组合=Σ w_i×R_i (现金权重贡献 0).
+    """
     out = {}
     last = len(sf.dates) - 1
     for h in HORIZONS:
@@ -81,6 +87,28 @@ def k3_view(sf: StockFrame, cost: CostModel, view: str,
         if end > last:
             out[f"K3_{h}"] = None            # 窗口不完整(右删失)
             out[f"K3_{h}_reason"] = "window_incomplete"
+            continue
+        if legs is not None:
+            total, detail = 0.0, {}
+            for tname, tpos, tprice in legs:
+                w = TRANCHES[tname]
+                if tpos > end:
+                    detail[tname] = 0.0      # 终点后成交/未成交 → 现金
+                    continue
+                if tpos == end:
+                    detail[tname] = r_net_factor(
+                        cost, w * CAPITAL, tprice, sf.dates[tpos],
+                        tprice, sf.dates[end], sf.factor(tpos), sf.factor(end))
+                else:
+                    sell_fill = cost.fill_price(sf.day_close(end), "sell")
+                    detail[tname] = r_net_factor(
+                        cost, w * CAPITAL, tprice, sf.dates[tpos],
+                        sell_fill, sf.dates[end], sf.factor(tpos), sf.factor(end))
+                detail[tname] = detail[tname] if detail[tname] is not None else 0.0
+            total = sum(TRANCHES[t] * detail[t] for t in detail)
+            out[f"K3_{h}"] = total
+            out[f"K3_{h}_reason"] = "staged_weighted"
+            out[f"K3_{h}_legs"] = detail
             continue
         if buy_pos is None or capped_cash:
             out[f"K3_{h}"] = 0.0             # 未成交/上限放弃 → 现金
@@ -91,14 +119,13 @@ def k3_view(sf: StockFrame, cost: CostModel, view: str,
             out[f"K3_{h}_reason"] = "filled_after_window"
             continue
         if buy_pos == end:
-            # 成交瞬间估值: 价格收益0, 仅计费用
+            # 成交瞬间估值: 价格收益0, 仅计费用(close=收盘成交/next=开盘成交, v5)
             r = r_net_factor(cost, CAPITAL, buy_price, sf.dates[buy_pos],
                              buy_price, sf.dates[end], sf.factor(buy_pos), sf.factor(end))
             out[f"K3_{h}"] = r               # = 费用损(负小量)
             out[f"K3_{h}_reason"] = "filled_at_endpoint_instant"
             continue
-        sell_raw = sf.day_close(end) if view == "close" else sf.day_open(end)
-        sell_fill = cost.fill_price(sell_raw, "sell")
+        sell_fill = cost.fill_price(sf.day_close(end), "sell")   # v5: 卖出恒终点日close
         r = r_net_factor(cost, CAPITAL, buy_price, sf.dates[buy_pos],
                          sell_fill, sf.dates[end], sf.factor(buy_pos), sf.factor(end))
         out[f"K3_{h}"] = r
@@ -137,7 +164,9 @@ def k2_view(sf: StockFrame, cost: CostModel, view: str,
     """
     out = {}
     last = len(sf.dates) - 1
-    base_pos = buy_pos if legs is None else legs[0][1]      # staged 基准=T1
+    # staged 共同终点=第一笔成交批后h(legs[0]; close恒T1, next=T1失败时为T2/T3,
+    # Stage4 v5 fill_date_next=第一笔实际成交批次, T1失败不丢弃后续)
+    base_pos = buy_pos if legs is None else legs[0][1]
     for h in HORIZONS:
         end = base_pos + h
         # 四态只由状态机(在调用方)判; 此处终点超界 → null_holding_tail 语义
@@ -147,8 +176,7 @@ def k2_view(sf: StockFrame, cost: CostModel, view: str,
             out[f"K2_{h}_reason"] = "null_holding_tail"
             continue
         if legs is None:
-            sell_raw = sf.day_close(end) if view == "close" else sf.day_open(end)
-            sell_fill = cost.fill_price(sell_raw, "sell")
+            sell_fill = cost.fill_price(sf.day_close(end), "sell")   # 卖出恒close
             out[f"K2_{h}"] = out[f"K4_{h}"] = r_net_factor(
                 cost, CAPITAL, buy_price, sf.dates[buy_pos],
                 sell_fill, sf.dates[end], sf.factor(buy_pos), sf.factor(end))
@@ -167,8 +195,7 @@ def k2_view(sf: StockFrame, cost: CostModel, view: str,
                     r = r_net_factor(cost, invested, tprice, sf.dates[tpos],
                                      tprice, sf.dates[end], sf.factor(tpos), sf.factor(end))
                 else:
-                    sell_raw = sf.day_close(end) if view == "close" else sf.day_open(end)
-                    sell_fill = cost.fill_price(sell_raw, "sell")
+                    sell_fill = cost.fill_price(sf.day_close(end), "sell")
                     r = r_net_factor(cost, invested, tprice, sf.dates[tpos],
                                      sell_fill, sf.dates[end], sf.factor(tpos), sf.factor(end))
                 detail[tname] = r if r is not None else 0.0

@@ -26,6 +26,24 @@ V5_GLOB = "output/research/lifecycle_v1/entry_replay_v5_full/partitions/*/*.parq
 FT = ROOT / "output/research/adjustment_v1/factor_table.csv.gz"
 SRC = ROOT / "data/adjustment_baostock/per_stock"
 COST = CostModel()
+# 冻结排除清单(用户裁决 24 只): 加载失败仅当属于此清单才可记为排除, 否则必须终止
+EXCL_FROZEN = set(json.loads((ROOT / "config/adjustment_v1_exclusions.json").read_text())["excluded"])
+
+
+def verify_input_freeze():
+    """执行时验证: INPUT_FREEZE 记录的 v5 partitions/factor_table SHA256 逐一重算比对."""
+    fp = ROOT / "output/research/retcalc_v1/INPUT_FREEZE.json"
+    if not fp.exists():
+        raise SystemExit("INPUT_FREEZE.json 缺失: 先跑 retcalc_freeze_and_map.py")
+    import hashlib
+    fz = json.loads(fp.read_text())
+    for ent in fz["entry_replay_v5"]["files_sha256"]:
+        h = hashlib.sha256((ROOT / ent["file"]).read_bytes()).hexdigest()
+        if h != ent["sha256"]:
+            raise SystemExit(f"输入冻结失效: {ent['file']} SHA256 不符")
+    h = hashlib.sha256((ROOT / "output/research/adjustment_v1/factor_table.csv.gz").read_bytes()).hexdigest()
+    if h != fz["adjustment_v1"]["factor_table_sha256"]:
+        raise SystemExit("输入冻结失效: factor_table SHA256 不符")
 
 
 def to_prefixed(code6):
@@ -87,6 +105,8 @@ def main():
     OUT = ROOT / "output/research/retcalc_v1" / mode
     OUT.mkdir(parents=True, exist_ok=True)
     t0 = time.time()
+    verify_input_freeze()
+    print("输入SHA256执行时验证 ✓", flush=True)
 
     print("加载因子表...", flush=True)
     Fidx = load_factor_index()
@@ -131,34 +151,47 @@ def main():
             if sf == "?" or (sf is None and pc not in cache):
                 try:
                     sf = load_stock(pc, Fidx) if pc else None
-                except Exception:
-                    sf = None
+                except Exception as e:
+                    if pc in EXCL_FROZEN:
+                        sf = None          # 冻结排除股: 无因子表属预期
+                    else:
+                        raise RuntimeError(f"非排除股 {pc} 加载失败: {e}") from e
                 cache[pc] = sf
             strategy = g("strategy")
             is_control = g("not_filled_reason_close") == "no_breakout_signal"
             n_control += is_control
             if sf is None:
                 n_excluded += 1
-                rows_out.append({"code": code6, "lifecycle_id": g("lifecycle_id"),
+                rows_out.append({"code": pc or code6, "lifecycle_id": g("lifecycle_id"),
                                  "strategy": strategy, "status": "excluded_by_adjustment_decision"})
                 continue
             anchor = dv(g("anchor_day"))
             anchor_pos = sf.pos.get(anchor)
             for view in ("close", "next"):
                 sfx = view
-                if strategy == "staged_entry":
-                    bd = g(f"t1_fill_date") if view == "close" else g("t1_next_date")
-                    bp = g("t1_fill_price") if view == "close" else g("t1_next_price")
-                else:
-                    bd = g(f"fill_date_{sfx}")
-                    bp = g(f"fill_price_{sfx}")
+                # 成交判定统一用 fill_date_*/fill_price_*: 对 staged 该字段=第一笔
+                # 实际成交批次(Stage4 v5 冻结; close恒T1, next=T1失败时T2/T3)
+                bd = g(f"fill_date_{sfx}")
+                bp = g(f"fill_price_{sfx}")
                 filled = bd is not None and bp is not None
                 buy_pos = sf.pos.get(dv(bd)) if filled else None
                 buy_price = float(bp) if bp is not None else None
+                staged_legs = None
+                if strategy == "staged_entry" and filled:
+                    tag = "fill" if view == "close" else "next"
+                    staged_legs = []
+                    for t in ("t1", "t2", "t3"):
+                        td = dv(g(f"{t}_{tag}_date"))
+                        tp = g(f"{t}_{tag}_price")
+                        if td is not None and tp is not None and td in sf.pos:
+                            staged_legs.append((t, sf.pos[td], float(tp)))
                 capped = (strategy == "direct_chase" and g("capped_entered") is not None
                           and bool(g("capped_entered")) is False)
                 base = {"code": pc, "lifecycle_id": g("lifecycle_id"), "strategy": strategy,
                         "view": view, "anchor_day": anchor, "buy_day": dv(bd),
+                        "buy_price": buy_price,
+                        "staged_legs": (json.dumps([(t, sf.dates[tp], tp) for t, tp, _ in staged_legs])
+                                        if staged_legs else None),
                         "control_pool": is_control, "capped_unfilled": capped}
                 if anchor_pos is None:
                     base.update({f"K3_{h}": None for h in HORIZONS},
@@ -168,7 +201,8 @@ def main():
                 base["anchor_pos"] = anchor_pos
                 k3 = k3_view(sf, COST, view, anchor_pos,
                              None if is_control else buy_pos,
-                             buy_price, capped_cash=capped)
+                             buy_price, capped_cash=capped,
+                             legs=(staged_legs if strategy == "staged_entry" else None))
                 if is_control:
                     k3 = {k: (None if k.startswith("K3_") and not k.endswith("_reason")
                               else ("no_breakout_control" if k.endswith("_reason") else None))
@@ -185,29 +219,23 @@ def main():
                 base["state_reason"] = st[1]
                 if st[0] == "evaluated_position":
                     if strategy == "staged_entry":
-                        legs = []
-                        for t in ("t1", "t2", "t3"):
-                            td = dv(g(f"{t}_fill_date") if view == "close" else g(f"{t}_next_date"))
-                            tp = g(f"{t}_fill_price" if view == "close" else f"{t}_next_price")
-                            if td is not None and tp is not None and td in sf.pos:
-                                legs.append((t, sf.pos[td], float(tp)))
-                        k2 = k2_view(sf, COST, view, legs[0][1], legs[0][2], legs=legs) if legs else {}
+                        k2 = k2_view(sf, COST, view, staged_legs[0][1],
+                                     staged_legs[0][2], legs=staged_legs) if staged_legs else {}
                     else:
                         k2 = k2_view(sf, COST, view, buy_pos, buy_price)
                     base.update(k2)
-                    # 黄金对账抽样(仅单笔策略+持有窗内F严格恒定): K2_5 == v5 ret_net_5
-                    # staged 排除(v5 ret_net 为 T1 单笔口径, 与组合加权不可直比);
-                    # F 变化行单独计数 = 复权修正 raw 口径除权失真的规模
-                    if view == "close":
-                        if buy_pos is not None and buy_pos + 5 < len(sf.dates) \
-                                and abs(sf.F[sf.dates[buy_pos + 5]] / sf.F[sf.dates[buy_pos]] - 1) > 1e-12:
-                            n_factor_adj += 1
-                        if strategy != "staged_entry" and len(golden) < 200:
-                            v5r = g("ret_net_5_close")
-                            if v5r is not None and buy_pos is not None:
-                                if abs(sf.F[sf.dates[min(buy_pos + 5, len(sf.dates) - 1)]] / sf.F[sf.dates[buy_pos]] - 1) < 1e-12:
-                                    golden.append({"code": pc, "K2_5": base.get("K2_5"),
-                                                   "v5_ret_net_5": float(v5r) / 100.0})
+                    # 黄金对账抽样(单笔策略×双视角, 持有窗内F严格恒定): K2_5==v5 ret_net_5
+                    # staged 不在此处(组合口径, 由审计R4独立复算); F 变化行计数=复权修正规模
+                    if buy_pos is not None and buy_pos + 5 < len(sf.dates) \
+                            and abs(sf.F[sf.dates[buy_pos + 5]] / sf.F[sf.dates[buy_pos]] - 1) > 1e-12:
+                        n_factor_adj += 1
+                    if strategy != "staged_entry" and len(golden) < 400:
+                        v5r = g(f"ret_net_5_{view}")
+                        if v5r is not None and buy_pos is not None:
+                            if abs(sf.F[sf.dates[min(buy_pos + 5, len(sf.dates) - 1)]] / sf.F[sf.dates[buy_pos]] - 1) < 1e-12:
+                                golden.append({"code": pc, "view": view,
+                                               "K2_5": base.get("K2_5"),
+                                               "v5_ret_net_5": float(v5r) / 100.0})
                 else:
                     base.update({f"K2_{h}": (0.0 if st[0] == "evaluated_cash" else None)
                                  for h in HORIZONS})

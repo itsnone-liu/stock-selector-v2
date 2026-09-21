@@ -110,3 +110,51 @@ k2z = k2_view(sf, COST, "close", len(D) - 3, buy_price)
 ok(k2z["K2_5"] is None and k2z["K2_5_reason"] == "null_holding_tail", "持有终点超数据→null")
 
 print(f"retcalc 单测: {N} 项断言全部通过 ✓")
+
+# ── 场景8 staged next: T1次日失败, T2成交 → 成交判定=第一笔=T2, K2终点=T2后h ──
+from stock_selector.research.recalc_golden import golden_recompute
+sf8 = mkframe(D, [10.0 + 0.1 * i for i in range(21)],
+              opens=[9.0 + 0.1 * i for i in range(21)])
+# legs: t2 成交于 pos6 (next语义), t1 无
+legs8 = [("t2", 6, COST.fill_price(9.6, "buy"))]
+k2n = k2_view(sf8, COST, "next", 6, legs8[0][2], legs=legs8)
+end8 = 6 + 5
+s8 = COST.fill_price(sf8.day_close(end8), "sell")      # next 卖出=终点日close(v5)
+r_t2 = r_net_factor(COST, 0.30 * CAPITAL, legs8[0][2], D[6], s8, D[end8], 1.0, 1.0)
+ok(abs(k2n["K2_5"] - 0.30 * r_t2) < 1e-12,
+   f"staged next T1失败: K2终点=T2后h, 组合=0.3×T2+0.7现金 ({k2n['K2_5']} vs {0.30*r_t2})")
+ok(abs(k2n["K2_5"] - r_t2) > 1e-6, "t1权重不虚计(T1未成交)")
+
+# ── 场景9 next 卖出价=终点日 close(open≠close 构造) ──
+# open 远低于 close: 若误用 open 卖出, 收益显著偏低
+k3n = k3_view(sf8, COST, "next", 0, 1, COST.fill_price(sf8.day_open(1), "buy"))
+sell_c = COST.fill_price(sf8.day_close(0 + 5), "sell")   # K3终点=anchor+5
+expect_n = _round_trip_net(COST, COST.fill_price(sf8.day_open(1), "buy"), sell_c, date(2025, 1, 9))
+ok(abs(k3n["K3_5"] - expect_n) < 1e-12,
+   f"next持有卖出=终点日close ({k3n['K3_5']} vs {expect_n})")
+
+# ── 场景10 staged K3 分批: 终点前成交批持有至K3终点, 未成交/终点后批=现金 ──
+legs10 = [("t1", 0, COST.fill_price(10.0, "buy")),      # anchor日成交
+          ("t3", 8, COST.fill_price(10.6, "buy"))]       # t2 无; t3 pos8
+k3s = k3_view(sf8, COST, "close", 0, 0, legs10[0][2], legs=legs10)
+end10 = 0 + 5                                          # K3_5 终点=pos5
+s10 = COST.fill_price(sf8.day_close(5), "sell")
+r_t1 = r_net_factor(COST, 0.30 * CAPITAL, legs10[0][2], D[0], s10, D[5], 1.0, 1.0)
+# t3 pos8 > end5 → 现金0; t2 无 → 0
+ok(abs(k3s["K3_5"] - 0.30 * r_t1) < 1e-12,
+   f"K3分批: 仅T1终点前成交 → 0.3×T1 ({k3s['K3_5']} vs {0.30*r_t1})")
+# K3_10: 终点pos10 > t3pos8 → T3 持有
+k3s2 = k3_view(sf8, COST, "close", 0, 0, legs10[0][2], legs=legs10)
+end10b = 0 + 10
+s10b = COST.fill_price(sf8.day_close(end10b), "sell")
+r_t1b = r_net_factor(COST, 0.30 * CAPITAL, legs10[0][2], D[0], s10b, D[end10b], 1.0, 1.0)
+r_t3b = r_net_factor(COST, 0.40 * CAPITAL, legs10[1][2], D[8], s10b, D[end10b], 1.0, 1.0)
+ok(abs(k3s2["K3_10"] - (0.30 * r_t1b + 0.40 * r_t3b)) < 1e-12,
+   f"K3分批: T1+T3终点前成交 → 0.3T1+0.4T3 ({k3s2['K3_10']})")
+
+# K3 窗口不完整对 staged: null
+sf9 = mkframe(D[:8], [10.0] * 8)
+k3w = k3_view(sf9, COST, "close", 0, 0, 10.0, legs=[("t1", 0, 10.0)])
+ok(k3w["K3_10"] is None and k3w["K3_10_reason"] == "window_incomplete", "staged K3右删失null")
+
+print(f"retcalc 单测(含新增场景): 共 {N} 项断言全部通过 ✓")
