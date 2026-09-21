@@ -33,6 +33,7 @@ import numpy as np
 
 ROOT = Path("/root/project/workspace/stock-selector-v2")
 sys.path.insert(0, str(ROOT / "src"))
+from stock_selector.research.identify_features import eligibility_riskset  # noqa: E402
 sys.path.insert(0, str(ROOT / "scripts"))
 OUT = ROOT / "output/research/posneg_v1"
 SRC = ROOT / "data/adjustment_baostock/per_stock"
@@ -66,15 +67,8 @@ def load(ds):
 
 
 def life_meta():
-    """end_day per lifecycle_id(生命周期失活判定)."""
-    files = sorted(glob.glob(str(ROOT / "output/research/lifecycle_v1/"
-                                 "lifecycle_stage4_v1_full/partitions/*/*.parquet")))
-    meta = {}
-    for lid, ed in duckdb.connect().execute(f"""
-            SELECT lifecycle_id, end_day
-            FROM read_parquet({files!r}) WHERE breakout_day IS NOT NULL""").fetchall():
-        meta[lid] = str(ed)[:10] if ed else None
-    return meta
+    """占位: 失活判定已用数据集 lifecycle_end_day 列(2026-09-21 第八轮)."""
+    return None
 
 
 def cliff_delta(x1, x0):
@@ -144,7 +138,6 @@ def feat_stat(vals, y, keys=None, seed_off=0):
 
 def main():
     t0 = time.time()
-    meta = life_meta()
     # 冻结交易日历(per code, 复用 build 的 load_stock 需 F 因子表)
     from build_identify_features import load_stock
     F = {}
@@ -183,20 +176,25 @@ def main():
     for ds in ("breakout", "shrink", "stabilization"):
         rows = load(ds)
         risk, reclaim_neg, inactive = [], [], []
+        n_pre = 0                                    # 独立资格计数(守恒对照)
         for r in rows:
             if r["path_family"] == "right_censored":
                 continue
             if not (r["obs_day"] < r["label_available_day_path"]):
                 continue
+            n_pre += 1
             fr = r.get("first_reclaim_day")
+            ed = r.get("lifecycle_end_day")
             if fr and fr <= r["obs_day"]:
                 reclaim_neg.append(r)              # 已知负类(含观察日当日收复)
-            elif meta.get(r["lifecycle_id"]) and meta[r["lifecycle_id"]] <= r["obs_day"]:
+            elif ed and ed <= r["obs_day"]:
                 inactive.append(r)                 # 活跃性排除(非标签已知)
             else:
                 risk.append(r)
+                # 与统一资格函数交叉核对(单一事实源)
+                assert eligibility_riskset(r), f"风险集函数不一致: {r['lifecycle_id']}"
         n_all = len(risk) + len(reclaim_neg) + len(inactive)
-        assert n_all == len(risk) + len(reclaim_neg) + len(inactive)   # 守恒(显式)
+        assert n_all == n_pre, f"守恒失败 {n_all} != 独立资格计数 {n_pre}"
         report["risk_set_check"][ds] = {
             "n_total_eligible": n_all, "n_risk_set": len(risk),
             "n_reclaim_known_negative": len(reclaim_neg),

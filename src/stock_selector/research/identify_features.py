@@ -161,3 +161,26 @@ def split_semiannual(breakout_day: str, start_year: int = 2015) -> int:
     """逐半年桶编号: 0=2015H1, 1=2015H2, ... (冻结切分器)."""
     y, m = int(breakout_day[:4]), int(breakout_day[5:7])
     return (y - start_year) * 2 + (0 if m <= 6 else 1)
+
+
+def eligibility_riskset(r):
+    """path_binary 活跃风险集统一资格(2026-09-21 第八轮冻结, 三脚本共用).
+
+    排除(互斥优先序):
+    1 first_reclaim_day <= obs_day(含当日) → reclaim_known_negative
+    2 path_family == right_censored → 右删失不作确定标签
+    3 lifecycle_end_day <= obs_day → lifecycle_inactive(活跃性排除,
+      classify_path 依 20 日窗, end 不构成标签已知)
+    须 obs_day < label_available_day_path(严格, 结局确定前).
+    行参数: identify 数据集 dict(first_reclaim_day/lifecycle_end_day 需在).
+    """
+    fr = r.get("first_reclaim_day")
+    if fr and fr <= r["obs_day"]:
+        return False
+    if r.get("path_family") == "right_censored":
+        return False
+    ed = r.get("lifecycle_end_day")
+    if ed and ed <= r["obs_day"]:
+        return False
+    la = r.get("label_available_day_path")
+    return bool(la and r["obs_day"] < la)

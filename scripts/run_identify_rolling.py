@@ -25,6 +25,10 @@ from pathlib import Path
 
 import numpy as np
 
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
+from stock_selector.research.identify_features import eligibility_riskset  # noqa: E402
+
 ROOT = Path("/root/project/workspace/stock-selector-v2")
 OUT = ROOT / "output/research/posneg_v1"
 DEV_NOTE = "开发样本研究; adjustment_v1 exception 未闭合; 非实盘准入规则"
@@ -43,15 +47,11 @@ def eligibility(rows, target):
     for r in rows:
         e, yy = False, None
         if target == "path_binary":
-            # 风险集门禁(2026-09-21 P0): 观察日(含当日)已收复突破价
-            # → never_reclaim 已不可能(已知负类), 不得进事前预测
-            fr = r.get("first_reclaim_day")
-            if fr and fr <= r["obs_day"]:
-                e, yy = False, None
-            elif r.get("path_family") != "right_censored":
-                la, ob = r.get("label_available_day_path"), r["obs_day"]
-                if la and ob < la:                    # 严格 <: 结局确定前
-                    e, yy = True, 1 if r["path_family"] == "never_reclaim" else 0
+            # 统一活跃风险集(2026-09-21 第八轮: 与关联研究同函数;
+            # 含收复已知负/右删失/失活三类排除)
+            if eligibility_riskset(r):
+                e = True
+                yy = 1 if r["path_family"] == "never_reclaim" else 0
         elif target == "group_g3":
             ge = r.get("group_eventual")
             la, ob = r.get("label_available_day_ge"), r["obs_day"]

@@ -108,6 +108,7 @@ def process_episode(lid, pl, life_row, stab_fd, cache_row):
         "structure_broken_asof_20d": pl["structure_broken_asof_20d"],
         "label_uncertain": label_uncertain, "dev_sample": True,
         "first_reclaim_day": None,          # 置于下方复权基准段计算
+        "lifecycle_end_day": end_day,         # 风险集失活判据(元数据, 非特征)
         "audit_t2_orig_le_bo": audit["t2_orig_le_bo"],
     }
     dO = {d: u[d][0] for d in dates}

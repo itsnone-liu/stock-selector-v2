@@ -71,3 +71,20 @@ ok(r3["breakout"]["first_reclaim_day"] is None,
    "end<=obs 但窗内未收复 → 非 reclaim_known; 归 lifecycle_inactive(单列)")
 
 print(f"风险集收复反例测试: {N} 项断言全部通过 ✓")
+
+# ── 统一资格函数断言(第八轮: 最终筛选, 非仅 first_reclaim 生成) ──
+import gzip as _gz, csv as _csv
+_rows = list(_csv.DictReader(_gz.open(
+    ROOT / "output/research/posneg_v1/identify_shrink.csv.gz", "rt")))
+from stock_selector.research.identify_features import eligibility_riskset as _elig
+import sys as _s; _s.path.insert(0, str(ROOT / "src"))
+_risk = [r for r in _rows if _elig(r)]
+_n_ind = sum(1 for r in _rows if r["path_family"] != "right_censored"
+             and r["obs_day"] < r["label_available_day_path"]
+             and not (r["first_reclaim_day"] and r["first_reclaim_day"] not in ("", "None")
+                      and r["first_reclaim_day"] <= r["obs_day"])
+             and not (r["lifecycle_end_day"] and r["lifecycle_end_day"] not in ("", "None")
+                      and r["lifecycle_end_day"] <= r["obs_day"]))
+ok(len(_risk) == _n_ind, f"资格函数与独立实现一致({len(_risk)}=={_n_ind})")
+ok(len(_risk) > 0, "shrink 活跃风险集非空")
+print(f"统一资格函数断言 +2 | shrink 活跃风险集 {len(_risk)}")

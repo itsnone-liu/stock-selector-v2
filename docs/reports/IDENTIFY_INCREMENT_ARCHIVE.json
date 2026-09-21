@@ -1,5 +1,14 @@
 {
- "note": "2026-09-21 P0 风险集修正后重跑(冻结模型设置); 旧口径结果标记'含结局已知样本', 不再引用",
+ "archive_version_head": "6efa9f1370ce3948096167599b1a67568825b0be",
+ "riskset_version": "eligibility_riskset 统一活跃风险集(收复已知负+右删失+失活)",
+ "method": {
+  "design": "同样本配对: 同批生命周期(活跃风险集), early=breakout 特征 vs current=时点特征; 同标签/同事件集/同测试折",
+  "preprocess": "缺失=np.nan; 中位数/标准化仅训练折拟合",
+  "statistic": "逐折 AUC; 冻结测试事件数权重加权 ΔAUC; bootstrap 保留折身份",
+  "bootstrap": "股票块/日期块 2000, percentile 95%, seed 20260919",
+  "interval_caveat": "固定已训练模型测试样本重抽区间, 不含重训不确定性"
+ },
+ "superseded": "旧口径(2026-09-21 前七轮, 含结局已知样本)结果作废",
  "runs": {
   "shrink": {
    "experiment": "increment:shrink",
@@ -30,7 +39,7 @@
     "sh_volratio5",
     "volratio5"
    ],
-   "n_events": 6780,
+   "n_events": 6779,
    "folds": [
     {
      "test_bucket": 18,
@@ -150,70 +159,70 @@
     "st_volrecover",
     "volratio5"
    ],
-   "n_events": 3730,
+   "n_events": 3559,
    "folds": [
     {
      "test_bucket": 18,
      "n_train": 0,
-     "n_test": 267,
+     "n_test": 260,
      "completed": false
     },
     {
      "test_bucket": 19,
-     "n_train": 240,
-     "n_test": 241,
+     "n_train": 233,
+     "n_test": 227,
      "completed": true,
-     "auc_current": 0.7228,
-     "auc_early": 0.5347,
-     "delta_auc": 0.1881
+     "auc_current": 0.7299,
+     "auc_early": 0.5391,
+     "delta_auc": 0.1907
     },
     {
      "test_bucket": 20,
-     "n_train": 462,
-     "n_test": 768,
+     "n_train": 441,
+     "n_test": 723,
      "completed": true,
-     "auc_current": 0.6834,
-     "auc_early": 0.5547,
-     "delta_auc": 0.1287
+     "auc_current": 0.6683,
+     "auc_early": 0.5522,
+     "delta_auc": 0.1161
     },
     {
      "test_bucket": 21,
-     "n_train": 1140,
-     "n_test": 1472,
+     "n_train": 1088,
+     "n_test": 1410,
      "completed": true,
-     "auc_current": 0.7208,
-     "auc_early": 0.5725,
-     "delta_auc": 0.1482
+     "auc_current": 0.7136,
+     "auc_early": 0.5688,
+     "delta_auc": 0.1449
     },
     {
      "test_bucket": 22,
-     "n_train": 2592,
-     "n_test": 835,
+     "n_train": 2469,
+     "n_test": 796,
      "completed": true,
-     "auc_current": 0.7054,
-     "auc_early": 0.5742,
-     "delta_auc": 0.1313
+     "auc_current": 0.706,
+     "auc_early": 0.5797,
+     "delta_auc": 0.1263
     }
    ],
    "pooled": {
-    "n_events_pooled": 3316,
-    "weighted_delta_auc_point": 0.1423,
+    "n_events_pooled": 3156,
+    "weighted_delta_auc_point": 0.1369,
     "frozen_weights": {
-     "19": 0.0727,
-     "20": 0.2316,
-     "21": 0.4439,
-     "22": 0.2518
+     "19": 0.0719,
+     "20": 0.2291,
+     "21": 0.4468,
+     "22": 0.2522
     },
     "delta_auc_stock_ci": [
-     0.1191,
-     0.1654
+     0.1138,
+     0.1617
     ],
-    "n_stock_blocks": 2401,
+    "n_stock_blocks": 2318,
     "delta_auc_date_ci": [
-     0.1163,
-     0.1701
+     0.1094,
+     0.1662
     ],
-    "n_date_blocks": 399,
+    "n_date_blocks": 395,
     "bootstrap_skipped_draws": {
      "stock": 0,
      "date": 0
@@ -224,7 +233,7 @@
     "note": "label_available_day_path − obs_day 自然日差; 判断高 AUC 是否集中于临近结局观察日",
     "current": {
      "min": 6.0,
-     "p25": 20.0,
+     "p25": 21.0,
      "p50": 22.0,
      "p75": 25.0,
      "max": 40.0
