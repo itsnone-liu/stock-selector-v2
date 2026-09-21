@@ -107,6 +107,7 @@ def process_episode(lid, pl, life_row, stab_fd, cache_row):
         "group_eventual": ge, "group_asof_20d": pl["group_asof_20d"],
         "structure_broken_asof_20d": pl["structure_broken_asof_20d"],
         "label_uncertain": label_uncertain, "dev_sample": True,
+        "first_reclaim_day": None,          # 置于下方复权基准段计算
         "audit_t2_orig_le_bo": audit["t2_orig_le_bo"],
     }
     dO = {d: u[d][0] for d in dates}
@@ -115,6 +116,14 @@ def process_episode(lid, pl, life_row, stab_fd, cache_row):
     dC = {d: u[d][3] for d in dates}
     dV = {d: u[d][4] for d in dates}
     p_bo_adj = dC[bo_d] * Fd[bo_d]                 # 复权基准(统一)
+    # 突破后首次收复突破价(与 classify_path 同口径: P_adj_close >= P_bo_adj;
+    # 仅 20 交易日窗内; None=窗内未收复)。元数据列(风险集判据), 非特征。
+    first_reclaim = None
+    for d_ in dates[bp + 1:bp + 21]:
+        if dC[d_] * Fd[d_] >= p_bo_adj:
+            first_reclaim = d_
+            break
+    label["first_reclaim_day"] = first_reclaim
     prep_days = ((bp - dates.index(ps_d)) if (ps_d and ps_d in dates) else None)  # bo−ps 正数
     r1 = ObsFrame(dates, bp, dO, dH, dL, dC, dV, Fd)
     row1 = {**label, "obs_day": bo_d, "obs_vol_missing": bool(vmd.get(bo_d)),

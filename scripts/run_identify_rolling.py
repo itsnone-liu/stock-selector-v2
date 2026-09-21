@@ -43,7 +43,12 @@ def eligibility(rows, target):
     for r in rows:
         e, yy = False, None
         if target == "path_binary":
-            if r.get("path_family") != "right_censored":
+            # 风险集门禁(2026-09-21 P0): 观察日(含当日)已收复突破价
+            # → never_reclaim 已不可能(已知负类), 不得进事前预测
+            fr = r.get("first_reclaim_day")
+            if fr and fr <= r["obs_day"]:
+                e, yy = False, None
+            elif r.get("path_family") != "right_censored":
                 la, ob = r.get("label_available_day_path"), r["obs_day"]
                 if la and ob < la:                    # 严格 <: 结局确定前
                     e, yy = True, 1 if r["path_family"] == "never_reclaim" else 0

@@ -33,6 +33,10 @@ def load(ds):
 
 
 def eligibility_path(r):
+    # 风险集门禁(2026-09-21 P0): 观察日(含当日)已收复突破价→已知负类
+    fr = r.get("first_reclaim_day")
+    if fr and fr <= r["obs_day"]:
+        return False
     if r.get("path_family") == "right_censored":
         return False
     la, ob = r.get("label_available_day_path"), r["obs_day"]

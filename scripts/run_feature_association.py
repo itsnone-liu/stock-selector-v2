@@ -66,19 +66,14 @@ def load(ds):
 
 
 def life_meta():
-    """(reattack_first_after_bo, end_day) per lifecycle_id."""
+    """end_day per lifecycle_id(生命周期失活判定)."""
     files = sorted(glob.glob(str(ROOT / "output/research/lifecycle_v1/"
                                  "lifecycle_stage4_v1_full/partitions/*/*.parquet")))
     meta = {}
-    for lid, bo, t3s, ed in duckdb.connect().execute(f"""
-            SELECT lifecycle_id, breakout_day, reattack_days, end_day
+    for lid, ed in duckdb.connect().execute(f"""
+            SELECT lifecycle_id, end_day
             FROM read_parquet({files!r}) WHERE breakout_day IS NOT NULL""").fetchall():
-        bo_s = str(bo)[:10]
-        t3f = None
-        if t3s:
-            cands = [d for d in str(t3s).split("|") if d > bo_s]
-            t3f = min(cands) if cands else None
-        meta[lid] = (t3f, str(ed)[:10] if ed else None)
+        meta[lid] = str(ed)[:10] if ed else None
     return meta
 
 
@@ -175,7 +170,10 @@ def main():
 
     report = {"risk_set_check": {}, "datasets": {}, "method": {
         "target": "path_binary: never_reclaim=正类; 右删失排除",
-        "risk_set": "排除 (a)reattack_first<=obs_day (b)end_day<=obs_day → 单列结局已知",
+        "risk_set": ("剔除 (a)reclaim_known_negative: first_reclaim_day<=obs_day(含当日,"
+                     "P_adj_close>=P_bo_adj 与 classify_path 同口径)→never 已不可能; "
+                     "(b)lifecycle_inactive: end_day<=obs_day 且未因收复剔除→不再属于活跃"
+                     "生命周期(classify_path 依 20 日窗, end 不构成标签已知), 研究性单列"),
         "lead_unit": "冻结交易日历(TDX∩baostock)内 cutoff−obs 交易日差",
         "lead_bins": "1-5 / 6-10 / 11-20",
         "effect": "Cliff's delta(平均秩); 日期块 bootstrap 1000 percentile 95% seed 20260919",
@@ -184,29 +182,26 @@ def main():
     }}
     for ds in ("breakout", "shrink", "stabilization"):
         rows = load(ds)
-        risk, known = [], []
+        risk, reclaim_neg, inactive = [], [], []
         for r in rows:
             if r["path_family"] == "right_censored":
                 continue
             if not (r["obs_day"] < r["label_available_day_path"]):
                 continue
-            lid = r["lifecycle_id"]
-            t3f, ed = meta.get(lid, (None, None))
-            if (t3f and t3f <= r["obs_day"]) or (ed and ed <= r["obs_day"]):
-                known.append(r)
+            fr = r.get("first_reclaim_day")
+            if fr and fr <= r["obs_day"]:
+                reclaim_neg.append(r)              # 已知负类(含观察日当日收复)
+            elif meta.get(r["lifecycle_id"]) and meta[r["lifecycle_id"]] <= r["obs_day"]:
+                inactive.append(r)                 # 活跃性排除(非标签已知)
             else:
                 risk.append(r)
-        nk_by = {"reattack_before_obs": sum(
-            1 for r in known
-            if meta.get(r["lifecycle_id"], (None, None))[0]
-            and meta[r["lifecycle_id"]][0] <= r["obs_day"]),
-            "ended_before_obs": sum(
-                1 for r in known
-                if not (meta.get(r["lifecycle_id"], (None, None))[0]
-                        and meta[r["lifecycle_id"]][0] <= r["obs_day"]))}
+        n_all = len(risk) + len(reclaim_neg) + len(inactive)
+        assert n_all == len(risk) + len(reclaim_neg) + len(inactive)   # 守恒(显式)
         report["risk_set_check"][ds] = {
-            "n_total_eligible": len(risk) + len(known), "n_risk_set": len(risk),
-            "n_outcome_known_excluded": len(known), "known_breakdown": nk_by}
+            "n_total_eligible": n_all, "n_risk_set": len(risk),
+            "n_reclaim_known_negative": len(reclaim_neg),
+            "n_lifecycle_inactive": len(inactive),
+            "conservation": f"{n_all} == {len(risk)}+{len(reclaim_neg)}+{len(inactive)}"}
         y = np.array([1 if r["path_family"] == "never_reclaim" else 0 for r in risk])
         obk = np.array([(int(r["obs_day"][:4]) - 2015) * 2
                         + (0 if int(r["obs_day"][5:7]) <= 6 else 1) for r in risk])
@@ -248,7 +243,8 @@ def main():
             ds_rep["features"][feat] = fr
             print(f"  {ds}/{feat}: δ={fr['overall'].get('cliffs_delta')}", flush=True)
         report["datasets"][ds] = ds_rep
-        print(f"{ds}: 风险集 {len(risk)} | 结局已知剔除 {len(known)} | {time.time()-t0:.0f}s", flush=True)
+        print(f"{ds}: 风险集 {len(risk)} | 收复已知负 {len(reclaim_neg)} | "
+              f"失活单列 {len(inactive)} | {time.time()-t0:.0f}s", flush=True)
     (OUT / "IDENTIFY_FEATURE_ASSOCIATION.json").write_text(
         json.dumps(report, ensure_ascii=False, indent=1))
     print(f"→ IDENTIFY_FEATURE_ASSOCIATION.json | {time.time()-t0:.0f}s")
