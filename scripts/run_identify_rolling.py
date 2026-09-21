@@ -133,9 +133,22 @@ def main():
             w = fit_logreg(Xtr, y[tr])
             pred = (np.hstack([Xte, np.ones((len(Xte), 1))]) @ w) >= 0
             tp = int(((pred == 1) & (y[te] == 1)).sum())
-            rec.update({"pos_recall": tp / max(int((y[te] == 1).sum()), 1),
-                        "precision": tp / max(int(pred.sum()), 1),
-                        "predicted_pos_rate": float(pred.mean())})
+            fp = int(((pred == 1) & (y[te] == 0)).sum())
+            tn = int(((pred == 0) & (y[te] == 0)).sum())
+            fn = int(((pred == 0) & (y[te] == 1)).sum())
+            n_pos, n_neg = tp + fn, tn + fp
+            pr = tp / max(tp + fp, 1)
+            rc = tp / max(n_pos, 1)
+            base = n_pos / max(n_pos + n_neg, 1)     # 常数预测正基线
+            f1 = 2 * pr * rc / max(pr + rc, 1e-12)
+            rec.update({
+                "n_test_pos": n_pos, "n_test_neg": n_neg,
+                "TP": tp, "FP": fp, "TN": tn, "FN": fn,
+                "precision": pr, "pos_recall": rc, "f1": f1,
+                "baseline_precision_always_pos": base,
+                "lift_vs_baseline": pr / max(base, 1e-12),
+                "predicted_pos_rate": (tp + fp) / max(n_pos + n_neg, 1),
+            })
         else:
             rec["skip_reason"] = f"train<{MIN_TRAIN} 或 test<{MIN_TEST}"
         folds.append(rec)
