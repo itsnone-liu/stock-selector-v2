@@ -264,9 +264,11 @@ def main():
     TARGET_PER_CELL = 40              # 每格目标验证数(不足则全量该格)
     n_staged_bad = n_staged = 0
     staged_cache_px = {}
+    n_staged_avail = len(staged_rows)
     for r in staged_rows:
-        if all(cover[(r["view"], h, m)] >= TARGET_PER_CELL
-               for h in HORIZONS for m in ("K2", "K3", "K4")):
+        if all(cover[(v, h, m)] >= TARGET_PER_CELL
+               for v in ("close", "next") for h in HORIZONS
+               for m in ("K2", "K3", "K4")):
             break
         dates, pos, u, Fd = pb.frame(r["code"])
         legs = json.loads(r["staged_legs"])
@@ -296,13 +298,9 @@ def main():
                     if tpx is None or tp_ > end_k2:
                         continue
                     w = TRANCHES[t]
-                    if tp_ == end_k2:
-                        ri = r_net(COST, w * 100_000.0, tpx, dates[tp_], tpx,
-                                   dates[end_k2], Fd[dates[tp_]], Fd[dates[end_k2]])
-                    else:
-                        sell = COST.fill_price(u[dates[end_k2]][1], "sell")
-                        ri = r_net(COST, w * 100_000.0, tpx, dates[tp_], sell,
-                                   dates[end_k2], Fd[dates[tp_]], Fd[dates[end_k2]])
+                    sell = COST.fill_price(u[dates[end_k2]][1], "sell")   # v5: 终点收盘卖出(含终点日恰成交批)
+                    ri = r_net(COST, w * 100_000.0, tpx, dates[tp_], sell,
+                               dates[end_k2], Fd[dates[tp_]], Fd[dates[end_k2]])
                     total += w * (ri if ri is not None else 0.0)
                 for m, csvv in (("K2", csv_k2), ("K4", csv_k4)):
                     n_staged += 1
@@ -339,12 +337,17 @@ def main():
     empty_cells = [k for k, v in cover_tbl.items() if v["n"] == 0]
     if empty_cells:
         failures.append(f"R4 staged覆盖表空格: {empty_cells}")
+    underfilled = {k: v["n"] for k, v in cover_tbl.items() if 0 < v["n"] < TARGET_PER_CELL}
+    if underfilled:
+        report["R4_staged_underfilled_cells"] = {**underfilled,
+                                                 "_note": "可评价样本不足目标40, 记录实际量"}
     if n_staged_bad:
         failures.append(f"R4 staged全口径失配: {n_staged_bad}/{n_staged}")
     if n_recalc_bad:
         failures.append(f"R4 分层重算失配: {n_recalc_bad}/{n_recalc}")
     report["R4"] = {"stratified": n_recalc, "stratified_bad": n_recalc_bad,
                     "staged_total": n_staged, "staged_bad": n_staged_bad,
+                    "staged_rows_available": n_staged_avail,
                     "staged_cover_table": cover_tbl,
                     "buy_price_checked": len(px_sample), "buy_price_bad": n_px_bad}
 
@@ -356,8 +359,12 @@ def main():
            f"R4分层{n_recalc}(失配{n_recalc_bad})+staged{n_staged}(失配{n_staged_bad})+价格源{len(px_sample)}✓ "
            f"R5排除✓ R6冻结✓")
     print(msg if not failures else f"审计retcalc[{mode}]: {status} | {failures[:8]}")
-    Path(ROOT / "docs/reports/RETCALC_V1_AUDIT.json").write_text(
+    Path(ROOT / f"docs/reports/RETCALC_V1_AUDIT_{mode.upper()}.json").write_text(
         json.dumps(report, ensure_ascii=False, indent=1))
+    if mode == "full":
+        # 权威产物: full 结果同步写权威文件名(内容含 mode=full 自证)
+        Path(ROOT / "docs/reports/RETCALC_V1_AUDIT.json").write_text(
+            json.dumps(report, ensure_ascii=False, indent=1))
     sys.exit(0 if not failures else 1)
 
 

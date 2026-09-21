@@ -212,10 +212,16 @@ def main():
                     st = ("evaluated_cash", "no_breakout_signal")
                 else:
                     end_probe = (buy_pos + HORIZONS[0]) if buy_pos is not None else None
-                    # 逐视角: filled 已是本视角 fill_status; 右删失=生命周期级
+                    # 逐视角: filled 已是本视角 fill_status; 右删失=生命周期级;
+                    # next 唯一机会阻断 = close 视角存在理论成交点而 next 未成交
+                    # (等待/追入的指定日被阻断且规则不允许重试) → 政策终结
+                    ept = (view == "next" and not filled
+                           and g("fill_status_close") == "filled"
+                           and g("fill_status_next") == "not_filled")
                     st = k2_state(filled, capped, False,
                                   bool(g("right_censored")),
-                                  end_probe, len(sf.dates) - 1)
+                                  end_probe, len(sf.dates) - 1,
+                                  entry_policy_terminal=ept)
                 base["state"] = st[0]
                 base["state_reason"] = st[1]
                 if st[0] == "evaluated_position":

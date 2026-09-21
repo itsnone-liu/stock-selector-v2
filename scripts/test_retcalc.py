@@ -172,19 +172,35 @@ ok(st12 == ("null_entry_pending", "data_end_pending"), f"右删失未终结→pe
 st12b = _ks(filled=False, capped_cash=False, no_breakout=False,
             right_censored=False, end_pos=None, last=20)
 ok(st12b[0] == "evaluated_cash", "next阻断且生命周期完整→cash")
-# ── 场景13 K2 终点日 next 批次恰成交 → 该批瞬间估值(仅费用), 不偷看收盘 ──
+# ── 场景13 K2 终点日 next 批次恰成交 → v5 回放口径: 终点收盘卖出(非瞬间估值) ──
 sf13 = mkframe(D, [10.0 + 0.1 * i for i in range(21)],
                opens=[9.0 + 0.1 * i for i in range(21)])
 legs13 = [("t1", 2, COST.fill_price(sf13.day_close(2), "buy")),
           ("t2", 7, COST.fill_price(sf13.day_open(7), "buy"))]   # t2 成交=次日开盘口径
 k2_13 = k2_view(sf13, COST, "next", 2, legs13[0][2], legs=legs13)
 end13 = 2 + 5                                                       # 终点=pos7==t2批
-r_t2_instant = r_net_factor(COST, 0.30 * CAPITAL, legs13[1][2], D[7],
-                            legs13[1][2], D[7], 1.0, 1.0)
-s13 = COST.fill_price(sf13.day_close(end13), "sell")
+s13 = COST.fill_price(sf13.day_close(end13), "sell")              # 卖=终点收盘(v5)
+r_t2_close_sell = r_net_factor(COST, 0.30 * CAPITAL, legs13[1][2], D[7],
+                               s13, D[7], 1.0, 1.0)
 r_t1 = r_net_factor(COST, 0.30 * CAPITAL, legs13[0][2], D[2], s13, D[7], 1.0, 1.0)
-ok(abs(k2_13["K2_5"] - (0.30 * r_t1 + 0.30 * r_t2_instant)) < 1e-12,
-   f"终点日next批恰成交→瞬间估值仅费用 ({k2_13['K2_5']})")
-ok(r_t2_instant < 0, "瞬间估值=费用损(负)")
+ok(abs(k2_13["K2_5"] - (0.30 * r_t1 + 0.30 * r_t2_close_sell)) < 1e-12,
+   f"终点日next批恰成交→终点收盘卖出(v5回放口径) ({k2_13['K2_5']})")
+# 反证: 不等于瞬间估值(开盘买原价卖)
+r_instant = r_net_factor(COST, 0.30 * CAPITAL, legs13[1][2], D[7],
+                         legs13[1][2], D[7], 1.0, 1.0)
+ok(abs(k2_13["K2_5"] - (0.30 * r_t1 + 0.30 * r_instant)) > 1e-9,
+   "终点日成交批不采用瞬间估值(K3边界条款不外溢到K2/K4)")
 
-print(f"retcalc 单测(含场景8-13): 共 {N} 项断言全部通过 ✓")
+# ── 场景14 右删失 + next 唯一机会已阻断 → 政策终结 cash(非 pending) ──
+st14 = _ks(filled=False, capped_cash=False, no_breakout=False,
+           right_censored=True, end_pos=None, last=20,
+           entry_policy_terminal=True)
+ok(st14 == ("evaluated_cash", "entry_chance_blocked"),
+   f"右删失但唯一入场机会已失败→cash0, got {st14}")
+# 反例守护: 右删失且仍在等待(无理论成交点) → pending
+st14b = _ks(filled=False, capped_cash=False, no_breakout=False,
+            right_censored=True, end_pos=None, last=20,
+            entry_policy_terminal=False)
+ok(st14b == ("null_entry_pending", "data_end_pending"), "右删失仍在等待→pending")
+
+print(f"retcalc 单测(含场景8-14): 共 {N} 项断言全部通过 ✓")

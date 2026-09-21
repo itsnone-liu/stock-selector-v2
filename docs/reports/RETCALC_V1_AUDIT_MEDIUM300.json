@@ -1,6 +1,6 @@
 {
- "mode": "full",
- "n_rows": 444232,
+ "mode": "medium300",
+ "n_rows": 16272,
  "excl_split": {
   "control_rows": 488,
   "breakout_rows_by_strategy": {
@@ -10,131 +10,132 @@
    "staged_entry": 112
   }
  },
+ "R1_note": "阶梯子集: 分池守恒仅对全量执行",
  "R4": {
   "stratified": 180,
   "stratified_bad": 0,
-  "staged_total": 1378,
+  "staged_total": 1335,
   "staged_bad": 0,
-  "staged_rows_available": 54487,
+  "staged_rows_available": 1797,
   "staged_cover_table": {
    "close|h1|K2": {
-    "n": 40,
+    "n": 49,
     "bad": 0
    },
    "close|h1|K3": {
-    "n": 40,
+    "n": 49,
     "bad": 0
    },
    "close|h1|K4": {
-    "n": 40,
+    "n": 49,
     "bad": 0
    },
    "close|h3|K2": {
-    "n": 40,
+    "n": 49,
     "bad": 0
    },
    "close|h3|K3": {
-    "n": 40,
+    "n": 49,
     "bad": 0
    },
    "close|h3|K4": {
-    "n": 40,
+    "n": 49,
     "bad": 0
    },
    "close|h5|K2": {
-    "n": 40,
+    "n": 49,
     "bad": 0
    },
    "close|h5|K3": {
-    "n": 40,
+    "n": 49,
     "bad": 0
    },
    "close|h5|K4": {
-    "n": 40,
+    "n": 49,
     "bad": 0
    },
    "close|h10|K2": {
-    "n": 40,
+    "n": 49,
     "bad": 0
    },
    "close|h10|K3": {
-    "n": 40,
+    "n": 49,
     "bad": 0
    },
    "close|h10|K4": {
-    "n": 40,
+    "n": 49,
     "bad": 0
    },
    "close|h20|K2": {
-    "n": 40,
+    "n": 49,
     "bad": 0
    },
    "close|h20|K3": {
-    "n": 40,
+    "n": 49,
     "bad": 0
    },
    "close|h20|K4": {
-    "n": 40,
+    "n": 49,
     "bad": 0
    },
    "next|h1|K2": {
-    "n": 52,
+    "n": 40,
     "bad": 0
    },
    "next|h1|K3": {
-    "n": 52,
+    "n": 40,
     "bad": 0
    },
    "next|h1|K4": {
-    "n": 52,
+    "n": 40,
     "bad": 0
    },
    "next|h3|K2": {
-    "n": 52,
+    "n": 40,
     "bad": 0
    },
    "next|h3|K3": {
-    "n": 52,
+    "n": 40,
     "bad": 0
    },
    "next|h3|K4": {
-    "n": 52,
+    "n": 40,
     "bad": 0
    },
    "next|h5|K2": {
-    "n": 52,
+    "n": 40,
     "bad": 0
    },
    "next|h5|K3": {
-    "n": 52,
+    "n": 40,
     "bad": 0
    },
    "next|h5|K4": {
-    "n": 52,
+    "n": 40,
     "bad": 0
    },
    "next|h10|K2": {
-    "n": 52,
+    "n": 40,
     "bad": 0
    },
    "next|h10|K3": {
-    "n": 52,
+    "n": 40,
     "bad": 0
    },
    "next|h10|K4": {
-    "n": 52,
+    "n": 40,
     "bad": 0
    },
    "next|h20|K2": {
-    "n": 51,
+    "n": 40,
     "bad": 0
    },
    "next|h20|K3": {
-    "n": 52,
+    "n": 40,
     "bad": 0
    },
    "next|h20|K4": {
-    "n": 51,
+    "n": 40,
     "bad": 0
    }
   },

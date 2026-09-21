@@ -134,17 +134,19 @@ def k3_view(sf: StockFrame, cost: CostModel, view: str,
 
 
 def k2_state(filled: bool, capped_cash: bool, no_breakout: bool,
-             right_censored: bool, end_pos: int | None, last: int) -> tuple[str, str]:
+             right_censored: bool, end_pos: int | None, last: int,
+             entry_policy_terminal: bool = False) -> tuple[str, str]:
     """行级四态状态机(逐视角) → (state, 细分reason).
 
-    未成交判定(P0 修正, 2026-09-21 复审):
-    - 生命周期完整结束(right_censored=False)时未成交 → 政策已终结
-      (等待期届满/无回调/支撑未止跌/next 唯一机会被阻断且不重试) → evaluated_cash=0
-    - 生命周期右删失(right_censored=True, 数据结束截断)且策略层面仍可能成交
-      → null_entry_pending
-    - "可能成交"判据 = 数据未结束; 数据结束前一切未成交且生命周期完整 = 终结。
-      不再依赖 not_filled_reason 字符串值域(v5 实际值域
-      no_pullback_before_end/no_stabilization 与旧白名单零交集, 曾致全部误判 pending)。
+    未成交判定(2026-09-21 两轮复审修正):
+    - entry_policy_terminal=True: 策略的唯一入场机会已在数据内明确失败
+      (如 close 视角理论成交点存在而 next 视角被涨停/停牌阻断且规则不允许重试)
+      → 政策终结 → evaluated_cash=0, **即使生命周期右删失**(spec: 政策已终结
+      不因删失改 null)。
+    - 其余未成交: 生命周期完整结束(right_censored=False) → 等待期届满等
+      政策终结 → evaluated_cash=0; 数据右删失且仍可能成交 → null_entry_pending。
+    - 不依赖 not_filled_reason 字符串值域(v5 实际值域与旧白名单零交集,
+      曾致全部误判 pending)。
     - no_breakout(对照池): 无入场信号, 政策从未激活 → evaluated_cash。
     """
     if capped_cash:                    # direct_chase 3.5%上限明确放弃
@@ -152,6 +154,8 @@ def k2_state(filled: bool, capped_cash: bool, no_breakout: bool,
     if no_breakout:
         return "evaluated_cash", "no_breakout_signal"
     if not filled:
+        if entry_policy_terminal:
+            return "evaluated_cash", "entry_chance_blocked"
         if right_censored:
             return "null_entry_pending", "data_end_pending"
         return "evaluated_cash", "policy_terminal"
@@ -196,13 +200,12 @@ def k2_view(sf: StockFrame, cost: CostModel, view: str,
                 if tpos is None or tprice is None or tpos > end:
                     detail[tname] = 0.0                    # 现金
                     continue
-                if tpos == end:
-                    r = r_net_factor(cost, invested, tprice, sf.dates[tpos],
-                                     tprice, sf.dates[end], sf.factor(tpos), sf.factor(end))
-                else:
-                    sell_fill = cost.fill_price(sf.day_close(end), "sell")
-                    r = r_net_factor(cost, invested, tprice, sf.dates[tpos],
-                                     sell_fill, sf.dates[end], sf.factor(tpos), sf.factor(end))
+                # v5 回放口径: 终点日恰成交的批(含 next=当日开盘成交)同样按
+                # 终点收盘价卖出估值(legs_in 含 lp<=wend, sell_px=wend收盘含滑点);
+                # "成交瞬间估值"仅是 K3 边界条款, 不适用于 K2/K4
+                sell_fill = cost.fill_price(sf.day_close(end), "sell")
+                r = r_net_factor(cost, invested, tprice, sf.dates[tpos],
+                                 sell_fill, sf.dates[end], sf.factor(tpos), sf.factor(end))
                 detail[tname] = r if r is not None else 0.0
             # 资金加权(分母=全部资金: 未投入现金收益0)
             total = sum(TRANCHES[t] * detail[t] for t in detail)
