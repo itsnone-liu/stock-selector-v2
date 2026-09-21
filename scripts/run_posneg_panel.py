@@ -37,10 +37,16 @@ def main():
         with gzip.open(OUT.parent / "retcalc_v1/full/retcalc.csv.gz", "rt") as fi:
             for r in csv.DictReader(fi):
                 pl = path.get(r["lifecycle_id"], {})
-                r["k3_completion"] = pl.get("window_complete", "")   # K3 突破锚定完成标记
-                r["k2k4_completion"] = r.get("state", "")           # K2/K4 四态
                 for f in PATH_FIELDS:
                     r[f] = pl.get(f, "")
+                # 逐期限完成状态(h 级): K2 可评价=四态{position,cash} 且 K2_h 值在;
+                # K3/K4 可评价=对应值非 null; 未完成即该期限删失
+                st = r.get("state", "")
+                st_ok = st in ("evaluated_position", "evaluated_cash")
+                for h in HORIZONS:
+                    r[f"K2_{h}_eval"] = st_ok and r.get(f"K2_{h}") not in ("", None)
+                    r[f"K3_{h}_eval"] = r.get(f"K3_{h}") not in ("", None)
+                    r[f"K4_{h}_eval"] = r.get(f"K4_{h}") not in ("", None)
                 if w is None:
                     w = csv.DictWriter(fo, fieldnames=list(r.keys()))
                     w.writeheader()
@@ -76,6 +82,9 @@ def main():
                 if v3 not in ("", None):
                     a["sum"][("K3", h)] += float(v3)
                     a["n_eval"][("K3", h)] += 1
+                v4 = r.get(f"K4_{h}")        # K4 条件成交: 仅计数不比较
+                if v4 not in ("", None):
+                    a["n_eval"][("K4", h)] += 1
     summary = []
     for (g, fam, s, v), a in sorted(agg.items()):
         row = {"group_asof_20d": g, "path_family": fam, "strategy": s, "view": v,
@@ -88,6 +97,9 @@ def main():
             row[f"K2_n_{h}"] = n2
             row[f"K3_mean_{h}"] = s3 / n3 if n3 else None
             row[f"K3_n_{h}"] = n3
+            row[f"K4_n_{h}"] = a["n_eval"][("K4", h)]
+            row[f"censored_rate_K3_{h}"] = 1 - n3 / a["n"] if a["n"] else None
+            row[f"censored_rate_K4_{h}"] = 1 - row[f"K4_n_{h}"] / a["n"] if a["n"] else None
         row["exploratory"] = True      # 分层为探索性; 无区间不比较
         summary.append(row)
     with open(OUT / "posneg_summary.json", "w") as f:

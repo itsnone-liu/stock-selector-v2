@@ -114,19 +114,23 @@ def main():
                         gate = gate and nb_c >= MIN_BLOCKS and nb_d >= MIN_BLOCKS
                         rec.update({"ci_stock_lo": lo_c, "ci_stock_hi": hi_c,
                                     "ci_date_lo": lo_d, "ci_date_hi": hi_d,
+                                    "p_stock": p_c, "p_date": p_d,
                                     "n_stock_blocks": nb_c, "n_date_blocks": nb_d})
-                        fam.append((rec, p_c, p_d))
+                        fam.append((rec, p_c, p_d, max(p_c, p_d)))
+                    else:
+                        fam.append((rec, None, None, None))   # 不可检验: 占位不拒绝
                     rec["sparse_gate_pass"] = gate
                     results.append(rec)
-                # Holm(族=6对, 双侧, 双块并集保守 p=min(p_c,p_d))
-                fam.sort(key=lambda x: min(x[1], x[2]))
-                m = len(fam)
+                # 合成 p = max(p_stock, p_date): 双块同时支持才显著(交集≤单块)
+                # Holm 族固定 6 对: 稀疏不可检验的对 adj=1(不拒绝), 不缩小族
+                fam.sort(key=lambda x: x[3] if x[3] is not None else 2.0)
+                m = len(STRATS) * (len(STRATS) - 1) // 2       # 恒 6
                 run_max = 0.0
-                for rank, (rec, p_c, p_d) in enumerate(fam):
-                    p = min(p_c, p_d)
+                for rank, (rec, p_c, p_d, _pcomb) in enumerate(fam):
+                    p = max(p_c, p_d) if (p_c is not None and p_d is not None) else 1.0
                     run_max = max(run_max, (m - rank) * p)
                     adj = min(1.0, run_max)
-                    rec["p_min"] = p
+                    rec["p_combined"] = p
                     rec["holm_adj_p"] = adj
                     both_ci = (rec.get("ci_stock_lo") is not None
                                and ((rec["ci_stock_lo"] > 0 and rec["ci_date_lo"] > 0)

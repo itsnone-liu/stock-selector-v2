@@ -76,12 +76,16 @@ def main():
     ga_cnt = Counter()
     EXCL = set(json.loads((ROOT / "config/adjustment_v1_exclusions.json").read_text())["excluded"])
     n_excl = 0
+    missing = []
     for code6, lid, bo, t2, t3s, end_d, end_reason, rc in rows:
         code = ("sh." if str(code6)[0] == "6" else "sz.") + str(code6)
-        if code in EXCL or code not in Fidx:
+        if code in EXCL:                     # 冻结清单 = 唯一合法排除
             n_excl += 1
             out.append({"code": code, "lifecycle_id": lid,
                         "breakout_day": str(bo)[:10], "status": "excluded_by_adjustment_decision"})
+            continue
+        if code not in Fidx:                 # 因子缺失 = 数据异常, 不得静默排除
+            missing.append(code)
             continue
         if code not in cache:
             try:
@@ -139,7 +143,12 @@ def main():
         w.writeheader()
         w.writerows(out)
 
+    if missing:                             # fail-fast: 非排除股因子缺失
+        uniq = sorted(set(missing))
+        raise RuntimeError(f"因子表缺失非排除股 {len(uniq)} 只: {uniq[:20]}")
     ge_sum = sum(v for k, v in ge_cnt.items())
+    fam_sum = sum(fam_cnt.values())
+    assert fam_sum == ge_sum, f"六类计数和 {fam_sum} != 评价段 {ge_sum}(互斥完备破坏)"
     ga_sum = sum(v for k, v in ga_cnt.items())
     report = {
         "n_rows": len(out), "n_excluded": n_excl, "n_breakout_evaluated": ge_sum,
