@@ -44,20 +44,27 @@ def cols(rows, prefixes):
 
 
 def rawx(rows, xs):
-    M = np.array([[float(r[c]) if r.get(c, "") not in ("", "None") else np.nan
-                   for c in xs] for r in rows])
-    idx = np.isnan(M)
-    M[idx] = 0.0                       # 逐折训练集拟合填补; 此处先占位
-    return M
+    """缺失保留 np.nan(真实零值不得当缺失, 2026-09-21 P1 修复)."""
+    return np.array([[float(r[c]) if r.get(c, "") not in ("", "None") else np.nan
+                      for c in xs] for r in rows])
 
 
-def fit_transform(Xtr, Xte):
-    med = np.nanmedian(np.where(Xtr == 0.0, np.nan, Xtr), axis=0)  # 不完美:
-    # 简洁起见: 填补值逐折用训练列中位数(0 视作缺失占位)
-    med = np.where(np.isnan(med), 0.0, med)
-    A = np.where(Xtr == 0.0, med, Xtr)
+def fit_transform(Xtr, Xte, xs):
+    """仅 np.isnan 判定缺失; 中位数/标准化仅训练折拟合.
+
+    训练列全缺失 → 固定回填 0 并记录列名(返回 third)."""
+    med = np.nanmedian(Xtr, axis=0)
+    allmiss = np.isnan(med)
+    med = np.where(allmiss, 0.0, med)
+    def tf(M):
+        M = M.copy()
+        idx = np.isnan(M)
+        M[idx] = np.take(med, idx.nonzero()[1])
+        return M
+    A = tf(Xtr)
     mu, sd = A.mean(0), A.std(0) + 1e-12
-    return (A - mu) / sd, (np.where(Xte == 0.0, med, Xte) - mu) / sd
+    dropped = [c for c, m in zip(xs, allmiss) if m]
+    return (A - mu) / sd, (tf(Xte) - mu) / sd, dropped
 
 
 def logreg(X, y, epochs=300, lr=0.1, l2=1e-3):
@@ -98,21 +105,36 @@ def auc(y, s):
     return (ranks[y == 1].sum() - n_pos * (n_pos + 1) / 2) / (n_pos * n_neg)
 
 
-def boot_delta_auc(y, s_e, s_c, key, seed_off):
-    """事件级重抽 bootstrap 的 ΔAUC 区间(块=key)."""
+def boot_delta_auc_by_fold(y, s_e, s_c, fold_id, wts, key, seed_off):
+    """块重抽 bootstrap, 保留折身份(2026-09-21 P0 修复).
+
+    每次重抽后: 按折分组分别算 ΔAUC(折内排序, 不跨折比较分数尺度),
+    再按冻结权重(各折测试事件数占比)汇总; 无定义折权重归一到有值折.
+    返回 (lo, hi, n_blocks, n_boot_skipped)."""
     blocks = defaultdict(list)
     for i in range(len(y)):
         blocks[key[i]].append(i)
     bk = list(blocks.values())
     rng = np.random.default_rng(SEED + seed_off)
     deltas = []
+    skipped = 0
     for _ in range(BOOT):
         idx = np.concatenate([bk[rng.integers(len(bk))] for _ in range(len(bk))])
-        a_e, a_c = auc(y[idx], s_e[idx]), auc(y[idx], s_c[idx])
-        if a_e is not None and a_c is not None:
-            deltas.append(a_c - a_e)
+        per, ws = [], []
+        for f in np.unique(fold_id[idx]):
+            m = idx[fold_id[idx] == f]
+            a_e, a_c = auc(y[m], s_e[m]), auc(y[m], s_c[m])
+            if a_e is not None and a_c is not None:
+                per.append(a_c - a_e)
+                ws.append(wts[f])
+        if per:                                     # 某折无正/负类→权重归一
+            ws = np.array(ws)
+            deltas.append(float(np.average(per, weights=ws)))
+        else:
+            skipped += 1
     deltas = np.sort(np.array(deltas))
-    return float(np.percentile(deltas, 2.5)), float(np.percentile(deltas, 97.5)), len(bk)
+    return (float(np.percentile(deltas, 2.5)), float(np.percentile(deltas, 97.5)),
+            len(bk), skipped)
 
 
 def main():
@@ -144,32 +166,56 @@ def main():
         rec = {"test_bucket": int(tb), "n_train": int(tr.sum()), "n_test": int(te.sum())}
         rec["completed"] = bool(tr.sum() >= MIN_TRAIN and te.sum() >= MIN_TEST)
         if rec["completed"]:
-            Ec, Tc = fit_transform(Xc_raw[tr], Xc_raw[te])
-            Ee, Te = fit_transform(Xe_raw[tr], Xe_raw[te])
+            Ec, Tc, drop_c = fit_transform(Xc_raw[tr], Xc_raw[te], xs_cur)
+            Ee, Te, drop_e = fit_transform(Xe_raw[tr], Xe_raw[te], xs_e)
             s_c, s_e = score(logreg(Ec, y[tr]), Tc), score(logreg(Ee, y[tr]), Te)
             a_c, a_e = auc(y[te], s_c), auc(y[te], s_e)
             rec.update({"auc_current": round(a_c, 4), "auc_early": round(a_e, 4),
                         "delta_auc": round(a_c - a_e, 4)})
-            all_idx.append(np.where(te)[0])
+            if drop_c or drop_e:
+                rec["all_missing_cols_filled0"] = {"current": drop_c, "early": drop_e}
+            all_idx.append((np.where(te)[0], tb))
             rec["_scores"] = (s_e.copy(), s_c.copy())
         folds.append(rec)
-    # 合并完成折: 配对 ΔAUC bootstrap(股票块/日期块)
+    # 汇总: 冻结权重(各完成折测试事件数占比)加权 ΔAUC 均值
+    # bootstrap 保留折身份: 重抽后逐折 ΔAUC→冻结权重汇总(不跨折比较分数)
+    pooled = None
     if all_idx:
-        idx = np.concatenate(all_idx)
+        idx = np.concatenate([a for a, _ in all_idx])
+        fid = np.concatenate([np.full(len(a), int(tb)) for a, tb in all_idx])
         s_e = np.concatenate([folds[i]["_scores"][0] for i in range(len(folds)) if "_scores" in folds[i]])
         s_c = np.concatenate([folds[i]["_scores"][1] for i in range(len(folds)) if "_scores" in folds[i]])
+        wts = {int(tb): float((obk == tb).sum()) for _, tb in all_idx}
+        point = float(np.average([f["delta_auc"] for f in folds if f.get("completed")],
+                                 weights=[wts[f["test_bucket"]] for f in folds if f.get("completed")]))
         yy, cc, dd = y[idx], [codes[i] for i in idx], [days[i] for i in idx]
-        lo_s, hi_s, nb_s = boot_delta_auc(yy, s_e, s_c, cc, 1)
-        lo_d, hi_d, nb_d = boot_delta_auc(yy, s_e, s_c, dd, 2)
+        lo_s, hi_s, nb_s, sk_s = boot_delta_auc_by_fold(yy, s_e, s_c, fid, wts, cc, 1)
+        lo_d, hi_d, nb_d, sk_d = boot_delta_auc_by_fold(yy, s_e, s_c, fid, wts, dd, 2)
         pooled = {"n_events_pooled": len(idx),
+                  "weighted_delta_auc_point": round(point, 4),
+                  "frozen_weights": {str(k): round(v / sum(wts.values()), 4) for k, v in wts.items()},
                   "delta_auc_stock_ci": [round(lo_s, 4), round(hi_s, 4)], "n_stock_blocks": nb_s,
                   "delta_auc_date_ci": [round(lo_d, 4), round(hi_d, 4)], "n_date_blocks": nb_d,
-                  "note": "双侧 percentile 95%; 同事件同标签同测试折配对"}
+                  "bootstrap_skipped_draws": {"stock": sk_s, "date": sk_d},
+                  "note": ("双侧 percentile 95%; 折内 ΔAUC 按冻结测试事件数权重汇总; "
+                           "固定已训练模型后的测试样本重抽区间, 未含重新训练的不确定性")}
         for f in folds:
             f.pop("_scores", None)
+    # P3: 预测提前量分布(la_path − obs_day, 自然日差; early=bo 视角, current=时点视角)
+    from datetime import date as _d
+    def _dd(a, b):
+        return (_d(int(a[:4]), int(a[5:7]), int(a[8:10]))
+                - _d(int(b[:4]), int(b[5:7]), int(b[8:10]))).days
+    lead_cur = np.array([_dd(r[la_col], r["obs_day"]) for r in elig])
+    lead_e = np.array([_dd(r[la_col], bo_rows[r["lifecycle_id"]]["obs_day"]) for r in elig])
+    q = lambda v: {k: float(np.percentile(v, p)) for k, p in
+                   (("min", 0), ("p25", 25), ("p50", 50), ("p75", 75), ("max", 100))}
+    lead_dist = {"note": "label_available_day_path − obs_day 自然日差; 判断高 AUC 是否集中于临近结局观察日",
+                 "current": q(lead_cur), "early_breakout": q(lead_e)}
     report = {"experiment": f"increment:{cur_ds}", "target": target,
               "early_features": xs_e, "current_features": xs_cur,
               "n_events": len(elig), "folds": folds, "pooled": pooled,
+              "lead_days_distribution": lead_dist,
               "dev_note": DEV_NOTE,
               "hypothesis": "回调阶段特征可能包含更多路径识别信息(研究假设, 未确认)"}
     (OUT / f"identify_increment_{cur_ds}_{target}.json").write_text(
