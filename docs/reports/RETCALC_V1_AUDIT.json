@@ -1,0 +1,25 @@
+{
+ "mode": "full",
+ "n_rows": 444232,
+ "conservation_sample": {
+  "direct_chase|__excl__": {
+   "excluded": 234
+  },
+  "direct_chase|close": {
+   "evaluable_1": 27310,
+   "evaluable_3": 27310,
+   "evaluable_5": 27310,
+   "evaluable_10": 27309,
+   "evaluable_20": 27250,
+   "control": 28102,
+   "null_20": 60,
+   "null_10": 1,
+   "null_1": 0,
+   "null_3": 0,
+   "null_5": 0
+  }
+ },
+ "R4_sample": 60,
+ "gate_failures": [],
+ "status": "PASSED"
+}
