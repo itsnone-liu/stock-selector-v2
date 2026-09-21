@@ -184,3 +184,19 @@ def eligibility_riskset(r):
         return False
     la = r.get("label_available_day_path")
     return bool(la and r["obs_day"] < la)
+
+
+def eligibility_forward_v1(r):
+    """forward_outcome_v1 入组资格(2026-09-21 冻结).
+
+    与 eligibility_riskset(path_binary 专用)不同:
+    - 不排除已收复突破价样本(收复后 40 日相对收益仍未知, 仍可研究)
+    - 不要求旧 path 标签完整(右删失/标签不确定与 40 日结果无关)
+    - 唯一排除: 观察日晚于生命周期结束日(观察须在活跃生命周期内;
+      生命周期在观察日之后结束不截断 40 日窗)
+    结果窗口可用性(t+40 价格存在性)单独管理, 不在资格层静默删样本。
+    """
+    ed = r.get("lifecycle_end_day")
+    if ed and ed <= r["obs_day"]:
+        return False
+    return True
