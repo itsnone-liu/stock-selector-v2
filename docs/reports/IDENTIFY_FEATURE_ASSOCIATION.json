@@ -1,0 +1,1648 @@
+{
+ "risk_set_check": {
+  "breakout": {
+   "n_total_eligible": 27175,
+   "n_risk_set": 27175,
+   "n_outcome_known_excluded": 0,
+   "known_breakdown": {
+    "reattack_before_obs": 0,
+    "ended_before_obs": 0
+   }
+  },
+  "shrink": {
+   "n_total_eligible": 21103,
+   "n_risk_set": 14400,
+   "n_outcome_known_excluded": 6703,
+   "known_breakdown": {
+    "reattack_before_obs": 6702,
+    "ended_before_obs": 1
+   }
+  },
+  "stabilization": {
+   "n_total_eligible": 13131,
+   "n_risk_set": 7418,
+   "n_outcome_known_excluded": 5713,
+   "known_breakdown": {
+    "reattack_before_obs": 5368,
+    "ended_before_obs": 345
+   }
+  }
+ },
+ "datasets": {
+  "breakout": {
+   "n_risk": 27175,
+   "pos_rate": 0.15120515179392824,
+   "lead_coverage": {
+    "lead_min": 20,
+    "lead_p50": 20.0,
+    "lead_max": 20,
+    "1-5": 0.0,
+    "6-10": 0.0,
+    "11-20": 1.0
+   },
+   "features": {
+    "bo_atr14pct": {
+     "overall": {
+      "n_total": 27175,
+      "n_pos": 4109,
+      "n_neg": 23066,
+      "miss_rate": 0.0,
+      "miss_rate_pos": 0.0,
+      "miss_rate_neg": 0.0,
+      "med_pos": 0.03958723227282178,
+      "p25_pos": 0.03086036846349485,
+      "p75_pos": 0.05179490320999755,
+      "med_neg": 0.035811987156490796,
+      "p25_neg": 0.027297049941835416,
+      "p75_neg": 0.04756682659061258,
+      "cliffs_delta": 0.1414,
+      "direction": "正类更大",
+      "cliffs_delta_dateblock_ci": [
+       0.1042,
+       0.1806
+      ],
+      "ci_excludes_zero": true
+     },
+     "by_halfyear": {
+      "19": {
+       "n_total": 2049,
+       "cliffs_delta": 0.0642,
+       "direction": "正类更大"
+      },
+      "20": {
+       "n_total": 5551,
+       "cliffs_delta": 0.1282,
+       "direction": "正类更大"
+      },
+      "21": {
+       "n_total": 9434,
+       "cliffs_delta": 0.2176,
+       "direction": "正类更大"
+      },
+      "22": {
+       "n_total": 7082,
+       "cliffs_delta": 0.0604,
+       "direction": "正类更大"
+      }
+     },
+     "by_lead": {
+      "11-20": {
+       "n_total": 27175,
+       "cliffs_delta": 0.1414,
+       "direction": "正类更大"
+      }
+     }
+    },
+    "bo_cum10": {
+     "overall": {
+      "n_total": 27175,
+      "n_pos": 4109,
+      "n_neg": 23066,
+      "miss_rate": 0.0,
+      "miss_rate_pos": 0.0,
+      "miss_rate_neg": 0.0,
+      "med_pos": 0.10256410256410242,
+      "p25_pos": 0.059056678557273035,
+      "p75_pos": 0.17382937780628605,
+      "med_neg": 0.08391263228380708,
+      "p25_neg": 0.04729343187581181,
+      "p75_neg": 0.14377268069202476,
+      "cliffs_delta": 0.1348,
+      "direction": "正类更大",
+      "cliffs_delta_dateblock_ci": [
+       0.0949,
+       0.1736
+      ],
+      "ci_excludes_zero": true
+     },
+     "by_halfyear": {
+      "19": {
+       "n_total": 2049,
+       "cliffs_delta": 0.0751,
+       "direction": "正类更大"
+      },
+      "20": {
+       "n_total": 5551,
+       "cliffs_delta": 0.1345,
+       "direction": "正类更大"
+      },
+      "21": {
+       "n_total": 9434,
+       "cliffs_delta": 0.1767,
+       "direction": "正类更大"
+      },
+      "22": {
+       "n_total": 7082,
+       "cliffs_delta": 0.0861,
+       "direction": "正类更大"
+      }
+     },
+     "by_lead": {
+      "11-20": {
+       "n_total": 27175,
+       "cliffs_delta": 0.1348,
+       "direction": "正类更大"
+      }
+     }
+    },
+    "bo_cum20": {
+     "overall": {
+      "n_total": 27175,
+      "n_pos": 4109,
+      "n_neg": 23066,
+      "miss_rate": 0.0,
+      "miss_rate_pos": 0.0,
+      "miss_rate_neg": 0.0,
+      "med_pos": 0.0827067669172934,
+      "p25_pos": 0.04081632653061229,
+      "p75_pos": 0.16877637130801681,
+      "med_neg": 0.06527475378253467,
+      "p25_neg": 0.03207134605863904,
+      "p75_neg": 0.12931755276208057,
+      "cliffs_delta": 0.129,
+      "direction": "正类更大",
+      "cliffs_delta_dateblock_ci": [
+       0.0903,
+       0.1685
+      ],
+      "ci_excludes_zero": true
+     },
+     "by_halfyear": {
+      "19": {
+       "n_total": 2049,
+       "cliffs_delta": 0.0485,
+       "direction": "正类更大"
+      },
+      "20": {
+       "n_total": 5551,
+       "cliffs_delta": 0.136,
+       "direction": "正类更大"
+      },
+      "21": {
+       "n_total": 9434,
+       "cliffs_delta": 0.1278,
+       "direction": "正类更大"
+      },
+      "22": {
+       "n_total": 7082,
+       "cliffs_delta": 0.1016,
+       "direction": "正类更大"
+      }
+     },
+     "by_lead": {
+      "11-20": {
+       "n_total": 27175,
+       "cliffs_delta": 0.129,
+       "direction": "正类更大"
+      }
+     }
+    },
+    "bo_cum5": {
+     "overall": {
+      "n_total": 27175,
+      "n_pos": 4109,
+      "n_neg": 23066,
+      "miss_rate": 0.0,
+      "miss_rate_pos": 0.0,
+      "miss_rate_neg": 0.0,
+      "med_pos": 0.0895036615134257,
+      "p25_pos": 0.05067567567567566,
+      "p75_pos": 0.14634146341463405,
+      "med_neg": 0.06974211163722066,
+      "p25_neg": 0.03843395263756827,
+      "p75_neg": 0.1197007481296759,
+      "cliffs_delta": 0.1606,
+      "direction": "正类更大",
+      "cliffs_delta_dateblock_ci": [
+       0.1229,
+       0.2005
+      ],
+      "ci_excludes_zero": true
+     },
+     "by_halfyear": {
+      "19": {
+       "n_total": 2049,
+       "cliffs_delta": 0.0686,
+       "direction": "正类更大"
+      },
+      "20": {
+       "n_total": 5551,
+       "cliffs_delta": 0.1489,
+       "direction": "正类更大"
+      },
+      "21": {
+       "n_total": 9434,
+       "cliffs_delta": 0.217,
+       "direction": "正类更大"
+      },
+      "22": {
+       "n_total": 7082,
+       "cliffs_delta": 0.1205,
+       "direction": "正类更大"
+      }
+     },
+     "by_lead": {
+      "11-20": {
+       "n_total": 27175,
+       "cliffs_delta": 0.1606,
+       "direction": "正类更大"
+      }
+     }
+    },
+    "bo_dist_high60": {
+     "overall": {
+      "n_total": 27175,
+      "n_pos": 4109,
+      "n_neg": 23066,
+      "miss_rate": 0.0,
+      "miss_rate_pos": 0.0,
+      "miss_rate_neg": 0.0,
+      "med_pos": -0.027918781725888242,
+      "p25_pos": -0.11503267973856213,
+      "p75_pos": 0.0,
+      "med_neg": -0.044956842889364634,
+      "p25_neg": -0.12191626334494043,
+      "p75_neg": 0.0,
+      "cliffs_delta": 0.0651,
+      "direction": "正类更大",
+      "cliffs_delta_dateblock_ci": [
+       0.0159,
+       0.1098
+      ],
+      "ci_excludes_zero": true
+     },
+     "by_halfyear": {
+      "19": {
+       "n_total": 2049,
+       "cliffs_delta": 0.0401,
+       "direction": "正类更大"
+      },
+      "20": {
+       "n_total": 5551,
+       "cliffs_delta": 0.0594,
+       "direction": "正类更大"
+      },
+      "21": {
+       "n_total": 9434,
+       "cliffs_delta": 0.0582,
+       "direction": "正类更大"
+      },
+      "22": {
+       "n_total": 7082,
+       "cliffs_delta": 0.0828,
+       "direction": "正类更大"
+      }
+     },
+     "by_lead": {
+      "11-20": {
+       "n_total": 27175,
+       "cliffs_delta": 0.0651,
+       "direction": "正类更大"
+      }
+     }
+    },
+    "bo_hlpos60": {
+     "overall": {
+      "n_total": 27175,
+      "n_pos": 4109,
+      "n_neg": 23066,
+      "miss_rate": 0.0,
+      "miss_rate_pos": 0.0,
+      "miss_rate_neg": 0.0,
+      "med_pos": 0.8698224852071,
+      "p25_pos": 0.5491329479768783,
+      "p75_pos": 1.0,
+      "med_neg": 0.7727272727272725,
+      "p25_neg": 0.4853263936598292,
+      "p75_neg": 1.0,
+      "cliffs_delta": 0.0971,
+      "direction": "正类更大",
+      "cliffs_delta_dateblock_ci": [
+       0.0502,
+       0.1413
+      ],
+      "ci_excludes_zero": true
+     },
+     "by_halfyear": {
+      "19": {
+       "n_total": 2049,
+       "cliffs_delta": 0.0736,
+       "direction": "正类更大"
+      },
+      "20": {
+       "n_total": 5551,
+       "cliffs_delta": 0.0866,
+       "direction": "正类更大"
+      },
+      "21": {
+       "n_total": 9434,
+       "cliffs_delta": 0.0903,
+       "direction": "正类更大"
+      },
+      "22": {
+       "n_total": 7082,
+       "cliffs_delta": 0.112,
+       "direction": "正类更大"
+      }
+     },
+     "by_lead": {
+      "11-20": {
+       "n_total": 27175,
+       "cliffs_delta": 0.0971,
+       "direction": "正类更大"
+      }
+     }
+    },
+    "bo_ma_bias20": {
+     "overall": {
+      "n_total": 27175,
+      "n_pos": 4109,
+      "n_neg": 23066,
+      "miss_rate": 0.0,
+      "miss_rate_pos": 0.0,
+      "miss_rate_neg": 0.0,
+      "med_pos": 0.0871253932081355,
+      "p25_pos": 0.05643994211287984,
+      "p75_pos": 0.1363142256685268,
+      "med_neg": 0.07228438782112923,
+      "p25_neg": 0.04570942996212901,
+      "p75_neg": 0.11520254676106761,
+      "cliffs_delta": 0.158,
+      "direction": "正类更大",
+      "cliffs_delta_dateblock_ci": [
+       0.1191,
+       0.1972
+      ],
+      "ci_excludes_zero": true
+     },
+     "by_halfyear": {
+      "19": {
+       "n_total": 2049,
+       "cliffs_delta": 0.0789,
+       "direction": "正类更大"
+      },
+      "20": {
+       "n_total": 5551,
+       "cliffs_delta": 0.1371,
+       "direction": "正类更大"
+      },
+      "21": {
+       "n_total": 9434,
+       "cliffs_delta": 0.2189,
+       "direction": "正类更大"
+      },
+      "22": {
+       "n_total": 7082,
+       "cliffs_delta": 0.1066,
+       "direction": "正类更大"
+      }
+     },
+     "by_lead": {
+      "11-20": {
+       "n_total": 27175,
+       "cliffs_delta": 0.158,
+       "direction": "正类更大"
+      }
+     }
+    },
+    "bo_ret1": {
+     "overall": {
+      "n_total": 27175,
+      "n_pos": 4109,
+      "n_neg": 23066,
+      "miss_rate": 0.0,
+      "miss_rate_pos": 0.0,
+      "miss_rate_neg": 0.0,
+      "med_pos": 0.04344193817878028,
+      "p25_pos": 0.023166023166023342,
+      "p75_pos": 0.0798816568047338,
+      "med_neg": 0.03481624758220492,
+      "p25_neg": 0.017804154302670794,
+      "p75_neg": 0.06535947712418316,
+      "cliffs_delta": 0.1288,
+      "direction": "正类更大",
+      "cliffs_delta_dateblock_ci": [
+       0.0966,
+       0.1601
+      ],
+      "ci_excludes_zero": true
+     },
+     "by_halfyear": {
+      "19": {
+       "n_total": 2049,
+       "cliffs_delta": 0.0006,
+       "direction": "正类更大"
+      },
+      "20": {
+       "n_total": 5551,
+       "cliffs_delta": 0.1445,
+       "direction": "正类更大"
+      },
+      "21": {
+       "n_total": 9434,
+       "cliffs_delta": 0.1531,
+       "direction": "正类更大"
+      },
+      "22": {
+       "n_total": 7082,
+       "cliffs_delta": 0.1146,
+       "direction": "正类更大"
+      }
+     },
+     "by_lead": {
+      "11-20": {
+       "n_total": 27175,
+       "cliffs_delta": 0.1288,
+       "direction": "正类更大"
+      }
+     }
+    },
+    "bo_rvol20": {
+     "overall": {
+      "n_total": 27175,
+      "n_pos": 4109,
+      "n_neg": 23066,
+      "miss_rate": 0.0,
+      "miss_rate_pos": 0.0,
+      "miss_rate_neg": 0.0,
+      "med_pos": 0.029135342558548907,
+      "p25_pos": 0.02062268647565715,
+      "p75_pos": 0.04009712572948801,
+      "med_neg": 0.025738707929527604,
+      "p25_neg": 0.017484775750261257,
+      "p75_neg": 0.03661483483765768,
+      "cliffs_delta": 0.1385,
+      "direction": "正类更大",
+      "cliffs_delta_dateblock_ci": [
+       0.0957,
+       0.1808
+      ],
+      "ci_excludes_zero": true
+     },
+     "by_halfyear": {
+      "19": {
+       "n_total": 2049,
+       "cliffs_delta": 0.0556,
+       "direction": "正类更大"
+      },
+      "20": {
+       "n_total": 5551,
+       "cliffs_delta": 0.1133,
+       "direction": "正类更大"
+      },
+      "21": {
+       "n_total": 9434,
+       "cliffs_delta": 0.2164,
+       "direction": "正类更大"
+      },
+      "22": {
+       "n_total": 7082,
+       "cliffs_delta": 0.0745,
+       "direction": "正类更大"
+      }
+     },
+     "by_lead": {
+      "11-20": {
+       "n_total": 27175,
+       "cliffs_delta": 0.1385,
+       "direction": "正类更大"
+      }
+     }
+    },
+    "bo_volratio20": {
+     "overall": {
+      "n_total": 27175,
+      "n_pos": 4109,
+      "n_neg": 23066,
+      "miss_rate": 0.0,
+      "miss_rate_pos": 0.0,
+      "miss_rate_neg": 0.0,
+      "med_pos": 1.7350093029050835,
+      "p25_pos": 1.2730171984252623,
+      "p75_pos": 2.499261252153538,
+      "med_neg": 1.5568212111505662,
+      "p25_neg": 1.1788708435082822,
+      "p75_neg": 2.153284709086791,
+      "cliffs_delta": 0.13,
+      "direction": "正类更大",
+      "cliffs_delta_dateblock_ci": [
+       0.0849,
+       0.1728
+      ],
+      "ci_excludes_zero": true
+     },
+     "by_halfyear": {
+      "19": {
+       "n_total": 2049,
+       "cliffs_delta": 0.0812,
+       "direction": "正类更大"
+      },
+      "20": {
+       "n_total": 5551,
+       "cliffs_delta": 0.172,
+       "direction": "正类更大"
+      },
+      "21": {
+       "n_total": 9434,
+       "cliffs_delta": 0.1464,
+       "direction": "正类更大"
+      },
+      "22": {
+       "n_total": 7082,
+       "cliffs_delta": 0.1402,
+       "direction": "正类更大"
+      }
+     },
+     "by_lead": {
+      "11-20": {
+       "n_total": 27175,
+       "cliffs_delta": 0.13,
+       "direction": "正类更大"
+      }
+     }
+    },
+    "bo_volratio5": {
+     "overall": {
+      "n_total": 27175,
+      "n_pos": 4109,
+      "n_neg": 23066,
+      "miss_rate": 0.0,
+      "miss_rate_pos": 0.0,
+      "miss_rate_neg": 0.0,
+      "med_pos": 1.4252582714042294,
+      "p25_pos": 1.133882881605113,
+      "p75_pos": 1.8034845215378092,
+      "med_neg": 1.3435017275822003,
+      "p25_neg": 1.0873375201797928,
+      "p75_neg": 1.71362886345017,
+      "cliffs_delta": 0.0878,
+      "direction": "正类更大",
+      "cliffs_delta_dateblock_ci": [
+       0.0578,
+       0.116
+      ],
+      "ci_excludes_zero": true
+     },
+     "by_halfyear": {
+      "19": {
+       "n_total": 2049,
+       "cliffs_delta": 0.0021,
+       "direction": "正类更大"
+      },
+      "20": {
+       "n_total": 5551,
+       "cliffs_delta": 0.1469,
+       "direction": "正类更大"
+      },
+      "21": {
+       "n_total": 9434,
+       "cliffs_delta": 0.0767,
+       "direction": "正类更大"
+      },
+      "22": {
+       "n_total": 7082,
+       "cliffs_delta": 0.115,
+       "direction": "正类更大"
+      }
+     },
+     "by_lead": {
+      "11-20": {
+       "n_total": 27175,
+       "cliffs_delta": 0.0878,
+       "direction": "正类更大"
+      }
+     }
+    },
+    "prep_days": {
+     "overall": {
+      "n_total": 19355,
+      "n_pos": 2737,
+      "n_neg": 16618,
+      "miss_rate": 0.2877644894204232,
+      "miss_rate_pos": 0.3339011925042589,
+      "miss_rate_neg": 0.279545651608428,
+      "med_pos": 5.0,
+      "p25_pos": 2.0,
+      "p75_pos": 9.0,
+      "med_neg": 5.0,
+      "p25_neg": 3.0,
+      "p75_neg": 10.0,
+      "cliffs_delta": -0.0565,
+      "direction": "正类更小",
+      "cliffs_delta_dateblock_ci": [
+       -0.1007,
+       -0.0089
+      ],
+      "ci_excludes_zero": true
+     },
+     "by_halfyear": {
+      "19": {
+       "n_total": 1264,
+       "cliffs_delta": 0.0956,
+       "direction": "正类更大"
+      },
+      "20": {
+       "n_total": 3736,
+       "cliffs_delta": -0.0303,
+       "direction": "正类更小"
+      },
+      "21": {
+       "n_total": 6958,
+       "cliffs_delta": -0.0979,
+       "direction": "正类更小"
+      },
+      "22": {
+       "n_total": 5275,
+       "cliffs_delta": -0.0917,
+       "direction": "正类更小"
+      }
+     },
+     "by_lead": {
+      "11-20": {
+       "n_total": 19355,
+       "cliffs_delta": -0.0565,
+       "direction": "正类更小"
+      }
+     }
+    }
+   }
+  },
+  "shrink": {
+   "n_risk": 14400,
+   "pos_rate": 0.17798611111111112,
+   "lead_coverage": {
+    "lead_min": 1,
+    "lead_p50": 17.0,
+    "lead_max": 19,
+    "1-5": 0.007083333333333333,
+    "6-10": 0.03909722222222222,
+    "11-20": 0.9538194444444444
+   },
+   "features": {
+    "atr14pct": {
+     "overall": {
+      "n_total": 14400,
+      "n_pos": 2563,
+      "n_neg": 11837,
+      "miss_rate": 0.0,
+      "miss_rate_pos": 0.0,
+      "miss_rate_neg": 0.0,
+      "med_pos": 0.04422930085906267,
+      "p25_pos": 0.03370291911979037,
+      "p75_pos": 0.058056107990373196,
+      "med_neg": 0.04234985052993931,
+      "p25_neg": 0.031336553208048165,
+      "p75_neg": 0.05822018890200709,
+      "cliffs_delta": 0.045,
+      "direction": "正类更大",
+      "cliffs_delta_dateblock_ci": [
+       0.0017,
+       0.0844
+      ],
+      "ci_excludes_zero": true
+     },
+     "by_halfyear": {
+      "19": {
+       "n_total": 1005,
+       "cliffs_delta": -0.0954,
+       "direction": "正类更小"
+      },
+      "20": {
+       "n_total": 2985,
+       "cliffs_delta": 0.0056,
+       "direction": "正类更大"
+      },
+      "21": {
+       "n_total": 5205,
+       "cliffs_delta": 0.1128,
+       "direction": "正类更大"
+      },
+      "22": {
+       "n_total": 3708,
+       "cliffs_delta": 0.0038,
+       "direction": "正类更大"
+      }
+     },
+     "by_lead": {
+      "1-5": {
+       "n_total": 102
+      },
+      "6-10": {
+       "n_total": 563
+      },
+      "11-20": {
+       "n_total": 13735,
+       "cliffs_delta": 0.062,
+       "direction": "正类更大"
+      }
+     }
+    },
+    "hlpos60": {
+     "overall": {
+      "n_total": 14400,
+      "n_pos": 2563,
+      "n_neg": 11837,
+      "miss_rate": 0.0,
+      "miss_rate_pos": 0.0,
+      "miss_rate_neg": 0.0,
+      "med_pos": 0.6337020169160711,
+      "p25_pos": 0.3811627083769491,
+      "p75_pos": 0.8086664028492285,
+      "med_neg": 0.7537358205675742,
+      "p25_neg": 0.5265957446808514,
+      "p75_neg": 0.8924349881796697,
+      "cliffs_delta": -0.2451,
+      "direction": "正类更小",
+      "cliffs_delta_dateblock_ci": [
+       -0.2865,
+       -0.2037
+      ],
+      "ci_excludes_zero": true
+     },
+     "by_halfyear": {
+      "19": {
+       "n_total": 1005,
+       "cliffs_delta": -0.0639,
+       "direction": "正类更小"
+      },
+      "20": {
+       "n_total": 2985,
+       "cliffs_delta": -0.1916,
+       "direction": "正类更小"
+      },
+      "21": {
+       "n_total": 5205,
+       "cliffs_delta": -0.3302,
+       "direction": "正类更小"
+      },
+      "22": {
+       "n_total": 3708,
+       "cliffs_delta": -0.2645,
+       "direction": "正类更小"
+      }
+     },
+     "by_lead": {
+      "1-5": {
+       "n_total": 102
+      },
+      "6-10": {
+       "n_total": 563
+      },
+      "11-20": {
+       "n_total": 13735,
+       "cliffs_delta": -0.233,
+       "direction": "正类更小"
+      }
+     }
+    },
+    "ma_bias20": {
+     "overall": {
+      "n_total": 14400,
+      "n_pos": 2563,
+      "n_neg": 11837,
+      "miss_rate": 0.0,
+      "miss_rate_pos": 0.0,
+      "miss_rate_neg": 0.0,
+      "med_pos": 0.02999151654274157,
+      "p25_pos": 0.007630198758496687,
+      "p75_pos": 0.0591633797293748,
+      "med_neg": 0.05682388359257384,
+      "p25_neg": 0.029980657640231945,
+      "p75_neg": 0.10093249876822563,
+      "cliffs_delta": -0.3618,
+      "direction": "正类更小",
+      "cliffs_delta_dateblock_ci": [
+       -0.4038,
+       -0.3173
+      ],
+      "ci_excludes_zero": true
+     },
+     "by_halfyear": {
+      "19": {
+       "n_total": 1005,
+       "cliffs_delta": -0.3048,
+       "direction": "正类更小"
+      },
+      "20": {
+       "n_total": 2985,
+       "cliffs_delta": -0.333,
+       "direction": "正类更小"
+      },
+      "21": {
+       "n_total": 5205,
+       "cliffs_delta": -0.3596,
+       "direction": "正类更小"
+      },
+      "22": {
+       "n_total": 3708,
+       "cliffs_delta": -0.4281,
+       "direction": "正类更小"
+      }
+     },
+     "by_lead": {
+      "1-5": {
+       "n_total": 102
+      },
+      "6-10": {
+       "n_total": 563
+      },
+      "11-20": {
+       "n_total": 13735,
+       "cliffs_delta": -0.3555,
+       "direction": "正类更小"
+      }
+     }
+    },
+    "rvol20": {
+     "overall": {
+      "n_total": 14400,
+      "n_pos": 2563,
+      "n_neg": 11837,
+      "miss_rate": 0.0,
+      "miss_rate_pos": 0.0,
+      "miss_rate_neg": 0.0,
+      "med_pos": 0.03012678614106736,
+      "p25_pos": 0.021350598771888336,
+      "p75_pos": 0.04058737934274183,
+      "med_neg": 0.028227535703550778,
+      "p25_neg": 0.019016771598277128,
+      "p75_neg": 0.04065871887941064,
+      "cliffs_delta": 0.0617,
+      "direction": "正类更大",
+      "cliffs_delta_dateblock_ci": [
+       0.0248,
+       0.1031
+      ],
+      "ci_excludes_zero": true
+     },
+     "by_halfyear": {
+      "19": {
+       "n_total": 1005,
+       "cliffs_delta": -0.0703,
+       "direction": "正类更小"
+      },
+      "20": {
+       "n_total": 2985,
+       "cliffs_delta": 0.0355,
+       "direction": "正类更大"
+      },
+      "21": {
+       "n_total": 5205,
+       "cliffs_delta": 0.1303,
+       "direction": "正类更大"
+      },
+      "22": {
+       "n_total": 3708,
+       "cliffs_delta": 0.03,
+       "direction": "正类更大"
+      }
+     },
+     "by_lead": {
+      "1-5": {
+       "n_total": 102
+      },
+      "6-10": {
+       "n_total": 563
+      },
+      "11-20": {
+       "n_total": 13735,
+       "cliffs_delta": 0.0721,
+       "direction": "正类更大"
+      }
+     }
+    },
+    "sh_days_since_bo": {
+     "overall": {
+      "n_total": 14400,
+      "n_pos": 2563,
+      "n_neg": 11837,
+      "miss_rate": 0.0,
+      "miss_rate_pos": 0.0,
+      "miss_rate_neg": 0.0,
+      "med_pos": 2.0,
+      "p25_pos": 2.0,
+      "p75_pos": 3.0,
+      "med_neg": 3.0,
+      "p25_neg": 2.0,
+      "p75_neg": 5.0,
+      "cliffs_delta": -0.336,
+      "direction": "正类更小",
+      "cliffs_delta_dateblock_ci": [
+       -0.3677,
+       -0.3059
+      ],
+      "ci_excludes_zero": true
+     },
+     "by_halfyear": {
+      "19": {
+       "n_total": 1005,
+       "cliffs_delta": -0.4899,
+       "direction": "正类更小"
+      },
+      "20": {
+       "n_total": 2985,
+       "cliffs_delta": -0.2472,
+       "direction": "正类更小"
+      },
+      "21": {
+       "n_total": 5205,
+       "cliffs_delta": -0.3035,
+       "direction": "正类更小"
+      },
+      "22": {
+       "n_total": 3708,
+       "cliffs_delta": -0.4025,
+       "direction": "正类更小"
+      }
+     },
+     "by_lead": {
+      "1-5": {
+       "n_total": 102
+      },
+      "6-10": {
+       "n_total": 563
+      },
+      "11-20": {
+       "n_total": 13735,
+       "cliffs_delta": -0.3042,
+       "direction": "正类更小"
+      }
+     }
+    },
+    "sh_dd_from_high": {
+     "overall": {
+      "n_total": 14400,
+      "n_pos": 2563,
+      "n_neg": 11837,
+      "miss_rate": 0.0,
+      "miss_rate_pos": 0.0,
+      "miss_rate_neg": 0.0,
+      "med_pos": -0.015606242496998934,
+      "p25_pos": -0.03831826524369536,
+      "p75_pos": 0.0,
+      "med_neg": -0.019170753455193812,
+      "p25_neg": -0.04561200923787523,
+      "p75_neg": -0.004524886877827927,
+      "cliffs_delta": 0.1021,
+      "direction": "正类更大",
+      "cliffs_delta_dateblock_ci": [
+       0.0667,
+       0.1377
+      ],
+      "ci_excludes_zero": true
+     },
+     "by_halfyear": {
+      "19": {
+       "n_total": 1005,
+       "cliffs_delta": 0.3773,
+       "direction": "正类更大"
+      },
+      "20": {
+       "n_total": 2985,
+       "cliffs_delta": 0.0866,
+       "direction": "正类更大"
+      },
+      "21": {
+       "n_total": 5205,
+       "cliffs_delta": 0.0283,
+       "direction": "正类更大"
+      },
+      "22": {
+       "n_total": 3708,
+       "cliffs_delta": 0.1104,
+       "direction": "正类更大"
+      }
+     },
+     "by_lead": {
+      "1-5": {
+       "n_total": 102
+      },
+      "6-10": {
+       "n_total": 563
+      },
+      "11-20": {
+       "n_total": 13735,
+       "cliffs_delta": 0.0825,
+       "direction": "正类更大"
+      }
+     }
+    },
+    "sh_low_support_dist": {
+     "overall": {
+      "n_total": 14400,
+      "n_pos": 2563,
+      "n_neg": 11837,
+      "miss_rate": 0.0,
+      "miss_rate_pos": 0.0,
+      "miss_rate_neg": 0.0,
+      "med_pos": -0.05721716514954478,
+      "p25_pos": -0.08691046425939575,
+      "p75_pos": -0.035654101403410354,
+      "med_neg": -0.016845025762980637,
+      "p25_neg": -0.037081700331625056,
+      "p75_neg": 0.011653774601323663,
+      "cliffs_delta": -0.6574,
+      "direction": "正类更小",
+      "cliffs_delta_dateblock_ci": [
+       -0.6822,
+       -0.6286
+      ],
+      "ci_excludes_zero": true
+     },
+     "by_halfyear": {
+      "19": {
+       "n_total": 1005,
+       "cliffs_delta": -0.6116,
+       "direction": "正类更小"
+      },
+      "20": {
+       "n_total": 2985,
+       "cliffs_delta": -0.6301,
+       "direction": "正类更小"
+      },
+      "21": {
+       "n_total": 5205,
+       "cliffs_delta": -0.6812,
+       "direction": "正类更小"
+      },
+      "22": {
+       "n_total": 3708,
+       "cliffs_delta": -0.6866,
+       "direction": "正类更小"
+      }
+     },
+     "by_lead": {
+      "1-5": {
+       "n_total": 102
+      },
+      "6-10": {
+       "n_total": 563
+      },
+      "11-20": {
+       "n_total": 13735,
+       "cliffs_delta": -0.6406,
+       "direction": "正类更小"
+      }
+     }
+    },
+    "sh_support_dist": {
+     "overall": {
+      "n_total": 14400,
+      "n_pos": 2563,
+      "n_neg": 11837,
+      "miss_rate": 0.0,
+      "miss_rate_pos": 0.0,
+      "miss_rate_neg": 0.0,
+      "med_pos": -0.04399030135088322,
+      "p25_pos": -0.07304888448098468,
+      "p75_pos": -0.024908511535984668,
+      "med_neg": -0.00615901455767065,
+      "p25_neg": -0.02475845410628008,
+      "p75_neg": 0.025222024866785153,
+      "cliffs_delta": -0.6758,
+      "direction": "正类更小",
+      "cliffs_delta_dateblock_ci": [
+       -0.7011,
+       -0.6481
+      ],
+      "ci_excludes_zero": true
+     },
+     "by_halfyear": {
+      "19": {
+       "n_total": 1005,
+       "cliffs_delta": -0.6244,
+       "direction": "正类更小"
+      },
+      "20": {
+       "n_total": 2985,
+       "cliffs_delta": -0.6413,
+       "direction": "正类更小"
+      },
+      "21": {
+       "n_total": 5205,
+       "cliffs_delta": -0.6953,
+       "direction": "正类更小"
+      },
+      "22": {
+       "n_total": 3708,
+       "cliffs_delta": -0.712,
+       "direction": "正类更小"
+      }
+     },
+     "by_lead": {
+      "1-5": {
+       "n_total": 102
+      },
+      "6-10": {
+       "n_total": 563
+      },
+      "11-20": {
+       "n_total": 13735,
+       "cliffs_delta": -0.6596,
+       "direction": "正类更小"
+      }
+     }
+    },
+    "sh_volratio5": {
+     "overall": {
+      "n_total": 14400,
+      "n_pos": 2563,
+      "n_neg": 11837,
+      "miss_rate": 0.0,
+      "miss_rate_pos": 0.0,
+      "miss_rate_neg": 0.0,
+      "med_pos": 0.6865702752616739,
+      "p25_pos": 0.6166918051297243,
+      "p75_pos": 0.7476397481154298,
+      "med_neg": 0.7083492801275898,
+      "p25_neg": 0.6393357263031386,
+      "p75_neg": 0.7636766707377372,
+      "cliffs_delta": -0.1188,
+      "direction": "正类更小",
+      "cliffs_delta_dateblock_ci": [
+       -0.1483,
+       -0.0917
+      ],
+      "ci_excludes_zero": true
+     },
+     "by_halfyear": {
+      "19": {
+       "n_total": 1005,
+       "cliffs_delta": -0.0492,
+       "direction": "正类更小"
+      },
+      "20": {
+       "n_total": 2985,
+       "cliffs_delta": -0.1291,
+       "direction": "正类更小"
+      },
+      "21": {
+       "n_total": 5205,
+       "cliffs_delta": -0.1712,
+       "direction": "正类更小"
+      },
+      "22": {
+       "n_total": 3708,
+       "cliffs_delta": -0.0695,
+       "direction": "正类更小"
+      }
+     },
+     "by_lead": {
+      "1-5": {
+       "n_total": 102
+      },
+      "6-10": {
+       "n_total": 563
+      },
+      "11-20": {
+       "n_total": 13735,
+       "cliffs_delta": -0.1147,
+       "direction": "正类更小"
+      }
+     }
+    },
+    "volratio5": {
+     "overall": {
+      "n_total": 14400,
+      "n_pos": 2563,
+      "n_neg": 11837,
+      "miss_rate": 0.0,
+      "miss_rate_pos": 0.0,
+      "miss_rate_neg": 0.0,
+      "med_pos": 0.6865702752616739,
+      "p25_pos": 0.6166918051297243,
+      "p75_pos": 0.7476397481154298,
+      "med_neg": 0.7083492801275898,
+      "p25_neg": 0.6393357263031386,
+      "p75_neg": 0.7636766707377372,
+      "cliffs_delta": -0.1188,
+      "direction": "正类更小",
+      "cliffs_delta_dateblock_ci": [
+       -0.1463,
+       -0.0904
+      ],
+      "ci_excludes_zero": true
+     },
+     "by_halfyear": {
+      "19": {
+       "n_total": 1005,
+       "cliffs_delta": -0.0492,
+       "direction": "正类更小"
+      },
+      "20": {
+       "n_total": 2985,
+       "cliffs_delta": -0.1291,
+       "direction": "正类更小"
+      },
+      "21": {
+       "n_total": 5205,
+       "cliffs_delta": -0.1712,
+       "direction": "正类更小"
+      },
+      "22": {
+       "n_total": 3708,
+       "cliffs_delta": -0.0695,
+       "direction": "正类更小"
+      }
+     },
+     "by_lead": {
+      "1-5": {
+       "n_total": 102
+      },
+      "6-10": {
+       "n_total": 563
+      },
+      "11-20": {
+       "n_total": 13735,
+       "cliffs_delta": -0.1147,
+       "direction": "正类更小"
+      }
+     }
+    }
+   }
+  },
+  "stabilization": {
+   "n_risk": 7418,
+   "pos_rate": 0.21218657320032352,
+   "lead_coverage": {
+    "lead_min": 1,
+    "lead_p50": 14.0,
+    "lead_max": 18,
+    "1-5": 0.03033162577514155,
+    "6-10": 0.13642491237530333,
+    "11-20": 0.8332434618495551
+   },
+   "features": {
+    "st_close_vs_bo": {
+     "overall": {
+      "n_total": 7418,
+      "n_pos": 1574,
+      "n_neg": 5844,
+      "miss_rate": 0.0,
+      "miss_rate_pos": 0.0,
+      "miss_rate_neg": 0.0,
+      "med_pos": -0.04858226066771626,
+      "p25_pos": -0.07671901528013572,
+      "p75_pos": -0.028621347533021257,
+      "med_neg": -0.008609805130188497,
+      "p25_neg": -0.02900036399022418,
+      "p75_neg": 0.023814251673663855,
+      "cliffs_delta": -0.674,
+      "direction": "正类更小",
+      "cliffs_delta_dateblock_ci": [
+       -0.6979,
+       -0.6488
+      ],
+      "ci_excludes_zero": true
+     },
+     "by_halfyear": {
+      "19": {
+       "n_total": 515,
+       "cliffs_delta": -0.7311,
+       "direction": "正类更小"
+      },
+      "20": {
+       "n_total": 1434,
+       "cliffs_delta": -0.6631,
+       "direction": "正类更小"
+      },
+      "21": {
+       "n_total": 2778,
+       "cliffs_delta": -0.6834,
+       "direction": "正类更小"
+      },
+      "22": {
+       "n_total": 1889,
+       "cliffs_delta": -0.6844,
+       "direction": "正类更小"
+      }
+     },
+     "by_lead": {
+      "1-5": {
+       "n_total": 225
+      },
+      "6-10": {
+       "n_total": 1012,
+       "cliffs_delta": -0.911,
+       "direction": "正类更小"
+      },
+      "11-20": {
+       "n_total": 6181,
+       "cliffs_delta": -0.616,
+       "direction": "正类更小"
+      }
+     }
+    },
+    "st_lower_shadow": {
+     "overall": {
+      "n_total": 7413,
+      "n_pos": 1573,
+      "n_neg": 5840,
+      "miss_rate": 0.0006740361283364788,
+      "miss_rate_pos": 0.0006353240152477764,
+      "miss_rate_neg": 0.0006844626967830253,
+      "med_pos": 0.2641509433962274,
+      "p25_pos": 0.11764705882352545,
+      "p75_pos": 0.44720496894409884,
+      "med_neg": 0.23040058982550649,
+      "p25_neg": 0.09375000000000094,
+      "p75_neg": 0.4103238866396779,
+      "cliffs_delta": 0.0726,
+      "direction": "正类更大",
+      "cliffs_delta_dateblock_ci": [
+       0.0341,
+       0.1084
+      ],
+      "ci_excludes_zero": true
+     },
+     "by_halfyear": {
+      "19": {
+       "n_total": 514,
+       "cliffs_delta": 0.0562,
+       "direction": "正类更大"
+      },
+      "20": {
+       "n_total": 1434,
+       "cliffs_delta": 0.168,
+       "direction": "正类更大"
+      },
+      "21": {
+       "n_total": 2777,
+       "cliffs_delta": 0.0623,
+       "direction": "正类更大"
+      },
+      "22": {
+       "n_total": 1886,
+       "cliffs_delta": 0.0647,
+       "direction": "正类更大"
+      }
+     },
+     "by_lead": {
+      "1-5": {
+       "n_total": 225
+      },
+      "6-10": {
+       "n_total": 1010,
+       "cliffs_delta": 0.0884,
+       "direction": "正类更大"
+      },
+      "11-20": {
+       "n_total": 6178,
+       "cliffs_delta": 0.0627,
+       "direction": "正类更大"
+      }
+     }
+    },
+    "st_prev_ret1": {
+     "overall": {
+      "n_total": 7418,
+      "n_pos": 1574,
+      "n_neg": 5844,
+      "miss_rate": 0.0,
+      "miss_rate_pos": 0.0,
+      "miss_rate_neg": 0.0,
+      "med_pos": -0.016477132330143085,
+      "p25_pos": -0.030639222665275218,
+      "p75_pos": -0.00511073748803903,
+      "med_neg": -0.01382199013500679,
+      "p25_neg": -0.029054413691451036,
+      "p75_neg": -0.0036588160322209573,
+      "cliffs_delta": -0.0576,
+      "direction": "正类更小",
+      "cliffs_delta_dateblock_ci": [
+       -0.0932,
+       -0.0255
+      ],
+      "ci_excludes_zero": true
+     },
+     "by_halfyear": {
+      "19": {
+       "n_total": 515,
+       "cliffs_delta": -0.0028,
+       "direction": "正类更小"
+      },
+      "20": {
+       "n_total": 1434,
+       "cliffs_delta": -0.0331,
+       "direction": "正类更小"
+      },
+      "21": {
+       "n_total": 2778,
+       "cliffs_delta": -0.0838,
+       "direction": "正类更小"
+      },
+      "22": {
+       "n_total": 1889,
+       "cliffs_delta": -0.0205,
+       "direction": "正类更小"
+      }
+     },
+     "by_lead": {
+      "1-5": {
+       "n_total": 225
+      },
+      "6-10": {
+       "n_total": 1012,
+       "cliffs_delta": 0.1214,
+       "direction": "正类更大"
+      },
+      "11-20": {
+       "n_total": 6181,
+       "cliffs_delta": -0.0334,
+       "direction": "正类更小"
+      }
+     }
+    },
+    "st_rebound_from_low": {
+     "overall": {
+      "n_total": 7418,
+      "n_pos": 1574,
+      "n_neg": 5844,
+      "miss_rate": 0.0,
+      "miss_rate_pos": 0.0,
+      "miss_rate_neg": 0.0,
+      "med_pos": 0.029957422885392493,
+      "p25_pos": 0.019710473088534908,
+      "p75_pos": 0.045002659381572885,
+      "med_neg": 0.034043508351882634,
+      "p25_neg": 0.02137689111829527,
+      "p75_neg": 0.055822518401850485,
+      "cliffs_delta": -0.1129,
+      "direction": "正类更小",
+      "cliffs_delta_dateblock_ci": [
+       -0.1523,
+       -0.0741
+      ],
+      "ci_excludes_zero": true
+     },
+     "by_halfyear": {
+      "19": {
+       "n_total": 515,
+       "cliffs_delta": -0.2627,
+       "direction": "正类更小"
+      },
+      "20": {
+       "n_total": 1434,
+       "cliffs_delta": -0.1433,
+       "direction": "正类更小"
+      },
+      "21": {
+       "n_total": 2778,
+       "cliffs_delta": -0.0506,
+       "direction": "正类更小"
+      },
+      "22": {
+       "n_total": 1889,
+       "cliffs_delta": -0.1273,
+       "direction": "正类更小"
+      }
+     },
+     "by_lead": {
+      "1-5": {
+       "n_total": 225
+      },
+      "6-10": {
+       "n_total": 1012,
+       "cliffs_delta": -0.1262,
+       "direction": "正类更小"
+      },
+      "11-20": {
+       "n_total": 6181,
+       "cliffs_delta": -0.0601,
+       "direction": "正类更小"
+      }
+     }
+    },
+    "st_ret1": {
+     "overall": {
+      "n_total": 7418,
+      "n_pos": 1574,
+      "n_neg": 5844,
+      "miss_rate": 0.0,
+      "miss_rate_pos": 0.0,
+      "miss_rate_neg": 0.0,
+      "med_pos": 0.013165116413426659,
+      "p25_pos": 0.006362415396312993,
+      "p75_pos": 0.02347677767525097,
+      "med_neg": 0.015754552351082807,
+      "p25_neg": 0.00751039389365471,
+      "p75_neg": 0.030912113297250243,
+      "cliffs_delta": -0.115,
+      "direction": "正类更小",
+      "cliffs_delta_dateblock_ci": [
+       -0.1494,
+       -0.0843
+      ],
+      "ci_excludes_zero": true
+     },
+     "by_halfyear": {
+      "19": {
+       "n_total": 515,
+       "cliffs_delta": -0.2135,
+       "direction": "正类更小"
+      },
+      "20": {
+       "n_total": 1434,
+       "cliffs_delta": -0.1778,
+       "direction": "正类更小"
+      },
+      "21": {
+       "n_total": 2778,
+       "cliffs_delta": -0.0715,
+       "direction": "正类更小"
+      },
+      "22": {
+       "n_total": 1889,
+       "cliffs_delta": -0.1107,
+       "direction": "正类更小"
+      }
+     },
+     "by_lead": {
+      "1-5": {
+       "n_total": 225
+      },
+      "6-10": {
+       "n_total": 1012,
+       "cliffs_delta": -0.1686,
+       "direction": "正类更小"
+      },
+      "11-20": {
+       "n_total": 6181,
+       "cliffs_delta": -0.0763,
+       "direction": "正类更小"
+      }
+     }
+    },
+    "st_volrecover": {
+     "overall": {
+      "n_total": 7418,
+      "n_pos": 1574,
+      "n_neg": 5844,
+      "miss_rate": 0.0,
+      "miss_rate_pos": 0.0,
+      "miss_rate_neg": 0.0,
+      "med_pos": 0.788253335204169,
+      "p25_pos": 0.6524118803117177,
+      "p75_pos": 0.9938539155879631,
+      "med_neg": 0.8451081977007308,
+      "p25_neg": 0.7106165641010622,
+      "p75_neg": 1.0467797795864335,
+      "cliffs_delta": -0.1355,
+      "direction": "正类更小",
+      "cliffs_delta_dateblock_ci": [
+       -0.1752,
+       -0.0965
+      ],
+      "ci_excludes_zero": true
+     },
+     "by_halfyear": {
+      "19": {
+       "n_total": 515,
+       "cliffs_delta": -0.2119,
+       "direction": "正类更小"
+      },
+      "20": {
+       "n_total": 1434,
+       "cliffs_delta": -0.1176,
+       "direction": "正类更小"
+      },
+      "21": {
+       "n_total": 2778,
+       "cliffs_delta": -0.1533,
+       "direction": "正类更小"
+      },
+      "22": {
+       "n_total": 1889,
+       "cliffs_delta": -0.1021,
+       "direction": "正类更小"
+      }
+     },
+     "by_lead": {
+      "1-5": {
+       "n_total": 225
+      },
+      "6-10": {
+       "n_total": 1012,
+       "cliffs_delta": 0.1124,
+       "direction": "正类更大"
+      },
+      "11-20": {
+       "n_total": 6181,
+       "cliffs_delta": -0.1015,
+       "direction": "正类更小"
+      }
+     }
+    }
+   }
+  }
+ },
+ "method": {
+  "target": "path_binary: never_reclaim=正类; 右删失排除",
+  "risk_set": "排除 (a)reattack_first<=obs_day (b)end_day<=obs_day → 单列结局已知",
+  "lead_unit": "冻结交易日历(TDX∩baostock)内 cutoff−obs 交易日差",
+  "lead_bins": "1-5 / 6-10 / 11-20",
+  "effect": "Cliff's delta(平均秩); 日期块 bootstrap 1000 percentile 95% seed 20260919",
+  "collinearity_note": "结果按共线性组解读(回调深度/支撑位置/价格位置/动能/量能/波动/时序), 不孤立解释",
+  "caveat": "开发期关联研究; 效应≠因果; 不构成交易规则/收益证明"
+ }
+}
