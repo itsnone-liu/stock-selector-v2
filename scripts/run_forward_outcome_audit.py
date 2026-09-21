@@ -4,7 +4,7 @@
 
 冻结(详见 FORWARD_OUTCOME_V1_SPEC.md):
 - 主指标 Y40 = ln(P[t+40]/P[t]) − ln(I[t+40]/I[t])
-  P=股票复权收盘(raw×F, hfq 总收益口径), I=基准指数(上证 sh999999, 价格收益口径)
+  P=股票复权收盘(raw×F, baostock 涨跌幅复权法, 不等同真实可投资总收益), I=基准指数(上证 sh999999, 价格收益口径)
   t+40=市场日历(上证日历)自观察日起第 40 个交易日
 - 辅助: 持有期最大回撤(窗内复权收盘相对此前最高收盘最大跌幅, 连续值);
   趋势持续性(8×5 日区间相对基准收益为正的区间占比)
@@ -64,7 +64,7 @@ def main():
     audit = {"spec": "FORWARD_OUTCOME_V1_SPEC.md", "horizon_trading_days": H,
              "market_calendar": {"first": mdates[0], "last": mdates[-1], "n": len(mdates)},
              "benchmark": {"code": "sh999999(TDX 上证指数)", "price": "close(int32/100, 已修正)", "parse_fix_max_dailyret_diff": idx_diff,
-                           "return_basis": "价格收益(无分红); 股票侧=hfq 总收益 → 已知口径偏差(见 SPEC §1.3)"},
+                           "return_basis": "指数=价格收益(无分红); 股票侧=baostock 涨跌幅复权法(非真实总收益) → 已知口径偏差(见 SPEC §1.3)"},
              "datasets": {}, "caveats": []}
     for ds in ("breakout", "shrink", "stabilization"):
         rows = [r for r in csv.DictReader(gzip.open(OUT / f"identify_{ds}.csv.gz", "rt"))]
@@ -126,8 +126,8 @@ def main():
                     mdd = min(mdd, c / run_max - 1)
                 mdds.append(mdd)
             seg_pos = 0
-            seg_ok = True
-            for si in range(8):
+            seg_ok = n_have == H + 1   # 全 41 市场日有价(防中途缺日漏检, 设计文档 §8.1)
+            for si in range(8 if seg_ok else 0):
                 a, bidx = mi + si * 5, mi + si * 5 + 5
                 pa, pb = padj.get(mdates[a]), padj.get(mdates[bidx])
                 if pa is None or pb is None:
@@ -164,11 +164,12 @@ def main():
     audit["factor_missing_audit"] = {
         "stocks_with_uncovered_days": sum(1 for v in stat_nofactor.values() if v),
         "total_uncovered_rows": sum(stat_nofactor.values()),
+        "scope": "仅本审计实际访问过 per_stock 文件的股票, 非全部 5240 股票库的全量核查",
         "note": "unadj 行无因子日不再×1.0 静默; 该日价格不可得, 走停牌/missing 路径"}
     audit["caveats"] = [
         "存活偏差(重大): 数据源 5240 股仅 6 股末端早于 2026-06——退市股基本不在数据中, "
         "Y40 分布系统性偏乐观, 结果仅代表存活到数据末端的股票",
-        "口径偏差: 股票=hfq 总收益 vs 基准=上证价格收益(无分红), A股年均股息~2%→40日~0.3% 系统性低配基准方向, 已知且同向",
+        "口径偏差: 股票=baostock 涨跌幅复权法 vs 基准=上证价格收益(无分红), 股息量级~2%/年→40日~0.3% 仅粗略提示非统一修正量",
         "imputed(停牌近似)与 data_end_censored 计数单列, 未静默删除",
     ]
     (OUT / "FORWARD_OUTCOME_V1_AUDIT.json").write_text(
