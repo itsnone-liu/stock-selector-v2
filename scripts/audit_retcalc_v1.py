@@ -255,59 +255,97 @@ def main():
         n_recalc += 1
         if abs(exp - float(r[f"{metric}_{h}"])) > 1e-9:
             n_recalc_bad += 1
-    # staged 组合专项(v5 公式独立复算)
+    # staged 全口径覆盖表: 2视角×5期限×3口径(K2/K3/K4) 逐格复算, 不设break
     staged_rows = [r for r in rows if r["strategy"] == "staged_entry"
                    and r.get("state") == "evaluated_position" and r.get("staged_legs")]
+    random.shuffle(staged_rows)
+    from collections import defaultdict as _dd
+    cover, cover_bad = _dd(int), _dd(int)
+    TARGET_PER_CELL = 40              # 每格目标验证数(不足则全量该格)
     n_staged_bad = n_staged = 0
-    for r in staged_rows[:600]:
+    staged_cache_px = {}
+    for r in staged_rows:
+        if all(cover[(r["view"], h, m)] >= TARGET_PER_CELL
+               for h in HORIZONS for m in ("K2", "K3", "K4")):
+            break
         dates, pos, u, Fd = pb.frame(r["code"])
         legs = json.loads(r["staged_legs"])
         legs = [(t, pos[d]) for t, d, _ in legs if d in pos]
-        # 各批成交价: 从 v5map 取(源头独立)
-        v5p = v5map.get((r["lifecycle_id"], "staged_entry"))
         if not legs:
             continue
         tag = "fill" if r["view"] == "close" else "next"
-        prices = {}
-        cur_l = con.execute(f"""SELECT t1_{tag}_price, t2_{tag}_price, t3_{tag}_price
-            FROM read_parquet({files!r}) WHERE lifecycle_id='{r['lifecycle_id']}'
-            AND strategy='staged_entry'""")
-        t1p, t2p, t3p = cur_l.fetchone()
-        for t, px in (("t1", t1p), ("t2", t2p), ("t3", t3p)):
-            if px is not None:
-                prices[t] = float(px)
-        base_p = legs[0][1]
+        k_px = (r["lifecycle_id"], tag)
+        if k_px not in staged_cache_px:
+            t1p, t2p, t3p = con.execute(
+                f"""SELECT t1_{tag}_price, t2_{tag}_price, t3_{tag}_price
+                FROM read_parquet({files!r}) WHERE lifecycle_id='{r['lifecycle_id']}'
+                AND strategy='staged_entry'""").fetchone()
+            staged_cache_px[k_px] = {t: float(px) for t, px in
+                                     (("t1", t1p), ("t2", t2p), ("t3", t3p)) if px is not None}
+        prices = staged_cache_px[k_px]
+        base_p = legs[0][1]                     # 第一笔成交批(共同终点基准)
+        anchor_p = pos.get(r["anchor_day"])
         for h in HORIZONS:
-            end = base_p + h
-            csvv = r.get(f"K2_{h}")
-            if csvv in ("", None) or end >= len(dates):
-                continue
-            total = 0.0
-            for t, tp_ in legs:
-                tpx = prices.get(t)
-                if tpx is None:
-                    continue
-                w = TRANCHES[t]
-                if tp_ > end:
-                    continue
-                if tp_ == end:
-                    ri = r_net(COST, w * 100_000.0, tpx, dates[tp_], tpx,
-                               dates[end], Fd[dates[tp_]], Fd[dates[end]])
-                else:
-                    sell = COST.fill_price(u[dates[end]][1], "sell")
-                    ri = r_net(COST, w * 100_000.0, tpx, dates[tp_], sell,
-                               dates[end], Fd[dates[tp_]], Fd[dates[end]])
-                total += w * (ri if ri is not None else 0.0)
-            n_staged += 1
-            if abs(total - float(csvv)) > 1e-9:
-                n_staged_bad += 1
-            break
+            # K2/K4: 共同终点=第一笔批后h
+            end_k2 = base_p + h
+            csv_k2, csv_k4 = r.get(f"K2_{h}"), r.get(f"K4_{h}")
+            if end_k2 < len(dates) and csv_k2 not in ("", None):
+                total = 0.0
+                for t, tp_ in legs:
+                    tpx = prices.get(t)
+                    if tpx is None or tp_ > end_k2:
+                        continue
+                    w = TRANCHES[t]
+                    if tp_ == end_k2:
+                        ri = r_net(COST, w * 100_000.0, tpx, dates[tp_], tpx,
+                                   dates[end_k2], Fd[dates[tp_]], Fd[dates[end_k2]])
+                    else:
+                        sell = COST.fill_price(u[dates[end_k2]][1], "sell")
+                        ri = r_net(COST, w * 100_000.0, tpx, dates[tp_], sell,
+                                   dates[end_k2], Fd[dates[tp_]], Fd[dates[end_k2]])
+                    total += w * (ri if ri is not None else 0.0)
+                for m, csvv in (("K2", csv_k2), ("K4", csv_k4)):
+                    n_staged += 1
+                    cover[(r["view"], h, m)] += 1
+                    if csvv in ("", None) or abs(total - float(csvv)) > 1e-9:
+                        cover_bad[(r["view"], h, m)] += 1
+                        n_staged_bad += 1
+            # K3: 统一突破日终点, 分批现金语义
+            if anchor_p is not None:
+                end_k3 = anchor_p + h
+                csv_k3 = r.get(f"K3_{h}")
+                if end_k3 < len(dates) and csv_k3 not in ("", None):
+                    total3 = 0.0
+                    for t, tp_ in legs:
+                        tpx = prices.get(t)
+                        if tpx is None or tp_ > end_k3:
+                            continue
+                        w = TRANCHES[t]
+                        if tp_ == end_k3:
+                            ri = r_net(COST, w * 100_000.0, tpx, dates[tp_], tpx,
+                                       dates[end_k3], Fd[dates[tp_]], Fd[dates[end_k3]])
+                        else:
+                            sell = COST.fill_price(u[dates[end_k3]][1], "sell")
+                            ri = r_net(COST, w * 100_000.0, tpx, dates[tp_], sell,
+                                       dates[end_k3], Fd[dates[tp_]], Fd[dates[end_k3]])
+                        total3 += w * (ri if ri is not None else 0.0)
+                    n_staged += 1
+                    cover[(r["view"], h, "K3")] += 1
+                    if abs(total3 - float(csv_k3)) > 1e-9:
+                        cover_bad[(r["view"], h, "K3")] += 1
+                        n_staged_bad += 1
+    cover_tbl = {f"{v}|h{h}|{m}": {"n": cover[(v, h, m)], "bad": cover_bad[(v, h, m)]}
+                 for v in ("close", "next") for h in HORIZONS for m in ("K2", "K3", "K4")}
+    empty_cells = [k for k, v in cover_tbl.items() if v["n"] == 0]
+    if empty_cells:
+        failures.append(f"R4 staged覆盖表空格: {empty_cells}")
+    if n_staged_bad:
+        failures.append(f"R4 staged全口径失配: {n_staged_bad}/{n_staged}")
     if n_recalc_bad:
         failures.append(f"R4 分层重算失配: {n_recalc_bad}/{n_recalc}")
-    if n_staged_bad:
-        failures.append(f"R4 staged组合失配: {n_staged_bad}/{n_staged}")
     report["R4"] = {"stratified": n_recalc, "stratified_bad": n_recalc_bad,
-                    "staged": n_staged, "staged_bad": n_staged_bad,
+                    "staged_total": n_staged, "staged_bad": n_staged_bad,
+                    "staged_cover_table": cover_tbl,
                     "buy_price_checked": len(px_sample), "buy_price_bad": n_px_bad}
 
     status = "PASSED" if not failures else "FAILED"

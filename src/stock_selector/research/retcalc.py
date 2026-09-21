@@ -133,23 +133,28 @@ def k3_view(sf: StockFrame, cost: CostModel, view: str,
     return out
 
 
-POLICY_TERMINAL_REASONS = {          # "政策已终结": 数据结束前策略层面已无入场可能
-    "wait_expired", "gave_up", "breakout_invalidated", "structure_broken",
-    "capped_gave_up", "no_chance_before_data_end",
-}
-
-
-def k2_state(filled: bool, capped_cash: bool, not_filled_reason: str | None,
+def k2_state(filled: bool, capped_cash: bool, no_breakout: bool,
              right_censored: bool, end_pos: int | None, last: int) -> tuple[str, str]:
-    """行级四态状态机 → (state, 细分reason)."""
+    """行级四态状态机(逐视角) → (state, 细分reason).
+
+    未成交判定(P0 修正, 2026-09-21 复审):
+    - 生命周期完整结束(right_censored=False)时未成交 → 政策已终结
+      (等待期届满/无回调/支撑未止跌/next 唯一机会被阻断且不重试) → evaluated_cash=0
+    - 生命周期右删失(right_censored=True, 数据结束截断)且策略层面仍可能成交
+      → null_entry_pending
+    - "可能成交"判据 = 数据未结束; 数据结束前一切未成交且生命周期完整 = 终结。
+      不再依赖 not_filled_reason 字符串值域(v5 实际值域
+      no_pullback_before_end/no_stabilization 与旧白名单零交集, 曾致全部误判 pending)。
+    - no_breakout(对照池): 无入场信号, 政策从未激活 → evaluated_cash。
+    """
     if capped_cash:                    # direct_chase 3.5%上限明确放弃
         return "evaluated_cash", "capped_abandon"
+    if no_breakout:
+        return "evaluated_cash", "no_breakout_signal"
     if not filled:
         if right_censored:
             return "null_entry_pending", "data_end_pending"
-        if not_filled_reason in POLICY_TERMINAL_REASONS:
-            return "evaluated_cash", f"policy_terminal:{not_filled_reason}"
-        return "null_entry_pending", f"pending:{not_filled_reason}"
+        return "evaluated_cash", "policy_terminal"
     if end_pos is None or end_pos > last:
         return "null_holding_tail", "endpoint_beyond_data"
     return "evaluated_position", "ok"

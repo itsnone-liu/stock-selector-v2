@@ -157,4 +157,34 @@ sf9 = mkframe(D[:8], [10.0] * 8)
 k3w = k3_view(sf9, COST, "close", 0, 0, 10.0, legs=[("t1", 0, 10.0)])
 ok(k3w["K3_10"] is None and k3w["K3_10_reason"] == "window_incomplete", "staged K3右删失null")
 
-print(f"retcalc 单测(含新增场景): 共 {N} 项断言全部通过 ✓")
+print(f"(中间输出: 新增场景段完成 {N} 项)")
+
+# ── 场景11 已终结未成交(生命周期完整, right_censored=False) → evaluated_cash ──
+from stock_selector.research.retcalc import k2_state as _ks
+st11 = _ks(filled=False, capped_cash=False, no_breakout=False,
+           right_censored=False, end_pos=None, last=20)
+ok(st11 == ("evaluated_cash", "policy_terminal"), f"已终结未成交→cash0, got {st11}")
+# ── 场景12 右删失仍可成交(right_censored=True) → null_entry_pending ──
+st12 = _ks(filled=False, capped_cash=False, no_breakout=False,
+           right_censored=True, end_pos=None, last=20)
+ok(st12 == ("null_entry_pending", "data_end_pending"), f"右删失未终结→pending, got {st12}")
+# close成交而next被唯一阻断(生命周期完整) → 逐视角 cash
+st12b = _ks(filled=False, capped_cash=False, no_breakout=False,
+            right_censored=False, end_pos=None, last=20)
+ok(st12b[0] == "evaluated_cash", "next阻断且生命周期完整→cash")
+# ── 场景13 K2 终点日 next 批次恰成交 → 该批瞬间估值(仅费用), 不偷看收盘 ──
+sf13 = mkframe(D, [10.0 + 0.1 * i for i in range(21)],
+               opens=[9.0 + 0.1 * i for i in range(21)])
+legs13 = [("t1", 2, COST.fill_price(sf13.day_close(2), "buy")),
+          ("t2", 7, COST.fill_price(sf13.day_open(7), "buy"))]   # t2 成交=次日开盘口径
+k2_13 = k2_view(sf13, COST, "next", 2, legs13[0][2], legs=legs13)
+end13 = 2 + 5                                                       # 终点=pos7==t2批
+r_t2_instant = r_net_factor(COST, 0.30 * CAPITAL, legs13[1][2], D[7],
+                            legs13[1][2], D[7], 1.0, 1.0)
+s13 = COST.fill_price(sf13.day_close(end13), "sell")
+r_t1 = r_net_factor(COST, 0.30 * CAPITAL, legs13[0][2], D[2], s13, D[7], 1.0, 1.0)
+ok(abs(k2_13["K2_5"] - (0.30 * r_t1 + 0.30 * r_t2_instant)) < 1e-12,
+   f"终点日next批恰成交→瞬间估值仅费用 ({k2_13['K2_5']})")
+ok(r_t2_instant < 0, "瞬间估值=费用损(负)")
+
+print(f"retcalc 单测(含场景8-13): 共 {N} 项断言全部通过 ✓")

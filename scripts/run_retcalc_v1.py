@@ -212,8 +212,9 @@ def main():
                     st = ("evaluated_cash", "no_breakout_signal")
                 else:
                     end_probe = (buy_pos + HORIZONS[0]) if buy_pos is not None else None
-                    st = k2_state(filled, capped,
-                                  g("not_filled_reason_close"), bool(g("right_censored")),
+                    # 逐视角: filled 已是本视角 fill_status; 右删失=生命周期级
+                    st = k2_state(filled, capped, False,
+                                  bool(g("right_censored")),
                                   end_probe, len(sf.dates) - 1)
                 base["state"] = st[0]
                 base["state_reason"] = st[1]
