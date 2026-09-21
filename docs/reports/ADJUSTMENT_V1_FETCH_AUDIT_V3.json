@@ -1,0 +1,248 @@
+{
+ "audit_version": "v3-strict-gates-read-only",
+ "mode": "full",
+ "gate_failures": [],
+ "gates": {
+  "G0_frozen_baselines": {
+   "passed": true,
+   "checks": [
+    {
+     "item": "universe_frozen.codes_sha256",
+     "match": true
+    },
+    {
+     "item": "universe_frozen.fetch_manifest_sha256",
+     "match": true
+    },
+    {
+     "item": "universe_frozen.factor_table_sha256",
+     "match": true
+    },
+    {
+     "item": "universe_frozen.per_stock_root_sha256",
+     "match": true
+    }
+   ]
+  },
+  "G1_universe_closure": {
+   "frozen_count": 5240,
+   "manifest_n": 5240,
+   "n_ok": 5240,
+   "n_fail": 0,
+   "not_attempted": [],
+   "n_not_attempted": 0,
+   "extra_in_manifest": [],
+   "n_extra": 0,
+   "require_n_fail_zero": true,
+   "passed": true
+  },
+  "G2_file_sha256": {
+   "checked": 5240,
+   "hash_mismatch": [],
+   "n_hash_mismatch": 0,
+   "file_missing": [],
+   "n_file_missing": 0,
+   "orphan_files": [],
+   "n_orphan": 0,
+   "passed": true
+  },
+  "G3_structure": {
+   "n_bad": 0,
+   "bad": [],
+   "passed": true
+  },
+  "G4_price_vs_tdx": {
+   "n_bad_excl_known": 0,
+   "bad": [],
+   "missing_local_files": [],
+   "n_missing_local": 0,
+   "coverage": {
+    "matched_days": 6115261,
+    "window_days": 6115261,
+    "ratio": 1.0,
+    "min_ratio": 0.99
+   },
+   "excluded_by_decision_hits": [
+    "sh.600272",
+    "sh.600313",
+    "sh.600339",
+    "sh.600477",
+    "sh.600518",
+    "sh.600603",
+    "sh.601388",
+    "sh.601686",
+    "sh.601818",
+    "sh.688711",
+    "sh.689009",
+    "sz.000002",
+    "sz.000407",
+    "sz.000753",
+    "sz.000970",
+    "sz.000981",
+    "sz.002321",
+    "sz.002523",
+    "sz.002546",
+    "sz.002759",
+    "sz.003038",
+    "sz.300176",
+    "sz.300278",
+    "sz.302132"
+   ],
+   "passed": true
+  },
+  "G5_internal_rebuild": {
+   "n_bad": 0,
+   "bad": [],
+   "disclaimer": "恒等式级浮点自检(h=unadj×(h/u)); 不构成独立验证, 独立对账见 G5b",
+   "passed": true
+  },
+  "G6_factor_jump_candidates": {
+   "bs_candidates": 23022,
+   "bs_confirmed_by_sina": 23005,
+   "bs_unconfirmed_detail": [
+    {
+     "code": "sh.600272",
+     "dates": [
+      "2022-04-01"
+     ],
+     "n": 1
+    },
+    {
+     "code": "sh.600313",
+     "dates": [
+      "2021-01-18"
+     ],
+     "n": 1
+    },
+    {
+     "code": "sh.600518",
+     "dates": [
+      "2021-12-15"
+     ],
+     "n": 1
+    },
+    {
+     "code": "sh.601686",
+     "dates": [
+      "2022-01-27"
+     ],
+     "n": 1
+    },
+    {
+     "code": "sh.688711",
+     "dates": [
+      "2022-01-27"
+     ],
+     "n": 1
+    },
+    {
+     "code": "sh.689009",
+     "dates": [
+      "2024-05-24",
+      "2025-06-13",
+      "2025-10-31",
+      "2026-08-07"
+     ],
+     "n": 4
+    },
+    {
+     "code": "sz.000002",
+     "dates": [
+      "2025-01-09"
+     ],
+     "n": 1
+    },
+    {
+     "code": "sz.000981",
+     "dates": [
+      "2022-02-28"
+     ],
+     "n": 1
+    },
+    {
+     "code": "sz.002321",
+     "dates": [
+      "2022-01-04"
+     ],
+     "n": 1
+    },
+    {
+     "code": "sz.002546",
+     "dates": [
+      "2022-04-01"
+     ],
+     "n": 1
+    },
+    {
+     "code": "sz.002759",
+     "dates": [
+      "2022-03-30"
+     ],
+     "n": 1
+    },
+    {
+     "code": "sz.003038",
+     "dates": [
+      "2022-03-30"
+     ],
+     "n": 1
+    },
+    {
+     "code": "sz.300278",
+     "dates": [
+      "2021-12-31"
+     ],
+     "n": 1
+    },
+    {
+     "code": "sz.302132",
+     "dates": [
+      "2025-02-18"
+     ],
+     "n": 1
+    }
+   ],
+   "sina_only_events": 1421,
+   "sina_events_total": 24426,
+   "sina_load_failures": [],
+   "n_sina_load_failures": 0,
+   "segmentation": "行动日 = bs全候选(>2e-4) ∪ sina事件日(保守并集); 段内漂移>1e-4 即 fail",
+   "intra_segment_drift": {
+    "n": 0,
+    "detail": []
+   },
+   "passed": true
+  },
+  "G7_ohlc_spotcheck": {
+   "n_sampled": 60,
+   "n_bad": 0,
+   "bad": [],
+   "passed": true
+  },
+  "G5b_factor_table": {
+   "source_load_failures": [],
+   "ft_rows": 6663146,
+   "validated_rows": 6663146,
+   "skipped_rows": 0,
+   "missing_keys": [],
+   "duplicate_keys": [],
+   "extra_keys": [],
+   "expected_rows": 6663146,
+   "n_missing_keys": 0,
+   "n_duplicate_keys": 0,
+   "n_extra_keys": 0,
+   "passed": true
+  }
+ },
+ "status": "passed",
+ "elapsed_s": 145.8,
+ "manifest_meta": {
+  "adjustflag": {
+   "unadj": "3",
+   "hfq": "1"
+  },
+  "fields": "date,open,high,low,close,volume,amount,turn,pctChg",
+  "date_range": "2021-01-01 ~ 2026-09-19",
+  "baostock_version": "0.9.30 (pip freeze)"
+ }
+}
