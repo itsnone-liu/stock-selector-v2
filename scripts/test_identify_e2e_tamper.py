@@ -48,8 +48,9 @@ lid, fd = duckdb.connect().execute(f"""
     WHERE strategy='wait_support_hold' AND fill_status_close='filled'
     LIMIT 1""").fetchone()
 lfiles = sorted(ROOT.glob("output/research/lifecycle_v1/lifecycle_stage4_v1_full/partitions/*/*.parquet"))
-code6, bo, t2, ps = duckdb.connect().execute(f"""
-    SELECT code, breakout_day, first_pullback_day, preparation_start
+code6, bo, t2, ps, t3s, ed, rc, pev = duckdb.connect().execute(f"""
+    SELECT code, breakout_day, first_pullback_day, preparation_start,
+           reattack_days, end_day, right_censored, pullback_event_ids
     FROM read_parquet({[str(x) for x in lfiles]!r}) WHERE lifecycle_id='{lid}'""").fetchone()
 code = ("sh." if str(code6)[0] == "6" else "sz.") + str(code6)
 path_row = next(r for r in csv.DictReader(gzip.open(ROOT / "output/research/posneg_v1/path_layer.csv.gz", "rt"))
@@ -57,7 +58,10 @@ path_row = next(r for r in csv.DictReader(gzip.open(ROOT / "output/research/posn
 
 Fidx = load_factor_index()
 cache = load_stock(code, Fidx)
-life_row = (code, str(bo)[:10], str(t2)[:10] if t2 else None, str(ps)[:10] if ps else None)
+life_row = (code, str(bo)[:10], str(t2)[:10] if t2 else None,
+            str(ps)[:10] if ps else None,
+            str(t3s).split("|")[0] if t3s else None,
+            str(ed)[:10] if ed else None, bool(rc), str(pev) if pev else None)
 
 base = process_episode(lid, path_row, life_row, str(fd)[:10], cache)
 ok(base["shrink"] and base["stabilization"], "样本段三时点齐备")

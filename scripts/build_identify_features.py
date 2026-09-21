@@ -59,50 +59,84 @@ def load_stock(code, Fidx):
 
 
 def process_episode(lid, pl, life_row, stab_fd, cache_row):
-    """单 episode 三时点构造(独立可测: 端到端未来篡改验证入口).
+    """单 episode 三时点构造(独立可测).
 
-    life_row=(code, breakout_day, first_pullback_day, prep_start)
-    cache_row=(dates, u, Fd, n_vol_missing, vol_missing_days)
-    返回 {"breakout": row, "shrink": row|None, "stabilization": row|None}
+    life_row = (code, breakout_day, first_pullback_day, prep_start,
+                t3_first_day, end_day, right_censored, pullback_event_ids)
+    2026-09-21 第三轮复审修订:
+    - t2 观察日 = 突破后首个有效回调(pullback_event_ids 中 > breakout 最早;
+      first_pullback_day 可早于突破日[准备期回调], 不得作时点2)
+    - 标签可得日按目标分离: la_path=突破+20交易日; la_ge=G3→T3 首日,
+      完整 G1/G2→生命周期 end_day, 不确定→None(label_uncertain)
+    - 复权基准统一: p_bo/post_hi/plow 全用 P_adj(修 raw/P_adj 混除)
+    - pred_legal_path: 观察日<=la_path 才可预测 20 日结局
     """
-    code, bo_d, t2_d, ps_d = life_row
+    (code, bo_d, t2_orig, ps_d, t3_first, end_day, rc, pev) = life_row
     dates, u, Fd, _nvm, vmd = cache_row
     if bo_d not in dates:
         raise RuntimeError(f"{code} {lid} 突破日不在日历")
     bp = dates.index(bo_d)
-    la_day = pl["cutoff_day"]                        # 标签可获得日(双重门禁)
+    # 突破后首个有效回调: 事件 id 形如 code_YYYY-MM-DD
+    t2_eff = None
+    if pev:
+        for ev in pev.split("|"):
+            d_ = ev.split("_", 1)[1] if "_" in ev else None
+            if d_ and d_ > bo_d:
+                t2_eff = d_ if (t2_eff is None or d_ < t2_eff) else t2_eff
+    audit = {"t2_orig_le_bo": bool(t2_orig and t2_orig <= bo_d),
+             "t2_eff_from_events": t2_eff is not None}
+    # 标签可得日(按目标)
+    la_path = pl["cutoff_day"]                     # path/asof_20d: 突破+20交易日
+    ge = pl["group_eventual"]
+    if ge == "G3":
+        la_ge = t3_first                           # T3 首次形成时
+    elif ge in ("G1", "G2"):
+        la_ge = end_day                            # 生命周期终结才定类
+    else:
+        la_ge = None                               # unknown_censored
+    label_uncertain = (ge == "unknown_censored"
+                       or pl["path_family"] == "right_censored")
     label = {
         "lifecycle_id": lid, "code": code, "breakout_day": bo_d,
-        "label_available_day": la_day,
+        "label_available_day_path": la_path,
+        "label_available_day_ge": la_ge,
+        "split_path": split_semiannual(la_path),
+        "split_ge": split_semiannual(la_ge) if la_ge else None,
         "path_family": pl["path_family"], "path_subtype": pl["path_subtype"],
         "D": pl["D"], "E": pl["E"], "D_atr": pl["D_atr"],
-        "group_eventual": pl["group_eventual"], "group_asof_20d": pl["group_asof_20d"],
+        "group_eventual": ge, "group_asof_20d": pl["group_asof_20d"],
         "structure_broken_asof_20d": pl["structure_broken_asof_20d"],
-        "split_bucket": split_semiannual(la_day), "dev_sample": True,
+        "label_uncertain": label_uncertain, "dev_sample": True,
+        "audit_t2_orig_le_bo": audit["t2_orig_le_bo"],
     }
     dO = {d: u[d][0] for d in dates}
     dH = {d: u[d][1] for d in dates}
     dL = {d: u[d][2] for d in dates}
     dC = {d: u[d][3] for d in dates}
     dV = {d: u[d][4] for d in dates}
+    p_bo_adj = dC[bo_d] * Fd[bo_d]                 # 复权基准(统一)
     prep_days = ((bp - dates.index(ps_d)) if (ps_d and ps_d in dates) else None)  # bo−ps 正数
     r1 = ObsFrame(dates, bp, dO, dH, dL, dC, dV, Fd)
     row1 = {**label, "obs_day": bo_d, "obs_vol_missing": bool(vmd.get(bo_d)),
+            "pred_legal_path": bo_d <= la_path,
             **feat_breakout(r1, prep_days)}
     row2 = row3 = None
-    if t2_d and t2_d in dates:
-        sp = dates.index(t2_d)
-        post_hi = max(dC[d] for d in dates[bp + 1:sp + 1]) if sp > bp else None
+    if t2_eff and t2_eff in dates and dates.index(t2_eff) > bp:
+        sp = dates.index(t2_eff)
+        post_hi = max(dC[d] * Fd[d] for d in dates[bp + 1:sp + 1]) if sp > bp else None
         r2 = ObsFrame(dates, sp, dO, dH, dL, dC, dV, Fd)
-        row2 = {**label, "obs_day": t2_d, "obs_vol_missing": bool(vmd.get(t2_d)),
-                **feat_shrink(r2, dC[bo_d], bp, post_hi)}
+        row2 = {**label, "obs_day": t2_eff, "obs_vol_missing": bool(vmd.get(t2_eff)),
+                "pred_legal_path": t2_eff <= la_path,
+                **feat_shrink(r2, p_bo_adj, bp, post_hi)}
         if stab_fd and stab_fd in dates and dates.index(stab_fd) >= sp:
             fp = dates.index(stab_fd)
-            plow = min(dL[d] for d in dates[sp:fp + 1])
+            plow = min(dL[d] * Fd[d] for d in dates[sp:fp + 1])
             r3 = ObsFrame(dates, fp, dO, dH, dL, dC, dV, Fd)
             row3 = {**label, "obs_day": stab_fd, "obs_vol_missing": bool(vmd.get(stab_fd)),
-                    **feat_stabilization(r3, dC[bo_d], plow)}
-    return {"breakout": row1, "shrink": row2, "stabilization": row3}
+                    "pred_legal_path": stab_fd <= la_path,
+                    **feat_stabilization(r3, p_bo_adj, plow)}
+    return {"breakout": row1, "shrink": row2, "stabilization": row3,
+            "audit": audit}
 
 
 def main():
@@ -117,13 +151,17 @@ def main():
     import duckdb
     lfiles = sorted(glob.glob(str(ROOT / "output/research/lifecycle_v1/lifecycle_stage4_v1_full/partitions/*/*.parquet")))
     life = {}
-    for code6, lid, bo, t2, ps in duckdb.connect().execute(f"""
+    for code6, lid, bo, t2, ps, t3s, ed, rc, pev in duckdb.connect().execute(f"""
             SELECT code, lifecycle_id, breakout_day, first_pullback_day,
-                   preparation_start
+                   preparation_start, reattack_days, end_day, right_censored,
+                   pullback_event_ids
             FROM read_parquet({lfiles!r}) WHERE breakout_day IS NOT NULL""").fetchall():
         life[lid] = (("sh." if str(code6)[0] == "6" else "sz.") + str(code6),
                      str(bo)[:10], str(t2)[:10] if t2 else None,
-                     str(ps)[:10] if ps else None)
+                     str(ps)[:10] if ps else None,
+                     str(t3s).split("|")[0] if t3s else None,
+                     str(ed)[:10] if ed else None, bool(rc),
+                     str(pev) if pev else None)
     v5f = sorted(glob.glob(str(ROOT / "output/research/lifecycle_v1/entry_replay_v5_full/partitions/*/*.parquet")))
     stab = {}
     for lid, fd in duckdb.connect().execute(f"""
@@ -140,6 +178,8 @@ def main():
     miss_f = []
     cache = {}
     per_stock_vol_missing = {}
+    audit_tot = {"t2_orig_le_bo": 0, "t2_orig_le_bo_and_no_post_bo_event": 0,
+                 "label_uncertain": 0, "stab_pred_illegal": 0}
     for lid, pl in path.items():
         if pl.get("status"):
             continue
@@ -160,6 +200,14 @@ def main():
         for k in ("breakout", "shrink", "stabilization"):
             if r[k]:
                 rows[k].append(r[k])
+        a = r["audit"]
+        audit_tot["t2_orig_le_bo"] += a["t2_orig_le_bo"]
+        if a["t2_orig_le_bo"] and not a["t2_eff_from_events"]:
+            audit_tot["t2_orig_le_bo_and_no_post_bo_event"] += 1
+        if r["breakout"]["label_uncertain"]:
+            audit_tot["label_uncertain"] += 1
+        if r["stabilization"] and not r["stabilization"]["pred_legal_path"]:
+            audit_tot["stab_pred_illegal"] += 1
         if (len(rows["breakout"]) % 6000) < 1:
             print(f"[{len(rows['breakout'])}] {time.time()-t0:.0f}s", flush=True)
 
@@ -172,14 +220,17 @@ def main():
             w = csv.DictWriter(f, fieldnames=flds)
             w.writeheader()
             w.writerows(rs)
-        buckets = Counter(r["split_bucket"] for r in rs)
+        buckets = Counter(str((r.get("split_path"), r.get("split_ge"))) for r in rs)
         report[name] = {"n": len(rs), "split_buckets": dict(sorted(buckets.items())),
                         "path_families": dict(Counter(r["path_family"] for r in rs))}
     report["vol_missing_per_unique_stock_total"] = sum(per_stock_vol_missing.values())
     report["vol_missing_unique_stocks_affected"] = sum(1 for v in per_stock_vol_missing.values() if v)
     report["obs_rows_with_vol_missing"] = {k: sum(1 for r in rs if r.get("obs_vol_missing"))
                                            for k, rs in rows.items()}
-    report["split_basis"] = "label_available_day(=path cutoff_day); 观察日门禁=ObsFrame 截断"
+    report["audit"] = audit_tot
+    report["split_basis"] = ("按目标分离: split_path=la_path(bo+20交易日)/"
+                             "split_ge=la_ge(G3:T3首日; G1/G2:end_day); "
+                             "观察日门禁=ObsFrame 截断; pred_legal_path 门禁")
     report["note"] = ("dev_sample=True 全部; 逐半年滚动: train<=bucket_k, test=k+1; "
                       "标签仅结果列; max_gain 已删除(未来最高价)")
     (OUT / "IDENTIFY_BUILD_REPORT.json").write_text(json.dumps(report, ensure_ascii=False, indent=1))
