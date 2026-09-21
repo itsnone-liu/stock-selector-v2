@@ -35,27 +35,35 @@ H = 40
 
 def market_calendar():
     b = Path("/root/tdx_data/vipdoc/sh/lday/sh999999.day").read_bytes()
-    # TDX day 记录 32 字节: date(4) open(4) high(4) low(4) close(4) ...
-    dates, close = [], []
+    # TDX day 记录 32 字节: date(u32) open(i32) high(i32) low(i32) close(i32)... 价格=整数/100
+    dates, close, close_f32 = [], [], []
     for i in range(len(b) // 32):
         d = struct.unpack("<I", b[i * 32:i * 32 + 4])[0]
         dates.append(f"{d // 10000}-{d // 100 % 100:02d}-{d % 100:02d}")
-        close.append(struct.unpack("<f", b[i * 32 + 16:i * 32 + 20])[0])
-    return dates, np.array(close)
+        close.append(struct.unpack("<i", b[i * 32 + 16:i * 32 + 20])[0] / 100.0)
+        close_f32.append(struct.unpack("<f", b[i * 32 + 16:i * 32 + 20])[0])
+    # 断言(P1 修正验证): 旧 float32 误读(次正规∝整数)与新 int/100 的
+    # 逐日对数收益差必须为 0(比例效应), 否则列出差异
+    a = np.array(close); f = np.array(close_f32)
+    diff = np.abs(np.diff(np.log(a)) - np.diff(np.log(f)))
+    assert diff.max() < 1e-12, f"指数解析修正前后收益差 max={diff.max()}"
+    INDEX_PARSE_DIFF = float(diff.max())   # 列入审计(机器精度级, 比例效应+舍入)
+    return dates, a, INDEX_PARSE_DIFF
 
 
 def main():
     t0 = time.time()
-    mdates, mclose = market_calendar()
+    mdates, mclose, idx_diff = market_calendar()
     mpos = {d: i for i, d in enumerate(mdates)}
     F = {}
     with gzip.open(ROOT / "output/research/adjustment_v1/factor_table.csv.gz", "rt") as f:
         for row in csv.DictReader(f):
             F.setdefault(row["code"], {})[row["date"]] = float(row["F"])
     cache = {}
+    stat_nofactor = {}
     audit = {"spec": "FORWARD_OUTCOME_V1_SPEC.md", "horizon_trading_days": H,
              "market_calendar": {"first": mdates[0], "last": mdates[-1], "n": len(mdates)},
-             "benchmark": {"code": "sh999999(TDX 上证指数)", "price": "close(TDX float)",
+             "benchmark": {"code": "sh999999(TDX 上证指数)", "price": "close(int32/100, 已修正)", "parse_fix_max_dailyret_diff": idx_diff,
                            "return_basis": "价格收益(无分红); 股票侧=hfq 总收益 → 已知口径偏差(见 SPEC §1.3)"},
              "datasets": {}, "caveats": []}
     for ds in ("breakout", "shrink", "stabilization"):
@@ -68,7 +76,13 @@ def main():
             if code not in cache:
                 dates = load_stock(code, F)[0]
                 j = json.load(gzip.open(ROOT / f"data/adjustment_baostock/per_stock/{code}.json.gz", "rt"))
-                padj = {row[0]: float(row[4]) * F[code].get(row[0], 1.0) for row in j["unadj"]}
+                fc = F[code]
+                n_nof = sum(1 for row in j["unadj"] if row[0] not in fc)
+                stat_nofactor[code] = n_nof
+                # P0 修复: 因子缺失日不入 padj(缺失≠不需要复权);
+                # 该日价格视为不可得, 走停牌/missing 路径而非×1.0
+                padj = {row[0]: float(row[4]) * fc[row[0]]
+                        for row in j["unadj"] if row[0] in fc}
                 pos = {d: i for i, d in enumerate(dates)}
                 cache[code] = (dates, pos, padj)
             dates, pos, padj = cache[code]
@@ -99,28 +113,36 @@ def main():
                 stat["imputed_last_available"] += 1
             rel = np.log(p40 / p0) - np.log(mclose[mi + H] / mclose[mi])
             y40s.append(rel)
-            # 辅助: 回撤 + 趋势持续性(仅完整窗样本)
-            closes = [padj.get(mdates[k]) for k in range(mi, mi + H + 1)]
+            # P1: 区分终点可用 vs 全路径完整(窗内 41 市场日全有价)
+            win_days = [mdates[k] for k in range(mi, mi + H + 1)]
+            n_have = sum(1 for d_ in win_days if d_ in padj)
+            closes = [padj.get(d_) for d_ in win_days]
             cc = [c for c in closes if c is not None]
-            if len(cc) >= 2:
+            # 辅助: 回撤 + 趋势持续性(仅全路径完整样本)
+            if n_have == H + 1:             # 回撤仅全路径完整样本
                 run_max, mdd = cc[0], 0.0
                 for c in cc:
                     run_max = max(run_max, c)
                     mdd = min(mdd, c / run_max - 1)
                 mdds.append(mdd)
             seg_pos = 0
-            seg_n = 0
+            seg_ok = True
             for si in range(8):
                 a, bidx = mi + si * 5, mi + si * 5 + 5
                 pa, pb = padj.get(mdates[a]), padj.get(mdates[bidx])
-                if pa and pb:
-                    seg_n += 1
-                    if np.log(pb / pa) - np.log(mclose[bidx] / mclose[a]) > 0:
-                        seg_pos += 1
-            if seg_n:
-                trends.append(seg_pos / seg_n)
+                if pa is None or pb is None:
+                    seg_ok = False
+                    break
+                if np.log(pb / pa) - np.log(mclose[bidx] / mclose[a]) > 0:
+                    seg_pos += 1
+            if seg_ok:                      # 仅 8 段全可用(分母恒 8)
+                trends.append(seg_pos / 8)
             if not imputed:
-                stat["complete_window"] += 1
+                stat["endpoint_available"] += 1
+                if n_have == H + 1:
+                    stat["full_path_complete"] += 1
+                else:
+                    stat["endpoint_gap_days"] += H + 1 - n_have
         def q(v):
             v = np.array(v)
             return {"n": len(v), "mean": round(float(v.mean()), 5),
@@ -139,6 +161,10 @@ def main():
         print(f"{ds}: 行 {len(rows)} 资格 {len(elig)} | " +
               " ".join(f"{k}={v}" for k, v in stat.items()) +
               f" | Y40 p50={audit['datasets'][ds]['Y40_logrel']['p50']} | {time.time()-t0:.0f}s", flush=True)
+    audit["factor_missing_audit"] = {
+        "stocks_with_uncovered_days": sum(1 for v in stat_nofactor.values() if v),
+        "total_uncovered_rows": sum(stat_nofactor.values()),
+        "note": "unadj 行无因子日不再×1.0 静默; 该日价格不可得, 走停牌/missing 路径"}
     audit["caveats"] = [
         "存活偏差(重大): 数据源 5240 股仅 6 股末端早于 2026-06——退市股基本不在数据中, "
         "Y40 分布系统性偏乐观, 结果仅代表存活到数据末端的股票",

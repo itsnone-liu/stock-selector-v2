@@ -8,7 +8,8 @@
  },
  "benchmark": {
   "code": "sh999999(TDX 上证指数)",
-  "price": "close(TDX float)",
+  "price": "close(int32/100, 已修正)",
+  "parse_fix_max_dailyret_diff": 1.4210854715202004e-14,
   "return_basis": "价格收益(无分红); 股票侧=hfq 总收益 → 已知口径偏差(见 SPEC §1.3)"
  },
  "datasets": {
@@ -17,7 +18,8 @@
    "n_eligible": 27285,
    "excl_after_obs": 25,
    "outcome_window": {
-    "complete_window": 26126,
+    "endpoint_available": 26126,
+    "full_path_complete": 26126,
     "data_end_censored": 1145,
     "imputed_last_available": 14
    },
@@ -32,9 +34,9 @@
     "pos_rate": 0.3995
    },
    "max_drawdown": {
-    "n": 26140,
+    "n": 26126,
     "mean": -0.19345,
-    "p5": -0.3952,
+    "p5": -0.3954,
     "p25": -0.2464,
     "p50": -0.1733,
     "p75": -0.1177,
@@ -42,8 +44,8 @@
     "pos_rate": 0.0
    },
    "trend_persistence_pos_share": {
-    "n": 26140,
-    "mean": 0.44561,
+    "n": 26126,
+    "mean": 0.4456,
     "p5": 0.125,
     "p25": 0.375,
     "p50": 0.5,
@@ -57,7 +59,8 @@
    "n_eligible": 21502,
    "excl_after_obs": 13,
    "outcome_window": {
-    "complete_window": 20909,
+    "endpoint_available": 20909,
+    "full_path_complete": 20909,
     "data_end_censored": 580,
     "imputed_last_available": 13
    },
@@ -72,18 +75,18 @@
     "pos_rate": 0.3976
    },
    "max_drawdown": {
-    "n": 20922,
-    "mean": -0.19103,
-    "p5": -0.385,
-    "p25": -0.2423,
+    "n": 20909,
+    "mean": -0.19106,
+    "p5": -0.3851,
+    "p25": -0.2424,
     "p50": -0.1721,
     "p75": -0.1177,
     "p95": -0.0662,
     "pos_rate": 0.0
    },
    "trend_persistence_pos_share": {
-    "n": 20922,
-    "mean": 0.44375,
+    "n": 20909,
+    "mean": 0.44371,
     "p5": 0.125,
     "p25": 0.375,
     "p50": 0.5,
@@ -97,7 +100,8 @@
    "n_eligible": 13020,
    "excl_after_obs": 577,
    "outcome_window": {
-    "complete_window": 12620,
+    "endpoint_available": 12620,
+    "full_path_complete": 12620,
     "imputed_last_available": 22,
     "data_end_censored": 378
    },
@@ -112,18 +116,18 @@
     "pos_rate": 0.3933
    },
    "max_drawdown": {
-    "n": 12642,
-    "mean": -0.19277,
-    "p5": -0.3875,
-    "p25": -0.2454,
-    "p50": -0.1743,
+    "n": 12620,
+    "mean": -0.19288,
+    "p5": -0.3876,
+    "p25": -0.2457,
+    "p50": -0.1744,
     "p75": -0.1195,
     "p95": -0.0674,
     "pos_rate": 0.0
    },
    "trend_persistence_pos_share": {
-    "n": 12642,
-    "mean": 0.44314,
+    "n": 12620,
+    "mean": 0.44306,
     "p5": 0.125,
     "p25": 0.375,
     "p50": 0.5,
@@ -137,5 +141,10 @@
   "存活偏差(重大): 数据源 5240 股仅 6 股末端早于 2026-06——退市股基本不在数据中, Y40 分布系统性偏乐观, 结果仅代表存活到数据末端的股票",
   "口径偏差: 股票=hfq 总收益 vs 基准=上证价格收益(无分红), A股年均股息~2%→40日~0.3% 系统性低配基准方向, 已知且同向",
   "imputed(停牌近似)与 data_end_censored 计数单列, 未静默删除"
- ]
+ ],
+ "factor_missing_audit": {
+  "stocks_with_uncovered_days": 0,
+  "total_uncovered_rows": 0,
+  "note": "unadj 行无因子日不再×1.0 静默; 该日价格不可得, 走停牌/missing 路径"
+ }
 }
