@@ -1,0 +1,380 @@
+{
+ "design": "FORWARD_Y40_ASSOCIATION_DESIGN_V1.md(ff8426e)",
+ "code_head": "ff8426e6c8364c7b45ba8ba46ebd70c18f319ff8",
+ "seed": 20260919,
+ "boot": 2000,
+ "model": "Ridge alpha=1.0(闭式, 截距不惩罚), 不调参",
+ "primary_question": "ΔIC=IC_B−IC_A 同日横截面 Spearman",
+ "stages": {
+  "breakout": {
+   "conservation": {
+    "n_rows": 27310,
+    "excl_not_active": 25,
+    "obs_day_no_price": 0,
+    "data_end_censored": 1145,
+    "window_all_missing": 0,
+    "imputed_last_available": 14,
+    "full_path": 26126,
+    "dup_same_day_same_stock": 0,
+    "n_main_after_dedup": 26126,
+    "n_sens_after_dedup": 14
+   },
+   "folds": [
+    {
+     "test_bucket": 19,
+     "n_train": 1364,
+     "n_test": 2049,
+     "completed": true,
+     "metrics_A": {
+      "mse": 0.04280433501558041,
+      "mae": 0.14395721671659056,
+      "r2_oos": -0.10247008537481506
+     },
+     "metrics_B": {
+      "mse": 0.04296802586505075,
+      "mae": 0.14589308657893138,
+      "r2_oos": -0.10668611313753962
+     },
+     "n_valid_days": 58,
+     "mean_ic_A": 0.019896819249022847,
+     "mean_ic_B": -0.049401944628347,
+     "mean_delta_ic": -0.06929876387736983
+    },
+    {
+     "test_bucket": 20,
+     "n_train": 2805,
+     "n_test": 5551,
+     "completed": true,
+     "metrics_A": {
+      "mse": 0.031990276299696085,
+      "mae": 0.12230160923548596,
+      "r2_oos": 0.03192240290005022
+     },
+     "metrics_B": {
+      "mse": 0.03224169558730171,
+      "mae": 0.12248294033800838,
+      "r2_oos": 0.02431404786336222
+     },
+     "n_valid_days": 109,
+     "mean_ic_A": 0.15544588137840404,
+     "mean_ic_B": 0.1489174747776855,
+     "mean_delta_ic": -0.006528406600718534
+    },
+    {
+     "test_bucket": 21,
+     "n_train": 6463,
+     "n_test": 9434,
+     "completed": true,
+     "metrics_A": {
+      "mse": 0.035766136470178074,
+      "mae": 0.13106494433143154,
+      "r2_oos": 0.029579099205546355
+     },
+     "metrics_B": {
+      "mse": 0.03585261522331978,
+      "mae": 0.13100826754610093,
+      "r2_oos": 0.027232723616633536
+     },
+     "n_valid_days": 126,
+     "mean_ic_A": 0.08854934267596945,
+     "mean_ic_B": 0.10077518702964994,
+     "mean_delta_ic": 0.012225844353680486
+    },
+    {
+     "test_bucket": 22,
+     "n_train": 15858,
+     "n_test": 7082,
+     "completed": true,
+     "metrics_A": {
+      "mse": 0.06184077044965097,
+      "mae": 0.18743360054012448,
+      "r2_oos": 0.014996954089534387
+     },
+     "metrics_B": {
+      "mse": 0.06176569551881777,
+      "mae": 0.18723534617677684,
+      "r2_oos": 0.016192751538442796
+     },
+     "n_valid_days": 111,
+     "mean_ic_A": 0.09525035936890584,
+     "mean_ic_B": 0.10712717032606055,
+     "mean_delta_ic": 0.011876810957154716
+    }
+   ],
+   "sensitivity_note": "停牌近似 14 事件仅敏感性(不混入主分析; 报告于 JSON 尾部)",
+   "primary": {
+    "weighted_delta_ic_point": -0.00463,
+    "n_time_blocks": 12,
+    "n_valid_days": 404,
+    "time_block_ci95": [
+     -0.01999,
+     0.01659
+    ],
+    "time_block_p_centered": 0.93903,
+    "ci_excludes_zero": false
+   },
+   "stock_block_sensitivity": {
+    "n_stock_blocks": 4750,
+    "n_draws_valid": 2000,
+    "stock_ci95": [
+     -0.01289,
+     0.0087
+    ],
+    "note": "重复抽中股票记录仅计一次(强度被低估方向); 不含重训不确定性"
+   }
+  },
+  "shrink": {
+   "conservation": {
+    "n_rows": 21515,
+    "excl_not_active": 13,
+    "obs_day_no_price": 0,
+    "data_end_censored": 580,
+    "window_all_missing": 0,
+    "imputed_last_available": 13,
+    "full_path": 20909,
+    "dup_same_day_same_stock": 0,
+    "n_main_after_dedup": 20909,
+    "n_sens_after_dedup": 13
+   },
+   "folds": [
+    {
+     "test_bucket": 19,
+     "n_train": 947,
+     "n_test": 1378,
+     "completed": true,
+     "metrics_A": {
+      "mse": 0.03612824722127761,
+      "mae": 0.1329672950712167,
+      "r2_oos": -0.11181746316178232
+     },
+     "metrics_B": {
+      "mse": 0.03599598282617557,
+      "mae": 0.1332372717364429,
+      "r2_oos": -0.10774713383392132
+     },
+     "n_valid_days": 44,
+     "mean_ic_A": 0.11588704775347085,
+     "mean_ic_B": 0.10620013606882525,
+     "mean_delta_ic": -0.00968691168464559
+    },
+    {
+     "test_bucket": 20,
+     "n_train": 1931,
+     "n_test": 4176,
+     "completed": true,
+     "metrics_A": {
+      "mse": 0.030209516330667974,
+      "mae": 0.1222805827663096,
+      "r2_oos": -0.007490921821503349
+     },
+     "metrics_B": {
+      "mse": 0.030255868166188186,
+      "mae": 0.12203533999416927,
+      "r2_oos": -0.009036760986394832
+     },
+     "n_valid_days": 101,
+     "mean_ic_A": 0.08169139733061893,
+     "mean_ic_B": 0.08227210840027603,
+     "mean_delta_ic": 0.0005807110696570848
+    },
+    {
+     "test_bucket": 21,
+     "n_train": 4711,
+     "n_test": 7860,
+     "completed": true,
+     "metrics_A": {
+      "mse": 0.033454725477689656,
+      "mae": 0.1260585444044105,
+      "r2_oos": 0.001340059271737526
+     },
+     "metrics_B": {
+      "mse": 0.03345653943848802,
+      "mae": 0.12607151868248903,
+      "r2_oos": 0.0012859105690502526
+     },
+     "n_valid_days": 126,
+     "mean_ic_A": 0.0814969603794639,
+     "mean_ic_B": 0.08210216593881893,
+     "mean_delta_ic": 0.0006052055593550274
+    },
+    {
+     "test_bucket": 22,
+     "n_train": 12318,
+     "n_test": 5977,
+     "completed": true,
+     "metrics_A": {
+      "mse": 0.06210337118896304,
+      "mae": 0.18364298834015513,
+      "r2_oos": 0.0016247068443973056
+     },
+     "metrics_B": {
+      "mse": 0.06210413340845282,
+      "mae": 0.1836755614844915,
+      "r2_oos": 0.001612453385494983
+     },
+     "n_valid_days": 111,
+     "mean_ic_A": 0.016871525371957165,
+     "mean_ic_B": 0.018913693142768084,
+     "mean_delta_ic": 0.0020421677708109226
+    }
+   ],
+   "sensitivity_note": "停牌近似 13 事件仅敏感性(不混入主分析; 报告于 JSON 尾部)",
+   "primary": {
+    "weighted_delta_ic_point": -0.00017,
+    "n_time_blocks": 12,
+    "n_valid_days": 382,
+    "time_block_ci95": [
+     -0.00272,
+     0.0036
+    ],
+    "time_block_p_centered": 0.71814,
+    "ci_excludes_zero": false
+   },
+   "stock_block_sensitivity": {
+    "n_stock_blocks": 4682,
+    "n_draws_valid": 2000,
+    "stock_ci95": [
+     -0.00521,
+     0.00633
+    ],
+    "note": "重复抽中股票记录仅计一次(强度被低估方向); 不含重训不确定性"
+   }
+  },
+  "stabilization": {
+   "conservation": {
+    "n_rows": 13597,
+    "excl_not_active": 577,
+    "obs_day_no_price": 0,
+    "data_end_censored": 378,
+    "window_all_missing": 0,
+    "imputed_last_available": 22,
+    "full_path": 12620,
+    "dup_same_day_same_stock": 0,
+    "n_main_after_dedup": 12620,
+    "n_sens_after_dedup": 22
+   },
+   "folds": [
+    {
+     "test_bucket": 19,
+     "n_train": 583,
+     "n_test": 781,
+     "completed": true,
+     "metrics_A": {
+      "mse": 0.03648632312928438,
+      "mae": 0.13056848681636868,
+      "r2_oos": -0.04229177916353377
+     },
+     "metrics_B": {
+      "mse": 0.03609848968327364,
+      "mae": 0.12993684859718677,
+      "r2_oos": -0.03121267944089756
+     },
+     "n_valid_days": 20,
+     "mean_ic_A": 0.15116056045876058,
+     "mean_ic_B": 0.11238964019336843,
+     "mean_delta_ic": -0.03877092026539211
+    },
+    {
+     "test_bucket": 20,
+     "n_train": 1128,
+     "n_test": 2448,
+     "completed": true,
+     "metrics_A": {
+      "mse": 0.02844350775016516,
+      "mae": 0.11885784763602465,
+      "r2_oos": 0.030043873696094847
+     },
+     "metrics_B": {
+      "mse": 0.028695477750390903,
+      "mae": 0.11972312196190305,
+      "r2_oos": 0.021451408676996242
+     },
+     "n_valid_days": 69,
+     "mean_ic_A": 0.10962193956060284,
+     "mean_ic_B": 0.09829045233515354,
+     "mean_delta_ic": -0.011331487225449284
+    },
+    {
+     "test_bucket": 21,
+     "n_train": 2760,
+     "n_test": 4838,
+     "completed": true,
+     "metrics_A": {
+      "mse": 0.03353073994510818,
+      "mae": 0.12613803627742373,
+      "r2_oos": 0.011701662732771956
+     },
+     "metrics_B": {
+      "mse": 0.03360708483629631,
+      "mae": 0.12624422517472794,
+      "r2_oos": 0.009451443109119273
+     },
+     "n_valid_days": 119,
+     "mean_ic_A": 0.10268480729472249,
+     "mean_ic_B": 0.08656196801641104,
+     "mean_delta_ic": -0.01612283927831144
+    },
+    {
+     "test_bucket": 22,
+     "n_train": 7408,
+     "n_test": 3652,
+     "completed": true,
+     "metrics_A": {
+      "mse": 0.060519244480407464,
+      "mae": 0.1804324689170874,
+      "r2_oos": 0.009671916934728797
+     },
+     "metrics_B": {
+      "mse": 0.0604980226328454,
+      "mae": 0.1804108934273001,
+      "r2_oos": 0.01001918815061531
+     },
+     "n_valid_days": 85,
+     "mean_ic_A": 0.04657537985297305,
+     "mean_ic_B": 0.0494568449418019,
+     "mean_delta_ic": 0.0028814650888288546
+    }
+   ],
+   "sensitivity_note": "停牌近似 22 事件仅敏感性(不混入主分析; 报告于 JSON 尾部)",
+   "primary": {
+    "weighted_delta_ic_point": -0.01103,
+    "n_time_blocks": 11,
+    "n_valid_days": 293,
+    "time_block_ci95": [
+     -0.01717,
+     -0.00335
+    ],
+    "time_block_p_centered": 0.0045,
+    "ci_excludes_zero": true
+   },
+   "stock_block_sensitivity": {
+    "n_stock_blocks": 4416,
+    "n_draws_valid": 2000,
+    "stock_ci95": [
+     -0.01201,
+     0.00348
+    ],
+    "note": "重复抽中股票记录仅计一次(强度被低估方向); 不含重训不确定性"
+   }
+  }
+ },
+ "holm": {
+  "raw_p": {
+   "breakout": 0.93903,
+   "shrink": 0.71814,
+   "stabilization": 0.0045
+  },
+  "holm_adj_p": {
+   "breakout": 1.0,
+   "shrink": 1.0,
+   "stabilization": 0.0135
+  },
+  "method": "40 日时间块 bootstrap 零假设中心双侧 p(平移,+1 修正); Holm 三比较"
+ },
+ "guard": [
+  "开发期; 非因果; 非收益证明; 现有 5240 股票库(存活偏差)",
+  "IC 只检验选股排序(同日基准收益为常数), 不证明跑赢基准或正收益",
+  "bootstrap 推断为近似; 时间块数量有限可能不稳定",
+  "CI 跨 0 ≠ 证实没有信息"
+ ]
+}
