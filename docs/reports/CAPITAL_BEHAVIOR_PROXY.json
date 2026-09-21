@@ -1,0 +1,672 @@
+{
+ "experiment": "capital_behavior_proxy_v1",
+ "frozen": {
+  "sets": {
+   "breakout": {
+    "A": [
+     "bo_ret1",
+     "bo_cum5",
+     "bo_cum10",
+     "bo_cum20",
+     "lead_td"
+    ],
+    "B": [
+     "bo_ret1",
+     "bo_cum5",
+     "bo_cum10",
+     "bo_cum20",
+     "lead_td",
+     "bo_volratio5",
+     "bo_volratio20"
+    ],
+    "C": [
+     "bo_ret1",
+     "bo_cum5",
+     "bo_cum10",
+     "bo_cum20",
+     "lead_td",
+     "bo_volratio5",
+     "bo_volratio20",
+     "bo_atr14pct",
+     "bo_hlpos60",
+     "bo_ma_bias20",
+     "bo_dist_high60",
+     "ret1_x_vol5",
+     "atr_x_vol20"
+    ]
+   },
+   "shrink": {
+    "A": [
+     "sh_support_dist",
+     "sh_low_support_dist",
+     "sh_dd_from_high",
+     "sh_days_since_bo",
+     "lead_td"
+    ],
+    "B": [
+     "sh_support_dist",
+     "sh_low_support_dist",
+     "sh_dd_from_high",
+     "sh_days_since_bo",
+     "lead_td",
+     "sh_volratio5"
+    ],
+    "C": [
+     "sh_support_dist",
+     "sh_low_support_dist",
+     "sh_dd_from_high",
+     "sh_days_since_bo",
+     "lead_td",
+     "sh_volratio5",
+     "atr14pct",
+     "hlpos60",
+     "ma_bias20",
+     "rvol20",
+     "dist_x_vol"
+    ]
+   },
+   "stabilization": {
+    "A": [
+     "st_close_vs_bo",
+     "st_prev_ret1",
+     "st_ret1",
+     "lead_td"
+    ],
+    "B": [
+     "st_close_vs_bo",
+     "st_prev_ret1",
+     "st_ret1",
+     "lead_td",
+     "st_volrecover"
+    ],
+    "C": [
+     "st_close_vs_bo",
+     "st_prev_ret1",
+     "st_ret1",
+     "lead_td",
+     "st_volrecover",
+     "st_lower_shadow",
+     "st_rebound_from_low",
+     "ret1_x_volrec"
+    ]
+   }
+  },
+  "dedup": "sh_volratio5==volratio5 全等, 留前者; rvol20=收益波动率→C",
+  "strata": {
+   "near_band": 0.03,
+   "rebound_min": 0.03,
+   "shrink_无当日收益不分动量态": true
+  },
+  "model": "逻辑回归+类权重, 训练折拟合填补标准化, seed 20260919",
+  "riskset": "eligibility_riskset 统一活跃风险集"
+ },
+ "results": {
+  "breakout": {
+   "auc_folds_A": [
+    {
+     "bucket": 19,
+     "n_test": 2049,
+     "auc": 0.4923
+    },
+    {
+     "bucket": 20,
+     "n_test": 5551,
+     "auc": 0.5589
+    },
+    {
+     "bucket": 21,
+     "n_test": 9434,
+     "auc": 0.6036
+    },
+    {
+     "bucket": 22,
+     "n_test": 7082,
+     "auc": 0.5629
+    }
+   ],
+   "auc_folds_B": [
+    {
+     "bucket": 19,
+     "n_test": 2049,
+     "auc": 0.5374
+    },
+    {
+     "bucket": 20,
+     "n_test": 5551,
+     "auc": 0.5765
+    },
+    {
+     "bucket": 21,
+     "n_test": 9434,
+     "auc": 0.5842
+    },
+    {
+     "bucket": 22,
+     "n_test": 7082,
+     "auc": 0.5765
+    }
+   ],
+   "auc_folds_C": [
+    {
+     "bucket": 19,
+     "n_test": 2049,
+     "auc": 0.5361
+    },
+    {
+     "bucket": 20,
+     "n_test": 5551,
+     "auc": 0.5741
+    },
+    {
+     "bucket": 21,
+     "n_test": 9434,
+     "auc": 0.5938
+    },
+    {
+     "bucket": 22,
+     "n_test": 7082,
+     "auc": 0.5782
+    }
+   ],
+   "increments": {
+    "n_eval": 24116,
+    "volume_increment": {
+     "per_fold": [
+      {
+       "bucket": 19,
+       "delta": 0.0451
+      },
+      {
+       "bucket": 20,
+       "delta": 0.0176
+      },
+      {
+       "bucket": 21,
+       "delta": -0.0194
+      },
+      {
+       "bucket": 22,
+       "delta": 0.0135
+      }
+     ],
+     "weighted_point": 0.0043,
+     "stock_ci": [
+      -0.0054,
+      0.014
+     ],
+     "date_ci": [
+      -0.01,
+      0.0187
+     ],
+     "ci_excludes_zero": false
+    },
+    "structure_increment": {
+     "per_fold": [
+      {
+       "bucket": 19,
+       "delta": -0.0012
+      },
+      {
+       "bucket": 20,
+       "delta": -0.0024
+      },
+      {
+       "bucket": 21,
+       "delta": 0.0096
+      },
+      {
+       "bucket": 22,
+       "delta": 0.0017
+      }
+     ],
+     "weighted_point": 0.0036,
+     "stock_ci": [
+      -0.0035,
+      0.0107
+     ],
+     "date_ci": [
+      -0.0103,
+      0.0183
+     ],
+     "ci_excludes_zero": false
+    },
+    "total_increment": {
+     "per_fold": [
+      {
+       "bucket": 19,
+       "delta": 0.0438
+      },
+      {
+       "bucket": 20,
+       "delta": 0.0151
+      },
+      {
+       "bucket": 21,
+       "delta": -0.0098
+      },
+      {
+       "bucket": 22,
+       "delta": 0.0153
+      }
+     ],
+     "weighted_point": 0.0079,
+     "stock_ci": [
+      -0.0026,
+      0.0183
+     ],
+     "date_ci": [
+      -0.0102,
+      0.026
+     ],
+     "ci_excludes_zero": false
+    }
+   }
+  },
+  "shrink": {
+   "auc_folds_A": [
+    {
+     "bucket": 19,
+     "n_test": 434,
+     "auc": 0.6434
+    },
+    {
+     "bucket": 20,
+     "n_test": 1496,
+     "auc": 0.7054
+    },
+    {
+     "bucket": 21,
+     "n_test": 2540,
+     "auc": 0.7272
+    },
+    {
+     "bucket": 22,
+     "n_test": 1560,
+     "auc": 0.7141
+    }
+   ],
+   "auc_folds_B": [
+    {
+     "bucket": 19,
+     "n_test": 434,
+     "auc": 0.626
+    },
+    {
+     "bucket": 20,
+     "n_test": 1496,
+     "auc": 0.7002
+    },
+    {
+     "bucket": 21,
+     "n_test": 2540,
+     "auc": 0.7282
+    },
+    {
+     "bucket": 22,
+     "n_test": 1560,
+     "auc": 0.713
+    }
+   ],
+   "auc_folds_C": [
+    {
+     "bucket": 19,
+     "n_test": 434,
+     "auc": 0.6319
+    },
+    {
+     "bucket": 20,
+     "n_test": 1496,
+     "auc": 0.6728
+    },
+    {
+     "bucket": 21,
+     "n_test": 2540,
+     "auc": 0.7161
+    },
+    {
+     "bucket": 22,
+     "n_test": 1560,
+     "auc": 0.7167
+    }
+   ],
+   "increments": {
+    "n_eval": 6030,
+    "volume_increment": {
+     "per_fold": [
+      {
+       "bucket": 19,
+       "delta": -0.0173
+      },
+      {
+       "bucket": 20,
+       "delta": -0.0052
+      },
+      {
+       "bucket": 21,
+       "delta": 0.001
+      },
+      {
+       "bucket": 22,
+       "delta": -0.0011
+      }
+     ],
+     "weighted_point": -0.0024,
+     "stock_ci": [
+      -0.006,
+      0.0013
+     ],
+     "date_ci": [
+      -0.0063,
+      0.0014
+     ],
+     "ci_excludes_zero": false
+    },
+    "structure_increment": {
+     "per_fold": [
+      {
+       "bucket": 19,
+       "delta": 0.0058
+      },
+      {
+       "bucket": 20,
+       "delta": -0.0274
+      },
+      {
+       "bucket": 21,
+       "delta": -0.012
+      },
+      {
+       "bucket": 22,
+       "delta": 0.0037
+      }
+     ],
+     "weighted_point": -0.0105,
+     "stock_ci": [
+      -0.0171,
+      -0.0039
+     ],
+     "date_ci": [
+      -0.0193,
+      -0.0005
+     ],
+     "ci_excludes_zero": true
+    },
+    "total_increment": {
+     "per_fold": [
+      {
+       "bucket": 19,
+       "delta": -0.0115
+      },
+      {
+       "bucket": 20,
+       "delta": -0.0326
+      },
+      {
+       "bucket": 21,
+       "delta": -0.0111
+      },
+      {
+       "bucket": 22,
+       "delta": 0.0026
+      }
+     ],
+     "weighted_point": -0.0129,
+     "stock_ci": [
+      -0.0207,
+      -0.0057
+     ],
+     "date_ci": [
+      -0.0235,
+      -0.0012
+     ],
+     "ci_excludes_zero": true
+    }
+   }
+  },
+  "stabilization": {
+   "auc_folds_A": [
+    {
+     "bucket": 19,
+     "n_test": 227,
+     "auc": 0.7339
+    },
+    {
+     "bucket": 20,
+     "n_test": 723,
+     "auc": 0.7318
+    },
+    {
+     "bucket": 21,
+     "n_test": 1410,
+     "auc": 0.7318
+    },
+    {
+     "bucket": 22,
+     "n_test": 796,
+     "auc": 0.7062
+    }
+   ],
+   "auc_folds_B": [
+    {
+     "bucket": 19,
+     "n_test": 227,
+     "auc": 0.7354
+    },
+    {
+     "bucket": 20,
+     "n_test": 723,
+     "auc": 0.7227
+    },
+    {
+     "bucket": 21,
+     "n_test": 1410,
+     "auc": 0.7309
+    },
+    {
+     "bucket": 22,
+     "n_test": 796,
+     "auc": 0.7062
+    }
+   ],
+   "auc_folds_C": [
+    {
+     "bucket": 19,
+     "n_test": 227,
+     "auc": 0.7375
+    },
+    {
+     "bucket": 20,
+     "n_test": 723,
+     "auc": 0.6885
+    },
+    {
+     "bucket": 21,
+     "n_test": 1410,
+     "auc": 0.7259
+    },
+    {
+     "bucket": 22,
+     "n_test": 796,
+     "auc": 0.7102
+    }
+   ],
+   "increments": {
+    "n_eval": 3156,
+    "volume_increment": {
+     "per_fold": [
+      {
+       "bucket": 19,
+       "delta": 0.0015
+      },
+      {
+       "bucket": 20,
+       "delta": -0.0091
+      },
+      {
+       "bucket": 21,
+       "delta": -0.001
+      },
+      {
+       "bucket": 22,
+       "delta": -0.0
+      }
+     ],
+     "weighted_point": -0.0024,
+     "stock_ci": [
+      -0.0057,
+      0.0011
+     ],
+     "date_ci": [
+      -0.0055,
+      0.0006
+     ],
+     "ci_excludes_zero": false
+    },
+    "structure_increment": {
+     "per_fold": [
+      {
+       "bucket": 19,
+       "delta": 0.0021
+      },
+      {
+       "bucket": 20,
+       "delta": -0.0342
+      },
+      {
+       "bucket": 21,
+       "delta": -0.005
+      },
+      {
+       "bucket": 22,
+       "delta": 0.004
+      }
+     ],
+     "weighted_point": -0.0089,
+     "stock_ci": [
+      -0.0159,
+      -0.0019
+     ],
+     "date_ci": [
+      -0.0165,
+      -0.0008
+     ],
+     "ci_excludes_zero": true
+    },
+    "total_increment": {
+     "per_fold": [
+      {
+       "bucket": 19,
+       "delta": 0.0036
+      },
+      {
+       "bucket": 20,
+       "delta": -0.0433
+      },
+      {
+       "bucket": 21,
+       "delta": -0.0059
+      },
+      {
+       "bucket": 22,
+       "delta": 0.004
+      }
+     ],
+     "weighted_point": -0.0113,
+     "stock_ci": [
+      -0.0192,
+      -0.0042
+     ],
+     "date_ci": [
+      -0.0201,
+      -0.003
+     ],
+     "ci_excludes_zero": true
+    }
+   }
+  }
+ },
+ "stratified": {
+  "breakout": {
+   "note": "突破日无位置/动量态, 不适用条件分层"
+  },
+  "shrink": {
+   "vol_feature": "sh_volratio5",
+   "states": {
+    "near": {
+     "n": 3555,
+     "pos_rate": 0.2338,
+     "vol_missing": 0.0,
+     "vol_cliffs_delta": -0.0807,
+     "vol_delta_by_halfyear": {
+      "19": 0.1836,
+      "20": -0.0953,
+      "21": -0.1412,
+      "22": 0.0053
+     }
+    },
+    "below": {
+     "n": 3224,
+     "pos_rate": 0.5372,
+     "vol_missing": 0.0,
+     "vol_cliffs_delta": -0.0899,
+     "vol_delta_by_halfyear": {
+      "19": -0.1283,
+      "20": -0.1057,
+      "21": -0.1102,
+      "22": -0.0888
+     }
+    }
+   }
+  },
+  "stabilization": {
+   "vol_feature": "st_volrecover",
+   "states": {
+    "near|weak": {
+     "n": 883,
+     "pos_rate": 0.2797,
+     "vol_missing": 0.0,
+     "vol_cliffs_delta": -0.0102,
+     "vol_delta_by_halfyear": {
+      "20": 0.0741,
+      "21": -0.1304,
+      "22": 0.0048
+     }
+    },
+    "below|rebound": {
+     "n": 1064,
+     "pos_rate": 0.5752,
+     "vol_missing": 0.0,
+     "vol_cliffs_delta": -0.0656,
+     "vol_delta_by_halfyear": {
+      "19": 0.0245,
+      "20": 0.0345,
+      "21": -0.0427,
+      "22": -0.1226
+     }
+    },
+    "near|rebound": {
+     "n": 685,
+     "pos_rate": 0.254,
+     "vol_missing": 0.0,
+     "vol_cliffs_delta": -0.0673,
+     "vol_delta_by_halfyear": {
+      "21": -0.0506,
+      "22": -0.0136
+     }
+    },
+    "below|weak": {
+     "n": 927,
+     "pos_rate": 0.5836,
+     "vol_missing": 0.0,
+     "vol_cliffs_delta": -0.0419,
+     "vol_delta_by_halfyear": {
+      "20": -0.0005,
+      "21": -0.0652,
+      "22": -0.0277
+     }
+    }
+   }
+  }
+ },
+ "guard": "开发期; 非因果; 非收益证明; 不调阈值不选模型"
+}
