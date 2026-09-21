@@ -1,5 +1,5 @@
 {
- "audit_version": "v3-strict-gates-read-only",
+ "audit_version": "v3.1-strict-gates-read-only",
  "mode": "full",
  "gate_failures": [],
  "gates": {
@@ -52,6 +52,101 @@
    "passed": true
   },
   "G4_price_vs_tdx": {
+   "coverage_reverse_disclosure": {
+    "src_days_in_tdx": 6115261,
+    "src_days_total": 6696221,
+    "ratio": 0.913241,
+    "gap_by_year": {
+     "2021": 573006,
+     "2022": 1583,
+     "2023": 902,
+     "2024": 1078,
+     "2026": 1980,
+     "2025": 2411
+    },
+    "top_gap_stocks": [
+     [
+      "sh.600000",
+      140
+     ],
+     [
+      "sh.600004",
+      140
+     ],
+     [
+      "sh.600006",
+      145
+     ],
+     [
+      "sh.600007",
+      140
+     ],
+     [
+      "sh.600008",
+      140
+     ],
+     [
+      "sh.600009",
+      141
+     ],
+     [
+      "sh.600010",
+      140
+     ],
+     [
+      "sh.600011",
+      140
+     ],
+     [
+      "sh.600012",
+      150
+     ],
+     [
+      "sh.600015",
+      140
+     ],
+     [
+      "sh.600016",
+      140
+     ],
+     [
+      "sh.600017",
+      140
+     ],
+     [
+      "sh.600018",
+      140
+     ],
+     [
+      "sh.600019",
+      140
+     ],
+     [
+      "sh.600020",
+      140
+     ],
+     [
+      "sh.600021",
+      140
+     ],
+     [
+      "sh.600022",
+      140
+     ],
+     [
+      "sh.600023",
+      140
+     ],
+     [
+      "sh.600025",
+      140
+     ],
+     [
+      "sh.600026",
+      140
+     ]
+    ]
+   },
    "n_bad_excl_known": 0,
    "bad": [],
    "missing_local_files": [],
@@ -204,6 +299,8 @@
    ],
    "sina_only_events": 1421,
    "sina_events_total": 24426,
+   "n_unconfirmed_outside_exclusion": 0,
+   "unconfirmed_outside_detail": [],
    "sina_load_failures": [],
    "n_sina_load_failures": 0,
    "segmentation": "行动日 = bs全候选(>2e-4) ∪ sina事件日(保守并集); 段内漂移>1e-4 即 fail",
@@ -235,7 +332,9 @@
   }
  },
  "status": "passed",
- "elapsed_s": 145.8,
+ "verification_status": "audit_passed_with_exception",
+ "verification_exception": "STAGE5 §5.2 人工公司行动样本(股数/价值守恒)未完成; 用于 retcalc_v1 开发与验证, 不授予 adjusted_verified",
+ "elapsed_s": 141.9,
  "manifest_meta": {
   "adjustflag": {
    "unadj": "3",

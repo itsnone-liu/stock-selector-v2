@@ -59,7 +59,10 @@ def build_sandbox(tag: str, tamper=None) -> Path:
     (d / "frozen.json").write_text(json.dumps(frozen, indent=1))
     # 因子表: 从 8 只源构建(与 build_adjustment_v1 同法: F=hfq/unadj 首日归一)
     lines = ["code,date,unadj_close,hfq_close,F"]
+    real_excl_early = set(json.loads((ROOT / "config/adjustment_v1_exclusions.json").read_text())["excluded"])
     for c in CODES:
+        if c in real_excl_early:   # 与真实构建同构: 排除股不入因子表
+            continue
         p = json.load(gzip.open(d / "data/per_stock" / f"{c}.json.gz", "rt"))
         u = {r[0]: float(r[4]) for r in p["unadj"]}
         h = {r[0]: float(r[4]) for r in p["hfq"]}
@@ -77,8 +80,9 @@ def build_sandbox(tag: str, tamper=None) -> Path:
         del lines[200]
     with gzip.open(d / "ft.csv.gz", "wt") as f:
         f.write("\n".join(lines) + "\n")
-    # excl 空
-    (d / "excl.json").write_text(json.dumps({"excluded": []}))
+    # excl = 真实排除清单 ∩ 8只(302132 属真实裁决排除, 沙盒须反映)
+    real_excl = set(json.loads((ROOT / "config/adjustment_v1_exclusions.json").read_text())["excluded"])
+    (d / "excl.json").write_text(json.dumps({"excluded": sorted(real_excl & set(CODES))}))
     if tamper == "C":   # 删一只 TDX
         (d / "tdx/sh/lday/sh600000.day").unlink()
     if tamper == "D":   # 删一只 sina
@@ -93,7 +97,7 @@ def run_audit(d: Path, no_g0: bool = True) -> tuple[int, dict]:
            "--excl", str(d / "excl.json"), "--ft", str(d / "ft.csv.gz"),
            "--out", str(d / "report.json")]
     if no_g0:
-        cmd.append("--no-g0")
+        cmd.append("--no-g0"); cmd.append("--no-scan")
     r = subprocess.run(cmd, capture_output=True, text=True, timeout=600)
     rep = json.loads((d / "report.json").read_text())
     return r.returncode, rep

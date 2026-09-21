@@ -52,6 +52,7 @@ AP.add_argument("--ft", default="/root/project/workspace/stock-selector-v2/outpu
 AP.add_argument("--out", default="/root/project/workspace/stock-selector-v2/docs/reports/ADJUSTMENT_V1_FETCH_AUDIT_V3.json")
 AP.add_argument("--codes-file", default=None, help="故障注入/子集模式: 只审列出的代码(每股一行)")
 AP.add_argument("--no-g0", action="store_true", help="沙盒: 跳过根哈希基准核对(数据被移位时用)")
+AP.add_argument("--no-scan", action="store_true", help="沙盒: 跳过实时目录扫描校验(TDX 部分拷贝时用)")
 AP.add_argument("--no-cov", action="store_true", help="沙盒: 跳过覆盖率门禁(TDX 部分拷贝时用)")
 
 
@@ -88,7 +89,7 @@ def main() -> int:
     if a.codes_file:
         subset = {x.strip() for x in Path(a.codes_file).read_text().splitlines() if x.strip()}
 
-    report = {"audit_version": "v3-strict-gates-read-only",
+    report = {"audit_version": "v3.1-strict-gates-read-only",
               "mode": "subset" if subset else "full",
               "gate_failures": [], "gates": {}}
 
@@ -125,8 +126,21 @@ def main() -> int:
 
     # ---- G1 universe 闭合 (只读; 不重冻结) ----
     uni = json.loads(UNI_F.read_text())   # a.no_g0 时也需读 frozen 供对账
+    us_all = set(uni["codes"])
+    scan_drift = None
+    if not a.no_scan:   # 实时扫描校验: 冻结清单 vs 当前 TDX 目录扫描
+        sys.path.insert(0, str(Path(__file__).resolve().parent))
+        from fetch_adjustment_source import universe as scan_universe
+        scan_now = set(scan_universe())
+        scan_drift = {"n_scan": len(scan_now),
+                      "new_since_frozen": sorted(scan_now - us_all)[:20],
+                      "gone_since_frozen": sorted(us_all - scan_now)[:20]}
+        if scan_now != us_all:
+            report["gate_failures"].append(
+                f"G1: 冻结清单与实时扫描不一致 (新增{len(scan_drift['new_since_frozen'])} "
+                f"消失{len(scan_drift['gone_since_frozen'])}; 快照完整性要求目录未变)")
     ms = set(stocks)
-    us = set(uni["codes"]) if not subset else (set(uni["codes"]) & subset)
+    us = us_all if not subset else (us_all & subset)
     if subset:
         ms &= subset
     not_attempted = sorted(us - ms)
@@ -172,7 +186,8 @@ def main() -> int:
     g6_stat = {"bs_candidates": 0, "bs_confirmed_by_sina": 0,
                "bs_unconfirmed_detail": [], "sina_only_events": 0,
                "sina_events_total": 0}
-    coverage_pairs = []
+    coverage_pairs, coverage_rev = [], []
+    rev_gap_by_year, rev_top_stocks = Counter(), []
     ok_codes = sorted(c for c in ms if stocks[c].get("status") == "ok")
     for i, code in enumerate(ok_codes):
         try:
@@ -212,6 +227,12 @@ def main() -> int:
         inter = sorted(set(li) & set(u))
         if li:
             coverage_pairs.append((len(inter), len(li)))
+        coverage_rev.append((len(inter), len(u)))   # 反向: 源日期在TDX中的比例
+        gap = sorted(set(u) - set(li))
+        if gap:
+            rev_top_stocks.append((code, len(gap)))
+            for d_ in gap:
+                rev_gap_by_year[d_[:4]] += 1
         bad = [d for d in inter if abs(li[d] - u[d]) > TOL_PRICE]
         miss = sorted(set(li) - set(u))
         if (bad or miss) and code not in excl:
@@ -274,7 +295,14 @@ def main() -> int:
         cov_ok = cov_total[0] / cov_total[1] >= COVERAGE_MIN
     report["gates"]["G3_structure"] = {"n_bad": len(struct_bad), "bad": struct_bad[:50],
                                        "passed": not struct_bad}
+    cov_rev_total = [sum(x for x, _ in coverage_rev), sum(y for _, y in coverage_rev)]
     report["gates"]["G4_price_vs_tdx"] = {
+        # 反向覆盖率=披露项(参照源TDX覆盖边界, 非 baostock 缺陷; 实测98.6%差异集中在
+        # 2021上半年 TDX 本地库缺段)。正向(TDX窗口日必须存在于源+价格一致)为硬门禁。
+        "coverage_reverse_disclosure": {
+            "src_days_in_tdx": cov_rev_total[0], "src_days_total": cov_rev_total[1],
+            "ratio": round(cov_rev_total[0] / cov_rev_total[1], 6) if cov_rev_total[1] else None,
+            "gap_by_year": dict(rev_gap_by_year), "top_gap_stocks": rev_top_stocks[:20]},
         "n_bad_excl_known": len(price_bad), "bad": price_bad[:50],
         "missing_local_files": g4_missing_local[:50], "n_missing_local": len(g4_missing_local),
         "coverage": {"matched_days": cov_total[0], "window_days": cov_total[1],
@@ -286,14 +314,20 @@ def main() -> int:
         "n_bad": len(internal_bad), "bad": internal_bad[:50],
         "disclaimer": "恒等式级浮点自检(h=unadj×(h/u)); 不构成独立验证, 独立对账见 G5b",
         "passed": not internal_bad}
+    unconf_outside = [x for x in g6_stat["bs_unconfirmed_detail"] if x["code"] not in excl]
     report["gates"]["G6_factor_jump_candidates"] = {
         **g6_stat,
+        "n_unconfirmed_outside_exclusion": len(unconf_outside),
+        "unconfirmed_outside_detail": unconf_outside[:20],
         "bs_unconfirmed_detail": g6_stat["bs_unconfirmed_detail"][:30],
         "sina_load_failures": sina_load_failures[:50],
         "n_sina_load_failures": len(sina_load_failures),
         "segmentation": "行动日 = bs全候选(>2e-4) ∪ sina事件日(保守并集); 段内漂移>1e-4 即 fail",
         "intra_segment_drift": {"n": len(drift_list), "detail": drift_list[:30]},
-        "passed": not drift_list and not sina_load_failures}
+        "passed": not drift_list and not sina_load_failures and not unconf_outside}
+    if unconf_outside:
+        report["gate_failures"].append(
+            f"G6: 排除清单外未确认跳变候选{len(unconf_outside)}只(未获sina独立确认)")
     if struct_bad:
         report["gate_failures"].append(f"G3: 结构异常{len(struct_bad)}只")
     if price_bad:
@@ -303,6 +337,7 @@ def main() -> int:
     if not cov_ok:
         report["gate_failures"].append(
             f"G4: 覆盖率{cov_total[0]}/{cov_total[1]}<{COVERAGE_MIN}")
+
     if internal_bad:
         report["gate_failures"].append(f"G5: 浮点重建失败{len(internal_bad)}只")
     if drift_list:
@@ -364,15 +399,29 @@ def main() -> int:
     if FT.exists():
         cur_code, seen_dates = None, set()
         ft_codes = set()
+        block_seen: dict[str, int] = {}   # 全局代码块顺序: 重复块=绕过组内查重的路径
+        order_pos = 0
         with gzip.open(FT, "rt") as f:
             next(f)
             for line in f:
                 g5b["ft_rows"] += 1
                 code, d, uc, hc, F = line.rstrip("\n").split(",")
                 if code != cur_code:
-                    if cur_code is not None and cur_code not in src_map:
-                        if cur_code not in ft_codes:
+                    if cur_code is not None:
+                        if cur_code not in src_map and cur_code not in ft_codes:
                             g5b["extra_keys"].append(cur_code)
+                        else:
+                            sm0 = src_map.get(cur_code)
+                            if sm0 and seen_dates != set(sm0["u"]):
+                                g5b.setdefault("stock_date_set_diff", []).append(
+                                    {"code": cur_code,
+                                     "n_missing": len(set(sm0["u"]) - seen_dates),
+                                     "n_extra": len(seen_dates - set(sm0["u"]))})
+                    if code in block_seen:
+                        g5b.setdefault("duplicate_blocks", []).append(
+                            {"code": code, "block": block_seen[code]})
+                    block_seen[code] = order_pos
+                    order_pos += 1
                     cur_code, seen_dates = code, set()
                     ft_codes.add(code)
                 if d in seen_dates:
@@ -390,8 +439,16 @@ def main() -> int:
                     g5b.setdefault("row_mismatch", []).append(f"{code}@{d}")
                 else:
                     g5b["validated_rows"] += 1
-        if cur_code is not None and cur_code not in src_map and cur_code not in ft_codes:
-            g5b["extra_keys"].append(cur_code)
+        if cur_code is not None:
+            if cur_code not in src_map and cur_code not in ft_codes:
+                g5b["extra_keys"].append(cur_code)
+            else:
+                sm0 = src_map.get(cur_code)
+                if sm0 and seen_dates != set(sm0["u"]):
+                    g5b.setdefault("stock_date_set_diff", []).append(
+                        {"code": cur_code,
+                         "n_missing": len(set(sm0["u"]) - seen_dates),
+                         "n_extra": len(seen_dates - set(sm0["u"]))})
         ft_codes_in_src = {c for c in ft_codes if c in src_map}
         g5b["missing_keys"] = sorted(set(src_map) - ft_codes)
         g5b["extra_keys"] = sorted(set(ft_codes) - set(src_map))[:50]
@@ -402,7 +459,9 @@ def main() -> int:
                          and not g5b["duplicate_keys"] and not g5b["extra_keys"]
                          and g5b["skipped_rows"] == 0
                          and g5b["validated_rows"] == g5b["expected_rows"]
-                         and not g5b.get("row_mismatch"))
+                         and not g5b.get("row_mismatch")
+                         and not g5b.get("duplicate_blocks")
+                         and not g5b.get("stock_date_set_diff"))
     else:
         g5b["passed"] = False
         g5b["error"] = "factor_table.csv.gz 缺失"
@@ -415,6 +474,11 @@ def main() -> int:
             f"extra={g5b.get('n_extra_keys', 0)} loadFail={len(g5b.get('source_load_failures', []))})")
 
     report["status"] = "passed" if not report["gate_failures"] else "failed"
+    # 2026-09-21 用户裁决: 人工公司行动核对未完成 → audit_passed_with_exception(开发可用, 非正式认证)
+    report["verification_status"] = ("audit_passed_with_exception" if report["status"] == "passed"
+                                     else "failed")
+    report["verification_exception"] = ("STAGE5 §5.2 人工公司行动样本(股数/价值守恒)未完成; "
+                                        "用于 retcalc_v1 开发与验证, 不授予 adjusted_verified")
     report["elapsed_s"] = round(time.time() - t0, 1)
     report["manifest_meta"] = {"adjustflag": {"unadj": "3", "hfq": "1"},
                                "fields": "date,open,high,low,close,volume,amount,turn,pctChg",
