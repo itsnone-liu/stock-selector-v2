@@ -1,5 +1,9 @@
 {
- "archive_version_head": "6efa9f1370ce3948096167599b1a67568825b0be",
+ "version_anchors": {
+  "results_code_head": "55d1f06",
+  "input_baseline_head": "6efa9f1",
+  "note": "results=统计结果生产时工作树代码(即 55d1f06 提交内容, 含统一资格函数); input_baseline=风险集判据与 identify 数据集 rebuild 的上一轮基准; 原 archive_version_head=6efa9f1 系归档生成时 git rev-parse, 未反映函数接入, 勘误拆分"
+ },
  "riskset_version": "eligibility_riskset(统一函数): 收复已知负+右删失+失活三类排除; 2026-09-21 第八轮",
  "input_summary": {
   "identify_build": {
@@ -16,6 +20,11 @@
   "seed": 20260919,
   "model": "numpy 逻辑回归(类权重, epochs=300, lr=0.1, l2=1e-3), 冻结"
  },
+ "interpretation_guard": [
+  "path_binary 人群=活跃风险集(与关联研究同函数); group_g3 目标口径不同(另行解释)",
+  "lift>1 为开发期现象无区间估计不构成统计显著; lift≠收益率; 非实盘准入",
+  "旧口径(含结局已知样本)结果已作废, 以本归档为准"
+ ],
  "runs": {
   "breakout|path_binary": {
    "n_rows_loaded": 27310,
@@ -24,6 +33,20 @@
     "0.0": 23066,
     "1.0": 4109
    },
+   "features": [
+    "bo_atr14pct",
+    "bo_cum10",
+    "bo_cum20",
+    "bo_cum5",
+    "bo_dist_high60",
+    "bo_hlpos60",
+    "bo_ma_bias20",
+    "bo_ret1",
+    "bo_rvol20",
+    "bo_volratio20",
+    "bo_volratio5",
+    "prep_days"
+   ],
    "folds": [
     {
      "test_bucket": 18,
@@ -128,6 +151,20 @@
     "1.0": 16660,
     "0.0": 10461
    },
+   "features": [
+    "bo_atr14pct",
+    "bo_cum10",
+    "bo_cum20",
+    "bo_cum5",
+    "bo_dist_high60",
+    "bo_hlpos60",
+    "bo_ma_bias20",
+    "bo_ret1",
+    "bo_rvol20",
+    "bo_volratio20",
+    "bo_volratio5",
+    "prep_days"
+   ],
    "folds": [
     {
      "test_bucket": 18,
@@ -232,6 +269,18 @@
     "0.0": 4216,
     "1.0": 2563
    },
+   "features": [
+    "atr14pct",
+    "hlpos60",
+    "ma_bias20",
+    "rvol20",
+    "sh_days_since_bo",
+    "sh_dd_from_high",
+    "sh_low_support_dist",
+    "sh_support_dist",
+    "sh_volratio5",
+    "volratio5"
+   ],
    "folds": [
     {
      "test_bucket": 18,
@@ -336,6 +385,18 @@
     "1.0": 7786,
     "0.0": 6602
    },
+   "features": [
+    "atr14pct",
+    "hlpos60",
+    "ma_bias20",
+    "rvol20",
+    "sh_days_since_bo",
+    "sh_dd_from_high",
+    "sh_low_support_dist",
+    "sh_support_dist",
+    "sh_volratio5",
+    "volratio5"
+   ],
    "folds": [
     {
      "test_bucket": 18,
@@ -440,6 +501,19 @@
     "1.0": 1574,
     "0.0": 1985
    },
+   "features": [
+    "atr14pct",
+    "hlpos60",
+    "ma_bias20",
+    "rvol20",
+    "st_close_vs_bo",
+    "st_lower_shadow",
+    "st_prev_ret1",
+    "st_rebound_from_low",
+    "st_ret1",
+    "st_volrecover",
+    "volratio5"
+   ],
    "folds": [
     {
      "test_bucket": 18,
@@ -544,6 +618,19 @@
     "0.0": 3778,
     "1.0": 3649
    },
+   "features": [
+    "atr14pct",
+    "hlpos60",
+    "ma_bias20",
+    "rvol20",
+    "st_close_vs_bo",
+    "st_lower_shadow",
+    "st_prev_ret1",
+    "st_rebound_from_low",
+    "st_ret1",
+    "st_volrecover",
+    "volratio5"
+   ],
    "folds": [
     {
      "test_bucket": 18,
@@ -641,10 +728,5 @@
     }
    ]
   }
- },
- "interpretation_guard": [
-  "path_binary 人群=活跃风险集(与关联研究同函数); group_g3 目标口径不同(另行解释)",
-  "lift>1 为开发期现象无区间估计不构成统计显著; lift≠收益率; 非实盘准入",
-  "旧口径(含结局已知样本)结果已作废, 以本归档为准"
- ]
+ }
 }

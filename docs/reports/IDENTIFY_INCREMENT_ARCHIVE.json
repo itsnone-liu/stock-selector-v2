@@ -1,5 +1,9 @@
 {
- "archive_version_head": "6efa9f1370ce3948096167599b1a67568825b0be",
+ "version_anchors": {
+  "results_code_head": "55d1f06",
+  "input_baseline_head": "6efa9f1",
+  "note": "results=统计结果生产时工作树代码(即 55d1f06 提交内容, 含统一资格函数); input_baseline=风险集判据与 identify 数据集 rebuild 的上一轮基准; 原 archive_version_head=6efa9f1 系归档生成时 git rev-parse, 未反映函数接入, 勘误拆分"
+ },
  "riskset_version": "eligibility_riskset 统一活跃风险集(收复已知负+右删失+失活)",
  "method": {
   "design": "同样本配对: 同批生命周期(活跃风险集), early=breakout 特征 vs current=时点特征; 同标签/同事件集/同测试折",
