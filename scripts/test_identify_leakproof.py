@@ -51,7 +51,7 @@ OBS = 40
 
 def feats_at(obs):
     fr = ObsFrame(dates, obs, dO, dH, dL, dC, dV, dF)
-    f1 = feat_breakout(fr, prep_days=12, max_gain_from_anchor=0.08)
+    f1 = feat_breakout(fr, prep_days=12)
     bo_close = dC[dates[30]]
     post_hi = max(dC[d] for d in dates[30 + 1:obs + 1])
     f2 = feat_shrink(fr, bo_close, 30, post_hi)

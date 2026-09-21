@@ -20,12 +20,13 @@ class ObsFrame:
     def __init__(self, dates, o, op, h, l, c, v, F):
         self.dates = dates[: o + 1]
         self.o = o
-        self.O = [op[d] for d in self.dates]
-        self.H = [h[d] for d in self.dates]
-        self.L = [l[d] for d in self.dates]
-        self.C = [c[d] for d in self.dates]
-        self.V = [v[d] for d in self.dates]
-        self.F = [F[d] for d in self.dates]
+        # 复权修正(2026-09-21 复审): 特征一律用 P_adj=raw×F,
+        # 否则跨除权日的趋势/位置特征被除权跳空扭曲
+        self.O = [op[d] * F[d] for d in self.dates]
+        self.H = [h[d] * F[d] for d in self.dates]
+        self.L = [l[d] * F[d] for d in self.dates]
+        self.C = [c[d] * F[d] for d in self.dates]
+        self.V = [v[d] for d in self.dates]      # 量不复权
 
     def __len__(self):
         return len(self.dates)
@@ -87,11 +88,13 @@ class ObsFrame:
         return (sum((x - m) ** 2 for x in rs) / len(rs)) ** 0.5
 
 
-def feat_breakout(fr: ObsFrame, prep_days: float | None,
-                  max_gain_from_anchor: float | None) -> dict:
-    """时点1: 截至突破日(含当日)特征."""
+def feat_breakout(fr: ObsFrame, prep_days: float | None) -> dict:
+    """时点1: 截至突破日(含当日)特征.
+
+    2026-09-21 复审删除 max_gain_from_anchor(生命周期终结才可知=未来
+    最高价, 已证实泄漏); prep_days=突破日-准备期起点(正数, 方向修正)."""
     i = len(fr) - 1
-    f = {
+    return {
         "bo_ret1": fr.ret(i),
         "bo_cum5": fr.cumret(5), "bo_cum10": fr.cumret(10),
         "bo_cum20": fr.cumret(20),
@@ -103,9 +106,7 @@ def feat_breakout(fr: ObsFrame, prep_days: float | None,
         "bo_ma_bias20": fr.ma_bias(20),
         "bo_rvol20": fr.realized_vol(20),
         "prep_days": prep_days,
-        "max_gain_from_anchor": max_gain_from_anchor,
     }
-    return f
 
 
 def feat_shrink(fr: ObsFrame, p_bo_close: float, bo_pos_abs: int,

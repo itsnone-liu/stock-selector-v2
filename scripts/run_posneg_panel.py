@@ -56,6 +56,7 @@ def main():
 
     # summary: 分层聚合(主标签 group_asof_20d; 附 group_eventual)
     agg = defaultdict(lambda: {"n": 0, "n_pos_state": 0, "n_cash": 0,
+                               "n_tail": 0, "n_pending": 0,
                                "sum": defaultdict(float), "n_eval": defaultdict(int)})
     with gzip.open(OUT / "posneg_panel.csv.gz", "rt") as f:
         for r in csv.DictReader(f):
@@ -72,6 +73,10 @@ def main():
                 a["n_pos_state"] += 1
             elif st == "evaluated_cash":
                 a["n_cash"] += 1
+            elif st == "null_holding_tail":
+                a["n_tail"] += 1
+            elif st == "null_entry_pending":
+                a["n_pending"] += 1
             for h in HORIZONS:
                 v2 = r.get(f"K2_{h}")
                 st_ok = st in ("evaluated_position", "evaluated_cash")
@@ -87,19 +92,25 @@ def main():
                     a["n_eval"][("K4", h)] += 1
     summary = []
     for (g, fam, s, v), a in sorted(agg.items()):
+        # K4 口径拆分(2026-09-21 复审): 成交率分母=全部;
+        # 成交内窗口删失率分母=已成交(position+tail), 未成交不混入
+        n_filled = a["n_pos_state"] + a["n_tail"]
         row = {"group_asof_20d": g, "path_family": fam, "strategy": s, "view": v,
                "n": a["n"], "n_position": a["n_pos_state"], "n_cash": a["n_cash"],
-               "censored_rate_K2": 1 - (a["n_pos_state"] + a["n_cash"]) / a["n"]}
+               "n_tail": a["n_tail"], "n_pending": a["n_pending"],
+               "fill_rate": n_filled / a["n"] if a["n"] else None}
         for h in HORIZONS:
             n2, s2 = a["n_eval"][("K2", h)], a["sum"][("K2", h)]
             n3, s3 = a["n_eval"][("K3", h)], a["sum"][("K3", h)]
             row[f"K2_mean_{h}"] = s2 / n2 if n2 else None
             row[f"K2_n_{h}"] = n2
+            row[f"censored_rate_K2_{h}"] = 1 - n2 / a["n"] if a["n"] else None
             row[f"K3_mean_{h}"] = s3 / n3 if n3 else None
             row[f"K3_n_{h}"] = n3
             row[f"K4_n_{h}"] = a["n_eval"][("K4", h)]
             row[f"censored_rate_K3_{h}"] = 1 - n3 / a["n"] if a["n"] else None
-            row[f"censored_rate_K4_{h}"] = 1 - row[f"K4_n_{h}"] / a["n"] if a["n"] else None
+            row[f"K4_window_censored_rate_{h}"] = (
+                1 - a["n_eval"][("K4", h)] / n_filled) if n_filled else None
         row["exploratory"] = True      # 分层为探索性; 无区间不比较
         summary.append(row)
     with open(OUT / "posneg_summary.json", "w") as f:
