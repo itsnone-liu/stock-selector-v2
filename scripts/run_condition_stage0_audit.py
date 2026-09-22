@@ -170,7 +170,7 @@ def main():
         vals = [feat_rows[(ds, i)].get("price_vs_monthly_ma6") for i in range(len(rows))]
         valid = [v for v in vals if v is not None]
         q = np.percentile(valid, [25, 50, 75]) if valid else [0, 0, 0]
-        cellstat = defaultdict(lambda: {"n": 0, "per_day": Counter(), "stocks": set(),
+        cellstat = defaultdict(lambda: {"n": 0, "per_day": defaultdict(set), "stocks": set(),
                                         "lifecycles": set(), "by_fold": Counter()})
         for i, e in enumerate(rows):
             v = vals[i]
@@ -183,15 +183,16 @@ def main():
             key = f"{b}|{w}"
             c = cellstat[key]
             c["n"] += 1
-            c["per_day"][e["obs_day"]] += 1
+            c["per_day"][e["obs_day"]].add(e["code"])   # 有效日按不同股票计
             c["stocks"].add(e["code"])
             c["lifecycles"].add(e["lifecycle_id"])
             c["by_fold"][obs_bucket(e["obs_day"])] += 1
         def cellout(v):
-            nd = sum(1 for c in v["per_day"].values() if c >= 10)   # 有效 IC 日(≥10 证券)
+            nd = sum(1 for cs in v["per_day"].values() if len(cs) >= 10)  # ≥10 只不同股票
             ok1000 = v["n"] >= 1000
             ok40 = nd >= 40
             return {"n": v["n"], "n_days_any": len(v["per_day"]),
+                    "screen_rule_days": "distinct_stocks>=10",
                     "n_valid_days_min10stk": nd,
                     "n_stocks": len(v["stocks"]), "n_lifecycles": len(v["lifecycles"]),
                     "by_fold_b19_22": {f"b{b}": v["by_fold"].get(b, 0) for b in FOLDS},
@@ -249,14 +250,24 @@ def main():
     right_censored_lifecycles = 0
     first_break_events = 0
     dup_break = 0
+    # 流失台账(五轮复审要求): 55,646→有效样本逐层对账
+    led = Counter()
     for lid, (code, anchor, bo, end, reason, rc) in lc.items():
         c6 = code.split(".")[-1] if "." in code else code
         full = pref6.get(c6)
-        if full is None or anchor not in mpos:
+        if full is None:
+            led["l1_code_map_missing" + ("_with_bo" if bo else "_without_bo")] += 1
+            continue
+        if anchor not in mpos:
+            led["l2_anchor_not_in_calendar"] += 1
             continue
         a_i = mpos[anchor]
         if bo and bo in mpos:
             s_i = mpos[bo]                        # 突破信号日停止计入
+            if bo not in mdates[0:mdates.index(mdates[-1]) + 1]:
+                led["l3_bo_not_in_calendar"] += 1   # 不可达分支(防御)
+        elif bo:
+            led["l3_bo_not_in_calendar"] += 1
         else:
             no_break_lifecycles += 1
             cap = mpos.get(end, len(mdates)) if end else len(mdates) - 1
@@ -267,6 +278,7 @@ def main():
         try:
             closes_days = sorted(load_price_series(full).keys())
         except FileNotFoundError:
+            led["l4_price_missing"] += 1
             continue
         dayset = set(closes_days)
         pin = pool_in.get(c6, {})
@@ -278,8 +290,13 @@ def main():
             risk_days += added
             risk_stocks.add(code)
             risk_lifecycles += 1
-        if bo and bo in dayset:
-            first_break_events += 1
+        elif not bo:
+            led["l5_nobreak_no_pool_days"] += 1
+        if bo:
+            if bo in dayset:
+                first_break_events += 1
+            else:
+                led["l6_bo_day_not_in_stock_prices"] += 1
     # 每生命周期突破次数(identify_breakout 主样本口径)
     bo_lc = Counter(e["lifecycle_id"] for e in events["breakout"])
     dup_break = sum(1 for v in bo_lc.values() if v > 1)
@@ -297,9 +314,17 @@ def main():
         "risk_lifecycles_with_days": risk_lifecycles,
         "first_break_day_events": first_break_events,
         "breakout_events_per_lifecycle_gt1": dup_break,
+        "attrition_ledger": dict(led),
+        "attrition_total_dropped": int(sum(led.values())),
+        "reconciliation": {
+            "with_bo": f"27422_total = {led['l1_code_map_missing_with_bo']} l1 + {led.get('l3_bo_not_in_calendar', 0)} l3 + {first_break_events} first_break",
+            "without_bo": f"28224_total = {led['l1_code_map_missing_without_bo']} l1 + {led['l5_nobreak_no_pool_days']} l5 + {no_break_lifecycles - led['l1_code_map_missing_without_bo'] - led['l5_nobreak_no_pool_days']} unaccounted(no_break counter counts post-l1) ",
+        },
         "note": ("风险日=生命周期 [anchor,breakout_day) 交易日∩当日月池in; 未突破段=[anchor, "
                  "min(end_day, anchor+120交易日)); 数据末尾右删失段已单独计数; "
-                 "同 lifecycle_id 起终点冲突=0(断言); 无结果变量参与")}
+                 "同 lifecycle_id 起终点冲突=0(断言); 无结果变量参与;"
+                 "台账: l1 映射失败/l2 起点不在日历/l3 突破日不在日历/"
+                 "l4 价格文件缺失/l5 未突破段无月池内交易日/l6 突破日不在个股日线")}
     print(f"风险集: {rep['risk_set']['risk_stock_days_poolin']} 股票-日 | "
           f"{first_break_events} 首突日 | 未突破段 {no_break_lifecycles}(右删失 {right_censored_lifecycles}) "
           f"| 重复突破 {dup_break} | 因子缺失断言过 | {time.time()-t0:.0f}s", flush=True)
