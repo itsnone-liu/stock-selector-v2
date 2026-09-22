@@ -1,0 +1,414 @@
+{
+ "precheck": "MULTIPERIOD_CONDITION_COVERAGE_PRECHECK",
+ "date": "2026-09-22",
+ "y40_read": false,
+ "fold_def": "test=obs_bucket==f; 训练四分位=obs_bucket<f(简化口径, 见 docstring)",
+ "rules": {
+  "C1_12": "配对日=同日双侧≥10 不同股票; 折≥10 配对日且 组事件≥50",
+  "C13_14": "截面日=每日≥10 股且特征秩有变化; 折≥10 截面日"
+ },
+ "items": {
+  "C_19_q1|0": {
+   "n_group": 68,
+   "paired_days_min10both": 1,
+   "testable": false
+  },
+  "C_19_q1|1": {
+   "n_group": 171,
+   "paired_days_min10both": 4,
+   "testable": false
+  },
+  "C_19_q1|2+": {
+   "n_group": 62,
+   "paired_days_min10both": 1,
+   "testable": false
+  },
+  "C_19_q2|0": {
+   "n_group": 75,
+   "paired_days_min10both": 0,
+   "testable": false
+  },
+  "C_19_q2|1": {
+   "n_group": 187,
+   "paired_days_min10both": 4,
+   "testable": false
+  },
+  "C_19_q2|2+": {
+   "n_group": 120,
+   "paired_days_min10both": 1,
+   "testable": false
+  },
+  "C_19_q3|0": {
+   "n_group": 85,
+   "paired_days_min10both": 0,
+   "testable": false
+  },
+  "C_19_q3|1": {
+   "n_group": 195,
+   "paired_days_min10both": 3,
+   "testable": false
+  },
+  "C_19_q3|2+": {
+   "n_group": 182,
+   "paired_days_min10both": 3,
+   "testable": false
+  },
+  "C_19_q4|0": {
+   "n_group": 195,
+   "paired_days_min10both": 3,
+   "testable": false
+  },
+  "C_19_q4|1": {
+   "n_group": 297,
+   "paired_days_min10both": 6,
+   "testable": false
+  },
+  "C_19_q4|2+": {
+   "n_group": 412,
+   "paired_days_min10both": 9,
+   "testable": false
+  },
+  "C_19_pm": {
+   "valid_crosssection_days": 58,
+   "testable": true
+  },
+  "C_19_us": {
+   "valid_crosssection_days": 57,
+   "testable": true
+  },
+  "C_20_q1|0": {
+   "n_group": 443,
+   "paired_days_min10both": 8,
+   "testable": false
+  },
+  "C_20_q1|1": {
+   "n_group": 761,
+   "paired_days_min10both": 19,
+   "testable": true
+  },
+  "C_20_q1|2+": {
+   "n_group": 593,
+   "paired_days_min10both": 13,
+   "testable": true
+  },
+  "C_20_q2|0": {
+   "n_group": 428,
+   "paired_days_min10both": 6,
+   "testable": false
+  },
+  "C_20_q2|1": {
+   "n_group": 786,
+   "paired_days_min10both": 23,
+   "testable": true
+  },
+  "C_20_q2|2+": {
+   "n_group": 579,
+   "paired_days_min10both": 12,
+   "testable": true
+  },
+  "C_20_q3|0": {
+   "n_group": 247,
+   "paired_days_min10both": 3,
+   "testable": false
+  },
+  "C_20_q3|1": {
+   "n_group": 532,
+   "paired_days_min10both": 11,
+   "testable": true
+  },
+  "C_20_q3|2+": {
+   "n_group": 341,
+   "paired_days_min10both": 7,
+   "testable": false
+  },
+  "C_20_q4|0": {
+   "n_group": 173,
+   "paired_days_min10both": 2,
+   "testable": false
+  },
+  "C_20_q4|1": {
+   "n_group": 411,
+   "paired_days_min10both": 9,
+   "testable": false
+  },
+  "C_20_q4|2+": {
+   "n_group": 257,
+   "paired_days_min10both": 6,
+   "testable": false
+  },
+  "C_20_pm": {
+   "valid_crosssection_days": 109,
+   "testable": true
+  },
+  "C_20_us": {
+   "valid_crosssection_days": 109,
+   "testable": true
+  },
+  "C_21_q1|0": {
+   "n_group": 258,
+   "paired_days_min10both": 4,
+   "testable": false
+  },
+  "C_21_q1|1": {
+   "n_group": 502,
+   "paired_days_min10both": 17,
+   "testable": true
+  },
+  "C_21_q1|2+": {
+   "n_group": 270,
+   "paired_days_min10both": 5,
+   "testable": false
+  },
+  "C_21_q2|0": {
+   "n_group": 575,
+   "paired_days_min10both": 19,
+   "testable": true
+  },
+  "C_21_q2|1": {
+   "n_group": 1095,
+   "paired_days_min10both": 36,
+   "testable": true
+  },
+  "C_21_q2|2+": {
+   "n_group": 694,
+   "paired_days_min10both": 27,
+   "testable": true
+  },
+  "C_21_q3|0": {
+   "n_group": 771,
+   "paired_days_min10both": 26,
+   "testable": true
+  },
+  "C_21_q3|1": {
+   "n_group": 1468,
+   "paired_days_min10both": 49,
+   "testable": true
+  },
+  "C_21_q3|2+": {
+   "n_group": 984,
+   "paired_days_min10both": 32,
+   "testable": true
+  },
+  "C_21_q4|0": {
+   "n_group": 617,
+   "paired_days_min10both": 12,
+   "testable": true
+  },
+  "C_21_q4|1": {
+   "n_group": 1356,
+   "paired_days_min10both": 44,
+   "testable": true
+  },
+  "C_21_q4|2+": {
+   "n_group": 844,
+   "paired_days_min10both": 30,
+   "testable": true
+  },
+  "C_21_pm": {
+   "valid_crosssection_days": 126,
+   "testable": true
+  },
+  "C_21_us": {
+   "valid_crosssection_days": 126,
+   "testable": true
+  },
+  "C_22_q1|0": {
+   "n_group": 713,
+   "paired_days_min10both": 18,
+   "testable": true
+  },
+  "C_22_q1|1": {
+   "n_group": 1327,
+   "paired_days_min10both": 32,
+   "testable": true
+  },
+  "C_22_q1|2+": {
+   "n_group": 826,
+   "paired_days_min10both": 21,
+   "testable": true
+  },
+  "C_22_q2|0": {
+   "n_group": 373,
+   "paired_days_min10both": 12,
+   "testable": true
+  },
+  "C_22_q2|1": {
+   "n_group": 728,
+   "paired_days_min10both": 27,
+   "testable": true
+  },
+  "C_22_q2|2+": {
+   "n_group": 399,
+   "paired_days_min10both": 9,
+   "testable": false
+  },
+  "C_22_q3|0": {
+   "n_group": 304,
+   "paired_days_min10both": 7,
+   "testable": false
+  },
+  "C_22_q3|1": {
+   "n_group": 567,
+   "paired_days_min10both": 22,
+   "testable": true
+  },
+  "C_22_q3|2+": {
+   "n_group": 325,
+   "paired_days_min10both": 6,
+   "testable": false
+  },
+  "C_22_q4|0": {
+   "n_group": 365,
+   "paired_days_min10both": 7,
+   "testable": false
+  },
+  "C_22_q4|1": {
+   "n_group": 730,
+   "paired_days_min10both": 21,
+   "testable": true
+  },
+  "C_22_q4|2+": {
+   "n_group": 425,
+   "paired_days_min10both": 9,
+   "testable": false
+  },
+  "C_22_pm": {
+   "valid_crosssection_days": 111,
+   "testable": true
+  },
+  "C_22_us": {
+   "valid_crosssection_days": 110,
+   "testable": true
+  }
+ },
+ "final_14": {
+  "C_q1|0": {
+   "folds_testable": {
+    "19": false,
+    "20": false,
+    "21": false,
+    "22": true
+   },
+   "testable": false
+  },
+  "C_q1|1": {
+   "folds_testable": {
+    "19": false,
+    "20": true,
+    "21": true,
+    "22": true
+   },
+   "testable": false
+  },
+  "C_q1|2+": {
+   "folds_testable": {
+    "19": false,
+    "20": true,
+    "21": false,
+    "22": true
+   },
+   "testable": false
+  },
+  "C_q2|0": {
+   "folds_testable": {
+    "19": false,
+    "20": false,
+    "21": true,
+    "22": true
+   },
+   "testable": false
+  },
+  "C_q2|1": {
+   "folds_testable": {
+    "19": false,
+    "20": true,
+    "21": true,
+    "22": true
+   },
+   "testable": false
+  },
+  "C_q2|2+": {
+   "folds_testable": {
+    "19": false,
+    "20": true,
+    "21": true,
+    "22": false
+   },
+   "testable": false
+  },
+  "C_q3|0": {
+   "folds_testable": {
+    "19": false,
+    "20": false,
+    "21": true,
+    "22": false
+   },
+   "testable": false
+  },
+  "C_q3|1": {
+   "folds_testable": {
+    "19": false,
+    "20": true,
+    "21": true,
+    "22": true
+   },
+   "testable": false
+  },
+  "C_q3|2+": {
+   "folds_testable": {
+    "19": false,
+    "20": false,
+    "21": true,
+    "22": false
+   },
+   "testable": false
+  },
+  "C_q4|0": {
+   "folds_testable": {
+    "19": false,
+    "20": false,
+    "21": true,
+    "22": false
+   },
+   "testable": false
+  },
+  "C_q4|1": {
+   "folds_testable": {
+    "19": false,
+    "20": false,
+    "21": true,
+    "22": true
+   },
+   "testable": false
+  },
+  "C_q4|2+": {
+   "folds_testable": {
+    "19": false,
+    "20": false,
+    "21": true,
+    "22": false
+   },
+   "testable": false
+  },
+  "C_pm": {
+   "folds_testable": {
+    "19": true,
+    "20": true,
+    "21": true,
+    "22": true
+   },
+   "testable": true
+  },
+  "C_us": {
+   "folds_testable": {
+    "19": true,
+    "20": true,
+    "21": true,
+    "22": true
+   },
+   "testable": true
+  }
+ },
+ "n_testable_final": 2,
+ "verdict": "识别能力不足(可检验项 2/14)——不运行完整统计流程"
+}

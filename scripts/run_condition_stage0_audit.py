@@ -247,6 +247,7 @@ def main():
     risk_stocks = set()
     risk_lifecycles = 0
     no_break_lifecycles = 0
+    risk_lifecycles_nobreak = 0
     right_censored_lifecycles = 0
     first_break_events = 0
     dup_break = 0
@@ -290,6 +291,8 @@ def main():
             risk_days += added
             risk_stocks.add(code)
             risk_lifecycles += 1
+            if not bo:
+                risk_lifecycles_nobreak += 1
         elif not bo:
             led["l5_nobreak_no_pool_days"] += 1
         if bo:
@@ -302,7 +305,19 @@ def main():
     dup_break = sum(1 for v in bo_lc.values() if v > 1)
     from multiperiod_lib import _FACTOR_SKIP_COUNT
     assert _FACTOR_SKIP_COUNT == 0, f"复权因子缺失 {_FACTOR_SKIP_COUNT} 行(应=0)"
+    # 程序化对账断言(七轮复审: 文档纠错≠门禁; 必须实际执行的 assert)
+    n_total_bo = sum(1 for v in lc.values() if v[2])
+    n_total_nobo = len(lc) - n_total_bo
+    assert n_total_bo == (led["l1_code_map_missing_with_bo"]
+                          + led.get("l3_bo_not_in_calendar", 0)
+                          + first_break_events
+                          + led.get("l6_bo_day_not_in_stock_prices", 0)), "有bo段对账不闭合"
+    assert n_total_nobo == (led["l1_code_map_missing_without_bo"]
+                            + no_break_lifecycles), "未突破段对账不闭合"
+    assert no_break_lifecycles == (led["l5_nobreak_no_pool_days"]
+                                   + risk_lifecycles_nobreak), "27,935 拆分不闭合(l5 是子集)"
     rep["risk_set"] = {
+        "attrition_reconciliation_assert": "executed(see asserts above)",
         "source": "lifecycle_stage4_v1_full(全量生命周期事实表; 非策略回放 signal)",
         "n_lifecycles_distinct": len(lc),
         "record_conflicts": conflict,
@@ -317,8 +332,9 @@ def main():
         "attrition_ledger": dict(led),
         "attrition_total_dropped": int(sum(led.values())),
         "reconciliation": {
-            "with_bo": f"27422_total = {led['l1_code_map_missing_with_bo']} l1 + {led.get('l3_bo_not_in_calendar', 0)} l3 + {first_break_events} first_break",
-            "without_bo": f"28224_total = {led['l1_code_map_missing_without_bo']} l1 + {led['l5_nobreak_no_pool_days']} l5 + {no_break_lifecycles - led['l1_code_map_missing_without_bo'] - led['l5_nobreak_no_pool_days']} unaccounted(no_break counter counts post-l1) ",
+            "with_bo": f"{n_total_bo}_total = {led['l1_code_map_missing_with_bo']} l1 + {led.get('l3_bo_not_in_calendar', 0)} l3 + {first_break_events} first_break + {led.get('l6_bo_day_not_in_stock_prices', 0)} l6",
+            "without_bo": f"{n_total_nobo}_total = {led['l1_code_map_missing_without_bo']} l1 + {no_break_lifecycles} entered (其中 l5={led['l5_nobreak_no_pool_days']} 为 entered 内无月池日子集)",
+            "entered_split": f"{no_break_lifecycles} = {led['l5_nobreak_no_pool_days']} l5 + {risk_lifecycles_nobreak} 有风险日",
         },
         "note": ("风险日=生命周期 [anchor,breakout_day) 交易日∩当日月池in; 未突破段=[anchor, "
                  "min(end_day, anchor+120交易日)); 数据末尾右删失段已单独计数; "
