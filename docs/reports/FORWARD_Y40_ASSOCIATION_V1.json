@@ -1,6 +1,6 @@
 {
  "design": "FORWARD_Y40_ASSOCIATION_DESIGN_V1.md(ff8426e)",
- "code_head": "ff8426e6c8364c7b45ba8ba46ebd70c18f319ff8",
+ "code_head": "170f75c7edf66cbd6fe14154a04089c3fed2c836",
  "seed": 20260919,
  "boot": 2000,
  "model": "Ridge alpha=1.0(闭式, 截距不惩罚), 不调参",
@@ -104,23 +104,28 @@
    "sensitivity_note": "停牌近似 14 事件仅敏感性(不混入主分析; 报告于 JSON 尾部)",
    "primary": {
     "weighted_delta_ic_point": -0.00463,
-    "n_time_blocks": 12,
+    "n_time_blocks": 13,
     "n_valid_days": 404,
     "time_block_ci95": [
-     -0.01999,
-     0.01659
+     -0.01902,
+     0.00972
     ],
-    "time_block_p_centered": 0.93903,
+    "time_block_p_centered": 0.56722,
     "ci_excludes_zero": false
    },
    "stock_block_sensitivity": {
     "n_stock_blocks": 4750,
     "n_draws_valid": 2000,
     "stock_ci95": [
-     -0.01289,
-     0.0087
+     -0.01482,
+     0.0118
     ],
-    "note": "重复抽中股票记录仅计一次(强度被低估方向); 不含重训不确定性"
+    "mean_dup_stock_per_draw": 1255.7,
+    "note": "频数权重版: 抽中 k 次的股票记录计 k 次(加权秩相关展开); 同日门槛按不同证券数; 不含重训不确定性。v1 去重版区间已撤回(superseded, 见 v1 提交)"
+   },
+   "imputed_sensitivity": {
+    "n_sens": 14,
+    "delta_ic_with_imputed": -0.00463
    }
   },
   "shrink": {
@@ -221,23 +226,28 @@
    "sensitivity_note": "停牌近似 13 事件仅敏感性(不混入主分析; 报告于 JSON 尾部)",
    "primary": {
     "weighted_delta_ic_point": -0.00017,
-    "n_time_blocks": 12,
+    "n_time_blocks": 13,
     "n_valid_days": 382,
     "time_block_ci95": [
-     -0.00272,
-     0.0036
+     -0.00419,
+     0.00413
     ],
-    "time_block_p_centered": 0.71814,
+    "time_block_p_centered": 0.97301,
     "ci_excludes_zero": false
    },
    "stock_block_sensitivity": {
     "n_stock_blocks": 4682,
     "n_draws_valid": 2000,
     "stock_ci95": [
-     -0.00521,
-     0.00633
+     -0.00667,
+     0.00789
     ],
-    "note": "重复抽中股票记录仅计一次(强度被低估方向); 不含重训不确定性"
+    "mean_dup_stock_per_draw": 1237.3,
+    "note": "频数权重版: 抽中 k 次的股票记录计 k 次(加权秩相关展开); 同日门槛按不同证券数; 不含重训不确定性。v1 去重版区间已撤回(superseded, 见 v1 提交)"
+   },
+   "imputed_sensitivity": {
+    "n_sens": 13,
+    "delta_ic_with_imputed": -0.00017
    }
   },
   "stabilization": {
@@ -338,36 +348,41 @@
    "sensitivity_note": "停牌近似 22 事件仅敏感性(不混入主分析; 报告于 JSON 尾部)",
    "primary": {
     "weighted_delta_ic_point": -0.01103,
-    "n_time_blocks": 11,
+    "n_time_blocks": 12,
     "n_valid_days": 293,
     "time_block_ci95": [
-     -0.01717,
-     -0.00335
+     -0.01589,
+     -0.00545
     ],
-    "time_block_p_centered": 0.0045,
+    "time_block_p_centered": 0.0005,
     "ci_excludes_zero": true
    },
    "stock_block_sensitivity": {
     "n_stock_blocks": 4416,
     "n_draws_valid": 2000,
     "stock_ci95": [
-     -0.01201,
-     0.00348
+     -0.01328,
+     0.00508
     ],
-    "note": "重复抽中股票记录仅计一次(强度被低估方向); 不含重训不确定性"
+    "mean_dup_stock_per_draw": 1166.7,
+    "note": "频数权重版: 抽中 k 次的股票记录计 k 次(加权秩相关展开); 同日门槛按不同证券数; 不含重训不确定性。v1 去重版区间已撤回(superseded, 见 v1 提交)"
+   },
+   "imputed_sensitivity": {
+    "n_sens": 22,
+    "delta_ic_with_imputed": -0.01103
    }
   }
  },
  "holm": {
   "raw_p": {
-   "breakout": 0.93903,
-   "shrink": 0.71814,
-   "stabilization": 0.0045
+   "breakout": 0.56722,
+   "shrink": 0.97301,
+   "stabilization": 0.0005
   },
   "holm_adj_p": {
    "breakout": 1.0,
    "shrink": 1.0,
-   "stabilization": 0.0135
+   "stabilization": 0.0015
   },
   "method": "40 日时间块 bootstrap 零假设中心双侧 p(平移,+1 修正); Holm 三比较"
  },
