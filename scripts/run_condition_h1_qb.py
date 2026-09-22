@@ -158,52 +158,79 @@ def main():
 
     # H1 主检验(折内日期块重抽, h1_test 本体)
     h1 = h1_test(day_deltas, fold_of_day, FOLDS, seed=SEED, nboot=NBOOT)
-    # S1 股票块敏感性: 配对按事件股分组, 40 股环形块重抽
+    # S1 股票聚集敏感性(十六轮勘误重写):
+    # - 样本=四折配对(b19-b22) only(与 H1 预注册范围一致)
+    # - 重抽单位=股票个体(有放回): 从折内涉及的全部股票(事件股∪对照股)集合
+    #   等概率有放回抽 n 只; 抽中股票携带其全部配对观测(事件身份或对照身份);
+    #   对照股跨日重复使用的依赖由"股票个体携带全部观测"处理
+    # - 保持冻结日期与折权重口径: Δ_d 均值→折均值→按折有效日数加权
+    # - 注: 股票代码相邻不构成聚类依据, 不用代码连续块; 本法为股票个体
+    #   cluster bootstrap(非分层), 如实命名
+    pairs_f4 = [p for p in pairs_all if fold_of_day[p["day"]] in FOLDS]
+    assert len(pairs_f4) == 21939, f"四折对数 {len(pairs_f4)} != 21,939(十五轮门槛链)"
+    days_f4 = [d for d in day_deltas if fold_of_day[d] in FOLDS]
+    assert len(days_f4) == 481, f"四折日数 {len(days_f4)} != 481"
     rng = np.random.default_rng(SEED)
-    by_ev = defaultdict(list)
-    for p in pairs_all:
-        by_ev[p["ev"]].append(p)
-    evs_sorted = sorted(by_ev)
-    n = len(evs_sorted)
+    by_stock = defaultdict(list)   # 股票 -> 其参与的全部四折配对(任一身份)
+    for p in pairs_f4:
+        by_stock[p["ev"]].append(p)
+        by_stock[p["ct"]].append(p)
+    stocks = sorted(by_stock)
+    n_st = len(stocks)
     stars = []
     for b in range(NBOOT):
-        starts = rng.integers(0, n, size=int(np.ceil(n / 40)))
-        picked = []
-        for s in starts:
-            for j in range(40):
-                picked.extend(by_ev[evs_sorted[(s + j) % n]])
+        picked_stocks = rng.choice(n_st, size=n_st, replace=True)
         rd = defaultdict(list)
-        for p in picked:
-            rd[p["day"]].append(p["diff"])
-        rs_deltas = {d: float(np.mean(v)) for d, v in rd.items()}
-        stars.append(h1_test_static(rs_deltas, fold_of_day))
+        for si in picked_stocks:
+            for p in by_stock[stocks[si]]:
+                rd[p["day"]].append(p["diff"])
+        rs_deltas = {d: float(np.mean(v)) for d, v in rd.items() if fold_of_day.get(d) in FOLDS}
+        if rs_deltas:
+            stars.append(h1_test_static(rs_deltas, fold_of_day))
     stars = np.array(stars)
-    t_b = stars - h1["theta"]
-    p_s1 = (1 + int(np.sum(np.abs(t_b) >= abs(h1["theta"])))) / (NBOOT + 1)
-    s1 = {"theta": h1["theta"],
+    theta_s1 = float(np.mean([day_deltas[d] for d in days_f4]))
+    t_b = stars - theta_s1
+    p_s1 = (1 + int(np.sum(np.abs(t_b) >= abs(theta_s1)))) / (len(stars) + 1)
+    s1 = {"theta": theta_s1,
           "ci_lo": float(np.percentile(stars, 2.5)),
           "ci_hi": float(np.percentile(stars, 97.5)),
-          "p": float(p_s1), "note": "股票块重抽(事件股 40 股环形块); 分歧如实并报"}
-    # D1
+          "p": float(p_s1),
+          "n_stocks": n_st, "n_pairs": len(pairs_f4), "n_days": len(days_f4),
+          "note": "十六轮勘误: 四折样本; 股票个体有放回重抽(事件∪对照身份携带全部观测); 冻结日期折权重; 旧 S1(六时期+代码连续块)作废见归档"}
+    # D1(十六轮: 四折与全区间分列, 标样本范围; 不得跨范围与 H1 比较断言混杂)
     d1_folds = {}
     for f in FOLDS:
         ds = [v for d, v in d1_day_deltas.items() if obs_bucket(d) == f]
         d1_folds[f] = float(np.mean(ds)) if ds else None
-    d1 = {"day_mean_overall": float(np.mean(list(d1_day_deltas.values()))) if d1_day_deltas else None,
-          "by_fold": d1_folds, "role": "量-1 未调整组间差, 仅描述不推断"}
+    d1_f4_days = [v for d, v in d1_day_deltas.items() if obs_bucket(d) in FOLDS]
+    d1_all_days = list(d1_day_deltas.values())
+    d1 = {"f4_day_mean": float(np.mean(d1_f4_days)) if d1_f4_days else None,
+          "f4_n_days": len(d1_f4_days),
+          "all6_day_mean": float(np.mean(d1_all_days)) if d1_all_days else None,
+          "all6_n_days": len(d1_all_days),
+          "by_fold": d1_folds,
+          "role": "量-1 未调整组间差, 仅描述不推断; 四折与全区间分列不可混比(十六轮)"}
 
     rep = {"audit": "MULTIPERIOD_CONDITION_H1_QB", "date": "2026-09-22",
            "authorized_by": "十五轮(合成测试 ALL PASS 后执行一次)",
            "h1": h1, "s1": s1, "d1": d1,
            "n_pairs": len(pairs_all), "n_days": len(day_deltas),
+           "h1_sample_meta": {"n_days_f4": len(days_f4), "n_pairs_f4": len(pairs_f4),
+                              "n_folds": 4, "note": "H1 统计仅用四折(FOLDS); 全区间日不进入 theta_hat/重抽; 元数据以四折为准(十六轮)"},
+           "consistency_assert": "四折 481 日/21,939 对 == 门槛链(MATCH_PRECHECK/GATECHAIN) 已断言",
            "n_days_by_fold": {f: sum(1 for d in day_deltas if fold_of_day[d] == f) for f in FOLDS},
            "formula": "§5.5 十五轮: 中心化 p=(1+Σ1(|θ̂*−θ̂|>=|θ̂|))/2001; CI=未中心化 percentile",
            "per_day_delta_examples": {d: day_deltas[d] for d in list(sorted(day_deltas))[:5]}}
     (OUT / "MULTIPERIOD_CONDITION_H1_QB.json").write_text(json.dumps(rep, ensure_ascii=False, indent=1))
     print(f"H1: theta={h1['theta']:+.5f} CI=[{h1['ci_lo']:.5f},{h1['ci_hi']:.5f}] p={h1['p']:.4f} | "
-          f"日 {h1['n_days']} 对 {len(pairs_all)} | {time.time()-t0:.0f}s", flush=True)
+          f"四折 {len(days_f4)} 日 {len(pairs_f4)} 对 | {time.time()-t0:.0f}s", flush=True)
+    # 版本锚: 与十五轮运行(2ded656)一致——证明勘误未动 H1 数值
+    anchor = {"theta": -0.00711, "ci_lo": -0.01614, "ci_hi": 0.00152, "p": 0.1144}
+    assert abs(h1["theta"] - anchor["theta"]) < 1e-4, f"H1 点估计变动 {h1['theta']}"
+    assert abs(h1["p"] - anchor["p"]) < 5e-4, f"H1 p 变动 {h1['p']}"
+    print("版本锚断言过: H1 == 2ded656 数值", flush=True)
     print(f"S1: CI=[{s1['ci_lo']:.5f},{s1['ci_hi']:.5f}] p={s1['p']:.4f}")
-    print(f"D1 描述: 全期日均 {d1['day_mean_overall']:+.5f} | 折 {[f'{v:+.4f}' if v else 'NA' for v in d1_folds.values()]}")
+    print(f"D1 描述: 四折日均 {d1['f4_day_mean']:+.5f}({d1['f4_n_days']}日) | 全区间 {d1['all6_day_mean']:+.5f}({d1['all6_n_days']}日)")
     print("→ MULTIPERIOD_CONDITION_H1_QB.json")
 
 
