@@ -128,13 +128,23 @@ def main():
                     pairs.append((e, c))
         # 门槛3: Y40 窗口资格(不读价格值)
         win_ok = mpos[d] + 40 < len(mdates)
-        # 门槛4: 价格完整性=双方 d+40 各自有价格行(首尾口径; 中间缺价不影响 ln 比值)
+        # 门槛4(首尾口径, S2 敏感性): 双方 d+40 各自有价格行
         d40 = mdates[mpos[d] + 40] if win_ok else None
         pairs_full = []
         if d40:
             for e, c in pairs:
                 if d40 in series_by_code.get(e, {}) and d40 in series_by_code.get(c, {}):
                     pairs_full.append((e, c))
+        # 门槛5(H1 主样本, 原冻结 Y40 主口径): 双方 d..d+40 全部 41 个
+        # 指数交易日均有价格行(完整价格路径; 不读价格值)
+        pairs_path41 = []
+        if win_ok:
+            path_days = mdates[mpos[d]:mpos[d] + 41]
+            for e, c in pairs:
+                se = series_by_code.get(e, {})
+                sc = series_by_code.get(c, {})
+                if all(dd in se for dd in path_days) and all(dd in sc for dd in path_days):
+                    pairs_path41.append((e, c))
         n_ev_all += len(evs)
         n_matched_all += len(pairs)
         n_win_ok += len(pairs) if win_ok else 0
@@ -142,22 +152,25 @@ def main():
         per_day.append({"day": d, "bucket": obs_bucket(d), "n_ev": len(evs),
                         "n_pairs_matched": len(pairs),
                         "n_pairs_win_ok": len(pairs) if win_ok else 0,
-                        "n_pairs_full": len(pairs_full)})
+                        "n_pairs_full": len(pairs_full),
+                        "n_pairs_path41": len(pairs_path41)})
         if len(per_day) % 150 == 0:
             print(f"{len(per_day)}/{len(paired_days)} | {time.time()-t0:.0f}s", flush=True)
 
     def summ(rows, label):
         return {"scope": label, "n_days": len(rows),
-                "days_ge1_pair": sum(1 for r in rows if r["n_pairs_full"] >= 1),
-                "days_ge2_pair": sum(1 for r in rows if r["n_pairs_full"] >= 2),
+                "days_ge1_pair": sum(1 for r in rows if r["n_pairs_path41"] >= 1),
+                "days_ge2_pair": sum(1 for r in rows if r["n_pairs_path41"] >= 2),
                 "pairs_matched": sum(r["n_pairs_matched"] for r in rows),
                 "pairs_win_ok": sum(r["n_pairs_win_ok"] for r in rows),
-                "pairs_full": sum(r["n_pairs_full"] for r in rows),
-                "pairs_per_day_p50": float(np.median([r["n_pairs_full"] for r in rows])) if rows else None}
+                "pairs_full_endpoint": sum(r["n_pairs_full"] for r in rows),
+                "pairs_full_path41": sum(r["n_pairs_path41"] for r in rows),
+                "days_ge1_endpoint": sum(1 for r in rows if r["n_pairs_full"] >= 1),
+                "pairs_per_day_p50": float(np.median([r["n_pairs_path41"] for r in rows])) if rows else None}
 
     rep = {"audit": "MULTIPERIOD_CONDITION_GATECHAIN_PRECHECK", "date": "2026-09-22",
            "y40_read": False,
-           "gates": "1 配对资格 → 2 冻结匹配(复算) → 3 d+40 在指数日历 → 4 双方 d+40 有价格行(不读值)",
+           "gates": "1 配对资格 → 2 冻结匹配 → 3 d+40 在指数日历 → 4 首尾完整(S2) → 5 全路径 41 日完整(H1 主口径, 原冻结)",
            "overall": summ(per_day, "ALL"),
            "by_fold": {b: summ([r for r in per_day if r["bucket"] == b], f"b{b}") for b in FOLDS},
            "other_buckets": {b: summ([r for r in per_day if r["bucket"] == b], f"b{b}")
@@ -179,7 +192,8 @@ def main():
                "note2": "量-1 与敏感性不进 Holm; Q-A(Δ=5/Δ=1) 家族另行冻结"}}
     (OUT / "MULTIPERIOD_CONDITION_GATECHAIN_PRECHECK.json").write_text(json.dumps(rep, ensure_ascii=False))
     o = rep["overall"]
-    print(f"门槛链: 匹配 {n_matched_all} → 窗口 {n_win_ok} → 完整 {n_price_ok} | "
+    n_path41 = sum(r["n_pairs_path41"] for r in per_day)
+    print(f"门槛链: 匹配 {n_matched_all} → 窗口 {n_win_ok} → 首尾 {n_price_ok} → 全路径41 {n_path41} | "
           f"日(>=1对/>=2对) {o['days_ge1_pair']}/{o['days_ge2_pair']} | {time.time()-t0:.0f}s", flush=True)
     print("→ MULTIPERIOD_CONDITION_GATECHAIN_PRECHECK.json")
 
