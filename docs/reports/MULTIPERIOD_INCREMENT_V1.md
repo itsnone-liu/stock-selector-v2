@@ -1,5 +1,9 @@
 # MULTIPERIOD_INCREMENT_V1 — 多周期背景增量实验结果(三轮收尾版)
 
+> **已封存(2026-09-22 用户验收通过)**: 不再修改特征/模型/统计口径。
+> 封存三元组: design=MULTIPERIOD_INCREMENT_DESIGN_V1@b42fe58(含二轮 P0) |
+> results_code_head=a86430a(scripts 干净) | input_baseline=identify md5×3+factor_table md5(见 JSON)。
+
 设计: MULTIPERIOD_INCREMENT_DESIGN_V1(b42fe58 含二轮 P0); 运行 HEAD=results_code_head a86430a(scripts 干净=无未提交文件);
 输入指纹 input_baseline_head(identify md5×3+factor_table md5, 见 JSON);
 seed=20260919 BOOT=2000; 模型 A0,B0,A1,B1; B2 未运行。
