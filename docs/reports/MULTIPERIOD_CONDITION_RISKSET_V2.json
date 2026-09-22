@@ -1,0 +1,41 @@
+{
+ "audit": "MULTIPERIOD_CONDITION_RISKSET_V2",
+ "date": "2026-09-22",
+ "y40_read": false,
+ "code_map_source": "frozen per_stock filename keys (independent of identify)",
+ "n_frozen_library": 5240,
+ "n_lifecycles": 55646,
+ "record_conflicts": 0,
+ "common_riskset_stock_days": 323031,
+ "riskset_window_def": "有bo段[anchor,bo](含首突日); 无bo段[anchor,min(end,anchor+120))(不含end日)",
+ "n_distinct_risk_days": 646,
+ "first_break_in_common_riskset": 27310,
+ "first_break_total_incl_outside": 27310,
+ "attrition_ledger_v2": {},
+ "factor_missing_price_rows_disclosed": 28944,
+ "old_stage0_numbers": {
+  "risk_stock_days_poolin": 294722,
+  "first_break_day_events": 27310,
+  "note": "旧审计结果保留; l1=identify 事件名单映射(结果相关), v2 不再使用"
+ },
+ "s3_pairing_precheck": {
+  "rule": "配对日=当日首突>=1 且 同日合格对照>=10(不同股票); 对照含此后突破者不剔除",
+  "n_paired_days": 643,
+  "paired_days_by_fold": {
+   "18": 116,
+   "19": 124,
+   "20": 117,
+   "21": 126,
+   "22": 116,
+   "23": 44
+  },
+  "event_group_size_p50": 24.0,
+  "event_group_size_max": 489,
+  "ctrl_group_size_p50": 311.0,
+  "per_stock_risk_days_p50": 65.0,
+  "per_stock_risk_days_p90": 107.0,
+  "per_stock_risk_days_max": 229,
+  "note": "每股贡献日分布=S2 双聚类(股票块)校正输入; 无结果变量参与"
+ },
+ "factor_missing_assert": "executed(==0, via module attr)"
+}
