@@ -1,0 +1,67 @@
+{
+ "audit": "MULTIPERIOD_CONDITION_QA_COVERAGE",
+ "date": "2026-09-22",
+ "delta": 5,
+ "no_outcome_variables": "只读 bo/end/end_reason 日期与原因; 无价格/Y40 数值",
+ "riskset_recon": {
+  "obs_days_total": 295721,
+  "expected_riskset": 323031,
+  "bo_excluded_from_qa_sample": 27310,
+  "qa_sample": 295721,
+  "assert": true
+ },
+ "per_stock_obs_days": {
+  "n_stocks": 47475,
+  "p50": 5.0,
+  "p75": 9.0,
+  "max": 50,
+  "mean": 6.228983675618747
+ },
+ "window_overlap_gap_hist": {
+  "1": 248193,
+  "2": 33,
+  "3": 3,
+  "4": 2,
+  "5": 1
+ },
+ "by_fold": {
+  "19": {
+   "obs": 20359,
+   "competing": 6895,
+   "censor_window": 8780,
+   "event": 4684
+  },
+  "20": {
+   "obs": 51303,
+   "competing": 16994,
+   "censor_window": 20727,
+   "event": 13582
+  },
+  "21": {
+   "obs": 119762,
+   "competing": 36682,
+   "event": 28519,
+   "censor_window": 54561
+  },
+  "22": {
+   "obs": 71413,
+   "competing": 25171,
+   "censor_window": 27126,
+   "event": 19116
+  }
+ },
+ "all_periods": {
+  "obs": 295721,
+  "competing": 11733,
+  "censor_window": 12065,
+  "event": 8659,
+  "censor_admin": 427
+ },
+ "coverage_threshold": "每折 event 与 competing 均>=30(§4 门槛)",
+ "event_rate_per_1000": {
+  "19": 230.07,
+  "20": 264.74,
+  "21": 238.13,
+  "22": 267.68
+ }
+}

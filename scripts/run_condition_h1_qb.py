@@ -211,10 +211,14 @@ def main():
           "by_fold": d1_folds,
           "role": "量-1 未调整组间差, 仅描述不推断; 四折与全区间分列不可混比(十六轮)"}
 
+    h1["n_days"] = len(days_f4)   # 十八轮: h1 对象改四折口径(原=全集日数)
+    h1["n_folds"] = 4
     rep = {"audit": "MULTIPERIOD_CONDITION_H1_QB", "date": "2026-09-22",
+           "all_periods_n_days": len(day_deltas),      # 六时期全区间计数(十八轮命名)
+           "all_periods_n_pairs": len(pairs_all),
            "authorized_by": "十五轮(合成测试 ALL PASS 后执行一次)",
            "h1": h1, "s1": s1, "d1": d1,
-           "n_pairs": len(pairs_all), "n_days": len(day_deltas),
+           "n_pairs": len(pairs_all), "n_days": len(day_deltas),  # 兼容旧键(六时期), 见 all_periods_*
            "h1_sample_meta": {"n_days_f4": len(days_f4), "n_pairs_f4": len(pairs_f4),
                               "n_folds": 4, "note": "H1 统计仅用四折(FOLDS); 全区间日不进入 theta_hat/重抽; 元数据以四折为准(十六轮)"},
            "consistency_assert": "四折 481 日/21,939 对 == 门槛链(MATCH_PRECHECK/GATECHAIN) 已断言",

@@ -1,0 +1,11 @@
+h1_theta: claimed=-0.00711 json=-0.007109358537646955 OK
+h1_ci: claimed=(-0.01614, 0.00152) json=(-0.01613651454083215, 0.0015225184580970337) OK
+h1_p: claimed=0.1144 json=0.11444277861069466 OK
+s1_ci: claimed=(-0.01116, -0.00302) json=(-0.011159900879497722, -0.00302348416968828) OK
+s1_p: claimed=0.0005 json=0.0004997501249375312 OK
+d1_f4: claimed=-0.01558 json=-0.015579798820582422 OK
+d1_all6: claimed=-0.02024 json=-0.02023766977910228 OK
+n_days_f4: claimed=481 json=481 OK
+n_pairs_f4: claimed=21939 json=21939 OK
+n_stocks: claimed=4727 json=4727 OK
+ALL 10 items consistent
