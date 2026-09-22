@@ -1,67 +1,122 @@
 {
  "audit": "MULTIPERIOD_CONDITION_QA_COVERAGE",
+ "version": "v2-十九轮修复",
  "date": "2026-09-22",
- "delta": 5,
- "no_outcome_variables": "只读 bo/end/end_reason 日期与原因; 无价格/Y40 数值",
+ "data_use_statement": "未计算 Y40、未使用价格数值进行关联检验; 已读取 Q-A 终点日期(bo/end)用于覆盖审计; 背景特征为 t 时点信息",
  "riskset_recon": {
   "obs_days_total": 295721,
   "expected_riskset": 323031,
-  "bo_excluded_from_qa_sample": 27310,
-  "qa_sample": 295721,
+  "bo_excluded": 27310,
   "assert": true
  },
- "per_stock_obs_days": {
-  "n_stocks": 47475,
-  "p50": 5.0,
-  "p75": 9.0,
-  "max": 50,
-  "mean": 6.228983675618747
+ "conservation_assert": "all_periods 与各折: obs == event+competing+censor_window+censor_admin(全部执行通过)",
+ "units": {
+  "dedup_stocks": 4815,
+  "lifecycle_segments": 47475,
+  "obs_per_stock_p50": 60.0,
+  "obs_per_stock_p75": 79.0,
+  "obs_per_stock_max": 216,
+  "obs_per_segment_p50": 5.0,
+  "code_date_unique_assert": "passed"
  },
- "window_overlap_gap_hist": {
-  "1": 248193,
-  "2": 33,
-  "3": 3,
-  "4": 2,
-  "5": 1
- },
+ "boundary_gap_hist": {},
  "by_fold": {
   "19": {
    "obs": 20359,
    "competing": 6895,
-   "censor_window": 8780,
-   "event": 4684
+   "event": 4684,
+   "censor_window": 8780
   },
   "20": {
    "obs": 51303,
-   "competing": 16994,
+   "event": 13582,
    "censor_window": 20727,
-   "event": 13582
+   "competing": 16994
   },
   "21": {
    "obs": 119762,
-   "competing": 36682,
+   "censor_window": 54561,
    "event": 28519,
-   "censor_window": 54561
+   "competing": 36682
   },
   "22": {
    "obs": 71413,
+   "event": 19116,
    "competing": 25171,
-   "censor_window": 27126,
-   "event": 19116
+   "censor_window": 27126
   }
  },
  "all_periods": {
   "obs": 295721,
-  "competing": 11733,
-  "censor_window": 12065,
-  "event": 8659,
+  "event": 74560,
+  "competing": 97475,
+  "censor_window": 123259,
   "censor_admin": 427
  },
- "coverage_threshold": "每折 event 与 competing 均>=30(§4 门槛)",
- "event_rate_per_1000": {
-  "19": 230.07,
-  "20": 264.74,
-  "21": 238.13,
-  "22": 267.68
+ "h2_group_coverage": {
+  "train": {
+   "folds": "b19-21",
+   "n_feats": 191424,
+   "h2a_thresholds": {
+    "q33": 0.7991710343547109,
+    "q67": 9.04046421669169
+   },
+   "h2b_bins": "0/1/2/>=3(预固定)"
+  },
+  "test": {
+   "fold": "b22",
+   "h2a": {
+    "low": {
+     "event": 9331,
+     "obs": 34350,
+     "censor_window": 14079,
+     "competing": 10940
+    },
+    "high": {
+     "competing": 7389,
+     "obs": 19081,
+     "censor_window": 6487,
+     "event": 5205
+    },
+    "mid": {
+     "competing": 6842,
+     "obs": 17982,
+     "event": 4580,
+     "censor_window": 6560
+    }
+   },
+   "h2b": {
+    "s2": {
+     "event": 2598,
+     "obs": 8045,
+     "competing": 3111,
+     "censor_window": 2336
+    },
+    "s1": {
+     "competing": 10416,
+     "obs": 33349,
+     "censor_window": 13655,
+     "event": 9278
+    },
+    "s0": {
+     "competing": 10729,
+     "obs": 27936,
+     "censor_window": 10673,
+     "event": 6534
+    },
+    "s3p": {
+     "censor_window": 462,
+     "obs": 2083,
+     "event": 706,
+     "competing": 915
+    }
+   },
+   "threshold_note": "阈值仅由训练折特征确定(b22 无泄漏)"
+  }
+ },
+ "h2_prereg": {
+  "H2a": "高 vs 低组 5 日首突发生率差(竞争保留独立状态)",
+  "H2b": "档0 vs 档>=2 发生率差",
+  "inference": "日期块主推断(§5.1)"
  }
 }
