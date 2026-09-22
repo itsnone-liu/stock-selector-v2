@@ -44,6 +44,30 @@ TRAIN, TEST = (19, 20, 21), 22
 MARKET_EXITS = {"monthly_exit", "structure_break"}
 
 
+def classify(i, bo_i, end_i, mkt, n_md):
+    """最早终点规则(十九轮; 二十轮模块级化供合成反例测试 import):
+    可观察区间 (i, min(i+5, n_md-1)] 内比较 突破/市场退出/行政终止 最早者."""
+    obs_last = min(i + 5, n_md - 1)
+    if obs_last <= i:
+        return "censor_admin"
+    ev_i = bo_i if (bo_i is not None and i < bo_i <= obs_last) else None
+    cp_i = end_i if (mkt and end_i is not None and i < end_i <= obs_last) else None
+    ad_i = n_md - 1 if obs_last < i + 5 else None
+    cands = [x for x in ((ev_i, "event"), (cp_i, "competing")) if x[0] is not None]
+    if cands:
+        cands.sort(key=lambda x: x[0])
+        if len(cands) > 1 and cands[0][0] == cands[1][0]:
+            return "competing"
+        return cands[0][1]
+    if ad_i is not None:
+        assert not (bo_i is not None and i < bo_i <= ad_i), "行政先于突破未处理"
+        assert not (mkt and end_i is not None and i < end_i <= ad_i), "行政先于市场退出未处理"
+        return "censor_admin"
+    if end_i is not None and i < end_i <= obs_last:
+        return "censor_admin"
+    return "censor_window"
+
+
 def main():
     t0 = time.time()
     cmap = independent_code_map()
@@ -74,28 +98,7 @@ def main():
     test_rows = []              # b22: (day, pvm6, streak, 终点类别)
     n_bo_excluded = 0
 
-    def classify(i, bo_i, end_i, mkt):
-        """最早终点规则(十九轮): 可观察区间 (i, min(i+5, n_md-1)] 内比较."""
-        obs_last = min(i + 5, n_md - 1)
-        if obs_last <= i:
-            return "censor_admin"          # 可观察区间空
-        ev_i = bo_i if (bo_i is not None and i < bo_i <= obs_last) else None
-        cp_i = end_i if (mkt and end_i is not None and i < end_i <= obs_last) else None
-        ad_i = n_md - 1 if obs_last < i + 5 else None   # 行政终止=日历尾截断窗
-        cands = [x for x in ((ev_i, "event"), (cp_i, "competing")) if x[0] is not None]
-        if cands:
-            cands.sort(key=lambda x: x[0])
-            if len(cands) > 1 and cands[0][0] == cands[1][0]:
-                return "competing"          # 同日并发竞争优先(保守)
-            return cands[0][1]
-        if ad_i is not None:
-            # 日历尾截断: 截断前无事件无退出→行政删失
-            return "censor_admin"
-        # 窗口内退出但非市场性(行政型) or 窗满
-        if end_i is not None and i < end_i <= obs_last:
-            return "censor_admin"
-        return "censor_window"
-
+    prev_global = None   # 跨段保留(二十轮修复: 原在段内重置致边界统计恒空)
     for lid, (code, anchor, bo, end, reason) in sorted(lc.items()):
         c6 = code.split(".")[-1] if "." in code else code
         full = cmap.get(c6)
@@ -114,7 +117,6 @@ def main():
         end_i = mpos.get(end) if end in mpos else None
         mkt = reason in MARKET_EXITS
         seg_n = 0
-        prev_global = None
         for d in days:
             i = mpos[d]
             if bo_i is not None and i >= bo_i:
@@ -123,9 +125,9 @@ def main():
             assert (c6, d) not in seen_pairs, f"(code,date) 重复: {c6} {d}"
             seen_pairs.add((c6, d))
             if prev_global is not None:
-                if prev_global[1]:          # 上一观察日属于前一段→跨段边界
+                if prev_global[1] and i > prev_global[0]:   # 跨段边界且时间在后(段处理序非时间序, 负跳不计)
                     boundary_gaps[i - prev_global[0]] += 1
-            cls = classify(i, bo_i, end_i, mkt)
+            cls = classify(i, bo_i, end_i, mkt, n_md)
             b = obs_bucket(d)
             allp["obs"] += 1
             allp[cls] += 1
@@ -143,9 +145,7 @@ def main():
             prev_global = (i, False)
         if seg_n:
             seg_obs.append(seg_n)
-            # 段末记录: 下一段的第一个观察日将标记跨段边界
-            # (通过 prev_global[1] 置 False 的初值=段首; 边界检测用段切换标志)
-            prev_global = (prev_global[0], True) if prev_global else None
+            prev_global = (prev_global[0], True)   # 下段首日记跨段边界
         if (len(seen_pairs) % 80000) == 0 and seen_pairs:
             print(f"{len(seen_pairs):,} 观察日 | {time.time()-t0:.0f}s", flush=True)
 
@@ -164,12 +164,20 @@ def main():
         return "s0" if s == 0 else ("s1" if s == 1 else ("s2" if s == 2 else "s3p"))
     h2a = defaultdict(Counter)
     h2b = defaultdict(Counter)
+    day_groups = defaultdict(lambda: [set(), set()])
     for d, p, s, cls in test_rows:
         if p is not None and p == p and s is not None:
-            h2a[grp_a(p)][cls] += 1
-            h2a[grp_a(p)]["obs"] += 1
-            h2b[grp_b(s)][cls] += 1
-            h2b[grp_b(s)]["obs"] += 1
+            ga, gb = grp_a(p), grp_b(s)
+            h2a[ga][cls] += 1
+            h2a[ga]["obs"] += 1
+            h2b[gb][cls] += 1
+            h2b[gb]["obs"] += 1
+            day_groups[d][0].add(ga)
+            day_groups[d][1].add(gb)
+    eff_days_a = sorted(d for d, (ga, _) in day_groups.items() if "low" in ga and "high" in ga)
+    eff_days_b = sorted(d for d, (_, gb) in day_groups.items() if "s0" in gb and "s3p" in gb)
+    def n_blocks(days_sorted, block=40):
+        return max(1, int(np.ceil(len(days_sorted) / block))) if days_sorted else 0
 
     ps = np.array(list(stock_obs.values()))
     rep = {"audit": "MULTIPERIOD_CONDITION_QA_COVERAGE", "version": "v2-十九轮修复",
@@ -196,8 +204,15 @@ def main():
                         "h2a": {g: dict(c) for g, c in h2a.items()},
                         "h2b": {g: dict(c) for g, c in h2b.items()},
                         "threshold_note": "阈值仅由训练折特征确定(b22 无泄漏)"}},
-           "h2_prereg": {"H2a": "高 vs 低组 5 日首突发生率差(竞争保留独立状态)",
-                         "H2b": "档0 vs 档>=2 发生率差", "inference": "日期块主推断(§5.1)"}}
+           "h2_prereg": {"H2a": "高减低 合并5日发生率差(Σev/Σobs, 双侧)",
+                         "H2b": "档>=2 减 档0 合并发生率差(双侧)", "inference": "日期块主推断(§5.1), 重抽整日分子分母",
+                         "status": "开发性/探索性——b22 描述信息已被查看(二十轮), 非未查看独立测试集"},
+           "effective_days": {"h2a_low_high_same_day": len(eff_days_a),
+                              "h2b_s0_s3p_same_day": len(eff_days_b),
+                              "h2a_n_blocks40": n_blocks(eff_days_a),
+                              "h2b_n_blocks40": n_blocks(eff_days_b),
+                              "h2a_first_last": [eff_days_a[0], eff_days_a[-1]] if eff_days_a else None,
+                              "h2b_first_last": [eff_days_b[0], eff_days_b[-1]] if eff_days_b else None}}
     (OUT / "MULTIPERIOD_CONDITION_QA_COVERAGE.json").write_text(json.dumps(rep, ensure_ascii=False, indent=1))
     print(f"对账: 323,031 = Q-A {allp['obs']:,} + bo日 {n_bo_excluded} | 守恒断言全过 | {time.time()-t0:.0f}s")
     print(f"单位: 去重股票 {len(stock_obs):,} | 生命周期段 {len(seg_obs):,} | 每股 p50 {rep['units']['obs_per_stock_p50']:.0f} max {rep['units']['obs_per_stock_max']}")
@@ -206,6 +221,7 @@ def main():
     for f in FOLDS:
         c = per_fold[f]
         print(f"b{f}: obs {c['obs']:>6} ev {c['event']:>5} comp {c['competing']:>5} 窗满 {c['censor_window']:>6} 行政 {c['censor_admin']:>3}")
+    print(f"有效日: H2a 低&高同日 {len(eff_days_a)} 日({n_blocks(eff_days_a)} 个40日块) | H2b s0&s3p 同日 {len(eff_days_b)} 日({n_blocks(eff_days_b)} 块)")
     print(f"H2a 阈值: q33={q1:.4f} q67={q2:.4f} | b22 分组覆盖:")
     for g in ("low", "mid", "high"):
         if g in h2a:
