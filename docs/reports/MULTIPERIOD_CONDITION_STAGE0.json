@@ -1,0 +1,831 @@
+{
+ "audit": "MULTIPERIOD_CONDITION_STAGE0",
+ "date": "2026-09-22",
+ "monthly_dist": {
+  "breakout|intramonth_pct": {
+   "n": 26126,
+   "missing": 0,
+   "missing_rate": 0.0,
+   "n_unique_round6": 23124,
+   "top_value_share": 0.0023,
+   "p5": 1.101,
+   "p25": 3.73,
+   "p50": 6.768,
+   "p75": 11.672,
+   "p95": 25.189,
+   "span": 356.672
+  },
+  "breakout|ma_spread_3_6": {
+   "n": 26126,
+   "missing": 0,
+   "missing_rate": 0.0,
+   "n_unique_round6": 24819,
+   "top_value_share": 0.0009,
+   "p5": -4.745,
+   "p25": 0.156,
+   "p50": 3.558,
+   "p75": 8.433,
+   "p95": 20.03,
+   "span": 104.731
+  },
+  "breakout|price_vs_monthly_ma6": {
+   "n": 26126,
+   "missing": 0,
+   "missing_rate": 0.0,
+   "n_unique_round6": 24711,
+   "top_value_share": 0.0007,
+   "p5": -10.685,
+   "p25": -2.381,
+   "p50": 3.904,
+   "p75": 11.859,
+   "p95": 34.512,
+   "span": 246.863
+  },
+  "breakout|ret_1m_completed": {
+   "n": 26126,
+   "missing": 0,
+   "missing_rate": 0.0,
+   "n_unique_round6": 23235,
+   "top_value_share": 0.0039,
+   "p5": -16.62,
+   "p25": -6.196,
+   "p50": -0.452,
+   "p75": 5.897,
+   "p95": 26.195,
+   "span": 350.463
+  },
+  "breakout|ret_3m_completed": {
+   "n": 26126,
+   "missing": 0,
+   "missing_rate": 0.0,
+   "n_unique_round6": 24025,
+   "top_value_share": 0.0028,
+   "p5": -19.695,
+   "p25": -4.912,
+   "p50": 4.972,
+   "p75": 18.182,
+   "p95": 57.37,
+   "span": 1133.741
+  },
+  "breakout|trend_len_completed": {
+   "n": 26126,
+   "missing": 0,
+   "missing_rate": 0.0,
+   "n_unique_round6": 34,
+   "top_value_share": 0.3402,
+   "p5": 0.0,
+   "p25": 0.0,
+   "p50": 2.0,
+   "p75": 5.0,
+   "p95": 11.0,
+   "span": 35.0
+  },
+  "shrink|intramonth_pct": {
+   "n": 20909,
+   "missing": 0,
+   "missing_rate": 0.0,
+   "n_unique_round6": 19323,
+   "top_value_share": 0.0041,
+   "p5": -3.497,
+   "p25": 1.347,
+   "p50": 5.449,
+   "p75": 11.54,
+   "p95": 28.826,
+   "span": 349.044
+  },
+  "shrink|ma_spread_3_6": {
+   "n": 20909,
+   "missing": 0,
+   "missing_rate": 0.0,
+   "n_unique_round6": 20493,
+   "top_value_share": 0.0007,
+   "p5": -4.339,
+   "p25": 0.507,
+   "p50": 3.896,
+   "p75": 8.701,
+   "p95": 20.176,
+   "span": 104.731
+  },
+  "shrink|price_vs_monthly_ma6": {
+   "n": 20909,
+   "missing": 0,
+   "missing_rate": 0.0,
+   "n_unique_round6": 20422,
+   "top_value_share": 0.0006,
+   "p5": -8.999,
+   "p25": -0.743,
+   "p50": 5.613,
+   "p75": 13.954,
+   "p95": 37.346,
+   "span": 397.678
+  },
+  "shrink|ret_1m_completed": {
+   "n": 20909,
+   "missing": 0,
+   "missing_rate": 0.0,
+   "n_unique_round6": 19411,
+   "top_value_share": 0.0038,
+   "p5": -13.791,
+   "p25": -3.987,
+   "p50": 1.93,
+   "p75": 8.726,
+   "p95": 30.066,
+   "span": 1148.788
+  },
+  "shrink|ret_3m_completed": {
+   "n": 20909,
+   "missing": 0,
+   "missing_rate": 0.0,
+   "n_unique_round6": 19968,
+   "top_value_share": 0.0023,
+   "p5": -18.078,
+   "p25": -3.378,
+   "p50": 6.702,
+   "p75": 20.79,
+   "p95": 61.103,
+   "span": 1222.054
+  },
+  "shrink|trend_len_completed": {
+   "n": 20909,
+   "missing": 0,
+   "missing_rate": 0.0,
+   "n_unique_round6": 34,
+   "top_value_share": 0.2755,
+   "p5": 0.0,
+   "p25": 0.0,
+   "p50": 3.0,
+   "p75": 6.0,
+   "p95": 11.0,
+   "span": 35.0
+  },
+  "stabilization|intramonth_pct": {
+   "n": 12620,
+   "missing": 0,
+   "missing_rate": 0.0,
+   "n_unique_round6": 11899,
+   "top_value_share": 0.0048,
+   "p5": -2.813,
+   "p25": 1.203,
+   "p50": 4.784,
+   "p75": 10.385,
+   "p95": 25.853,
+   "span": 216.067
+  },
+  "stabilization|ma_spread_3_6": {
+   "n": 12620,
+   "missing": 0,
+   "missing_rate": 0.0,
+   "n_unique_round6": 12512,
+   "top_value_share": 0.0009,
+   "p5": -4.213,
+   "p25": 0.555,
+   "p50": 3.903,
+   "p75": 8.635,
+   "p95": 20.421,
+   "span": 102.1
+  },
+  "stabilization|price_vs_monthly_ma6": {
+   "n": 12620,
+   "missing": 0,
+   "missing_rate": 0.0,
+   "n_unique_round6": 12479,
+   "top_value_share": 0.0004,
+   "p5": -8.658,
+   "p25": -0.502,
+   "p50": 5.99,
+   "p75": 14.158,
+   "p95": 36.686,
+   "span": 370.656
+  },
+  "stabilization|ret_1m_completed": {
+   "n": 12620,
+   "missing": 0,
+   "missing_rate": 0.0,
+   "n_unique_round6": 12032,
+   "top_value_share": 0.0036,
+   "p5": -12.849,
+   "p25": -3.267,
+   "p50": 2.459,
+   "p75": 9.042,
+   "p95": 29.045,
+   "span": 1131.446
+  },
+  "stabilization|ret_3m_completed": {
+   "n": 12620,
+   "missing": 0,
+   "missing_rate": 0.0,
+   "n_unique_round6": 12292,
+   "top_value_share": 0.0023,
+   "p5": -18.051,
+   "p25": -3.23,
+   "p50": 7.079,
+   "p75": 20.897,
+   "p95": 59.227,
+   "span": 1205.943
+  },
+  "stabilization|trend_len_completed": {
+   "n": 12620,
+   "missing": 0,
+   "missing_rate": 0.0,
+   "n_unique_round6": 32,
+   "top_value_share": 0.2662,
+   "p5": 0.0,
+   "p25": 0.0,
+   "p50": 3.0,
+   "p75": 6.0,
+   "p95": 12.0,
+   "span": 36.0
+  }
+ },
+ "weekly_dist": {
+  "breakout|wk_close_vs_ma4": {
+   "n": 26126,
+   "missing": 0,
+   "missing_rate": 0.0,
+   "n_unique_round6": 24414,
+   "top_value_share": 0.0027,
+   "p5": -2.003,
+   "p25": 0.438,
+   "p50": 2.084,
+   "p75": 4.383,
+   "p95": 11.671,
+   "span": 120.191
+  },
+  "breakout|wk_ret1": {
+   "n": 26126,
+   "missing": 0,
+   "missing_rate": 0.0,
+   "n_unique_round6": 22450,
+   "top_value_share": 0.0122,
+   "p5": -3.048,
+   "p25": 0.194,
+   "p50": 2.69,
+   "p75": 6.483,
+   "p95": 16.527,
+   "span": 172.443
+  },
+  "breakout|wk_up_streak": {
+   "n": 26126,
+   "missing": 0,
+   "missing_rate": 0.0,
+   "n_unique_round6": 12,
+   "top_value_share": 0.4595,
+   "p5": 0.0,
+   "p25": 1.0,
+   "p50": 1.0,
+   "p75": 2.0,
+   "p95": 3.0,
+   "span": 11.0
+  },
+  "shrink|wk_close_vs_ma4": {
+   "n": 20909,
+   "missing": 0,
+   "missing_rate": 0.0,
+   "n_unique_round6": 20172,
+   "top_value_share": 0.001,
+   "p5": 0.0,
+   "p25": 2.76,
+   "p50": 5.395,
+   "p75": 9.738,
+   "p95": 21.155,
+   "span": 114.01
+  },
+  "shrink|wk_ret1": {
+   "n": 20909,
+   "missing": 0,
+   "missing_rate": 0.0,
+   "n_unique_round6": 18974,
+   "top_value_share": 0.0054,
+   "p5": -1.535,
+   "p25": 2.471,
+   "p50": 5.89,
+   "p75": 11.099,
+   "p95": 24.563,
+   "span": 181.972
+  },
+  "shrink|wk_up_streak": {
+   "n": 20909,
+   "missing": 0,
+   "missing_rate": 0.0,
+   "n_unique_round6": 13,
+   "top_value_share": 0.33,
+   "p5": 0.0,
+   "p25": 1.0,
+   "p50": 2.0,
+   "p75": 3.0,
+   "p95": 4.0,
+   "span": 12.0
+  },
+  "stabilization|wk_close_vs_ma4": {
+   "n": 12620,
+   "missing": 0,
+   "missing_rate": 0.0,
+   "n_unique_round6": 12268,
+   "top_value_share": 0.0013,
+   "p5": -0.636,
+   "p25": 1.789,
+   "p50": 3.862,
+   "p75": 6.963,
+   "p95": 15.334,
+   "span": 65.619
+  },
+  "stabilization|wk_ret1": {
+   "n": 12620,
+   "missing": 0,
+   "missing_rate": 0.0,
+   "n_unique_round6": 11771,
+   "top_value_share": 0.0084,
+   "p5": -6.684,
+   "p25": -1.426,
+   "p50": 1.777,
+   "p75": 5.77,
+   "p95": 14.998,
+   "span": 98.164
+  },
+  "stabilization|wk_up_streak": {
+   "n": 12620,
+   "missing": 0,
+   "missing_rate": 0.0,
+   "n_unique_round6": 11,
+   "top_value_share": 0.3612,
+   "p5": 0.0,
+   "p25": 0.0,
+   "p50": 1.0,
+   "p75": 2.0,
+   "p95": 4.0,
+   "span": 10.0
+  }
+ },
+ "condition_cells_desc": {
+  "breakout": {
+   "quartile_edges_desc_only": [
+    -2.381,
+    3.904,
+    11.859
+   ],
+   "cells": {
+    "q1|0": {
+     "n": 1609,
+     "n_days": 356,
+     "n_stocks": 1367,
+     "n_lifecycles": 1609,
+     "by_fold_b19_22": {
+      "b19": 84,
+      "b20": 422,
+      "b21": 308,
+      "b22": 632
+     }
+    },
+    "q1|1": {
+     "n": 2986,
+     "n_days": 401,
+     "n_stocks": 2243,
+     "n_lifecycles": 2986,
+     "by_fold_b19_22": {
+      "b19": 219,
+      "b20": 730,
+      "b21": 619,
+      "b22": 1142
+     }
+    },
+    "q1|2+": {
+     "n": 1937,
+     "n_days": 351,
+     "n_stocks": 1533,
+     "n_lifecycles": 1937,
+     "by_fold_b19_22": {
+      "b19": 84,
+      "b20": 557,
+      "b21": 334,
+      "b22": 731
+     }
+    },
+    "q2|0": {
+     "n": 1588,
+     "n_days": 375,
+     "n_stocks": 1297,
+     "n_lifecycles": 1588,
+     "by_fold_b19_22": {
+      "b19": 68,
+      "b20": 381,
+      "b21": 627,
+      "b22": 406
+     }
+    },
+    "q2|1": {
+     "n": 3009,
+     "n_days": 440,
+     "n_stocks": 2128,
+     "n_lifecycles": 3009,
+     "by_fold_b19_22": {
+      "b19": 165,
+      "b20": 664,
+      "b21": 1136,
+      "b22": 831
+     }
+    },
+    "q2|2+": {
+     "n": 1934,
+     "n_days": 394,
+     "n_stocks": 1518,
+     "n_lifecycles": 1934,
+     "by_fold_b19_22": {
+      "b19": 120,
+      "b20": 504,
+      "b21": 743,
+      "b22": 445
+     }
+    },
+    "q3|0": {
+     "n": 1500,
+     "n_days": 400,
+     "n_stocks": 1268,
+     "n_lifecycles": 1500,
+     "by_fold_b19_22": {
+      "b19": 97,
+      "b20": 271,
+      "b21": 703,
+      "b22": 336
+     }
+    },
+    "q3|1": {
+     "n": 3010,
+     "n_days": 460,
+     "n_stocks": 2092,
+     "n_lifecycles": 3010,
+     "by_fold_b19_22": {
+      "b19": 200,
+      "b20": 579,
+      "b21": 1378,
+      "b22": 626
+     }
+    },
+    "q3|2+": {
+     "n": 2021,
+     "n_days": 409,
+     "n_stocks": 1599,
+     "n_lifecycles": 2021,
+     "by_fold_b19_22": {
+      "b19": 199,
+      "b20": 403,
+      "b21": 922,
+      "b22": 366
+     }
+    },
+    "q4|0": {
+     "n": 1457,
+     "n_days": 400,
+     "n_stocks": 1178,
+     "n_lifecycles": 1457,
+     "by_fold_b19_22": {
+      "b19": 174,
+      "b20": 217,
+      "b21": 583,
+      "b22": 381
+     }
+    },
+    "q4|1": {
+     "n": 2999,
+     "n_days": 464,
+     "n_stocks": 1980,
+     "n_lifecycles": 2999,
+     "by_fold_b19_22": {
+      "b19": 266,
+      "b20": 517,
+      "b21": 1288,
+      "b22": 753
+     }
+    },
+    "q4|2+": {
+     "n": 2076,
+     "n_days": 399,
+     "n_stocks": 1569,
+     "n_lifecycles": 2076,
+     "by_fold_b19_22": {
+      "b19": 373,
+      "b20": 306,
+      "b21": 793,
+      "b22": 433
+     }
+    }
+   }
+  },
+  "shrink": {
+   "quartile_edges_desc_only": [
+    -0.743,
+    5.613,
+    13.954
+   ],
+   "cells": {
+    "q1|0": {
+     "n": 471,
+     "n_days": 199,
+     "n_stocks": 445,
+     "n_lifecycles": 471,
+     "by_fold_b19_22": {
+      "b19": 20,
+      "b20": 133,
+      "b21": 103,
+      "b22": 171
+     }
+    },
+    "q1|1": {
+     "n": 1914,
+     "n_days": 347,
+     "n_stocks": 1626,
+     "n_lifecycles": 1914,
+     "by_fold_b19_22": {
+      "b19": 66,
+      "b20": 522,
+      "b21": 437,
+      "b22": 742
+     }
+    },
+    "q1|2+": {
+     "n": 2843,
+     "n_days": 404,
+     "n_stocks": 2195,
+     "n_lifecycles": 2843,
+     "by_fold_b19_22": {
+      "b19": 65,
+      "b20": 787,
+      "b21": 654,
+      "b22": 1129
+     }
+    },
+    "q2|0": {
+     "n": 586,
+     "n_days": 258,
+     "n_stocks": 535,
+     "n_lifecycles": 586,
+     "by_fold_b19_22": {
+      "b19": 39,
+      "b20": 118,
+      "b21": 237,
+      "b22": 155
+     }
+    },
+    "q2|1": {
+     "n": 1751,
+     "n_days": 384,
+     "n_stocks": 1401,
+     "n_lifecycles": 1751,
+     "by_fold_b19_22": {
+      "b19": 70,
+      "b20": 366,
+      "b21": 725,
+      "b22": 446
+     }
+    },
+    "q2|2+": {
+     "n": 2890,
+     "n_days": 466,
+     "n_stocks": 2101,
+     "n_lifecycles": 2890,
+     "by_fold_b19_22": {
+      "b19": 149,
+      "b20": 626,
+      "b21": 1183,
+      "b22": 760
+     }
+    },
+    "q3|0": {
+     "n": 560,
+     "n_days": 253,
+     "n_stocks": 523,
+     "n_lifecycles": 560,
+     "by_fold_b19_22": {
+      "b19": 37,
+      "b20": 77,
+      "b21": 261,
+      "b22": 146
+     }
+    },
+    "q3|1": {
+     "n": 1680,
+     "n_days": 389,
+     "n_stocks": 1391,
+     "n_lifecycles": 1680,
+     "by_fold_b19_22": {
+      "b19": 90,
+      "b20": 293,
+      "b21": 824,
+      "b22": 343
+     }
+    },
+    "q3|2+": {
+     "n": 2987,
+     "n_days": 496,
+     "n_stocks": 2118,
+     "n_lifecycles": 2987,
+     "by_fold_b19_22": {
+      "b19": 280,
+      "b20": 482,
+      "b21": 1313,
+      "b22": 702
+     }
+    },
+    "q4|0": {
+     "n": 534,
+     "n_days": 260,
+     "n_stocks": 501,
+     "n_lifecycles": 534,
+     "by_fold_b19_22": {
+      "b19": 37,
+      "b20": 73,
+      "b21": 230,
+      "b22": 151
+     }
+    },
+    "q4|1": {
+     "n": 1556,
+     "n_days": 394,
+     "n_stocks": 1228,
+     "n_lifecycles": 1556,
+     "by_fold_b19_22": {
+      "b19": 162,
+      "b20": 259,
+      "b21": 653,
+      "b22": 377
+     }
+    },
+    "q4|2+": {
+     "n": 3137,
+     "n_days": 477,
+     "n_stocks": 2093,
+     "n_lifecycles": 3137,
+     "by_fold_b19_22": {
+      "b19": 363,
+      "b20": 440,
+      "b21": 1240,
+      "b22": 855
+     }
+    }
+   }
+  },
+  "stabilization": {
+   "quartile_edges_desc_only": [
+    -0.502,
+    5.99,
+    14.158
+   ],
+   "cells": {
+    "q1|0": {
+     "n": 1004,
+     "n_days": 247,
+     "n_stocks": 919,
+     "n_lifecycles": 1004,
+     "by_fold_b19_22": {
+      "b19": 23,
+      "b20": 322,
+      "b21": 183,
+      "b22": 413
+     }
+    },
+    "q1|1": {
+     "n": 564,
+     "n_days": 171,
+     "n_stocks": 527,
+     "n_lifecycles": 564,
+     "by_fold_b19_22": {
+      "b19": 19,
+      "b20": 145,
+      "b21": 167,
+      "b22": 184
+     }
+    },
+    "q1|2+": {
+     "n": 1587,
+     "n_days": 309,
+     "n_stocks": 1382,
+     "n_lifecycles": 1587,
+     "by_fold_b19_22": {
+      "b19": 37,
+      "b20": 400,
+      "b21": 371,
+      "b22": 648
+     }
+    },
+    "q2|0": {
+     "n": 1183,
+     "n_days": 324,
+     "n_stocks": 1030,
+     "n_lifecycles": 1183,
+     "by_fold_b19_22": {
+      "b19": 75,
+      "b20": 239,
+      "b21": 431,
+      "b22": 362
+     }
+    },
+    "q2|1": {
+     "n": 570,
+     "n_days": 201,
+     "n_stocks": 532,
+     "n_lifecycles": 570,
+     "by_fold_b19_22": {
+      "b19": 18,
+      "b20": 112,
+      "b21": 271,
+      "b22": 123
+     }
+    },
+    "q2|2+": {
+     "n": 1402,
+     "n_days": 358,
+     "n_stocks": 1176,
+     "n_lifecycles": 1402,
+     "by_fold_b19_22": {
+      "b19": 60,
+      "b20": 298,
+      "b21": 568,
+      "b22": 368
+     }
+    },
+    "q3|0": {
+     "n": 1147,
+     "n_days": 338,
+     "n_stocks": 1011,
+     "n_lifecycles": 1147,
+     "by_fold_b19_22": {
+      "b19": 117,
+      "b20": 189,
+      "b21": 495,
+      "b22": 263
+     }
+    },
+    "q3|1": {
+     "n": 524,
+     "n_days": 219,
+     "n_stocks": 497,
+     "n_lifecycles": 524,
+     "by_fold_b19_22": {
+      "b19": 22,
+      "b20": 77,
+      "b21": 286,
+      "b22": 111
+     }
+    },
+    "q3|2+": {
+     "n": 1484,
+     "n_days": 389,
+     "n_stocks": 1241,
+     "n_lifecycles": 1484,
+     "by_fold_b19_22": {
+      "b19": 81,
+      "b20": 214,
+      "b21": 722,
+      "b22": 348
+     }
+    },
+    "q4|0": {
+     "n": 1224,
+     "n_days": 346,
+     "n_stocks": 1034,
+     "n_lifecycles": 1224,
+     "by_fold_b19_22": {
+      "b19": 147,
+      "b20": 191,
+      "b21": 493,
+      "b22": 333
+     }
+    },
+    "q4|1": {
+     "n": 456,
+     "n_days": 221,
+     "n_stocks": 437,
+     "n_lifecycles": 456,
+     "by_fold_b19_22": {
+      "b19": 39,
+      "b20": 69,
+      "b21": 214,
+      "b22": 101
+     }
+    },
+    "q4|2+": {
+     "n": 1475,
+     "n_days": 380,
+     "n_stocks": 1196,
+     "n_lifecycles": 1475,
+     "by_fold_b19_22": {
+      "b19": 143,
+      "b20": 192,
+      "b21": 637,
+      "b22": 398
+     }
+    }
+   }
+  }
+ },
+ "risk_set": {
+  "n_lifecycles_distinct": 55646,
+  "n_with_signal_day": 27422,
+  "no_signal_open_ended_60d_cap": 27935,
+  "risk_stock_days_poolin": 1157903,
+  "risk_stocks": 4749,
+  "risk_lifecycles_with_days": 47347,
+  "first_break_signal_days": 27310,
+  "breakout_events_per_lifecycle_gt1": 0,
+  "note": "风险日=生命周期 [anchor,signal) 交易日∩当日月池in; 未突破段以 anchor+60 交易日截断计数(开放段披露); 无结果变量参与"
+ }
+}

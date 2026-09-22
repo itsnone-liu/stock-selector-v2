@@ -74,6 +74,7 @@ def assert_price_only_source() -> None:
 
 
 _FT_CACHE = None
+_SERIES_CACHE: dict[str, dict[str, float] | None] = {}   # code → close 序列缓存
 _FACTOR_SKIP_COUNT = 0    # 因子缺失被跳过的价格行数(应=0, 见断言)
 
 
@@ -94,6 +95,8 @@ def _factor_by_code():
 def load_price_series(code: str) -> dict[str, float]:
     """加载单股复权 close 序列。运行时输入白名单: 仅取 per_stock 行的
     date(第0列)与未复权收盘(第4列)×F——不触碰 volume/amount 列。"""
+    if code in _SERIES_CACHE:
+        return _SERIES_CACHE[code]
     j = json.load(gzip.open(ROOT / f"data/adjustment_baostock/per_stock/{code}.json.gz", "rt"))
     ft = _factor_by_code().get(code, {})
     out = {}
@@ -108,6 +111,7 @@ def load_price_series(code: str) -> dict[str, float]:
             out[d] = c * F
     global _FACTOR_SKIP_COUNT
     _FACTOR_SKIP_COUNT += skipped
+    _SERIES_CACHE[code] = out
     return out
 
 
