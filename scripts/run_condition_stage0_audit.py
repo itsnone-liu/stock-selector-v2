@@ -153,11 +153,13 @@ def main():
                 cache[(code, d)] = (monthly_states(closes, d), weekly_states(closes, d))
         for i, e in enumerate(rows):
             mo, we = cache[(e["code"], e["obs_day"])]
-            for k, v in mo.items():
-                monthly_vals[f"{ds}|{k}"].append(v)
-            for k, v in we.items():
-                weekly_vals[f"{ds}|{k}"].append(v)
-            feat_rows[(ds, i)] = {**mo, **we}
+            feats = {**mo, **we}
+            for k in ("intramonth_pct", "ma_spread_3_6", "price_vs_monthly_ma6",
+                      "ret_1m_completed", "ret_3m_completed", "trend_len_completed"):
+                monthly_vals[f"{ds}|{k}"].append(feats.get(k))   # None 计入缺失分母
+            for k in WEEK_FEATS:
+                weekly_vals[f"{ds}|{k}"].append(feats.get(k))
+            feat_rows[(ds, i)] = feats
         print(f"{ds}: 状态重算完成 {len(rows)} | {time.time()-t0:.0f}s", flush=True)
     rep = {"audit": "MULTIPERIOD_CONDITION_STAGE0", "date": "2026-09-22",
            "monthly_dist": {k: dist_report(v) for k, v in sorted(monthly_vals.items())},
@@ -168,7 +170,7 @@ def main():
         vals = [feat_rows[(ds, i)].get("price_vs_monthly_ma6") for i in range(len(rows))]
         valid = [v for v in vals if v is not None]
         q = np.percentile(valid, [25, 50, 75]) if valid else [0, 0, 0]
-        cellstat = defaultdict(lambda: {"n": 0, "days": set(), "stocks": set(),
+        cellstat = defaultdict(lambda: {"n": 0, "per_day": Counter(), "stocks": set(),
                                         "lifecycles": set(), "by_fold": Counter()})
         for i, e in enumerate(rows):
             v = vals[i]
@@ -181,30 +183,46 @@ def main():
             key = f"{b}|{w}"
             c = cellstat[key]
             c["n"] += 1
-            c["days"].add(e["obs_day"])
+            c["per_day"][e["obs_day"]] += 1
             c["stocks"].add(e["code"])
             c["lifecycles"].add(e["lifecycle_id"])
             c["by_fold"][obs_bucket(e["obs_day"])] += 1
+        def cellout(v):
+            nd = sum(1 for c in v["per_day"].values() if c >= 10)   # 有效 IC 日(≥10 证券)
+            ok1000 = v["n"] >= 1000
+            ok40 = nd >= 40
+            return {"n": v["n"], "n_days_any": len(v["per_day"]),
+                    "n_valid_days_min10stk": nd,
+                    "n_stocks": len(v["stocks"]), "n_lifecycles": len(v["lifecycles"]),
+                    "by_fold_b19_22": {f"b{b}": v["by_fold"].get(b, 0) for b in FOLDS},
+                    "screen_1000ev_40day": "PASS" if (ok1000 and ok40) else
+                    "FAIL(" + ("" if ok1000 else "n<1000 ") + ("" if ok40 else "validday<40") + ")"}
         cells[ds] = {"quartile_edges_desc_only": [round(float(x), 3) for x in q],
-                     "cells": {k: {"n": v["n"], "n_days": len(v["days"]),
-                                   "n_stocks": len(v["stocks"]),
-                                   "n_lifecycles": len(v["lifecycles"]),
-                                   "by_fold_b19_22": {f"b{b}": v["by_fold"].get(b, 0)
-                                                      for b in FOLDS}}
-                              for k, v in sorted(cellstat.items())}}
+                     "screen_rule": "初筛: n>=1000 且 有效日(≥10证券)>=40; 不合并格子",
+                     "cells": {k: cellout(v) for k, v in sorted(cellstat.items())}}
         print(f"{ds}: 格子预览完成 | {time.time()-t0:.0f}s", flush=True)
     rep["condition_cells_desc"] = cells
     # 要求2: 风险集合审计(对照总体)
     import duckdb
     con = duckdb.connect()
-    files = glob.glob(str(ROOT / "output/research/lifecycle_v1/entry_replay_v5_full/partitions/*/*.parquet"))
+    files = glob.glob(str(ROOT / "output/research/lifecycle_v1/lifecycle_stage4_v1_full/**/*.parquet"),
+                      recursive=True)
     df = con.execute(f"""
-        select distinct code, lifecycle_id, anchor_day, signal_day
+        select code, lifecycle_id, anchor_day, breakout_day, end_day,
+               end_reason, right_censored
         from read_parquet({files!r})""").fetchall()
-    lc = {}
-    for code, lid, anchor, signal in df:
-        lc[(code, lid)] = (anchor, signal)
-    print(f"生命周期(distinct): {len(lc)} | 有 signal {sum(1 for a,s in lc.values() if s)} | {time.time()-t0:.0f}s", flush=True)
+    # 唯一性检查: 同 lifecycle_id 的起点/终点/信号日不得冲突(不静默覆盖)
+    seen = {}
+    conflict = 0
+    for code, lid, anchor, bo, end, reason, rc in df:
+        prev = seen.get(lid)
+        if prev is not None and prev != (code, anchor, bo, end, reason, rc):
+            conflict += 1
+        seen[lid] = (code, anchor, bo, end, reason, rc)
+    assert conflict == 0, f"lifecycle_id 记录冲突 {conflict} 条——风险集拒绝构建"
+    lc = {lid: (code, anchor, bo, end, reason, rc) for lid, (code, anchor, bo, end, reason, rc) in seen.items()}
+    n_bo = sum(1 for v in lc.values() if v[2])
+    print(f"生命周期(全量事实表): {len(lc)} | 有 breakout_day {n_bo} | 冲突 {conflict} | {time.time()-t0:.0f}s", flush=True)
     # 6位码→带前缀码映射(identify 全 code 集)
     pref6 = {}
     for ds in ("breakout", "shrink", "stabilization"):
@@ -213,34 +231,38 @@ def main():
                 pref6.setdefault(r["code"].split(".")[-1], r["code"])
     # 月池 in 按日(面板)
     pool_in = defaultdict(dict)             # code -> {date: bool}
-    want_codes = {c.split('.')[-1] for c, _ in lc}
+    want_codes = {v[0].split('.')[-1] if '.' in v[0] else v[0] for v in lc.values()}
     with open(PANEL / "universe_state_panel.csv") as f:
         for r in csv.DictReader(f):
             c6 = r["code"]
             if c6 in want_codes:
                 pool_in[c6][r["date"]] = (r["monthly_pool_state"] == "in")
-    # 风险日: [anchor, signal) ∩ 交易日 ∩ 月池 in; signal 缺→ [anchor, anchor+90d) 截断计数披露
+    # 风险日(P0-2 修正): 有突破段=[anchor, breakout_day); 未突破段=[anchor, min(end_day,
+    # anchor+120 交易日预设观察上限)); 数据末尾右删失段单独披露
     from forward_y40_lib import market_calendar
     mdates, _ = market_calendar()
     mpos = {d: i for i, d in enumerate(mdates)}
     risk_days = 0
     risk_stocks = set()
     risk_lifecycles = 0
-    no_signal_open_ended = 0
+    no_break_lifecycles = 0
+    right_censored_lifecycles = 0
     first_break_events = 0
     dup_break = 0
-    for (code, lid), (anchor, signal) in lc.items():
+    for lid, (code, anchor, bo, end, reason, rc) in lc.items():
         c6 = code.split(".")[-1] if "." in code else code
         full = pref6.get(c6)
         if full is None or anchor not in mpos:
             continue
         a_i = mpos[anchor]
-        if signal and signal in mpos:
-            s_i = mpos[signal]
+        if bo and bo in mpos:
+            s_i = mpos[bo]                        # 突破信号日停止计入
         else:
-            s_i = min(a_i + 60, len(mdates) - 1)     # ~3 个月截断(未突破段)
-            if not signal:
-                no_signal_open_ended += 1
+            no_break_lifecycles += 1
+            cap = mpos.get(end, len(mdates)) if end else len(mdates) - 1
+            s_i = min(cap, a_i + 120, len(mdates) - 1)   # 实际 end 与预设上限较早者
+            if reason == "data_end" or rc:
+                right_censored_lifecycles += 1
         closes_days = None
         try:
             closes_days = sorted(load_price_series(full).keys())
@@ -256,24 +278,31 @@ def main():
             risk_days += added
             risk_stocks.add(code)
             risk_lifecycles += 1
-        if signal and signal in dayset:
+        if bo and bo in dayset:
             first_break_events += 1
     # 每生命周期突破次数(identify_breakout 主样本口径)
     bo_lc = Counter(e["lifecycle_id"] for e in events["breakout"])
     dup_break = sum(1 for v in bo_lc.values() if v > 1)
+    from multiperiod_lib import _FACTOR_SKIP_COUNT
+    assert _FACTOR_SKIP_COUNT == 0, f"复权因子缺失 {_FACTOR_SKIP_COUNT} 行(应=0)"
     rep["risk_set"] = {
+        "source": "lifecycle_stage4_v1_full(全量生命周期事实表; 非策略回放 signal)",
         "n_lifecycles_distinct": len(lc),
-        "n_with_signal_day": sum(1 for a, s in lc.values() if s),
-        "no_signal_open_ended_60d_cap": no_signal_open_ended,
+        "record_conflicts": conflict,
+        "n_with_breakout_day": n_bo,
+        "no_break_lifecycles": no_break_lifecycles,
+        "no_break_right_censored": right_censored_lifecycles,
         "risk_stock_days_poolin": risk_days,
         "risk_stocks": len(risk_stocks),
         "risk_lifecycles_with_days": risk_lifecycles,
-        "first_break_signal_days": first_break_events,
+        "first_break_day_events": first_break_events,
         "breakout_events_per_lifecycle_gt1": dup_break,
-        "note": ("风险日=生命周期 [anchor,signal) 交易日∩当日月池in; 未突破段以 anchor+60 交易日"
-                 "截断计数(开放段披露); 无结果变量参与")}
+        "note": ("风险日=生命周期 [anchor,breakout_day) 交易日∩当日月池in; 未突破段=[anchor, "
+                 "min(end_day, anchor+120交易日)); 数据末尾右删失段已单独计数; "
+                 "同 lifecycle_id 起终点冲突=0(断言); 无结果变量参与")}
     print(f"风险集: {rep['risk_set']['risk_stock_days_poolin']} 股票-日 | "
-          f"{first_break_events} 首突信号日 | 生命周期重复突破 {dup_break} | {time.time()-t0:.0f}s", flush=True)
+          f"{first_break_events} 首突日 | 未突破段 {no_break_lifecycles}(右删失 {right_censored_lifecycles}) "
+          f"| 重复突破 {dup_break} | 因子缺失断言过 | {time.time()-t0:.0f}s", flush=True)
     (OUT / "MULTIPERIOD_CONDITION_STAGE0.json").write_text(json.dumps(rep, ensure_ascii=False, indent=1))
     print(f"→ MULTIPERIOD_CONDITION_STAGE0.json | {time.time()-t0:.0f}s")
 

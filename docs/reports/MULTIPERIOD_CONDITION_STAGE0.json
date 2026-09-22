@@ -363,10 +363,12 @@
     3.904,
     11.859
    ],
+   "screen_rule": "初筛: n>=1000 且 有效日(≥10证券)>=40; 不合并格子",
    "cells": {
     "q1|0": {
      "n": 1609,
-     "n_days": 356,
+     "n_days_any": 356,
+     "n_valid_days_min10stk": 30,
      "n_stocks": 1367,
      "n_lifecycles": 1609,
      "by_fold_b19_22": {
@@ -374,11 +376,13 @@
       "b20": 422,
       "b21": 308,
       "b22": 632
-     }
+     },
+     "screen_1000ev_40day": "FAIL(validday<40)"
     },
     "q1|1": {
      "n": 2986,
-     "n_days": 401,
+     "n_days_any": 401,
+     "n_valid_days_min10stk": 81,
      "n_stocks": 2243,
      "n_lifecycles": 2986,
      "by_fold_b19_22": {
@@ -386,11 +390,13 @@
       "b20": 730,
       "b21": 619,
       "b22": 1142
-     }
+     },
+     "screen_1000ev_40day": "PASS"
     },
     "q1|2+": {
      "n": 1937,
-     "n_days": 351,
+     "n_days_any": 351,
+     "n_valid_days_min10stk": 46,
      "n_stocks": 1533,
      "n_lifecycles": 1937,
      "by_fold_b19_22": {
@@ -398,11 +404,13 @@
       "b20": 557,
       "b21": 334,
       "b22": 731
-     }
+     },
+     "screen_1000ev_40day": "PASS"
     },
     "q2|0": {
      "n": 1588,
-     "n_days": 375,
+     "n_days_any": 375,
+     "n_valid_days_min10stk": 40,
      "n_stocks": 1297,
      "n_lifecycles": 1588,
      "by_fold_b19_22": {
@@ -410,11 +418,13 @@
       "b20": 381,
       "b21": 627,
       "b22": 406
-     }
+     },
+     "screen_1000ev_40day": "PASS"
     },
     "q2|1": {
      "n": 3009,
-     "n_days": 440,
+     "n_days_any": 440,
+     "n_valid_days_min10stk": 91,
      "n_stocks": 2128,
      "n_lifecycles": 3009,
      "by_fold_b19_22": {
@@ -422,11 +432,13 @@
       "b20": 664,
       "b21": 1136,
       "b22": 831
-     }
+     },
+     "screen_1000ev_40day": "PASS"
     },
     "q2|2+": {
      "n": 1934,
-     "n_days": 394,
+     "n_days_any": 394,
+     "n_valid_days_min10stk": 49,
      "n_stocks": 1518,
      "n_lifecycles": 1934,
      "by_fold_b19_22": {
@@ -434,11 +446,13 @@
       "b20": 504,
       "b21": 743,
       "b22": 445
-     }
+     },
+     "screen_1000ev_40day": "PASS"
     },
     "q3|0": {
      "n": 1500,
-     "n_days": 400,
+     "n_days_any": 400,
+     "n_valid_days_min10stk": 34,
      "n_stocks": 1268,
      "n_lifecycles": 1500,
      "by_fold_b19_22": {
@@ -446,11 +460,13 @@
       "b20": 271,
       "b21": 703,
       "b22": 336
-     }
+     },
+     "screen_1000ev_40day": "FAIL(validday<40)"
     },
     "q3|1": {
      "n": 3010,
-     "n_days": 460,
+     "n_days_any": 460,
+     "n_valid_days_min10stk": 87,
      "n_stocks": 2092,
      "n_lifecycles": 3010,
      "by_fold_b19_22": {
@@ -458,11 +474,13 @@
       "b20": 579,
       "b21": 1378,
       "b22": 626
-     }
+     },
+     "screen_1000ev_40day": "PASS"
     },
     "q3|2+": {
      "n": 2021,
-     "n_days": 409,
+     "n_days_any": 409,
+     "n_valid_days_min10stk": 51,
      "n_stocks": 1599,
      "n_lifecycles": 2021,
      "by_fold_b19_22": {
@@ -470,11 +488,13 @@
       "b20": 403,
       "b21": 922,
       "b22": 366
-     }
+     },
+     "screen_1000ev_40day": "PASS"
     },
     "q4|0": {
      "n": 1457,
-     "n_days": 400,
+     "n_days_any": 400,
+     "n_valid_days_min10stk": 24,
      "n_stocks": 1178,
      "n_lifecycles": 1457,
      "by_fold_b19_22": {
@@ -482,11 +502,13 @@
       "b20": 217,
       "b21": 583,
       "b22": 381
-     }
+     },
+     "screen_1000ev_40day": "FAIL(validday<40)"
     },
     "q4|1": {
      "n": 2999,
-     "n_days": 464,
+     "n_days_any": 464,
+     "n_valid_days_min10stk": 87,
      "n_stocks": 1980,
      "n_lifecycles": 2999,
      "by_fold_b19_22": {
@@ -494,11 +516,13 @@
       "b20": 517,
       "b21": 1288,
       "b22": 753
-     }
+     },
+     "screen_1000ev_40day": "PASS"
     },
     "q4|2+": {
      "n": 2076,
-     "n_days": 399,
+     "n_days_any": 399,
+     "n_valid_days_min10stk": 55,
      "n_stocks": 1569,
      "n_lifecycles": 2076,
      "by_fold_b19_22": {
@@ -506,7 +530,8 @@
       "b20": 306,
       "b21": 793,
       "b22": 433
-     }
+     },
+     "screen_1000ev_40day": "PASS"
     }
    }
   },
@@ -516,10 +541,12 @@
     5.613,
     13.954
    ],
+   "screen_rule": "初筛: n>=1000 且 有效日(≥10证券)>=40; 不合并格子",
    "cells": {
     "q1|0": {
      "n": 471,
-     "n_days": 199,
+     "n_days_any": 199,
+     "n_valid_days_min10stk": 4,
      "n_stocks": 445,
      "n_lifecycles": 471,
      "by_fold_b19_22": {
@@ -527,11 +554,13 @@
       "b20": 133,
       "b21": 103,
       "b22": 171
-     }
+     },
+     "screen_1000ev_40day": "FAIL(n<1000 validday<40)"
     },
     "q1|1": {
      "n": 1914,
-     "n_days": 347,
+     "n_days_any": 347,
+     "n_valid_days_min10stk": 42,
      "n_stocks": 1626,
      "n_lifecycles": 1914,
      "by_fold_b19_22": {
@@ -539,11 +568,13 @@
       "b20": 522,
       "b21": 437,
       "b22": 742
-     }
+     },
+     "screen_1000ev_40day": "PASS"
     },
     "q1|2+": {
      "n": 2843,
-     "n_days": 404,
+     "n_days_any": 404,
+     "n_valid_days_min10stk": 93,
      "n_stocks": 2195,
      "n_lifecycles": 2843,
      "by_fold_b19_22": {
@@ -551,11 +582,13 @@
       "b20": 787,
       "b21": 654,
       "b22": 1129
-     }
+     },
+     "screen_1000ev_40day": "PASS"
     },
     "q2|0": {
      "n": 586,
-     "n_days": 258,
+     "n_days_any": 258,
+     "n_valid_days_min10stk": 7,
      "n_stocks": 535,
      "n_lifecycles": 586,
      "by_fold_b19_22": {
@@ -563,11 +596,13 @@
       "b20": 118,
       "b21": 237,
       "b22": 155
-     }
+     },
+     "screen_1000ev_40day": "FAIL(n<1000 validday<40)"
     },
     "q2|1": {
      "n": 1751,
-     "n_days": 384,
+     "n_days_any": 384,
+     "n_valid_days_min10stk": 48,
      "n_stocks": 1401,
      "n_lifecycles": 1751,
      "by_fold_b19_22": {
@@ -575,11 +610,13 @@
       "b20": 366,
       "b21": 725,
       "b22": 446
-     }
+     },
+     "screen_1000ev_40day": "PASS"
     },
     "q2|2+": {
      "n": 2890,
-     "n_days": 466,
+     "n_days_any": 466,
+     "n_valid_days_min10stk": 94,
      "n_stocks": 2101,
      "n_lifecycles": 2890,
      "by_fold_b19_22": {
@@ -587,11 +624,13 @@
       "b20": 626,
       "b21": 1183,
       "b22": 760
-     }
+     },
+     "screen_1000ev_40day": "PASS"
     },
     "q3|0": {
      "n": 560,
-     "n_days": 253,
+     "n_days_any": 253,
+     "n_valid_days_min10stk": 3,
      "n_stocks": 523,
      "n_lifecycles": 560,
      "by_fold_b19_22": {
@@ -599,11 +638,13 @@
       "b20": 77,
       "b21": 261,
       "b22": 146
-     }
+     },
+     "screen_1000ev_40day": "FAIL(n<1000 validday<40)"
     },
     "q3|1": {
      "n": 1680,
-     "n_days": 389,
+     "n_days_any": 389,
+     "n_valid_days_min10stk": 42,
      "n_stocks": 1391,
      "n_lifecycles": 1680,
      "by_fold_b19_22": {
@@ -611,11 +652,13 @@
       "b20": 293,
       "b21": 824,
       "b22": 343
-     }
+     },
+     "screen_1000ev_40day": "PASS"
     },
     "q3|2+": {
      "n": 2987,
-     "n_days": 496,
+     "n_days_any": 496,
+     "n_valid_days_min10stk": 99,
      "n_stocks": 2118,
      "n_lifecycles": 2987,
      "by_fold_b19_22": {
@@ -623,11 +666,13 @@
       "b20": 482,
       "b21": 1313,
       "b22": 702
-     }
+     },
+     "screen_1000ev_40day": "PASS"
     },
     "q4|0": {
      "n": 534,
-     "n_days": 260,
+     "n_days_any": 260,
+     "n_valid_days_min10stk": 2,
      "n_stocks": 501,
      "n_lifecycles": 534,
      "by_fold_b19_22": {
@@ -635,11 +680,13 @@
       "b20": 73,
       "b21": 230,
       "b22": 151
-     }
+     },
+     "screen_1000ev_40day": "FAIL(n<1000 validday<40)"
     },
     "q4|1": {
      "n": 1556,
-     "n_days": 394,
+     "n_days_any": 394,
+     "n_valid_days_min10stk": 34,
      "n_stocks": 1228,
      "n_lifecycles": 1556,
      "by_fold_b19_22": {
@@ -647,11 +694,13 @@
       "b20": 259,
       "b21": 653,
       "b22": 377
-     }
+     },
+     "screen_1000ev_40day": "FAIL(validday<40)"
     },
     "q4|2+": {
      "n": 3137,
-     "n_days": 477,
+     "n_days_any": 477,
+     "n_valid_days_min10stk": 105,
      "n_stocks": 2093,
      "n_lifecycles": 3137,
      "by_fold_b19_22": {
@@ -659,7 +708,8 @@
       "b20": 440,
       "b21": 1240,
       "b22": 855
-     }
+     },
+     "screen_1000ev_40day": "PASS"
     }
    }
   },
@@ -669,10 +719,12 @@
     5.99,
     14.158
    ],
+   "screen_rule": "初筛: n>=1000 且 有效日(≥10证券)>=40; 不合并格子",
    "cells": {
     "q1|0": {
      "n": 1004,
-     "n_days": 247,
+     "n_days_any": 247,
+     "n_valid_days_min10stk": 24,
      "n_stocks": 919,
      "n_lifecycles": 1004,
      "by_fold_b19_22": {
@@ -680,11 +732,13 @@
       "b20": 322,
       "b21": 183,
       "b22": 413
-     }
+     },
+     "screen_1000ev_40day": "FAIL(validday<40)"
     },
     "q1|1": {
      "n": 564,
-     "n_days": 171,
+     "n_days_any": 171,
+     "n_valid_days_min10stk": 12,
      "n_stocks": 527,
      "n_lifecycles": 564,
      "by_fold_b19_22": {
@@ -692,11 +746,13 @@
       "b20": 145,
       "b21": 167,
       "b22": 184
-     }
+     },
+     "screen_1000ev_40day": "FAIL(n<1000 validday<40)"
     },
     "q1|2+": {
      "n": 1587,
-     "n_days": 309,
+     "n_days_any": 309,
+     "n_valid_days_min10stk": 41,
      "n_stocks": 1382,
      "n_lifecycles": 1587,
      "by_fold_b19_22": {
@@ -704,11 +760,13 @@
       "b20": 400,
       "b21": 371,
       "b22": 648
-     }
+     },
+     "screen_1000ev_40day": "PASS"
     },
     "q2|0": {
      "n": 1183,
-     "n_days": 324,
+     "n_days_any": 324,
+     "n_valid_days_min10stk": 26,
      "n_stocks": 1030,
      "n_lifecycles": 1183,
      "by_fold_b19_22": {
@@ -716,11 +774,13 @@
       "b20": 239,
       "b21": 431,
       "b22": 362
-     }
+     },
+     "screen_1000ev_40day": "FAIL(validday<40)"
     },
     "q2|1": {
      "n": 570,
-     "n_days": 201,
+     "n_days_any": 201,
+     "n_valid_days_min10stk": 9,
      "n_stocks": 532,
      "n_lifecycles": 570,
      "by_fold_b19_22": {
@@ -728,11 +788,13 @@
       "b20": 112,
       "b21": 271,
       "b22": 123
-     }
+     },
+     "screen_1000ev_40day": "FAIL(n<1000 validday<40)"
     },
     "q2|2+": {
      "n": 1402,
-     "n_days": 358,
+     "n_days_any": 358,
+     "n_valid_days_min10stk": 35,
      "n_stocks": 1176,
      "n_lifecycles": 1402,
      "by_fold_b19_22": {
@@ -740,11 +802,13 @@
       "b20": 298,
       "b21": 568,
       "b22": 368
-     }
+     },
+     "screen_1000ev_40day": "FAIL(validday<40)"
     },
     "q3|0": {
      "n": 1147,
-     "n_days": 338,
+     "n_days_any": 338,
+     "n_valid_days_min10stk": 23,
      "n_stocks": 1011,
      "n_lifecycles": 1147,
      "by_fold_b19_22": {
@@ -752,11 +816,13 @@
       "b20": 189,
       "b21": 495,
       "b22": 263
-     }
+     },
+     "screen_1000ev_40day": "FAIL(validday<40)"
     },
     "q3|1": {
      "n": 524,
-     "n_days": 219,
+     "n_days_any": 219,
+     "n_valid_days_min10stk": 8,
      "n_stocks": 497,
      "n_lifecycles": 524,
      "by_fold_b19_22": {
@@ -764,11 +830,13 @@
       "b20": 77,
       "b21": 286,
       "b22": 111
-     }
+     },
+     "screen_1000ev_40day": "FAIL(n<1000 validday<40)"
     },
     "q3|2+": {
      "n": 1484,
-     "n_days": 389,
+     "n_days_any": 389,
+     "n_valid_days_min10stk": 34,
      "n_stocks": 1241,
      "n_lifecycles": 1484,
      "by_fold_b19_22": {
@@ -776,11 +844,13 @@
       "b20": 214,
       "b21": 722,
       "b22": 348
-     }
+     },
+     "screen_1000ev_40day": "FAIL(validday<40)"
     },
     "q4|0": {
      "n": 1224,
-     "n_days": 346,
+     "n_days_any": 346,
+     "n_valid_days_min10stk": 27,
      "n_stocks": 1034,
      "n_lifecycles": 1224,
      "by_fold_b19_22": {
@@ -788,11 +858,13 @@
       "b20": 191,
       "b21": 493,
       "b22": 333
-     }
+     },
+     "screen_1000ev_40day": "FAIL(validday<40)"
     },
     "q4|1": {
      "n": 456,
-     "n_days": 221,
+     "n_days_any": 221,
+     "n_valid_days_min10stk": 3,
      "n_stocks": 437,
      "n_lifecycles": 456,
      "by_fold_b19_22": {
@@ -800,11 +872,13 @@
       "b20": 69,
       "b21": 214,
       "b22": 101
-     }
+     },
+     "screen_1000ev_40day": "FAIL(n<1000 validday<40)"
     },
     "q4|2+": {
      "n": 1475,
-     "n_days": 380,
+     "n_days_any": 380,
+     "n_valid_days_min10stk": 29,
      "n_stocks": 1196,
      "n_lifecycles": 1475,
      "by_fold_b19_22": {
@@ -812,20 +886,24 @@
       "b20": 192,
       "b21": 637,
       "b22": 398
-     }
+     },
+     "screen_1000ev_40day": "FAIL(validday<40)"
     }
    }
   }
  },
  "risk_set": {
+  "source": "lifecycle_stage4_v1_full(全量生命周期事实表; 非策略回放 signal)",
   "n_lifecycles_distinct": 55646,
-  "n_with_signal_day": 27422,
-  "no_signal_open_ended_60d_cap": 27935,
-  "risk_stock_days_poolin": 1157903,
+  "record_conflicts": 0,
+  "n_with_breakout_day": 27422,
+  "no_break_lifecycles": 27935,
+  "no_break_right_censored": 256,
+  "risk_stock_days_poolin": 294722,
   "risk_stocks": 4749,
-  "risk_lifecycles_with_days": 47347,
-  "first_break_signal_days": 27310,
+  "risk_lifecycles_with_days": 47310,
+  "first_break_day_events": 27310,
   "breakout_events_per_lifecycle_gt1": 0,
-  "note": "风险日=生命周期 [anchor,signal) 交易日∩当日月池in; 未突破段以 anchor+60 交易日截断计数(开放段披露); 无结果变量参与"
+  "note": "风险日=生命周期 [anchor,breakout_day) 交易日∩当日月池in; 未突破段=[anchor, min(end_day, anchor+120交易日)); 数据末尾右删失段已单独计数; 同 lifecycle_id 起终点冲突=0(断言); 无结果变量参与"
  }
 }
