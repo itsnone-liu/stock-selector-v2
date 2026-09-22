@@ -53,18 +53,16 @@ def classify(i, bo_i, end_i, mkt, n_md):
     ev_i = bo_i if (bo_i is not None and i < bo_i <= obs_last) else None
     cp_i = end_i if (mkt and end_i is not None and i < end_i <= obs_last) else None
     ad_i = n_md - 1 if obs_last < i + 5 else None
-    cands = [x for x in ((ev_i, "event"), (cp_i, "competing")) if x[0] is not None]
+    # 行政终止候选(二十一轮 P0-2): 非市场性退出落入窗内=行政终止日期,
+    # 与突破/竞争统一排序; 并列优先级(保守): 竞争 > 行政终止 > 事件
+    ae_i = end_i if (not mkt and end_i is not None and i < end_i <= obs_last) else None
+    prio = {"competing": 0, "censor_admin": 1, "event": 2}
+    cands = [x for x in ((ev_i, "event"), (cp_i, "competing"), (ae_i, "censor_admin")) if x[0] is not None]
     if cands:
-        cands.sort(key=lambda x: x[0])
-        if len(cands) > 1 and cands[0][0] == cands[1][0]:
-            return "competing"
+        cands.sort(key=lambda x: (x[0], prio[x[1]]))
         return cands[0][1]
     if ad_i is not None:
-        assert not (bo_i is not None and i < bo_i <= ad_i), "行政先于突破未处理"
-        assert not (mkt and end_i is not None and i < end_i <= ad_i), "行政先于市场退出未处理"
-        return "censor_admin"
-    if end_i is not None and i < end_i <= obs_last:
-        return "censor_admin"
+        return "censor_admin"   # 日历尾截断窗内无任何终点(bo/end 均不在截断窗内——cands 已滤)
     return "censor_window"
 
 
@@ -93,12 +91,12 @@ def main():
     seen_pairs = set()          # (code, date) 唯一性断言
     seg_obs = []                # 每生命周期段观察日数
     stock_obs = Counter()       # 每股跨段累计
-    boundary_gaps = Counter()   # 跨段边界相邻观察间隔
     train_feats = []            # (b19-21) 特征
     test_rows = []              # b22: (day, pvm6, streak, 终点类别)
     n_bo_excluded = 0
 
-    prev_global = None   # 跨段保留(二十轮修复: 原在段内重置致边界统计恒空)
+    prev_global = None
+    bo_eq_end_n = [0]    # bo==end 段数(突破当日即段末, 合法)   # 跨段保留(二十轮修复: 原在段内重置致边界统计恒空)
     for lid, (code, anchor, bo, end, reason) in sorted(lc.items()):
         c6 = code.split(".")[-1] if "." in code else code
         full = cmap.get(c6)
@@ -115,6 +113,11 @@ def main():
         days = [d for d in mdates[a_i:s_i] if d in dayset and pin.get(d)]
         bo_i = mpos[bo] if (bo and bo in mpos) else None
         end_i = mpos.get(end) if end in mpos else None
+        if bo_i is not None and end_i is not None:
+            # 不变量(二十一轮修正): bo<=end; bo==end=突破当日即段末(合法, 计数披露)
+            assert bo_i <= end_i, f"生命周期不变量违反: bo={bo} > end={end} (code={c6})"
+            if bo_i == end_i:
+                bo_eq_end_n[0] += 1
         mkt = reason in MARKET_EXITS
         seg_n = 0
         for d in days:
@@ -124,9 +127,7 @@ def main():
                 continue
             assert (c6, d) not in seen_pairs, f"(code,date) 重复: {c6} {d}"
             seen_pairs.add((c6, d))
-            if prev_global is not None:
-                if prev_global[1] and i > prev_global[0]:   # 跨段边界且时间在后(段处理序非时间序, 负跳不计)
-                    boundary_gaps[i - prev_global[0]] += 1
+            # 跨段 gap 指标已删(二十一轮 P1-2: prev_global 跨股票混合不可解释)
             cls = classify(i, bo_i, end_i, mkt, n_md)
             b = obs_bucket(d)
             allp["obs"] += 1
@@ -175,9 +176,11 @@ def main():
             day_groups[d][0].add(ga)
             day_groups[d][1].add(gb)
     eff_days_a = sorted(d for d, (ga, _) in day_groups.items() if "low" in ga and "high" in ga)
-    eff_days_b = sorted(d for d, (_, gb) in day_groups.items() if "s0" in gb and "s3p" in gb)
+    eff_days_b = sorted(d for d, (_, gb) in day_groups.items() if "s0" in gb and ("s2" in gb or "s3p" in gb))
     def n_blocks(days_sorted, block=40):
         return max(1, int(np.ceil(len(days_sorted) / block))) if days_sorted else 0
+    # 二十一轮: 主检验重抽时间轴=完整 b22 指数交易日序列(缺组日记 (0,0));
+    # 同日双组覆盖仅作诊断, 不改变主样本(见 H2_PREREG v1.1)
 
     ps = np.array(list(stock_obs.values()))
     rep = {"audit": "MULTIPERIOD_CONDITION_QA_COVERAGE", "version": "v2-十九轮修复",
@@ -193,7 +196,7 @@ def main():
                      "obs_per_stock_max": int(ps.max()),
                      "obs_per_segment_p50": float(np.percentile(seg_obs, 50)),
                      "code_date_unique_assert": "passed"},
-           "boundary_gap_hist": {str(k): int(v) for k, v in sorted(boundary_gaps.items())},
+           "boundary_gap_note": "已删(二十一轮): 原实现跨股票混合日期, 不可解释; 如需须按股票分组按日期排序重算",
            "by_fold": {str(f): dict(c) for f, c in per_fold.items()},
            "all_periods": dict(allp),
            "h2_group_coverage": {
