@@ -1,0 +1,45 @@
+{
+ "audit": "multiperiod_alignment_v1_1",
+ "panel": {
+  "range": "2024-01-02→2026-09-01"
+ },
+ "counts": {
+  "stage_events": {
+   "breakout": 27285,
+   "shrink": 21502,
+   "stabilization": 13020
+  },
+  "stage_events_sum": 61807,
+  "stock_day_pairs": 60306,
+  "note": "阶段事件=分时点计数; 股票-日期组合=去重分母(交叉表用); 不混称"
+ },
+ "out_of_panel_range": {},
+ "fold_distribution_b19_b22": {
+  "breakout": {
+   "b19": 2049,
+   "b20": 5551,
+   "b21": 9434,
+   "b22": 7082
+  },
+  "shrink": {
+   "b19": 1378,
+   "b20": 4176,
+   "b21": 7860,
+   "b22": 5977
+  },
+  "stabilization": {
+   "b19": 781,
+   "b20": 2448,
+   "b21": 4838,
+   "b22": 3652
+  }
+ },
+ "in_range_missing": {},
+ "coverage": {
+  "panel_codes": 5191,
+  "frozen_codes": 4760,
+  "intersection": 4760,
+  "frozen_not_in_panel": 0,
+  "panel_not_in_frozen": 431
+ }
+}
