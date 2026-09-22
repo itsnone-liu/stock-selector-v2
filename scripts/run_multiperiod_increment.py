@@ -197,8 +197,13 @@ def run_stage(ds: str) -> dict:
         if tot == 0:
             grp[str(g)] = {"n": len(sub), "verdict": "不可检验(无有效日)"}
         else:
+            # 组内区间(2026-09-22 三轮收尾: 设计§5.3 要求点估计+区间)
+            boot = block_boot_delta(fold_icd)
             grp[str(g)] = {"n": len(sub), "n_valid_days": tot,
-                           "point": round(float(sum(pts) / tot), 5)}
+                           "point": round(float(sum(pts) / tot), 5),
+                           "ci95": [round(float(np.percentile(boot, 2.5)), 5),
+                                    round(float(np.percentile(boot, 97.5)), 5)],
+                           "note": "组内区间; 组间差异未做正式检验(探索性)"}
     rep["group_diag_mc_pos"] = grp
     rep["n_main"] = len(main)
     rep["folds"] = fold_rows
@@ -244,12 +249,32 @@ def run_stage(ds: str) -> dict:
     return rep
 
 
+def _input_fingerprint() -> dict:
+    """输入数据指纹(md5): identify 三时点+factor_table+per_stock 抽样计数。"""
+    import hashlib
+    fp = {}
+    for ds in ("breakout", "shrink", "stabilization"):
+        b = (OUT / f"identify_{ds}.csv.gz").read_bytes()
+        fp[f"identify_{ds}"] = hashlib.md5(b).hexdigest()[:16]
+    b = (ROOT / "output/research/adjustment_v1/factor_table.csv.gz").read_bytes()
+    fp["factor_table"] = hashlib.md5(b).hexdigest()[:16]
+    return fp
+
+
 def main():
     t0 = time.time()
     assert_price_only_source()
     print("A1 零量能源审计通过", flush=True)
+    import subprocess
+    head = subprocess.run(["git", "rev-parse", "HEAD"], cwd=ROOT,
+                          capture_output=True, text=True).stdout.strip()
+    dirty = subprocess.run(["git", "status", "--porcelain", "scripts/"], cwd=ROOT,
+                           capture_output=True, text=True).stdout.strip()
     report = {"experiment": "MULTIPERIOD_INCREMENT_V1",
               "design": "MULTIPERIOD_INCREMENT_DESIGN_V1 @ b42fe58",
+              "results_code_head": head,
+              "results_code_dirty_files": dirty.splitlines(),
+              "input_baseline_head": _input_fingerprint(),
               "seed": SEED, "boot": BOOT, "models_run": ["A0", "B0", "A1", "B1"],
               "b2_run": False, "stages": {}}
     for ds in ("breakout", "shrink", "stabilization"):
@@ -278,6 +303,7 @@ def main():
                           "raw_p": {n: p for n, p in comps},
                           "holm_adj_p": {n: float(a) for n, a in zip(names, padj)},
                           "family_size": len(names)}
+    report["factor_missing_skipped_assert"] = "assert==0 in build_a1_features"
     report["elapsed_s"] = round(time.time() - t0, 1)
     (OUT / "MULTIPERIOD_INCREMENT_V1.json").write_text(
         json.dumps(report, ensure_ascii=False, indent=1))

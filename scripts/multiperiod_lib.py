@@ -74,6 +74,7 @@ def assert_price_only_source() -> None:
 
 
 _FT_CACHE = None
+_FACTOR_SKIP_COUNT = 0    # 因子缺失被跳过的价格行数(应=0, 见断言)
 
 
 def _factor_by_code():
@@ -96,11 +97,17 @@ def load_price_series(code: str) -> dict[str, float]:
     j = json.load(gzip.open(ROOT / f"data/adjustment_baostock/per_stock/{code}.json.gz", "rt"))
     ft = _factor_by_code().get(code, {})
     out = {}
+    skipped = 0
     for row in j["unadj"]:
         d, c = row[0], float(row[4])          # 白名单: 仅 date/close
-        F = ft.get(d, 1.0)
+        F = ft.get(d)
+        if F is None:                          # 复权因子缺失→不生成该日价格(不默认1)
+            skipped += 1
+            continue
         if c > 0 and F > 0:
             out[d] = c * F
+    global _FACTOR_SKIP_COUNT
+    _FACTOR_SKIP_COUNT += skipped
     return out
 
 
@@ -119,4 +126,7 @@ def build_a1_features(events: list[dict]) -> dict[tuple[str, str], dict]:
             continue
         for d in days:
             table[(code, d)] = weekly_price_feats(closes, d)
+    # 覆盖计数断言: 因子缺失跳过数必须为 0(否则 A1 特征可能基于错缺价格)
+    assert _FACTOR_SKIP_COUNT == 0, (
+        f"复权因子缺失 { _FACTOR_SKIP_COUNT } 行被跳过——A1 特征覆盖受损, 须先对账")
     return table
