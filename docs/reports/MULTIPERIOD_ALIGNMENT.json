@@ -4,14 +4,20 @@
   "range": "2024-01-02→2026-09-01"
  },
  "counts": {
-  "stage_events": {
+  "stage_events_main": {
+   "breakout": 26126,
+   "shrink": 20909,
+   "stabilization": 12620
+  },
+  "stage_events_main_sum": 59655,
+  "stage_events_eligible": {
    "breakout": 27285,
    "shrink": 21502,
    "stabilization": 13020
   },
-  "stage_events_sum": 61807,
-  "stock_day_pairs": 60306,
-  "note": "阶段事件=分时点计数; 股票-日期组合=去重分母(交叉表用); 不混称"
+  "stage_events_eligible_sum": 61807,
+  "stock_day_pairs": 58214,
+  "note": "主样本=build_events 完整窗口; 资格总体=eligibility_forward_v1 全量(含末端删失+停牌近似); 阶段事件分时点计数; 股票-日期组合=去重分母"
  },
  "out_of_panel_range": {},
  "fold_distribution_b19_b22": {
@@ -37,9 +43,10 @@
  "in_range_missing": {},
  "coverage": {
   "panel_codes": 5191,
-  "frozen_codes": 4760,
+  "identify_codes": 4760,
   "intersection": 4760,
-  "frozen_not_in_panel": 0,
-  "panel_not_in_frozen": 431
+  "identify_not_in_panel": 0,
+  "panel_not_in_identify": 431,
+  "note": "identify_codes≠冻结股票清单(5,240); 库级对账需读真实冻结清单, 本审计未做"
  }
 }

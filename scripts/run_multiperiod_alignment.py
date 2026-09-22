@@ -2,10 +2,10 @@
 # -*- coding: utf-8 -*-
 """run_multiperiod_alignment.py — 多周期设计前置对齐审计 v1.1(2026-09-22).
 
-遵用户复审: 以已封存 forward_y40_association_v1 主分析事件(不截断)为左表,
-核对观察日背景面板匹配率/缺失率/各折分布, 并检查面板股票库与冻结库覆盖关系。
-口径: ①阶段事件数(分时点计数, 同股同日多阶段各计一次) ②股票-日期组合数
-(交叉表分母)——两者分开报告不混称事件总数。
+遵用户复审(2026-09-22 二轮): 以 build_events() 主样本(完整窗口, 排除末端
+删失与停牌近似)为左表; 61,807 条资格总体(eligibility_forward_v1)单独统计。
+口径: ①阶段事件数(分时点计数) ②股票-日期组合数(去重分母)——分开报告。
+identify_codes(非冻结股票清单)改名, 冻结库对账另行读取真实清单。
 """
 import csv
 import gzip
@@ -30,13 +30,17 @@ def main():
     t0 = time.time()
     mdates, _ = market_calendar()
     mpos = {d: i for i, d in enumerate(mdates)}
-    # 1) 左表: 主分析事件(全部活跃资格, 无日期截断)
-    events = {}
+    # 1) 左表: build_events() 主样本(完整窗口主分析; 停牌近似/末端删失另行计数)
+    from forward_y40_lib import build_events
+    events, eligible_n = {}, {}
     for stage in ("breakout", "shrink", "stabilization"):
-        rows = [r for r in csv.DictReader(gzip.open(OUT / f"identify_{stage}.csv.gz", "rt"))
-                if eligibility_forward_v1(r)]
-        events[stage] = rows
-        print(f"{stage}: 主分析事件 {len(rows)}", flush=True)
+        main, sens, censored = build_events(stage)
+        rows_all = [r for r in csv.DictReader(gzip.open(OUT / f"identify_{stage}.csv.gz", "rt"))
+                    if eligibility_forward_v1(r)]
+        eligible_n[stage] = len(rows_all)
+        events[stage] = main
+        print(f"{stage}: 主样本 {len(main)} | 资格总体 {len(rows_all)} | "
+              f"停牌近似 {len(sens)} | 末端删失 {len(censored)}", flush=True)
     # 面板覆盖期
     import datetime as dt
     p_lo, p_hi = "2024-01-02", "2026-09-01"
@@ -47,15 +51,15 @@ def main():
             panel_codes.add(r["code"])
             if len(panel_codes) % 500000 == 0:
                 pass
-    # 冻结股票库: identify 文件中出现的全部 code(主分析+非主分析)
-    frozen_codes = set()
+    # identify_codes: identify 文件出现的 code(非冻结股票清单, 仅覆盖核对用)
+    identify_codes = set()
     for stage in ("breakout", "shrink", "stabilization"):
         with gzip.open(OUT / f"identify_{stage}.csv.gz", "rt") as f:
             for r in csv.DictReader(f):
-                frozen_codes.add(r["code"].split(".")[-1])
-    inter = frozen_codes & panel_codes
-    print(f"股票库: 面板 {len(panel_codes)} | 冻结(identify 全 code) {len(frozen_codes)} | 交集 {len(inter)}"
-          f" | 冻结不在面板 {len(frozen_codes - panel_codes)} | {time.time()-t0:.0f}s", flush=True)
+                identify_codes.add(r["code"].split(".")[-1])
+    inter = identify_codes & panel_codes
+    print(f"股票覆盖: 面板 {len(panel_codes)} | identify_codes {len(identify_codes)} | 交集 {len(inter)}"
+          f" | identify 不在面板 {len(identify_codes - panel_codes)} | {time.time()-t0:.0f}s", flush=True)
     # 3) 观察日匹配(左表事件 → 面板当日行)
     want = defaultdict(set)   # code6 -> {date}
     for stage, rows in events.items():
@@ -96,17 +100,21 @@ def main():
             if (c6, d) not in sig:
                 miss[stage]["signal_row_missing"] += 1
     report["counts"] = {
-        "stage_events": n_ev, "stage_events_sum": sum(n_ev.values()),
+        "stage_events_main": n_ev, "stage_events_main_sum": sum(n_ev.values()),
+        "stage_events_eligible": eligible_n,
+        "stage_events_eligible_sum": sum(eligible_n.values()),
         "stock_day_pairs": len(stock_days),
-        "note": "阶段事件=分时点计数; 股票-日期组合=去重分母(交叉表用); 不混称"}
+        "note": ("主样本=build_events 完整窗口; 资格总体=eligibility_forward_v1 全量"
+                 "(含末端删失+停牌近似); 阶段事件分时点计数; 股票-日期组合=去重分母")}
     report["out_of_panel_range"] = {k: v for k, v in oor.items()}
     report["fold_distribution_b19_b22"] = {
         st: {f"b{b}": fold_stat[st].get(b, 0) for b in FOLDS} for st in fold_stat}
     report["in_range_missing"] = {st: dict(m) for st, m in miss.items()}
     report["coverage"] = {
-        "panel_codes": len(panel_codes), "frozen_codes": len(frozen_codes),
-        "intersection": len(inter), "frozen_not_in_panel": len(frozen_codes - panel_codes),
-        "panel_not_in_frozen": len(panel_codes - frozen_codes)}
+        "panel_codes": len(panel_codes), "identify_codes": len(identify_codes),
+        "intersection": len(inter), "identify_not_in_panel": len(identify_codes - panel_codes),
+        "panel_not_in_identify": len(panel_codes - identify_codes),
+        "note": "identify_codes≠冻结股票清单(5,240); 库级对账需读真实冻结清单, 本审计未做"}
     (OUT / "MULTIPERIOD_ALIGNMENT.json").write_text(json.dumps(report, ensure_ascii=False, indent=1))
     print(json.dumps(report["counts"], ensure_ascii=False))
     print(json.dumps(report["fold_distribution_b19_b22"], ensure_ascii=False))
