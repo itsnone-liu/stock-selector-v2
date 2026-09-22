@@ -32,7 +32,8 @@ sys.path.insert(0, str(ROOT / "scripts"))
 from forward_y40_lib import build_events, obs_bucket  # noqa: E402
 from run_forward_y40_association import FOLDS  # noqa: E402
 from run_condition_stage0_audit import monthly_states, weekly_states  # noqa: E402
-from multiperiod_lib import load_price_series, _FACTOR_SKIP_COUNT  # noqa: E402
+import multiperiod_lib as _mpl  # noqa: E402
+from multiperiod_lib import load_price_series  # noqa: E402
 
 OUT = ROOT / "output/research/posneg_v1"
 
@@ -56,7 +57,7 @@ def main():
             feats[(code, d)] = (mo.get("price_vs_monthly_ma6"),
                                 we.get("wk_up_streak"))
     print(f"特征重算完成 {len(rows)} | {time.time()-t0:.0f}s", flush=True)
-    assert _FACTOR_SKIP_COUNT == 0, "复权因子缺失(应=0)"
+    assert _mpl._FACTOR_SKIP_COUNT == 0, "复权因子缺失(应=0)"  # 经模块对象读当前值, 非 import 时快照
 
     ev = []
     for e in rows:

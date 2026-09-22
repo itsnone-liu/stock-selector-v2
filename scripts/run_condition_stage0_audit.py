@@ -303,8 +303,8 @@ def main():
     # 每生命周期突破次数(identify_breakout 主样本口径)
     bo_lc = Counter(e["lifecycle_id"] for e in events["breakout"])
     dup_break = sum(1 for v in bo_lc.values() if v > 1)
-    from multiperiod_lib import _FACTOR_SKIP_COUNT
-    assert _FACTOR_SKIP_COUNT == 0, f"复权因子缺失 {_FACTOR_SKIP_COUNT} 行(应=0)"
+    import multiperiod_lib as _mpl
+    assert _mpl._FACTOR_SKIP_COUNT == 0, f"复权因子缺失 {_mpl._FACTOR_SKIP_COUNT} 行(应=0)"  # 模块属性读当前值
     # 程序化对账断言(七轮复审: 文档纠错≠门禁; 必须实际执行的 assert)
     n_total_bo = sum(1 for v in lc.values() if v[2])
     n_total_nobo = len(lc) - n_total_bo
