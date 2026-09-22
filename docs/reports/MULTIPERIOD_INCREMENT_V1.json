@@ -1,6 +1,14 @@
 {
  "experiment": "MULTIPERIOD_INCREMENT_V1",
  "design": "MULTIPERIOD_INCREMENT_DESIGN_V1 @ b42fe58",
+ "results_code_head": "a86430a89ad5a89458a7f6204776101db2879287",
+ "results_code_dirty_files": [],
+ "input_baseline_head": {
+  "identify_breakout": "5102cd680c323e60",
+  "identify_shrink": "3de9033f1c91fff0",
+  "identify_stabilization": "ef40c8311e7dc605",
+  "factor_table": "e06d25b6b8a5d415"
+ },
  "seed": 20260919,
  "boot": 2000,
  "models_run": [
@@ -42,12 +50,22 @@
     "True": {
      "n": 7968,
      "n_valid_days": 220,
-     "point": -0.00276
+     "point": -0.00276,
+     "ci95": [
+      -0.01705,
+      0.01133
+     ],
+     "note": "组内区间; 组间差异未做正式检验(探索性)"
     },
     "False": {
      "n": 18158,
      "n_valid_days": 364,
-     "point": 0.00671
+     "point": 0.00671,
+     "ci95": [
+      -0.00744,
+      0.02089
+     ],
+     "note": "组内区间; 组间差异未做正式检验(探索性)"
     },
     "None": {
      "n": 0,
@@ -289,12 +307,22 @@
     "True": {
      "n": 11857,
      "n_valid_days": 304,
-     "point": 0.00307
+     "point": 0.00307,
+     "ci95": [
+      -0.00123,
+      0.00674
+     ],
+     "note": "组内区间; 组间差异未做正式检验(探索性)"
     },
     "False": {
      "n": 9052,
      "n_valid_days": 268,
-     "point": 0.00159
+     "point": 0.00159,
+     "ci95": [
+      -0.01135,
+      0.00672
+     ],
+     "note": "组内区间; 组间差异未做正式检验(探索性)"
     },
     "None": {
      "n": 0,
@@ -526,12 +554,22 @@
     "True": {
      "n": 5948,
      "n_valid_days": 172,
-     "point": 0.00544
+     "point": 0.00544,
+     "ci95": [
+      -0.00306,
+      0.01692
+     ],
+     "note": "组内区间; 组间差异未做正式检验(探索性)"
     },
     "False": {
      "n": 6672,
      "n_valid_days": 201,
-     "point": 0.00266
+     "point": 0.00266,
+     "ci95": [
+      -0.00696,
+      0.01023
+     ],
+     "note": "组内区间; 组间差异未做正式检验(探索性)"
     },
     "None": {
      "n": 0,
@@ -764,5 +802,6 @@
   },
   "family_size": 6
  },
- "elapsed_s": 2704.7
+ "factor_missing_skipped_assert": "assert==0 in build_a1_features",
+ "elapsed_s": 2689.7
 }
