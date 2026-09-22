@@ -1,0 +1,228 @@
+{
+ "audit": "multiperiod_background_coverage_v1",
+ "panel": {
+  "range": "2024-01-02→2026-09-01",
+  "manifest": "momentum_panel_v3"
+ },
+ "note": "观察日=面板当日行; b19-b22 且 40 日窗在面板内; current_momentum 为量价混合, 拆分价格侧/量能侧分别统计",
+ "stages": {
+  "breakout": {
+   "n": 20563,
+   "monthly_pool_state": {
+    "in": 20563
+   },
+   "weekly_passed": {
+    "True": 14432,
+    "False": 4323,
+    "": 1808
+   },
+   "weekly_veto": {
+    "False": 20493,
+    "True": 70
+   },
+   "weekly_base_pattern_top10": {
+    "double_positive_efficiency_improved": 9890,
+    "none": 5424,
+    "negative_to_positive": 4916,
+    "unknown": 333
+   },
+   "momentum_context_positive": {
+    "False": 14379,
+    "True": 6184
+   },
+   "weekly_eligibility_state": {
+    "eligible": 13867,
+    "observation": 4639,
+    "excluded": 1375,
+    "unknown": 682
+   },
+   "price_side_continuous": {
+    "t_eff": {
+     "n": 15864,
+     "p5": 1.008,
+     "p25": 3.1,
+     "p50": 5.615,
+     "p75": 9.833,
+     "p95": 22.364
+    },
+    "l_eff": {
+     "n": 15864,
+     "p5": 0.232,
+     "p25": 1.268,
+     "p50": 2.941,
+     "p75": 6.053,
+     "p95": 14.99
+    },
+    "week_realized_pct": {
+     "n": 20563,
+     "p5": 0.144,
+     "p25": 2.133,
+     "p50": 4.298,
+     "p75": 7.875,
+     "p95": 16.658
+    }
+   },
+   "volume_side_continuous": {
+    "volume_ratio_vs_prev_week": {
+     "n": 15864,
+     "p5": 0.198,
+     "p25": 0.397,
+     "p50": 1.037,
+     "p75": 1.684,
+     "p95": 3.433
+    }
+   },
+   "missing": {}
+  },
+  "shrink": {
+   "n": 16756,
+   "monthly_pool_state": {
+    "in": 16756
+   },
+   "weekly_passed": {
+    "False": 10491,
+    "True": 3493,
+    "": 2772
+   },
+   "weekly_veto": {
+    "False": 14871,
+    "True": 1885
+   },
+   "weekly_base_pattern_top10": {
+    "none": 13223,
+    "double_positive_efficiency_improved": 2112,
+    "negative_to_positive": 1393,
+    "unknown": 28
+   },
+   "momentum_context_positive": {
+    "True": 9355,
+    "False": 7401
+   },
+   "weekly_eligibility_state": {
+    "observation": 9922,
+    "excluded": 3475,
+    "eligible": 3319,
+    "unknown": 40
+   },
+   "price_side_continuous": {
+    "t_eff": {
+     "n": 10233,
+     "p5": 0.285,
+     "p25": 1.385,
+     "p50": 2.995,
+     "p75": 6.17,
+     "p95": 19.214
+    },
+    "l_eff": {
+     "n": 10233,
+     "p5": 0.396,
+     "p25": 2.093,
+     "p50": 4.532,
+     "p75": 8.882,
+     "p95": 20.207
+    },
+    "week_realized_pct": {
+     "n": 16756,
+     "p5": -7.589,
+     "p25": -2.117,
+     "p50": 0.042,
+     "p75": 2.426,
+     "p95": 8.157
+    }
+   },
+   "volume_side_continuous": {
+    "volume_ratio_vs_prev_week": {
+     "n": 10233,
+     "p5": 0.117,
+     "p25": 0.318,
+     "p50": 1.178,
+     "p75": 1.713,
+     "p95": 3.363
+    }
+   },
+   "missing": {}
+  },
+  "stabilization": {
+   "n": 10275,
+   "monthly_pool_state": {
+    "in": 10275
+   },
+   "weekly_passed": {
+    "True": 4885,
+    "False": 4616,
+    "": 774
+   },
+   "weekly_veto": {
+    "False": 9781,
+    "True": 494
+   },
+   "weekly_base_pattern_top10": {
+    "none": 5273,
+    "negative_to_positive": 3112,
+    "double_positive_efficiency_improved": 1856,
+    "unknown": 34
+   },
+   "momentum_context_positive": {
+    "False": 5558,
+    "True": 4717
+   },
+   "weekly_eligibility_state": {
+    "observation": 5163,
+    "eligible": 4329,
+    "excluded": 679,
+    "unknown": 104
+   },
+   "price_side_continuous": {
+    "t_eff": {
+     "n": 6530,
+     "p5": 0.333,
+     "p25": 1.753,
+     "p50": 4.58,
+     "p75": 10.413,
+     "p95": 26.194
+    },
+    "l_eff": {
+     "n": 6530,
+     "p5": 0.304,
+     "p25": 1.526,
+     "p50": 3.364,
+     "p75": 6.386,
+     "p95": 14.214
+    },
+    "week_realized_pct": {
+     "n": 10275,
+     "p5": -4.774,
+     "p25": -1.059,
+     "p50": 0.818,
+     "p75": 2.654,
+     "p95": 7.934
+    }
+   },
+   "volume_side_continuous": {
+    "volume_ratio_vs_prev_week": {
+     "n": 6530,
+     "p5": 0.107,
+     "p25": 0.197,
+     "p50": 0.664,
+     "p75": 0.991,
+     "p95": 1.741
+    }
+   },
+   "missing": {}
+  }
+ },
+ "cross_monthly_x_weekly_passed": {
+  "in|True": {
+   "n": 22450,
+   "share": 0.4832
+  },
+  "in|False": {
+   "n": 18794,
+   "share": 0.4045
+  },
+  "in|": {
+   "n": 5221,
+   "share": 0.1124
+  }
+ }
+}
