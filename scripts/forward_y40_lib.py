@@ -260,11 +260,12 @@ def block_boot_delta(fold_icd, draws=BOOT, exact=False):
             if not blocks:
                 continue
             if exact:
-                dd = set(d for b in blocks for d in b)
+                dd = [d for b in blocks for d in b]
             else:
-                dd = set()
+                # 有放回块重抽: 保留重复抽中(不去重)——A,A,B 计三次
+                dd = []
                 for _ in range(len(blocks)):
-                    dd |= set(blocks[rng.integers(len(blocks))])
+                    dd.extend(blocks[rng.integers(len(blocks))])
             vals = [icd[d] for d in dd if d in icd]
             if vals:
                 tot += np.mean(vals) * w

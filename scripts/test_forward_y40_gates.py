@@ -16,6 +16,7 @@ from pathlib import Path
 import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+import forward_y40_lib
 from forward_y40_lib import (build_events, market_calendar, obs_bucket,
                              fold_start, ridge, ridge_predict, fit_transform,
                              spearman, centered_p, holm)
@@ -135,3 +136,26 @@ ok(len(exact) == 1 and abs(exact[0] - pt) < 1e-12,
    f"exact 重抽(每块一次)恒等于冻结加权点估计 {exact[0]:.6f}=={pt:.6f}")
 
 print(f"\\nforward_y40 六项反例+统计口径: {N} 项断言全部通过 ✓")
+
+# 确定性反例(2026-09-21 复审二): 强制抽样序列 A,A,B → 按三次计
+from forward_y40_lib import block_boot_delta as _bbd
+class _SeqRng:
+    """固定序列: 第一次调用返回0(块A), 第二次0(A), 第三次1(B)。"""
+    def __init__(self): self.calls = 0
+    def integers(self, n): 
+        i = (0, 0, 1)[min(self.calls, 2)]
+        self.calls += 1
+        return i
+_orig_default = forward_y40_lib.np.random.default_rng
+forward_y40_lib.np.random.default_rng = lambda seed=None: _SeqRng()
+try:
+    _icd = {"d1": 0.02, "d2": 0.04, "d3": -0.06}
+    _bl = [["d1"], ["d2"], ["d3"]]          # 三块 → 抽三次
+    _out = _bbd([(_icd, _bl, 1)], draws=1)
+finally:
+    forward_y40_lib.np.random.default_rng = _orig_default
+# 抽样序列 A,A,B → dd=[d1,d1,d2] → 均值=mean(0.02,0.02,0.04)=0.026667
+_exp = np.mean([0.02, 0.02, 0.04])
+ok(len(_out) == 1 and abs(_out[0] - _exp) < 1e-12,
+   f"抽样 A,A,B 按三次计: {_out[0]:.6f} == {_exp:.6f}(去重版将为 {np.mean([0.02, 0.04]):.6f})")
+print(f"\\nforward_y40 复审二反例: 共 {N} 项断言全部通过 ✓")
