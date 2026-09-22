@@ -118,6 +118,11 @@ def main():
         if bo and bo in dayset:
             n_first_break += 1
             bo_days_used += 1
+        elif bo:
+            # bo 日不在个股价格集: 区分 因子缺失致跳过 vs 行情无该日行
+            j = json.load(gzip.open(ROOT / f"data/adjustment_baostock/per_stock/{full}.json.gz", "rt"))
+            has_row = any(r[0] == bo for r in j["unadj"])
+            led["l6a_bo_day_factor_missing" if has_row else "l6b_bo_day_no_quote_row"] += 1
     # 冻结库全量(5,240)暴露因子缺失(identify 4,760 子集时为0)——不再硬断言,
     # 按九轮复审 P1 精神: 缺失→load_price_series 跳过该日(不生成价格),
     # 缺失规模入台账披露, 不静默
@@ -174,8 +179,69 @@ def main():
             "per_stock_risk_days_p90": float(np.percentile(list(per_stock_days.values()), 90)),
             "per_stock_risk_days_max": int(max(per_stock_days.values())),
             "note": "每股贡献日分布=S2 双聚类(股票块)校正输入; 无结果变量参与"},
-        "factor_missing_assert": "executed(==0, via module attr)",
+        "factor_missing_handling": f"skipped_not_silent(不默认F=1); 共 {fac_missing} 行已披露",
+        "first_break_attrition_v2": dict(led),
     }
+    # 缺失分布审计(十轮复审): 按股票/按月/事件组 vs 对照组
+    import gzip as _gz
+    fac_by_stock = {}
+    for f in (ROOT / "data/adjustment_baostock/per_stock").glob("*.json.gz"):
+        full = f.name[:-8]
+        j = json.load(_gz.open(f, "rt"))
+        ft = _mpl._factor_by_code().get(full, {})
+        n_missing = sum(1 for r in j["unadj"] if r[0] not in ft)
+        if n_missing:
+            fac_by_stock[full] = n_missing
+    top_stocks = sorted(fac_by_stock.items(), key=lambda kv: -kv[1])[:10]
+    # 反向索引: c6 -> 风险集内出现日
+    risk_by_day_by_code = defaultdict(set)
+    for d, codes in risk_by_day.items():
+        for c6 in codes:
+            risk_by_day_by_code[c6].add(d)
+    # 事件组/对照组当日在共同风险集中但当日价格因缺失被跳过的股票-日
+    # (每股一次预计算, 避免逐股票-日重读 json)
+    miss_days_by_stock = {}
+    for f in (ROOT / "data/adjustment_baostock/per_stock").glob("*.json.gz"):
+        full = f.name[:-8]
+        j = json.load(_gz.open(f, "rt"))
+        ft = _mpl._factor_by_code().get(full, {})
+        md = {r[0] for r in j["unadj"] if r[0] not in ft}
+        if md:
+            miss_days_by_stock[full] = md
+    days_by_c6 = {c6: ds for c6, ds in
+                  ((k.split(".")[-1], set(v)) for k, v in _mpl._SERIES_CACHE.items())}
+    missing_in_riskset = 0
+    for full, md in miss_days_by_stock.items():
+        c6 = full.split(".")[-1]
+        have_days = days_by_c6.get(c6, set())
+        for d in risk_by_day_by_code.get(c6, ()):  # 该股在风险集内的日
+            if d in md and d not in have_days:
+                missing_in_riskset += 1
+    rep["factor_missing_dist"] = {
+        "n_stocks_with_missing": len(fac_by_stock),
+        "top10_stocks": [[k, v] for k, v in top_stocks],
+        "riskset_stock_days_with_price_skipped": missing_in_riskset,
+        "note": "分布按股票/风险集内股票-日; 事件组首突日缺失见 first_break_attrition_v2.l6a"}
+    # Q-B Y40 窗口资格(不读 Y40 数值): d+40 在指数日历内才可能完整
+    data_end = mdates[-1]
+    win_eligible_days = 0
+    win_eligible_in_b19_22 = 0
+    paired_in_b19_22 = 0
+    for d, evs in sorted(event_by_day.items()):
+        ctrls = risk_by_day[d] - evs
+        if len(evs) >= 1 and len(ctrls) >= 10:
+            if mpos[d] + 40 < len(mdates):
+                win_eligible_days += 1
+                b = obs_bucket(d)
+                if b in (19, 20, 21, 22):
+                    win_eligible_in_b19_22 += 1
+            if obs_bucket(d) in (19, 20, 21, 22):
+                paired_in_b19_22 += 1
+    rep["s3_pairing_precheck"]["paired_days_in_b19_22"] = paired_in_b19_22
+    rep["s3_pairing_precheck"]["y40_window_eligible_days"] = win_eligible_days
+    rep["s3_pairing_precheck"]["y40_window_eligible_in_b19_22"] = win_eligible_in_b19_22
+    rep["s3_pairing_precheck"]["y40_note"] = ("窗口资格=配对日且 d+40 在指数日历内(不读 Y40 值); "
+                                              "价格级缺失处理沿用 Y40 冻结口径于主检验执行")
     (OUT / "MULTIPERIOD_CONDITION_RISKSET_V2.json").write_text(
         json.dumps(rep, ensure_ascii=False, indent=1))
     print(f"S3 预检: 配对日 {paired_days} | 折分布 {dict(paired_days_by_fold)} | "

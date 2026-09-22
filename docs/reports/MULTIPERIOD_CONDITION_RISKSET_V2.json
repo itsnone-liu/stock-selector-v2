@@ -11,7 +11,9 @@
  "n_distinct_risk_days": 646,
  "first_break_in_common_riskset": 27310,
  "first_break_total_incl_outside": 27310,
- "attrition_ledger_v2": {},
+ "attrition_ledger_v2": {
+  "l6a_bo_day_factor_missing": 112
+ },
  "factor_missing_price_rows_disclosed": 28944,
  "old_stage0_numbers": {
   "risk_stock_days_poolin": 294722,
@@ -35,7 +37,61 @@
   "per_stock_risk_days_p50": 65.0,
   "per_stock_risk_days_p90": 107.0,
   "per_stock_risk_days_max": 229,
-  "note": "每股贡献日分布=S2 双聚类(股票块)校正输入; 无结果变量参与"
+  "note": "每股贡献日分布=S2 双聚类(股票块)校正输入; 无结果变量参与",
+  "paired_days_in_b19_22": 483,
+  "y40_window_eligible_days": 618,
+  "y40_window_eligible_in_b19_22": 483,
+  "y40_note": "窗口资格=配对日且 d+40 在指数日历内(不读 Y40 值); 价格级缺失处理沿用 Y40 冻结口径于主检验执行"
  },
- "factor_missing_assert": "executed(==0, via module attr)"
+ "factor_missing_handling": "skipped_not_silent(不默认F=1); 共 28944 行已披露",
+ "first_break_attrition_v2": {
+  "l6a_bo_day_factor_missing": 112
+ },
+ "factor_missing_dist": {
+  "n_stocks_with_missing": 24,
+  "top10_stocks": [
+   [
+    "sz.000970",
+    1386
+   ],
+   [
+    "sh.600313",
+    1386
+   ],
+   [
+    "sz.000981",
+    1386
+   ],
+   [
+    "sh.601388",
+    1386
+   ],
+   [
+    "sh.600477",
+    1386
+   ],
+   [
+    "sh.600518",
+    1386
+   ],
+   [
+    "sh.600272",
+    1386
+   ],
+   [
+    "sz.002321",
+    1386
+   ],
+   [
+    "sz.002759",
+    1386
+   ],
+   [
+    "sz.000002",
+    1386
+   ]
+  ],
+  "riskset_stock_days_with_price_skipped": 0,
+  "note": "分布按股票/风险集内股票-日; 事件组首突日缺失见 first_break_attrition_v2.l6a"
+ }
 }
