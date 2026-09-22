@@ -118,22 +118,16 @@ def run_stage(ds):
         return res, None
     point = sum(np.mean(list(fd[2].values())) * len(fd[2])
                 for fd in per_fold_delta) / tot_w
-    # 40 日块 bootstrap(主)
-    icA_all = {d: v for fd in per_fold_delta for d, v in fd[0].items()}
-    icB_all = {d: v for fd in per_fold_delta for d, v in fd[1].items()}
-    all_days = sorted(set().union(*[set(fd[2]) for fd in per_fold_delta]))
-    blocks = cont_40d_blocks(all_days)
-    fold_of = {}
-    for fi, fd in enumerate(per_fold_delta):
-        for d in fd[2]:
-            fold_of[d] = fi
-    boot = block_boot_delta(icA_all, icB_all, blocks,
-                            [(set(fd[2]), len(fd[2])) for fd in per_fold_delta])
+    # 40 日块 bootstrap(主, 复审修正: 折内独立重抽+原始 w_f 加权)
+    fold_icd = [(fd[2], cont_40d_blocks(sorted(fd[2])), len(fd[2]))
+                for fd in per_fold_delta]
+    n_blocks_total = sum(len(b) for _, b, _ in fold_icd)
+    boot = block_boot_delta(fold_icd)
     ci = [float(np.percentile(boot, 2.5)), float(np.percentile(boot, 97.5))]
     p = centered_p(boot, point)
     res["primary"] = {
         "weighted_delta_ic_point": round(float(point), 5),
-        "n_time_blocks": len(blocks), "n_valid_days": tot_w,
+        "n_time_blocks": n_blocks_total, "n_valid_days": tot_w,
         "time_block_ci95": [round(x, 5) for x in ci],
         "time_block_p_centered": round(float(p), 5),
         "ci_excludes_zero": bool(ci[0] > 0 or ci[1] < 0)}
@@ -153,7 +147,7 @@ def stock_block_sens(ds, res):
     stocks = list(by_stock)
     rng = np.random.default_rng(SEED + 7)
     pts = []
-    # 预计算 A/B 分数(与主实验同流程, 确定性)
+    counts_dist = []
     FOLDS = (19, 20, 21, 22)
     preds_all = {"A": np.full(len(main), np.nan), "B": np.full(len(main), np.nan)}
     for tb in FOLDS:
@@ -171,18 +165,23 @@ def stock_block_sens(ds, res):
     days = [e["obs_day"] for e in main]
     base_days = sorted({days[i] for i in range(len(main)) if not np.isnan(preds_all["A"][i])})
     sk = np.array(stocks)
+    # 频数权重版(2026-09-21 复审修正): 保留每股票抽中次数 k,
+    # 该股记录在当日秩相关中计 k 次(复制展开=加权秩相关标准展开);
+    # 同日门槛按**不同证券数**(去重后)判断 ≥10
     for _ in range(BOOT):
-        pick = set()
+        cnt = defaultdict(int)
         for _ in range(len(stocks)):
-            pick.add(sk[rng.integers(len(sk))])
-        idxs = [i for s in pick for i in by_stock[s]]     # 重复抽中股票去重(计一次)
+            cnt[sk[rng.integers(len(sk))]] += 1
         dd = defaultdict(list)
-        for i in idxs:
-            if not np.isnan(preds_all["A"][i]):
-                dd[days[i]].append(i)
+        dd_codes = defaultdict(set)
+        for s_, k in cnt.items():
+            for i in by_stock[s_]:
+                if not np.isnan(preds_all["A"][i]):
+                    dd[days[i]].extend([i] * k)
+                    dd_codes[days[i]].add(s_)
         deltas = []
         for d, ix in dd.items():
-            if len(ix) < 10:
+            if len(dd_codes[d]) < 10:
                 continue
             ix = np.array(ix)
             a = spearman(y[ix], preds_all["A"][ix])
@@ -191,11 +190,59 @@ def stock_block_sens(ds, res):
                 deltas.append(b - a)
         if deltas:
             pts.append(float(np.mean(deltas)))
+        counts_dist.append(sum(1 for v in cnt.values() if v > 1))
     pts = np.array(pts)
     return {"n_stock_blocks": len(stocks), "n_draws_valid": len(pts),
             "stock_ci95": [round(float(np.percentile(pts, 2.5)), 5),
                            round(float(np.percentile(pts, 97.5)), 5)],
-            "note": "重复抽中股票记录仅计一次(强度被低估方向); 不含重训不确定性"}
+            "mean_dup_stock_per_draw": round(float(np.mean(counts_dist)), 1),
+            "note": ("频数权重版: 抽中 k 次的股票记录计 k 次(加权秩相关展开); "
+                     "同日门槛按不同证券数; 不含重训不确定性。"
+                     "v1 去重版区间已撤回(superseded, 见 v1 提交)")}
+
+
+def sensitivity_imputed(ds):
+    """停牌近似事件敏感性(设计§2.3): 并入测试折重算 ΔIC, 报告与主分析差。"""
+    main, sens, _ = build_events(ds)
+    all_e = main + sens
+    y = np.array([e["y40"] for e in all_e])
+    res = {"n_sens": len(sens)}
+    per_fold = []
+    for tb in FOLDS:
+        ts = fold_start(tb)
+        tr = [i for i, e in enumerate(all_e)
+              if e["bucket"] < tb and e["label_avail_day"] < ts and i < len(main)]
+        te = [i for i, e in enumerate(all_e) if e["bucket"] == tb]
+        te_main = [i for i in te if i < len(main)]
+        if len(tr) < MIN_TRAIN or len(te_main) < MIN_TEST:
+            continue
+        preds = {}
+        for tag in ("A", "B"):
+            X = np.array([[float(e[c]) if e.get(c, "") not in ("", "None") else np.nan
+                           for c in FEATS[ds][tag]] for e in all_e])
+            Ztr, Zte, _ = fit_transform(X[tr], X[te])
+            m = ridge(Ztr, y[tr])
+            preds[tag] = ridge_predict(m, Zte)
+        te_pos = {i: k for k, i in enumerate(te)}
+        by_date = defaultdict(list)
+        for i in te:
+            by_date[all_e[i]["obs_day"]].append(i)
+        icd = {}
+        for d, idxs in by_date.items():
+            if len(idxs) < 10:
+                continue
+            kk = np.array([te_pos[i] for i in idxs])
+            a = spearman(y[np.array(idxs)], preds["A"][kk])
+            b = spearman(y[np.array(idxs)], preds["B"][kk])
+            if a is not None and b is not None:
+                icd[d] = b - a
+        if icd:
+            per_fold.append((icd, len(icd)))
+    if per_fold:
+        tot = sum(n for _, n in per_fold)
+        res["delta_ic_with_imputed"] = round(float(sum(
+            np.mean(list(icd.values())) * n for icd, n in per_fold) / tot), 5)
+    return res
 
 
 def main():
@@ -230,7 +277,8 @@ def main():
     for ds in ("breakout", "shrink", "stabilization"):
         t1 = time.time()
         report["stages"][ds]["stock_block_sensitivity"] = stock_block_sens(ds, report)
-        print(f"{ds} 股票块敏感性完成 | {time.time()-t1:.0f}s", flush=True)
+        report["stages"][ds]["imputed_sensitivity"] = sensitivity_imputed(ds)
+        print(f"{ds} 股票块+停牌敏感性完成 | {time.time()-t1:.0f}s", flush=True)
     (OUT / "FORWARD_Y40_ASSOCIATION_V1.json").write_text(
         json.dumps(report, ensure_ascii=False, indent=1))
     print(f"→ FORWARD_Y40_ASSOCIATION_V1.json | 总 {time.time()-t0:.0f}s")

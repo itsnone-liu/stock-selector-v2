@@ -43,7 +43,9 @@ print("反例2: 数据末端/停牌近似分流")
 ok(st["data_end_censored"] == 378, f"data_end_censored={st['data_end_censored']}(=378)")
 ok(st["imputed_last_available"] == 22, f"停牌近似=22 只入敏感性")
 ok(len(sens) <= 22, f"敏感性事件 {len(sens)}")
-ok(all(e["obs_day"] not in {x["obs_day"] for x in main if e is not x} or True for e in sens), "敏感性/主分析分流")
+main_keys = {(e["lifecycle_id"], e["obs_day"]) for e in main}
+ok(all((e["lifecycle_id"], e["obs_day"]) not in main_keys for e in sens),
+   f"敏感性事件(键)与主分析不相交({len(sens)} 条全部不在主集)")
 
 print("反例3: 中途缺日不产出辅助指标")
 ok(all("mdd" in e and "trend" in e for e in main), "主分析事件全带 mdd/trend(全路径)")
@@ -61,8 +63,10 @@ mpos = {d: i for i, d in enumerate(mdates)}
 fs21 = fold_start(21)          # 2025-01-01
 # 构造: t40 恰=fs21 的事件不得进 b21 训练
 bad = [e for e in main if e["bucket"] < 21 and e["t40_day"] >= fs21]
-ok(all(not (e["bucket"] < 21 and e["t40_day"] >= fs21) or e["t40_day"] != fs21
-       for e in main) or True, f"t40>=折首日的早期桶事件存在 {len(bad)}(训练门禁必须排除)")
+ok(len(bad) > 0, f"存在 t40>=折首日的早期桶事件 {len(bad)}(供门禁排除, 检验非空转)")
+n_formula = sum(1 for e in main if e["bucket"] < 21 and e["t40_day"] < fs21)
+ok(n_formula == sum(1 for e in main if e["bucket"] < 21) - len(bad),
+   f"训练门禁公式自洽: {n_formula} == 早期桶 {sum(1 for e in main if e['bucket'] < 21)} − {len(bad)}")
 train_ok = [e for e in main if e["bucket"] < 21 and e["t40_day"] < fs21]
 ok(len(train_ok) < sum(1 for e in main if e["bucket"] < 21),
    f"严格门禁剔除 t40∈[折首,∞) 的 {sum(1 for e in main if e['bucket'] < 21) - len(train_ok)} 事件")
@@ -79,7 +83,24 @@ print("反例6: Y40 手工对账+守恒")
 e = main[0]
 mi_o, mi_4 = mpos[e["obs_day"]], mpos[e["t40_day"]]
 ok(mi_4 - mi_o == 40, "t+40=40 个市场交易日")
-p0 = float(e["unadj_close"]) * 1.0 if False else None
+# Y40 全式手工对账: 价格(未复权×F)+指数项, 从原始 per_stock 独立重算
+import gzip as _gz, csv as _csv, json as _json
+from forward_y40_lib import ROOT
+Ft = {}
+with _gz.open(ROOT / "output/research/adjustment_v1/factor_table.csv.gz", "rt") as f:
+    for row in _csv.DictReader(f):
+        if row["code"] == e["code"]:
+            Ft[row["date"]] = float(row["F"])
+j = _json.load(_gz.open(ROOT / f"data/adjustment_baostock/per_stock/{e['code']}.json.gz", "rt"))
+pu = {row[0]: float(row[4]) for row in j["unadj"]}
+_, mc = market_calendar()
+p0 = pu[e["obs_day"]] * Ft[e["obs_day"]]
+p4 = pu[e["t40_day"]] * Ft[e["t40_day"]]
+y40_hand = np.log(p4 / p0) - np.log(mc[mi_4] / mc[mi_o])
+ok(p0 > 0 and p4 > 0, f"两端点价格均为正({p0:.2f}/{p4:.2f})")
+ok(abs(y40_hand - e["y40"]) < 1e-9,
+   f"Y40 手工重算一致 {y40_hand:.8f} == {e['y40']:.8f}(复权×指数全式)")
+ok(np.isfinite(e["y40"]), "Y40 有限")
 # 守恒
 tot = st["n_rows"]
 parts = (st["excl_not_active"] + st["data_end_censored"] + st["obs_day_no_price"]
@@ -100,5 +121,17 @@ ok(abs(centered_p(np.random.default_rng(3).normal(0, 1, 2000)) - 1.0) < 0.05
 ps = [0.01, 0.04, 0.03]
 adj = holm(ps)
 ok(adj[0] == 0.03 and adj[1] == 0.06 and adj[2] == 0.06, f"Holm 调整 {list(adj)}(标准教材例)")
+
+print("统计反例: 不重抽 bootstrap == 主点估计")
+from forward_y40_lib import block_boot_delta
+icd_a = {"d1": 0.01, "d2": 0.03, "d3": -0.01, "d4": 0.02}
+icd_b = {"d5": -0.02, "d6": 0.00, "d7": 0.04}
+bl_a = [["d1", "d2"], ["d3", "d4"]]
+bl_b = [["d5", "d6", "d7"]]
+fi = [(icd_a, bl_a, 4), (icd_b, bl_b, 3)]
+exact = block_boot_delta(fi, exact=True)
+pt = (np.mean(list(icd_a.values())) * 4 + np.mean(list(icd_b.values())) * 3) / 7
+ok(len(exact) == 1 and abs(exact[0] - pt) < 1e-12,
+   f"exact 重抽(每块一次)恒等于冻结加权点估计 {exact[0]:.6f}=={pt:.6f}")
 
 print(f"\\nforward_y40 六项反例+统计口径: {N} 项断言全部通过 ✓")

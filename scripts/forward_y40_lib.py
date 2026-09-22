@@ -240,22 +240,37 @@ def cont_40d_blocks(days):
     return blocks
 
 
-def block_boot_delta(icA, icB, blocks, wts_fold):
-    """40 日块重抽: 重组日期集 → 折内等权平均 → 折间冻结日期数加权。"""
+def block_boot_delta(fold_icd, draws=BOOT, exact=False):
+    """40 日块重抽(2026-09-21 复审修正版)。
+
+    折内独立重抽: 每折单独抽本折的 40 连续交易日块(有放回, 抽块数=
+    本折块数), 块内日期去重合并, 折内等权平均; 折间只用**原始**有效
+    日期数 w_f 加权(不乘重抽后日期数——修复双重加权)。
+    exact=True: 每块取自身一次 = 不重抽 → 输出必须恒等于主点估计
+    (统计反例测试钩子)。
+    fold_icd: [(icd_dict 折内 ΔIC_d, blocks 折内 40 日块, w_f), ...]
+    """
     rng = np.random.default_rng(SEED)
     deltas = []
-    for _ in range(BOOT):
-        pick = [b for b in (blocks[rng.integers(len(blocks))] for _ in range(len(blocks)))]
-        dd = [d for b in pick for d in b]
-        per = []
-        for f, wf in wts_fold:
-            ds_f = [d for d in dd if d in f]
-            if ds_f:
-                per.append((np.mean([icB[d] - icA[d] for d in ds_f]), len(ds_f), wf))
-        if per:
-            num = sum(v * n * w for v, n, w in per)
-            den = sum(n * w for _, n, w in per)
-            deltas.append(num / den)
+    n_draw = 1 if exact else draws
+    for _ in range(n_draw):
+        tot = 0.0
+        W = 0.0
+        for icd, blocks, w in fold_icd:
+            if not blocks:
+                continue
+            if exact:
+                dd = set(d for b in blocks for d in b)
+            else:
+                dd = set()
+                for _ in range(len(blocks)):
+                    dd |= set(blocks[rng.integers(len(blocks))])
+            vals = [icd[d] for d in dd if d in icd]
+            if vals:
+                tot += np.mean(vals) * w
+                W += w
+        if W:
+            deltas.append(tot / W)
     return np.array(deltas)
 
 
