@@ -192,24 +192,47 @@ def weekly_close_series(sd: StockData, t0: str):
 
 def classify_censor(sd: StockData, mdates, mpos, t0: str, h: int,
                     last_global_pos: int):
-    """四态删失分类（V1 §6.5 冻结顺序）。
+    """删失分类（2026-09 裁定版：主因四态 + 审计 flag 并存）。
 
-    返回 (reason, ih, n_valid, terminal_reason)。
+    主因优先级：sample_end（horizon 越过 dataset_end）> 完整(none) >
+    security_history_end（库行历史在窗口末前终止——真实证券终态，
+    留给退市/终止）> data_gap（含 adj_factor_missing：行在而因子不可得）。
+    审计 flag（不互相排斥，不进模型）：
+      is_sample_end / is_security_history_end / is_data_gap
+      data_gap_reason ∈ {adj_factor_missing, row_missing}（可并存，'|'连接）
+    返回 (reason, ih, n_valid, flags_dict)。
     """
     i0 = mpos[t0]
     ih = i0 + h
-    if ih >= len(mdates) or mdates[ih] > DATASET_END:
-        return "sample_end", ih, 0, None
-    win = mdates[i0:ih + 1]
-    n_valid = sum(1 for d in win if d in sd.adj)
-    if n_valid == h + 1:
-        return "none", ih, n_valid, None
-    last_valid = sd.valid[-1] if sd.valid else None
-    if last_valid is None or last_valid < mdates[ih]:
-        # 个股有效历史在窗口内终止（economic endpoint 候选）
-        tr = "unknown"          # V2：退市终态核实走外部名单，核实前 unknown
-        return "security_history_end", ih, n_valid, tr
-    return "data_gap", ih, n_valid, None
+    beyond = ih >= len(mdates) or mdates[ih] > DATASET_END
+    win_eval = [d for d in mdates[i0:min(ih + 1, len(mdates))]
+                if d <= DATASET_END]
+    rows = set(sd.dates)
+    n_valid = sum(1 for d in win_eval if d in rows and d in sd.F)
+    gap_reasons = set()
+    for d in win_eval:
+        if d in rows and d not in sd.F:
+            gap_reasons.add("adj_factor_missing")
+        elif d not in rows:
+            gap_reasons.add("row_missing")
+    last_row = sd.dates[-1] if sd.dates else None
+    win_end = mdates[min(ih, len(mdates) - 1)]
+    hist_end = bool(last_row is None or last_row < win_end)
+    if beyond:
+        reason = "sample_end"
+    elif n_valid == h + 1:
+        reason = "none"
+    elif hist_end:
+        reason = "security_history_end"
+    else:
+        reason = "data_gap"
+    flags = {
+        "is_sample_end": reason == "sample_end",
+        "is_security_history_end": reason == "security_history_end",
+        "is_data_gap": reason == "data_gap" or bool(gap_reasons),
+        "data_gap_reason": "|".join(sorted(gap_reasons)) or None,
+    }
+    return reason, ih, n_valid, flags
 
 
 def compute_labels(sd: StockData, t0: str, mdates, mclose, mpos,
@@ -218,23 +241,32 @@ def compute_labels(sd: StockData, t0: str, mdates, mclose, mpos,
     out = {"breakout_day": t0}
     adj = sd.adj
     p0 = adj.get(t0)
+    # 事件级审计 flag：T0 复权价可算（行在且因子在）
+    rows_set = set(sd.dates)
+    out["adj_factor_available"] = bool(
+        t0 in rows_set and t0 in sd.F)
     prior = [d for d in sd.valid if d < t0]
     prior_hist_max = max((adj[d] for d in prior), default=None)
-    # B1 基准（量能，前 20 个有效观测；供 §6.4 回调量能比）
-    prior_vpos = [d for d in prior if d in sd.vpos][-20:]
+    # B1 基准（量能，前 20 个量有效行观测——字段级口径，不依赖因子）
+    prior_vpos = [d for d in sd.dates if d < t0 and d in sd.vpos][-20:]
     vol_base = (float(np.mean([sd.vol[d] for d in prior_vpos]))
                 if len(prior_vpos) >= 20 else None)
 
     for h in HS:
-        reason, ih, n_valid, tr = classify_censor(
+        reason, ih, n_valid, cflags = classify_censor(
             sd, mdates, mpos, t0, h, last_global_pos)
         out[f"t{h}_day"] = mdates[ih] if ih < len(mdates) else None
         out[f"primary_eligible_h{h}"] = bool(mpos[t0] + h <= last_global_pos)
         out[f"label_avail_h{h}"] = out[f"t{h}_day"] if reason == "none" else None
         out[f"censored_reason_h{h}"] = reason
+        out[f"is_sample_end_h{h}"] = cflags["is_sample_end"]
+        out[f"is_security_history_end_h{h}"] = cflags["is_security_history_end"]
+        out[f"is_data_gap_h{h}"] = cflags["is_data_gap"]
+        out[f"data_gap_reason_h{h}"] = cflags["data_gap_reason"]
+        out[f"terminal_reason_h{h}"] = (
+            "unknown" if reason == "security_history_end" else None)
         out[f"win_coverage_h{h}"] = round(n_valid / (h + 1), 6) \
             if reason != "sample_end" else None
-        out[f"terminal_reason_h{h}"] = tr if reason == "security_history_end" else None
 
         y_raw = y_ex = None
         if reason == "none":
@@ -365,7 +397,7 @@ def compute_labels_sensitivity(sd: StockData, t0: str, mdates, mclose, mpos,
     adj = sd.adj
     p0 = adj.get(t0)
     for h in HS:
-        reason, ih, n_valid, tr = classify_censor(
+        reason, ih, n_valid, cflags = classify_censor(
             sd, mdates, mpos, t0, h, last_global_pos)
         out[f"censored_reason_h{h}"] = reason
         if reason == "none" or p0 is None:
@@ -412,8 +444,17 @@ def compute_features_a1(sd: StockData, t0: str) -> dict:
     out["a1_ref60"] = max((adj[d] for d in ref60_obs), default=None)
     out["a1_ref60_window_first_day"] = ref60_obs[0] if ref60_obs else None
     c0 = adj.get(t0)
-    out["a1_breakout_margin"] = (c0 / out["a1_ref60"] - 1.0
-                                 if c0 and out["a1_ref60"] else None)
+    # 正式名 a1_ref60_close_margin（2026-09 裁定：ref60 是 A1 特征，
+    # 不是事件成立条件）；a1_breakout_margin 保留为 deprecated 别名。
+    out["a1_ref60_close_margin"] = (c0 / out["a1_ref60"] - 1.0
+                                    if c0 and out["a1_ref60"] else None)
+    out["a1_breakout_margin"] = out["a1_ref60_close_margin"]
+    # 状态变量（裁定：只保存不研究）：同为 lifecycle20 突破，是否同时
+    # 突破 60 日结构。audit-only 语义见 erratum。
+    out["a1_above_ref60"] = (
+        out["a1_ref60_close_margin"] is not None
+        and out["a1_ref60_close_margin"] > 0) \
+        if out["a1_ref60_close_margin"] is not None else None
 
     for w in (60, 120):
         obs = prior[-w:]
@@ -484,12 +525,18 @@ def compute_features_a1(sd: StockData, t0: str) -> dict:
 
 
 def compute_features_b1(sd: StockData, t0: str) -> dict:
-    """§3.2 B1 量价/资金效率（截止 T0 收盘）。缺失保持缺失。"""
+    """§3.2 B1 量价/资金效率（截止 T0 收盘）。缺失保持缺失。
+
+    字段级口径（2026-09 裁定）：volume/turnover 类字段不依赖复权因子，
+    窗口骨架 = 库行 + 量有效（vpos）；收益类字段（ret/day_state/
+    shrink_up_run）按冻结定义用复权收益，因子不可得即缺失。
+    """
     out = {"breakout_day": t0}
-    prior = [d for d in sd.valid if d < t0 and d in sd.vpos]
-    base = prior[-20:]
+    prior_vpos = [d for d in sd.dates if d < t0 and d in sd.vpos]
+    base = prior_vpos[-20:]
     out["b1_vol_base_obs_n"] = len(base)
-    vol_base = float(np.mean([sd.vol[d] for d in base])) if len(base) == 20 else None
+    vol_base = float(np.mean([sd.vol[d] for d in base])) if len(base) >= 20 \
+        else None
     v0, a0 = sd.vol.get(t0), sd.amt.get(t0)
     out["b1_vol_valid_t0"] = bool(v0 and v0 > 0 and a0 and a0 > 0)
     t0_turn = sd.turn.get(t0)
@@ -497,13 +544,13 @@ def compute_features_b1(sd: StockData, t0: str) -> dict:
     out["b1_vol_ratio_20"] = (v0 / vol_base
                               if out["b1_vol_valid_t0"] and vol_base else None)
 
-    tbase = [d for d in sd.valid if d < t0][-20:]
+    tbase = [d for d in sd.dates if d < t0][-20:]
     tvals = [sd.turn[d] for d in tbase if sd.turn.get(d) is not None
              and sd.turn[d] > 0]
     out["b1_turn_base_obs_n"] = len(tvals)
-    out["b1_turn_20_avg"] = float(np.mean(tvals)) if len(tvals) == 20 else None
+    out["b1_turn_20_avg"] = float(np.mean(tvals)) if len(tvals) >= 20 else None
 
-    # 当日收益（复权 close-to-close）
+    # 当日收益（复权 close-to-close；因子不可得 → 缺失）
     prior_any = [d for d in sd.valid if d < t0]
     pc = sd.adj[prior_any[-1]] if prior_any else None
     c0 = sd.adj.get(t0)
@@ -518,29 +565,32 @@ def compute_features_b1(sd: StockData, t0: str) -> dict:
         rstate = "up" if r0 > 0 else "down" if r0 < 0 else "flat"
         if abs(r0 * 100.0) < FLAT_RET_PCT:
             rstate = "flat"
-        out["b1_day_state"] = f"{vstate}_{rstate}"     # 9 态（报告披露六态歧义）
+        out["b1_day_state"] = f"{vstate}_{rstate}"     # 9 态（erratum 已修正）
 
-    # 缩量上涨延续（截至 T0 的连续天数）
-    run = 0
-    obs_all = [d for d in sd.valid if d <= t0]
-    for i in range(len(obs_all) - 1, 0, -1):
-        d, dp = obs_all[i], obs_all[i - 1]
-        vd = sd.vol.get(d)
-        if vd is None or vd <= 0:
-            break
-        pv = [sd.vol[x] for x in obs_all[max(0, i - 21):i]]
-        pv = [x for x in pv if x and x > 0]
-        if len(pv) < 20:
-            break
-        ratio = vd / float(np.mean(pv[-20:]))
-        ret = sd.adj[d] / sd.adj[dp] - 1.0
-        if ratio <= VOL_RATIO_LO and ret > 0:
-            run += 1
-        else:
-            break
-    out["b1_shrink_up_run"] = run
+    # 缩量上涨延续（复权收益依赖 → 因子不可得事件缺失）
+    if c0 is None or not prior_any:
+        out["b1_shrink_up_run"] = None
+    else:
+        run = 0
+        obs_all = [d for d in sd.valid if d <= t0]
+        for i in range(len(obs_all) - 1, 0, -1):
+            d, dp = obs_all[i], obs_all[i - 1]
+            vd = sd.vol.get(d)
+            if vd is None or vd <= 0:
+                break
+            pv = [sd.vol[x] for x in obs_all[max(0, i - 21):i]]
+            pv = [x for x in pv if x and x > 0]
+            if len(pv) < 20:
+                break
+            ratio = vd / float(np.mean(pv[-20:]))
+            ret = sd.adj[d] / sd.adj[dp] - 1.0
+            if ratio <= VOL_RATIO_LO and ret > 0:
+                run += 1
+            else:
+                break
+        out["b1_shrink_up_run"] = run
     out["b1_vol_miss_prior20_n"] = 20 - len([d for d in
-                                             [d for d in sd.valid if d < t0]
+                                             [d for d in sd.dates if d < t0]
                                              [-20:] if d in sd.vpos])
     return out
 
@@ -556,8 +606,10 @@ def compute_features_chip(sd: StockData, t0: str) -> dict:
     接受，见报告）。
     """
     out = {"breakout_day": t0}
-    prior_valid = [d for d in sd.valid if d < t0]
-    incl = ([t0] if t0 in sd.valid else []) + prior_valid[::-1]
+    # 字段级骨架（2026-09 裁定）：chip 全族不依赖复权因子，
+    # 窗口 = 库行 + 量有效（vpos），严格全窗含 T0，缺失不缩短。
+    prior_rows = [d for d in sd.dates if d < t0 and d in sd.vpos]
+    incl = ([t0] if t0 in sd.vpos else []) + prior_rows[::-1]
 
     def vwap_of(win):
         vs = sum(sd.vol[d] for d in win)

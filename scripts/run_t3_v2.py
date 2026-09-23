@@ -28,23 +28,25 @@ from stock_selector.research import t3_v2 as tv  # noqa: E402
 
 OUT = ROOT / "output/research/t3_v2"
 FROZEN_AUDIT = ROOT / "docs/reports/T3_SUSTAIN_EVENT_COVERAGE_AUDIT.json"
-FROZEN_EXPECTED = {
+FROZEN_EXPECTED_V2 = {
+    # 2026-09 裁定后的修正版覆盖冻结值（字段级；首轮修正跑实测后冻结，
+    # 重签跑必须逐项复现）
     "events_total": 27422,
-    "a1_ref60_ready": 27422,
-    "b1_vol20_ready": 27422,
-    "t0_close_pos": 27422,
-    "t0_vol_pos": 27422,
-    "chip_vwap5_miss": 85,
-    "chip_vwap10_miss": 137,
-    "chip_vwap20_miss": 218,
+    "adj_factor_unavailable": 112,
+    "a1_ref60_ready": 27310,
+    "h5_none": 27310, "h5_data_gap": 112,
+    "h10_none": 27310, "h10_data_gap": 112,
+    "h20_none": 27177, "h20_sample_end": 133, "h20_data_gap": 112,
+    "h40_none": 26126, "h40_sample_end": 1185, "h40_data_gap": 111,
+    "h20_security_history_end": 0, "h40_security_history_end": 0,
+    # 以下为字段级实测冻结值（2026-09-23 修正版首轮实测冻结）
+    "b1_vol_ratio_20_valid": 27422,
+    "chip_vwap5_valid": 27422,
+    "chip_vwap10_valid": 27422,
+    "chip_vwap20_valid": 27422,
     "turn20_partial": 279,
     "turn20_missing_days_total": 1202,
-    "h5_none": 27422,
-    "h10_none": 27422,
-    "h20_none": 27289, "h20_sample_end": 133,
-    "h40_none": 26237, "h40_sample_end": 1185,
-    "h20_security_history_end": 0, "h20_data_gap": 0,
-    "h40_security_history_end": 0, "h40_data_gap": 0,
+    "a1_above_ref60_true": 9430,
 }
 
 
@@ -116,6 +118,7 @@ def main() -> int:
               "mismatch_detail": []}
     max_lib_date = "0000-00-00"
     codes = sorted(by_code)
+    turn20_partial, turn20_miss = 0, 0
 
     print("[t3_v2] 3/6 逐股计算标签+特征")
     for ci, code in enumerate(codes):
@@ -134,6 +137,17 @@ def main() -> int:
             max_lib_date = sd.dates[-1]
         for r in by_code[code]:
             t0 = r.breakout_day
+            # turn20（审计口径：T0 后 20 个市场日、行级 turn>0、
+            # 跳过 sample_end）——字段级，不依赖因子
+            i0 = mpos[t0]
+            ih20 = i0 + 20
+            if not (ih20 >= len(mdates) or mdates[ih20] > tv.DATASET_END):
+                fut = mdates[i0 + 1:ih20 + 1]
+                miss = sum(1 for d in fut
+                           if not (sd.turn.get(d) and sd.turn.get(d) > 0))
+                if miss > 0:
+                    turn20_partial += 1
+                    turn20_miss += miss
             lab = tv.compute_labels(sd, t0, mdates, mclose, mpos,
                                     last_global_pos)
             lab["breakout_event_id"] = r.breakout_event_id
@@ -200,48 +214,101 @@ def main() -> int:
         products[name] = {"rows": len(df), "cols": len(df.columns)}
         print(f"       {name}: {len(df)} 行 × {len(df.columns)} 列")
 
-    print("[t3_v2] 5/6 Gate E 覆盖复现（审计口径镜像）")
-    gate_e = {"expected": FROZEN_EXPECTED, "recomputed": {}, "diff": {}}
+    print("[t3_v2] 5/6 Gate E 修正版覆盖（字段级）")
+    lab_by_id = {r["breakout_event_id"]: r for r in label_rows}
+    gate_e = {"expected": {k: v for k, v in FROZEN_EXPECTED_V2.items()
+                           if v is not None},
+              "recomputed": {}, "diff": {}}
     gate_e["recomputed"]["events_total"] = len(label_rows)
+    gate_e["recomputed"]["adj_factor_unavailable"] = sum(
+        1 for r in label_rows if not r["adj_factor_available"])
     for h in tv.HS:
         for st in ("none", "sample_end", "security_history_end", "data_gap"):
-            key = f"h{h}_{st}"
-            n = sum(1 for r in label_rows
-                    if r[f"censored_reason_h{h}"] == st)
-            gate_e["recomputed"][key] = n
+            gate_e["recomputed"][f"h{h}_{st}"] = sum(
+                1 for r in label_rows if r[f"censored_reason_h{h}"] == st)
     gate_e["recomputed"]["a1_ref60_ready"] = sum(
-        1 for r in a1_rows if r["a1_ref60_obs_n"] >= 60)
-    gate_e["recomputed"]["b1_vol20_ready"] = sum(
-        1 for r in b1_rows if r["b1_vol_base_obs_n"] >= 20)
-    gate_e["recomputed"]["t0_close_pos"] = sum(
-        1 for r in a1_rows if r["a1_breakout_margin"] is not None)
-    gate_e["recomputed"]["t0_vol_pos"] = sum(
-        1 for r in chip_rows if r["chip_vwap_day"] is not None)
+        1 for r in a1_rows if r["a1_ref60_obs_n"] >= 60
+        and r["a1_ref60"] is not None)
+    gate_e["recomputed"]["a1_above_ref60_true"] = sum(
+        1 for r in a1_rows if r["a1_above_ref60"] is True)
+    gate_e["recomputed"]["b1_vol_ratio_20_valid"] = sum(
+        1 for r in b1_rows if r["b1_vol_ratio_20"] is not None)
     for w in (5, 10, 20):
-        n_miss = sum(1 for r in chip_rows
-                     if r[f"chip_price_to_vwap_{w}d"] is None)
-        gate_e["recomputed"][f"chip_vwap{w}_miss"] = n_miss
-    # turn20（审计口径：T0 后 20 个市场日，不含 T0）——由标签层换算：
-    # 标签层 21 日窗含 T0；T0 缺口由 b1_turn_valid_t0 扣除。
-    turn_partial, turn_miss = 0, 0
-    b1_by_id = {r["breakout_event_id"]: r for r in b1_rows}
-    for lab in label_rows:
-        h = 20
-        if lab[f"censored_reason_h{h}"] != "none":
-            continue                       # 审计仅对非 sample_end 统计
-        miss21 = lab["turn_miss_days_h20"] or 0
-        t0_ok = b1_by_id[lab["breakout_event_id"]]["b1_turn_valid_t0"]
-        miss = miss21 - (0 if t0_ok else 1)
-        if miss > 0:
-            turn_partial += 1
-            turn_miss += miss
-    gate_e["recomputed"]["turn20_partial"] = turn_partial
-    gate_e["recomputed"]["turn20_missing_days_total"] = turn_miss
-    for k, want in FROZEN_EXPECTED.items():
+        gate_e["recomputed"][f"chip_vwap{w}_valid"] = sum(
+            1 for r in chip_rows
+            if r[f"chip_price_to_vwap_{w}d"] is not None)
+    # turn20（已在主循环按审计口径逐股累计）
+    gate_e["recomputed"]["turn20_partial"] = turn20_partial
+    gate_e["recomputed"]["turn20_missing_days_total"] = turn20_miss
+    for k, want in gate_e["expected"].items():
         got = gate_e["recomputed"].get(k)
         if got != want:
             gate_e["diff"][k] = {"expected": want, "recomputed": got}
     gate_e["verdict"] = "PASS" if not gate_e["diff"] else "FAIL"
+
+    # 字段级覆盖矩阵（erratum 正式产物：field|n_valid|n_missing|coverage|
+    # missing_reason 归因计数）
+    fam_reason = {
+        "event_features_a1": ("adj_factor_missing", "insufficient_history"),
+        "event_features_b1": ("adj_factor_missing", "vol_window_incomplete"),
+        "event_features_chip": ("vol_window_incomplete", "n/a"),
+    }
+    fam_dep = {
+        "event_features_a1": lambda c: True,   # A1 全族复权依赖
+        "event_features_b1": lambda c: c in (
+            "b1_ret_t0", "b1_day_state", "b1_shrink_up_run"),
+        "event_features_chip": lambda c: False,
+    }
+    matrix = []
+    lab_ix = labels.set_index("breakout_event_id")
+    for prod_name, df in (("event_features_a1", a1),
+                          ("event_features_b1", b1),
+                          ("event_features_chip", chip)):
+        needs_adj = fam_dep[prod_name]
+        for col in df.columns:
+            if col == "breakout_event_id":
+                continue
+            nulls = df[df[col].isna()]
+            reasons = {}
+            for eid in nulls["breakout_event_id"]:
+                lrow = lab_ix.loc[eid]
+                if not lrow["adj_factor_available"]:
+                    key = "adj_factor_missing" if needs_adj(col) else \
+                        "unexpected_no_factor"
+                else:
+                    key = fam_reason[prod_name][
+                        0 if needs_adj(col) else 1]
+                reasons[key] = reasons.get(key, 0) + 1
+            matrix.append({
+                "product": prod_name, "field": col,
+                "n_valid": int(df[col].notna().sum()),
+                "n_missing": int(len(nulls)),
+                "coverage_pct": round(100.0 * df[col].notna().mean(), 4),
+                "missing_reason_counts": json.dumps(
+                    reasons, ensure_ascii=False) if reasons else "{}"})
+    for h in tv.HS:
+        for k in ("raw_log", "mkt_excess_log"):
+            col = f"y{h}_{k}"
+            nulls = labels[labels[col].isna()]
+            reasons = {}
+            for _, lrow in nulls.iterrows():
+                st = lrow[f"censored_reason_h{h}"]
+                if st == "sample_end":
+                    key = "sample_end"
+                elif st == "data_gap":
+                    key = "data_gap:" + str(lrow[f"data_gap_reason_h{h}"])
+                else:
+                    key = st
+                reasons[key] = reasons.get(key, 0) + 1
+            matrix.append({
+                "product": "event_labels", "field": col,
+                "n_valid": int(labels[col].notna().sum()),
+                "n_missing": int(len(nulls)),
+                "coverage_pct": round(100.0 * labels[col].notna().mean(), 4),
+                "missing_reason_counts": json.dumps(
+                    reasons, ensure_ascii=False) if reasons else "{}"})
+    pd.DataFrame(matrix).to_csv(OUT / "field_coverage_matrix.csv", index=False)
+    matrix_rows = len(matrix)
 
     print("[t3_v2] 6/6 integrity_report")
     report = {
@@ -272,6 +339,7 @@ def main() -> int:
                 "min": float(labels[f"y{h}_{k}"].dropna().min()),
                 "max": float(labels[f"y{h}_{k}"].dropna().max()),
             } for h in tv.HS for k in ("raw_log", "mkt_excess_log")},
+        "field_coverage_matrix_rows": matrix_rows,
         "gate_d_truncation_pit_audit": gate_d,
         "gate_e_coverage_reproduction": gate_e,
         "elapsed_sec": round(time.time() - t_start, 1),

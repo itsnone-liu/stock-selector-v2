@@ -43,23 +43,33 @@ def test_censor_four_states():
     # 全窗有效 → none
     sd = make_sd(md[:50], [10.0] * 50)
     mpos = {d: i for i, d in enumerate(md)}
-    r, ih, nv, tr = tv.classify_censor(sd, md, mpos, md[5], 10, 55)
+    r, ih, nv, fl = tv.classify_censor(sd, md, mpos, md[5], 10, 55)
     assert r == "none" and nv == 11
+    assert not fl["is_data_gap"] and fl["data_gap_reason"] is None
     # T0+H 越过 dataset_end → sample_end（构造 mdates 尾部越过 2026-09-18）
     md2 = ["2026-09-%02d" % (i + 1) for i in range(18)]  # 至 09-18
     sd2 = make_sd(md2, [10.0] * 18)
     mp2 = {d: i for i, d in enumerate(md2)}
     r2, *_ = tv.classify_censor(sd2, md2, mp2, "2026-09-15", 5, 17)
     assert r2 == "sample_end"
-    # 个股历史先于窗口末终止 → security_history_end
-    sd3 = make_sd(md[:20], [10.0] * 20)          # 最后有效日 = md[19]
-    r3, *_ = tv.classify_censor(sd3, md, mpos, md[5], 30, 55)
+    # 个股库行历史先于窗口末终止 → security_history_end
+    sd3 = make_sd(md[:20], [10.0] * 20)          # 最后库行 = md[19]
+    r3, _, _, fl3 = tv.classify_censor(sd3, md, mpos, md[5], 30, 55)
     assert r3 == "security_history_end"
-    # 中途缺日但历史延伸 → data_gap
+    assert fl3["is_security_history_end"]
+    # 中途缺行（行不在）但历史延伸 → data_gap / row_missing
     dates = [d for i, d in enumerate(md[:50]) if i != 10]
     sd4 = make_sd(dates, [10.0] * len(dates))
-    r4, *_ = tv.classify_censor(sd4, md, mpos, md[5], 10, 55)
-    assert r4 == "data_gap"
+    r4, _, _, fl4 = tv.classify_censor(sd4, md, mpos, md[5], 10, 55)
+    assert r4 == "data_gap" and fl4["is_data_gap"]
+    assert fl4["data_gap_reason"] == "row_missing"
+    # 行在而因子缺（裁定：adj_factor_missing → data_gap，不记 sec_end）
+    F5 = {d: 1.0 for d in md[:50] if d != md[8]}
+    sd5 = make_sd(md[:50], [10.0] * 50, F=F5)
+    r5, _, _, fl5 = tv.classify_censor(sd5, md, mpos, md[5], 10, 55)
+    assert r5 == "data_gap" and fl5["is_data_gap"]
+    assert fl5["data_gap_reason"] == "adj_factor_missing"
+    assert not fl5["is_security_history_end"]
 
 
 def test_y_formula_mirror():
@@ -109,22 +119,26 @@ def test_weekly_incomplete_week_excluded():
     assert wk2[0][1] == closes[4]                    # 01-09 = index 4
 
 
-def test_chip_strict_window_missing():
+def test_chip_field_level_window():
+    # 字段级口径（2026-09 裁定）：窗口 = T0 + 前置量有效日（行+vpos），
+    # 量缺失日不在骨架内（近 w 个量有效观测的成交成本）。
     md = mdates_fixture(30)
     closes = [10.0] * 30
     vols = {d: 100.0 for d in md}
-    vols[md[28]] = 0.0                               # T0 前一日量缺失
-    sd = make_sd(md, closes, vols=vols,
-                 amts={d: 1000.0 for d in md})
+    vols[md[28]] = 0.0                               # 量缺失日
+    amts = {d: 1000.0 for d in md}
+    sd = make_sd(md, closes, vols=vols, amts=amts)
     out = tv.compute_features_chip(sd, md[29])
-    # 5 日窗含 T0(29) + 28,27,26,25；28 量缺 → 严格缺失
-    assert out["chip_price_to_vwap_5d"] is None
-    assert out["chip_price_to_vwap_10d"] is None
-    # 20 日窗 = 29..10，不含 28? 不——含。窗 = T0+前19个有效观测 = 29..10
-    # (28 在窗内) → 同样缺失
-    assert out["chip_price_to_vwap_20d"] is None
-    out2 = tv.compute_features_chip(sd, md[27])      # T0=27, 窗 27..23 不含 28
-    assert out2["chip_price_to_vwap_5d"] is not None
+    # 5 日窗 = T0(29) + 27,26,25,24 —— 28 被骨架跳过，仍可算
+    assert out["chip_price_to_vwap_5d"] is not None
+    # vwap = Σamt/Σvol over {24..27,29} = 1000/100
+    assert abs(out["chip_vwap_day"] - 10.0) < 1e-12
+    # 短历史：上市不足 w 个量有效日 → 缺失
+    md_short = md[:3]
+    sd2 = make_sd(md_short, [10.0] * 3)
+    out2 = tv.compute_features_chip(sd2, md_short[2])
+    assert out2["chip_price_to_vwap_5d"] is None
+    assert out2["chip_vwap5_obs_n"] == 3
 
 
 def test_ref60_definition():
@@ -143,7 +157,7 @@ def test_ref60_definition():
 if __name__ == "__main__":
     for fn in (test_censor_four_states, test_y_formula_mirror,
                test_mdd_and_pullback, test_weekly_incomplete_week_excluded,
-               test_chip_strict_window_missing, test_ref60_definition):
+               test_chip_field_level_window, test_ref60_definition):
         fn()
         print(f"PASS {fn.__name__}")
     print("ALL PASS")

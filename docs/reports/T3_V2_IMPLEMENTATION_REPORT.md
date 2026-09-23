@@ -135,6 +135,27 @@
 ```
 无随机数、无墙钟依赖；两次全量构建的 6 个 parquet 逐字节一致（sha256 见 `determinism_check.json`）。运行环境：/root/venv（pandas 3.0.3 / numpy 2.4.6 / pyarrow 25.0.1 / duckdb 1.5.5）。
 
-## 6. 结论
+## 6. 条件版结论（历史记录）
 
-V2 的唯一目标——"将 V1 已冻结的定义物化为确定性、可复算、可审计的数据层"——已达成并通过数值级验证：六 Gate 中 ID/A/C/D 与确定性全 PASS，两处 FAIL 均为**冻结层自身的待裁定问题**（事件定义规则分歧、V1 审计覆盖表缺陷），不是实现分歧。按开工令纪律：不进入 V3，等待人工裁定 §2.3 与 §2.5 两项；裁定落地前，事件宇宙、标签口径、特征层均维持冻结原样。
+V2 条件版 `93afd5e` 的原始 Gate B/E FAIL 与待裁定结论保留在本报告前文，作为审计历史，不删除、不回写。
+
+## 7. 用户裁定后重签结论
+
+用户选择 Gate B 方案 1，并接受 Gate E 审计缺陷；规范勘误见 `T3_V1_ERRATA_AND_V2_REGATE.md` 与 V1 文档 Erratum E-2026-09-23。修订只改变规范职责和字段级审计语义，不重建 27,422 事件宇宙、不删除 112 事件。
+
+| 重签 Gate | 结果 | 证据 |
+|---|---|---|
+| ID | **PASS** | 27,422 唯一；映射完整 |
+| Y40 | **PASS** | 26,126 可比事件，max_abs_diff=0.0 |
+| lifecycle20 universe | **PASS** | 55,646 rows/12 columns 全表 0 mismatch；27,422=27,422 |
+| ref60 feature integrity | **PASS** | 27,310/27,310 与 A1 逐事件一致；obs_n=60；native20 27,422/27,422 |
+| high×F | **PASS** | 最差每股常数偏离 9.476e-11；事件日 27,310/27,310 |
+| PIT | **PASS** | 849 次物理截断重算，0 mismatch |
+| corrected field coverage | **PASS** | 字段矩阵 62 行；Gate E diff={} |
+| deterministic rerun | **PASS** | 6/6 产品 hash identical |
+
+字段级关键覆盖：A1 ref60=27,310/27,422；B1 volume=27,422/27,422；chip VWAP 5/10/20 均为 27,422/27,422；h20/h40 security_history_end=0；112 事件归入 data_gap/adj_factor_missing（主因按 horizon 优先级可与 sample_end 并存）。
+
+特别更正：条件版 Gate B 诊断脚本曾因复用首事件 prior 窗口错误报告 ref60 同时突破 18,725（68.27%）；产品 builder 未受影响。本次修正脚本逐事件取窗，正确保存值为 9,430/27,422。
+
+**V2 状态：PASSED。按裁定边界，V3 尚未开工，等待新的明确开工令。**

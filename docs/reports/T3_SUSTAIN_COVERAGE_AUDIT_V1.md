@@ -398,6 +398,46 @@ Y20：none 27,289 + sample_end 133；Y40：none 26,237 + sample_end 1,185。
 
 ---
 
+## Erratum E-2026-09-23：lifecycle 事件定义、字段级覆盖与审计字段
+
+本节是对冻结文本的规范性勘误；不回写或重建历史事件结果。旧文本保留，以下新语义优先。
+
+### E1. 事件宇宙与 ref60 的职责
+
+- `lifecycle breakout event` 正式定义为既有 lifecycle 规则：**TDX 未复权 close 突破前 20 个 TDX close 的最高值**。
+- 事件宇宙保持 27,422，不改成 ref60 重构宇宙。
+- `ref60` 是 T0 的 A1 趋势强度/位置特征：前 60 个有效复权观测的最高收盘；不是事件成立条件。
+- `a1_ref60_close_margin` 为正式字段名：`adj_close(T0)/ref60 - 1`。旧字段 `a1_breakout_margin` 保留为 deprecated compatibility alias，数值相同。
+- lifecycle20 reproduction 是门禁；ref60-universe reconstruction 仅为 descriptive diagnostic，不再是 Gate。
+
+### E2. 112 个因子不可得事件
+
+112 个事件保留在 27,422 事件宇宙中。事件存在、复权特征可用性、未来标签可用性是三个不同概念。
+
+- 个股价格/成交行仍存在但复权因子不可用时，主删失原因为 `data_gap`，`data_gap_reason=adj_factor_missing`；不得记为 `security_history_end`。
+- `security_history_end` 仅用于个股价格历史在窗口前真实终止的情形；退市/证券终态仍需外部名单确认。
+- 依赖 F/hfq 的字段保持 missing；不依赖因子的原始量、换手、原始价格字段按字段级规则继续计算。
+- `adj_factor_available`、`data_gap_reason_H` 及三类 flag 均为 audit-only，不得进入模型或风险集分层。
+
+### E3. 字段级覆盖与删失 flag
+
+覆盖必须按字段报告，不得把整个 A1/B1 family 粗暴降级。正式矩阵为 `field_coverage_matrix.csv`，含 `field / n_valid / n_missing / coverage_pct / missing_reason_counts`。
+
+四态 `censored_reason_H` 仍保留单一主原因，优先级为 `sample_end > none > security_history_end > data_gap`；同时保存互不排斥的：
+`is_sample_end_H`、`is_security_history_end_H`、`is_data_gap_H`。
+因此右边界与因子缺失可同时出现：主因可为 `sample_end`，同时 `is_data_gap_H=true`。
+
+修订后的冻结数字：A1 ref60 可用 27,310/27,422；B1 `vol_ratio_20` 可用 27,422/27,422；chip VWAP 5/10/20 可用均为 27,422/27,422；T0 后 20 个市场日换手审计为 partial=279、missing_days=1,202；所有 112 事件不再计入 security_history_end。
+
+### E4. B1 九态与 chip 成本带
+
+原文“六态”为字面计数错误。按现有实现冻结为 3×3 九态：
+`high_up, high_down, high_flat, norm_up, norm_down, norm_flat, low_up, low_down, low_flat`；只修正文档数量描述，不改变 state machine。
+
+chip V2 只冻结连续、可复算原始量：rolling VWAP、price-to-VWAP distance、累计换手、成交成本代理、有效观测数。`chip_cost_zone_pos_{60,120}` 保留为 audit-only candidate，不升格为 V2 primary feature；离散成本带阈值留待 V3 预注册。
+
+---
+
 ## 10. 冻结后的任务三边界（验收裁定原文固化）
 
 不做大模型工程，分四段推进，每段独立验收：

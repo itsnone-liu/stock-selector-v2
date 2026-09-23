@@ -193,7 +193,10 @@ def b1_event_checks(events: pd.DataFrame, factors: dict) -> tuple[dict, list]:
         tdx_close = dict(zip(tdates, tc))
         for r in rs:
             t0 = r.breakout_day
-            prior_now = [d for d in prior if d < t0]
+            # 每事件独立取窗（修 2026-09-23 bug：prior 曾只算到首个事件
+            # T0，后续事件用了过期 60 日窗 → ref60 通过率虚高 68.27%，
+            # 正确值见特征表 a1_above_ref60 ≈ 34.5%）
+            prior_now = [d for d in valid_sorted if d < t0]
             c0 = sd.adj.get(t0)
             obs60 = prior_now[-60:]
             ref60 = max((sd.adj[d] for d in obs60), default=None)
@@ -258,11 +261,11 @@ def b2_rebuild(df60: pd.DataFrame, frozen: pd.DataFrame,
                                   list(new_only)[:200]),
         "lifecycle_breakout_day_changed_n": len(changed),
         "changed_sample": changed[:200],
-        "verdict": "PASS" if (old == new) else "FAIL",
+        "old_equals_new": old == new,   # diagnostic 事实记录，非 Gate
     }
     print(json.dumps({k: res[k] for k in (
         "old_breakout_events", "new_breakout_events", "intersection",
-        "old_only_n", "new_only_n", "verdict")}))
+        "old_only_n", "new_only_n", "old_equals_new")}))
     return res
 
 
@@ -279,24 +282,45 @@ def main() -> int:
         df60.to_parquet(OUT / "_gateB_rebuild_lb60.parquet", index=False)
     frozen = load_frozen_table()
     b0 = b0_baseline(df20, frozen)
-    b2 = b2_rebuild(df60, frozen, df20)
+    b2 = b2_rebuild(df60, frozen, df20)      # descriptive diagnostic，无 verdict
 
     events = tv.load_events()
     factors = tv.load_factor_cache(OUT)
     b1, detail = b1_event_checks(events, factors)
-    pd.DataFrame(detail).to_parquet(OUT / "ref60_event_diff.parquet",
-                                    index=False)
-    verdict = ("PASS" if (b0["verdict"] == "PASS"
-                          and b2["verdict"] == "PASS"
-                          and b1["fail_ref60_adj"] == 0
-                          and b1["fail_native20_tdx"] == 0) else "FAIL")
+    det = pd.DataFrame(detail)
+    det.to_parquet(OUT / "ref60_event_diff.parquet", index=False)
+
+    # B1 特征一致性：事件内 ref60 与特征表 a1_ref60 逐事件相等
+    a1t = pd.read_parquet(OUT / "event_features_a1.parquet")
+    j = det.merge(a1t[["breakout_event_id", "a1_ref60", "a1_ref60_obs_n"]],
+                  on="breakout_event_id", how="left")
+    both = j[j.ref60_adj.notna() & j.a1_ref60.notna()]
+    n_equal = int((both.ref60_adj == both.a1_ref60).sum())
+    b1["feature_table_ref60_equal"] = n_equal
+    b1["feature_table_ref60_compared"] = int(len(both))
+    b1["ref60_obs_n_all_60"] = int(
+        (a1t[a1t.a1_ref60.notna()]["a1_ref60_obs_n"] == 60).sum())
+    b1["ref60_computable_in_features"] = int(a1t.a1_ref60.notna().sum())
+    b1_pass = (b1["fail_native20_tdx"] == 0
+               and n_equal == len(both) and len(both) > 0
+               and b1["ref60_obs_n_all_60"] == b1["ref60_computable_in_features"]
+               and b1["pass_native20_tdx"] == 27422)
+    verdict = "PASS" if (b0["verdict"] == "PASS" and b1_pass) else "FAIL"
     summary = {
-        "gate": "B", "verdict": verdict,
-        "b0_baseline_reproduction": b0,
-        "b1_per_event": b1,
-        "b2_rebuild_lb60": b2,
-        "note": ("B1 冻结 ref60 与 lifecycle 原生 20 日规则口径不同；"
-                 "任何不一致只报告，不改事件宇宙，等待人工裁定"),
+        "gate": "B (2026-09 裁定版)",
+        "gate_b0_lifecycle20_universe_reproduction": {
+            "verdict": b0["verdict"],
+            "note": "冻结配置在当前数据重跑，全表逐列必须复现 27,422",
+            "detail": b0},
+        "gate_b1_ref60_feature_integrity": {
+            "verdict": "PASS" if b1_pass else "FAIL",
+            "note": ("ref60 为 A1 特征（非事件条件）：可算性 + 与特征表"
+                     "逐事件一致 + obs_n==60 + 原生 20d 口径 100%（数据"
+                     "读取一致性证明）"),
+            "detail": b1},
+        "diagnostic_ref60_universe_reconstruction": {
+            "note": "descriptive diagnostic（裁定：不再是 Gate）", "detail": b2},
+        "verdict": verdict,
     }
     (OUT / "ref60_event_diff.json").write_text(
         json.dumps(summary, ensure_ascii=False, indent=1, default=str))
