@@ -1,0 +1,7 @@
+{
+  "gate": "V3_DETERMINISM",
+  "products_compared": 3,
+  "identical": true,
+  "diff": {},
+  "verdict": "PASS"
+}

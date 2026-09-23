@@ -1,0 +1,29 @@
+{
+  "calendar": {
+    "verdict": "PASS",
+    "rows": 1124302,
+    "expected": 1124302
+  },
+  "t0_anchor": {
+    "verdict": "PASS",
+    "checked": 82266,
+    "bad": []
+  },
+  "path_pit": {
+    "verdict": "PASS",
+    "checked": 51,
+    "bad": []
+  },
+  "path_invariant": {
+    "verdict": "PASS",
+    "bad_count": 0,
+    "sample": []
+  },
+  "missing_censor": {
+    "verdict": "PASS",
+    "no_fill_check": true,
+    "source_date_causal": true,
+    "no_row_valid": 16955
+  },
+  "determinism_note": "run builder twice and compare product hashes"
+}

@@ -1,0 +1,30 @@
+{
+  "task": "T3_V3_event_evolution",
+  "baseline_commit": "a7cfbb9",
+  "events": 27422,
+  "daily_rows": 1124302,
+  "expected_daily_rows": 1124302,
+  "checkpoint_rows": 164532,
+  "summary_rows": 27422,
+  "calendar_range": [
+    "2021-08-02",
+    "2026-09-22"
+  ],
+  "dataset_end": "2026-09-18",
+  "missing_codes": [],
+  "products": {
+    "event_path_daily": {
+      "rows": 1124302,
+      "sha256": "094b512c784766488621758cf5dde6b104ae8e1bd15487c214511a19ba4612d0"
+    },
+    "event_path_checkpoints": {
+      "rows": 164532,
+      "sha256": "702a8b554d665bc94f4be1eeefac4c5a5c6001ac49de2a061315deb074708091"
+    },
+    "event_path_summary": {
+      "rows": 27422,
+      "sha256": "b0c64656808440b30b33b3f13240e4c480f13bed1081fcdc2bbc01eb288c24cb"
+    }
+  },
+  "elapsed_sec": 1220.45
+}
