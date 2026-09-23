@@ -1,0 +1,249 @@
+{
+ "audit": "MULTIPERIOD_CONDITION_QA_DESCRIPTIVE",
+ "date": "2026-09-23",
+ "ruling": "二十二层裁决 B: 描述性/探索性; 无 p/CI/Holm; 无 bootstrap; 不作拒绝判断",
+ "rate_definition": "未来五日首次突破记录数/观察日数; 竞争事件计入未发生突破的分母; 非独立股票突破概率, 非因果",
+ "sample": "b22 测试折(阈值由 b19-21 训练折特征确定, 无泄漏)",
+ "train_thresholds": {
+  "price_vs_monthly_ma6": [
+   0.7991710343547109,
+   9.04046421669169
+  ],
+  "ma_spread_3_6": [
+   2.4590163934426124,
+   7.625845029771665
+  ],
+  "wk_close_vs_ma4": [
+   -1.2438123492350956,
+   0.7363770250368162
+  ],
+  "wk_up_streak": "档位 0/1/2/>=3 预固定(非分位)"
+ },
+ "H2a_price_vs_monthly_ma6": {
+  "high": {
+   "obs": 19081,
+   "event": 5205,
+   "competing": 7389,
+   "censor_window": 6487,
+   "censor_admin": 0,
+   "rate5_per_day": 0.27278
+  },
+  "low": {
+   "obs": 34350,
+   "event": 9331,
+   "competing": 10940,
+   "censor_window": 14079,
+   "censor_admin": 0,
+   "rate5_per_day": 0.27164
+  },
+  "mid": {
+   "obs": 17982,
+   "event": 4580,
+   "competing": 6842,
+   "censor_window": 6560,
+   "censor_admin": 0,
+   "rate5_per_day": 0.2547
+  }
+ },
+ "H2b_wk_up_streak": {
+  "s0": {
+   "obs": 27936,
+   "event": 6534,
+   "competing": 10729,
+   "censor_window": 10673,
+   "censor_admin": 0,
+   "rate5_per_day": 0.23389
+  },
+  "s1": {
+   "obs": 33349,
+   "event": 9278,
+   "competing": 10416,
+   "censor_window": 13655,
+   "censor_admin": 0,
+   "rate5_per_day": 0.27821
+  },
+  "s2": {
+   "obs": 8045,
+   "event": 2598,
+   "competing": 3111,
+   "censor_window": 2336,
+   "censor_admin": 0,
+   "rate5_per_day": 0.32293
+  },
+  "s3p": {
+   "obs": 2083,
+   "event": 706,
+   "competing": 915,
+   "censor_window": 462,
+   "censor_admin": 0,
+   "rate5_per_day": 0.33893
+  }
+ },
+ "S3_delta1_H2a": {
+  "high": {
+   "obs": 19081,
+   "event": 1487,
+   "competing": 2494,
+   "censor_window": 15100,
+   "censor_admin": 0,
+   "rate5_per_day": 0.07793
+  },
+  "low": {
+   "obs": 34350,
+   "event": 2409,
+   "competing": 2941,
+   "censor_window": 29000,
+   "censor_admin": 0,
+   "rate5_per_day": 0.07013
+  },
+  "mid": {
+   "obs": 17982,
+   "event": 1222,
+   "competing": 2088,
+   "censor_window": 14672,
+   "censor_admin": 0,
+   "rate5_per_day": 0.06796
+  }
+ },
+ "S3_delta1_H2b": {
+  "s0": {
+   "obs": 27936,
+   "event": 1642,
+   "competing": 3266,
+   "censor_window": 23028,
+   "censor_admin": 0,
+   "rate5_per_day": 0.05878
+  },
+  "s1": {
+   "obs": 33349,
+   "event": 2430,
+   "competing": 2977,
+   "censor_window": 27942,
+   "censor_admin": 0,
+   "rate5_per_day": 0.07287
+  },
+  "s2": {
+   "obs": 8045,
+   "event": 812,
+   "competing": 909,
+   "censor_window": 6324,
+   "censor_admin": 0,
+   "rate5_per_day": 0.10093
+  },
+  "s3p": {
+   "obs": 2083,
+   "event": 234,
+   "competing": 371,
+   "censor_window": 1478,
+   "censor_admin": 0,
+   "rate5_per_day": 0.11234
+  }
+ },
+ "S4_competing_in_denominator_H2a": {
+  "high": {
+   "obs": 19081,
+   "event": 5205,
+   "competing": 7389,
+   "censor_window": 6487,
+   "censor_admin": 0,
+   "rate5_per_day": 0.27278
+  },
+  "low": {
+   "obs": 34350,
+   "event": 9331,
+   "competing": 10940,
+   "censor_window": 14079,
+   "censor_admin": 0,
+   "rate5_per_day": 0.27164
+  },
+  "mid": {
+   "obs": 17982,
+   "event": 4580,
+   "competing": 6842,
+   "censor_window": 6560,
+   "censor_admin": 0,
+   "rate5_per_day": 0.2547
+  }
+ },
+ "S4_competing_excluded_H2a": {
+  "high": {
+   "obs": 11692,
+   "event": 5205,
+   "competing": 0,
+   "censor_window": 6487,
+   "censor_admin": 0,
+   "rate5_per_day": 0.44518
+  },
+  "low": {
+   "obs": 23410,
+   "event": 9331,
+   "competing": 0,
+   "censor_window": 14079,
+   "censor_admin": 0,
+   "rate5_per_day": 0.39859
+  },
+  "mid": {
+   "obs": 11140,
+   "event": 4580,
+   "competing": 0,
+   "censor_window": 6560,
+   "censor_admin": 0,
+   "rate5_per_day": 0.41113
+  }
+ },
+ "D2_ma_spread_3_6": {
+  "high": {
+   "obs": 21040,
+   "event": 6100,
+   "competing": 6771,
+   "censor_window": 8169,
+   "censor_admin": 0,
+   "rate5_per_day": 0.28992
+  },
+  "low": {
+   "obs": 29126,
+   "event": 7487,
+   "competing": 11355,
+   "censor_window": 10284,
+   "censor_admin": 0,
+   "rate5_per_day": 0.25706
+  },
+  "mid": {
+   "obs": 21247,
+   "event": 5529,
+   "competing": 7045,
+   "censor_window": 8673,
+   "censor_admin": 0,
+   "rate5_per_day": 0.26022
+  }
+ },
+ "D2_trend_len": {},
+ "D2_wk_close_vs_ma4": {
+  "high": {
+   "obs": 25402,
+   "event": 9254,
+   "competing": 8659,
+   "censor_window": 7489,
+   "censor_admin": 0,
+   "rate5_per_day": 0.3643
+  },
+  "low": {
+   "obs": 29013,
+   "event": 4717,
+   "competing": 10158,
+   "censor_window": 14138,
+   "censor_admin": 0,
+   "rate5_per_day": 0.16258
+  },
+  "mid": {
+   "obs": 16998,
+   "event": 5145,
+   "competing": 6354,
+   "censor_window": 5499,
+   "censor_admin": 0,
+   "rate5_per_day": 0.30268
+  }
+ },
+ "S5": "保留方法验证事项, 不作统计证据(二十一轮)",
+ "note": "结果出来后不根据正负方向追加假设或选择块长(裁决 B)"
+}
