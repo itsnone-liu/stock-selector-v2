@@ -78,12 +78,15 @@ def main():
             if bo_i is not None and i >= bo_i:
                 continue
             cls5 = classify(i, bo_i, end_i, mkt, n_md)
+            # S4 重分类终点(二十三轮): 竞争集分别限 structure_break / monthly_exit
+            cls5_rs = classify_rt(i, bo_i, end_i, reason, n_md, {"structure_break"})
+            cls5_rm = classify_rt(i, bo_i, end_i, reason, n_md, {"monthly_exit"})
             b = obs_bucket(d)
             mo = monthly_states(closes, d)
             we = weekly_states(closes, d)
             f5 = {"price_vs_monthly_ma6": mo.get("price_vs_monthly_ma6"),
                   "ma_spread_3_6": mo.get("ma_spread_3_6"),
-                  "trend_len": mo.get("trend_len"),
+                  "trend_len_completed": mo.get("trend_len_completed"),
                   "wk_close_vs_ma4": we.get("wk_close_vs_ma4"),
                   "wk_up_streak": we.get("wk_up_streak")}
             if b in TRAIN:
@@ -93,7 +96,7 @@ def main():
             elif b == TEST:
                 # Δ=1 终点: 窗 [t+1, t+1]
                 cls1 = classify1(i, bo_i, end_i, mkt, n_md)
-                b22.append((d, f5, cls5, cls1))
+                b22.append((d, f5, cls5, cls1, cls5_rs, cls5_rm))
         if len(b22) and (len(b22) % 60000) == 0:
             print(f"b22 {len(b22):,} | {time.time()-t0:.0f}s", flush=True)
 
@@ -114,9 +117,16 @@ def main():
            "S3_delta1_H2b": summarize(rate_table("wk_up_streak", b22, thr, "cls1")),
            "S4_competing_in_denominator_H2a": summarize(s4_tables("price_vs_monthly_ma6", b22, thr)[0]),
            "S4_competing_excluded_H2a": summarize(s4_tables("price_vs_monthly_ma6", b22, thr)[1]),
+           "S4_competing_in_denominator_H2b": summarize(s4_tables("wk_up_streak", b22, thr)[0]),
+           "S4_competing_excluded_H2b": summarize(s4_tables("wk_up_streak", b22, thr)[1]),
+           "S4_reclass_only_structure_break_H2a": summarize(rate_table("price_vs_monthly_ma6", b22, thr, "cls5_rs")),
+           "S4_reclass_only_monthly_exit_H2a": summarize(rate_table("price_vs_monthly_ma6", b22, thr, "cls5_rm")),
+           "S4_reclass_only_structure_break_H2b": summarize(rate_table("wk_up_streak", b22, thr, "cls5_rs")),
+           "S4_reclass_only_monthly_exit_H2b": summarize(rate_table("wk_up_streak", b22, thr, "cls5_rm")),
            "D2_ma_spread_3_6": summarize(rate_table("ma_spread_3_6", b22, thr)),
-           "D2_trend_len": summarize(rate_table("trend_len", b22, thr)),
+           "D2_trend_len_completed": summarize(rate_table("trend_len_completed", b22, thr)),
            "D2_wk_close_vs_ma4": summarize(rate_table("wk_close_vs_ma4", b22, thr)),
+           "errata_23rd": "trend_len→trend_len_completed 键名修复(原表为空); S4 补 H2b 双口径+退出原因分别重分类",
            "S5": "保留方法验证事项, 不作统计证据(二十一轮)",
            "note": "结果出来后不根据正负方向追加假设或选择块长(裁决 B)"}
     (OUT / "MULTIPERIOD_CONDITION_QA_DESCRIPTIVE.json").write_text(json.dumps(rep, ensure_ascii=False, indent=1))
@@ -139,30 +149,32 @@ def grp(k, v, thr):
 def rate_table(var, b22, thr, cls_key="cls5"):
     from collections import Counter, defaultdict
     tab = defaultdict(Counter)
-    for d, f5, cls5, cls1 in b22:
-        g = grp(var, f5[var], thr)
+    idx = {"cls5": 2, "cls1": 3, "cls5_rs": 4, "cls5_rm": 5}[cls_key]
+    for row in b22:
+        g = grp(var, row[1][var], thr)
         if g is None:
             continue
-        c = cls5 if cls_key == "cls5" else cls1
         tab[g]["obs"] += 1
-        tab[g][c] = tab[g].get(c, 0) + 1
+        tab[g][row[idx]] = tab[g].get(row[idx], 0) + 1
     return tab
 
 
-def s4_tables(var, b22, thr):
+def s4_tables(var, b22, thr, cls_key="cls5"):
     """S4: 竞争口径对照(竞争计分母[主] vs 竞争日剔除)。"""
     from collections import Counter, defaultdict
+    idx = {"cls5": 2, "cls1": 3, "cls5_rs": 4, "cls5_rm": 5}[cls_key]
     tab_in = defaultdict(Counter)
     tab_ex = defaultdict(Counter)
-    for d, f5, cls5, _ in b22:
-        g = grp(var, f5[var], thr)
+    for row in b22:
+        g = grp(var, row[1][var], thr)
         if g is None:
             continue
+        c = row[idx]
         tab_in[g]["obs"] += 1
-        tab_in[g][cls5] = tab_in[g].get(cls5, 0) + 1
-        if cls5 != "competing":     # 剔除口径: 竞争日从分子分母同时剔除
+        tab_in[g][c] = tab_in[g].get(c, 0) + 1
+        if c != "competing":     # 剔除口径: 竞争日从分子分母同时剔除
             tab_ex[g]["obs"] += 1
-            tab_ex[g][cls5] = tab_ex[g].get(cls5, 0) + 1
+            tab_ex[g][c] = tab_ex[g].get(c, 0) + 1
     return tab_in, tab_ex
 
 
@@ -175,6 +187,28 @@ def summarize(tab):
                   "censor_window": c.get("censor_window", 0), "censor_admin": c.get("censor_admin", 0),
                   "rate5_per_day": round(ev / ob, 5) if ob else None}
     return out
+
+
+def classify_rt(i, bo_i, end_i, reason, n_md, competing_reasons):
+    """S4 重分类(二十三轮): 竞争集参数化——仅当 end_reason 属于
+    competing_reasons 时 end 才作竞争候选; 其余市场性退出按窗满/行政删失。
+    排序结构同 classify(优先级 竞争>行政>事件)。"""
+    obs_last = min(i + 5, n_md - 1)
+    if obs_last <= i:
+        return "censor_admin"
+    mkt_here = reason in competing_reasons
+    ev_i = bo_i if (bo_i is not None and i < bo_i <= obs_last) else None
+    cp_i = end_i if (mkt_here and end_i is not None and i < end_i <= obs_last) else None
+    prio = {"competing": 0, "censor_admin": 1, "event": 2}
+    cands = [x for x in ((ev_i, "event"), (cp_i, "competing")) if x[0] is not None]
+    if cands:
+        cands.sort(key=lambda x: (x[0], prio[x[1]]))
+        if len(cands) > 1 and cands[0][0] == cands[1][0]:
+            return "competing"
+        return cands[0][1]
+    if obs_last < i + 5:
+        return "censor_admin"
+    return "censor_window"
 
 
 def classify1(i, bo_i, end_i, mkt, n_md):

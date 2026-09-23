@@ -13,6 +13,10 @@
    2.4590163934426124,
    7.625845029771665
   ],
+  "trend_len_completed": [
+   1.0,
+   5.0
+  ],
   "wk_close_vs_ma4": [
    -1.2438123492350956,
    0.7363770250368162
@@ -191,6 +195,194 @@
    "rate5_per_day": 0.41113
   }
  },
+ "S4_competing_in_denominator_H2b": {
+  "s0": {
+   "obs": 27936,
+   "event": 6534,
+   "competing": 10729,
+   "censor_window": 10673,
+   "censor_admin": 0,
+   "rate5_per_day": 0.23389
+  },
+  "s1": {
+   "obs": 33349,
+   "event": 9278,
+   "competing": 10416,
+   "censor_window": 13655,
+   "censor_admin": 0,
+   "rate5_per_day": 0.27821
+  },
+  "s2": {
+   "obs": 8045,
+   "event": 2598,
+   "competing": 3111,
+   "censor_window": 2336,
+   "censor_admin": 0,
+   "rate5_per_day": 0.32293
+  },
+  "s3p": {
+   "obs": 2083,
+   "event": 706,
+   "competing": 915,
+   "censor_window": 462,
+   "censor_admin": 0,
+   "rate5_per_day": 0.33893
+  }
+ },
+ "S4_competing_excluded_H2b": {
+  "s0": {
+   "obs": 17207,
+   "event": 6534,
+   "competing": 0,
+   "censor_window": 10673,
+   "censor_admin": 0,
+   "rate5_per_day": 0.37973
+  },
+  "s1": {
+   "obs": 22933,
+   "event": 9278,
+   "competing": 0,
+   "censor_window": 13655,
+   "censor_admin": 0,
+   "rate5_per_day": 0.40457
+  },
+  "s2": {
+   "obs": 4934,
+   "event": 2598,
+   "competing": 0,
+   "censor_window": 2336,
+   "censor_admin": 0,
+   "rate5_per_day": 0.52655
+  },
+  "s3p": {
+   "obs": 1168,
+   "event": 706,
+   "competing": 0,
+   "censor_window": 462,
+   "censor_admin": 0,
+   "rate5_per_day": 0.60445
+  }
+ },
+ "S4_reclass_only_structure_break_H2a": {
+  "high": {
+   "obs": 19081,
+   "event": 5205,
+   "competing": 1851,
+   "censor_window": 12025,
+   "censor_admin": 0,
+   "rate5_per_day": 0.27278
+  },
+  "low": {
+   "obs": 34350,
+   "event": 9331,
+   "competing": 4880,
+   "censor_window": 20139,
+   "censor_admin": 0,
+   "rate5_per_day": 0.27164
+  },
+  "mid": {
+   "obs": 17982,
+   "event": 4580,
+   "competing": 2735,
+   "censor_window": 10667,
+   "censor_admin": 0,
+   "rate5_per_day": 0.2547
+  }
+ },
+ "S4_reclass_only_monthly_exit_H2a": {
+  "high": {
+   "obs": 19081,
+   "event": 5205,
+   "competing": 5538,
+   "censor_window": 8338,
+   "censor_admin": 0,
+   "rate5_per_day": 0.27278
+  },
+  "low": {
+   "obs": 34350,
+   "event": 9331,
+   "competing": 6060,
+   "censor_window": 18959,
+   "censor_admin": 0,
+   "rate5_per_day": 0.27164
+  },
+  "mid": {
+   "obs": 17982,
+   "event": 4580,
+   "competing": 4107,
+   "censor_window": 9295,
+   "censor_admin": 0,
+   "rate5_per_day": 0.2547
+  }
+ },
+ "S4_reclass_only_structure_break_H2b": {
+  "s0": {
+   "obs": 27936,
+   "event": 6534,
+   "competing": 3941,
+   "censor_window": 17461,
+   "censor_admin": 0,
+   "rate5_per_day": 0.23389
+  },
+  "s1": {
+   "obs": 33349,
+   "event": 9278,
+   "competing": 3732,
+   "censor_window": 20339,
+   "censor_admin": 0,
+   "rate5_per_day": 0.27821
+  },
+  "s2": {
+   "obs": 8045,
+   "event": 2598,
+   "competing": 1400,
+   "censor_window": 4047,
+   "censor_admin": 0,
+   "rate5_per_day": 0.32293
+  },
+  "s3p": {
+   "obs": 2083,
+   "event": 706,
+   "competing": 393,
+   "censor_window": 984,
+   "censor_admin": 0,
+   "rate5_per_day": 0.33893
+  }
+ },
+ "S4_reclass_only_monthly_exit_H2b": {
+  "s0": {
+   "obs": 27936,
+   "event": 6534,
+   "competing": 6788,
+   "censor_window": 14614,
+   "censor_admin": 0,
+   "rate5_per_day": 0.23389
+  },
+  "s1": {
+   "obs": 33349,
+   "event": 9278,
+   "competing": 6684,
+   "censor_window": 17387,
+   "censor_admin": 0,
+   "rate5_per_day": 0.27821
+  },
+  "s2": {
+   "obs": 8045,
+   "event": 2598,
+   "competing": 1711,
+   "censor_window": 3736,
+   "censor_admin": 0,
+   "rate5_per_day": 0.32293
+  },
+  "s3p": {
+   "obs": 2083,
+   "event": 706,
+   "competing": 522,
+   "censor_window": 855,
+   "censor_admin": 0,
+   "rate5_per_day": 0.33893
+  }
+ },
  "D2_ma_spread_3_6": {
   "high": {
    "obs": 21040,
@@ -217,7 +409,32 @@
    "rate5_per_day": 0.26022
   }
  },
- "D2_trend_len": {},
+ "D2_trend_len_completed": {
+  "high": {
+   "obs": 18634,
+   "event": 5067,
+   "competing": 6562,
+   "censor_window": 7005,
+   "censor_admin": 0,
+   "rate5_per_day": 0.27192
+  },
+  "low": {
+   "obs": 32088,
+   "event": 8719,
+   "competing": 10230,
+   "censor_window": 13139,
+   "censor_admin": 0,
+   "rate5_per_day": 0.27172
+  },
+  "mid": {
+   "obs": 20691,
+   "event": 5330,
+   "competing": 8379,
+   "censor_window": 6982,
+   "censor_admin": 0,
+   "rate5_per_day": 0.2576
+  }
+ },
  "D2_wk_close_vs_ma4": {
   "high": {
    "obs": 25402,
@@ -244,6 +461,7 @@
    "rate5_per_day": 0.30268
   }
  },
+ "errata_23rd": "trend_len→trend_len_completed 键名修复(原表为空); S4 补 H2b 双口径+退出原因分别重分类",
  "S5": "保留方法验证事项, 不作统计证据(二十一轮)",
  "note": "结果出来后不根据正负方向追加假设或选择块长(裁决 B)"
 }
