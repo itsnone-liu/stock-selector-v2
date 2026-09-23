@@ -1,0 +1,7 @@
+{
+ "gate": "DETERMINISM",
+ "products_compared": 6,
+ "identical": true,
+ "diff": {},
+ "verdict": "PASS"
+}

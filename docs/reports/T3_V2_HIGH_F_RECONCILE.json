@@ -1,0 +1,19 @@
+{
+ "scope": "事件股全量逐日（close×F/hfq 与 high×F/hfq 每股常数性）",
+ "stocks_checked": 4760,
+ "rows_compared": 6255000,
+ "rows_factor_or_hfq_missing": 28944,
+ "per_stock_constant_median_of_const": 0.5271157755073432,
+ "const_range": [
+  9.289000000216063e-05,
+  1.42582772865447
+ ],
+ "worst_within_stock_deviation": 9.476353035609009e-11,
+ "tolerance": 1e-08,
+ "bad_stocks_n": 0,
+ "bad_stocks_sample": [],
+ "interpretation": "close×F/hfq 为每股常数（基准日归一差异，收益层完全等价）；Gate C 验证常数性而非 |r-1|",
+ "eventday_tdx_vs_lib_close_checked": 27310,
+ "eventday_tdx_vs_lib_close_ok": 27310,
+ "verdict": "PASS"
+}
