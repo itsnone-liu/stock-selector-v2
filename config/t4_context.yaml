@@ -1,0 +1,22 @@
+# T4.1 Context 构建配置
+baseline: 28f7aed            # T3 V6 冻结点（HEAD 必须一致）
+
+paths:
+  per_stock_dir: data/adjustment_baostock/per_stock
+  factor_table: output/research/adjustment_v1/factor_table.csv.gz
+  index_day: /root/tdx_data/vipdoc/sh/lday/sh999999.day
+  industry_snapshot: data/t4/sector_map/csrc_industry_snapshot.json
+  out_dir: output/research/t4/context
+
+sector:
+  granularity: gate          # 门类（industry 首字母，19 类）；大类列保留在 map
+  is_point_in_time: false    # baostock 证监会分类为快照（2026-09-21），非历史时点
+
+context:
+  lookback_market: 20        # T0 前市场/板块窗口（市场日）
+  percentile_window: 60      # 成交额分位回看窗
+  breadth_avg_days: 5        # 广度均值平滑
+
+aggregation:
+  min_sector_members: 20     # 门类内有效个股数下限（低于则该日板块指标置 null）
+  amount_unit: 1e8           # 亿元
