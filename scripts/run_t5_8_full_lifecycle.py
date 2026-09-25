@@ -121,26 +121,34 @@ def replay(dl, base, filled, a_f, r_f, disable=None, static=False, collect_daily
         if d > 0 and ret is not None:                  # R3: BH on the SAME clock
             bh += ret
         n_days+=1
-        if ret is None:                                # R5: suspension = no quoted price
+        if ret is None and d > 0:                       # R5: suspension = no quoted price
             x_after = x; eff = 'SUSPENDED_NO_TRADE'; n_susp+=1
-        elif not static:
-            if locked: x_after=0.0; eff='POST_EXIT_LOCKED'; n_lock+=1   # R7: permanent lock
-            elif not filled: x_after=0.0; eff='NO_POSITION'
-            elif disable is not None and status==disable: x_after=x; eff='DISABLED_'+status
-            else:
-                op=OPS.get(status,'pre')
-                if op=='add':
-                    if x>=1.0: x_after=x; eff='ADD_AT_CAP'; n_cap+=1
-                    else: x_after=min(x+a_f*(1-x),1.0); eff=status
-                    n_add+=1
-                elif op=='red': x_after=x*r_f; eff=status; n_red+=1
-                elif op=='ext': x_after=0.0; eff=status; n_ext+=1; locked=True
-                elif op=='hod': x_after=x; eff=status
+        else:
+            if not static:
+                if locked: x_after=0.0; eff='POST_EXIT_LOCKED'; n_lock+=1   # R7: permanent lock
+                elif not filled: x_after=0.0; eff='NO_POSITION'
+                elif disable is not None and status==disable: x_after=x; eff='DISABLED_'+status
                 else:
-                    x_after=x; eff=status
-                    if status=='CONFLICT_OPPORTUNITY_RISK': n_conf+=1
-                    if status=='NO_ACTION_EVIDENCE': n_noev+=1
-        else: x_after=x; eff='STATIC_HOLD'
+                    op=OPS.get(status,'pre')
+                    if op=='add':
+                        if x>=1.0: x_after=x; eff='ADD_AT_CAP'; n_cap+=1
+                        else: x_after=min(x+a_f*(1-x),1.0); eff=status
+                        n_add+=1
+                    elif op=='red': x_after=x*r_f; eff=status; n_red+=1
+                    elif op=='ext': x_after=0.0; eff=status; n_ext+=1; locked=True
+                    elif op=='hod': x_after=x; eff=status
+                    else:
+                        x_after=x; eff=status
+                        if status=='CONFLICT_OPPORTUNITY_RISK': n_conf+=1
+                        if status=='NO_ACTION_EVIDENCE': n_noev+=1
+            else: x_after=x; eff='STATIC_HOLD'
+            if d == 0:
+                # R10 (freeze-blocking audit fix): delta_day=0 has ret=NaN by
+                # construction (27,422/27,422 in t5_daily_state) — it is the
+                # entry day with no prior-day return, NOT a suspension. The
+                # old label counted it as suspension (260,100 = 1 per active
+                # branch) and understated nothing but lied about its nature.
+                eff = 'ENTRY_DAY_NO_RETURN'
         if 0<x_after<0.05: dust+=1
         if x_after>0: exp_sum+=x_after; exp_days+=1
         if collect_daily is not None and filled:
@@ -264,6 +272,27 @@ def main():
 
     inputs = [{'name': n, 'path': str(p.relative_to(ROOT)), 'sha256': sha256_file(p),
                'bytes': p.stat().st_size} for n, p in INPUT_SPECS]
+
+    # R9: machine-generated report data — every number below is read from the
+    # frozen products; the human report MUST cite these, never retype them.
+    # NOTE: written BEFORE the manifest so its hash enters products correctly.
+    rep = {'manifest_scale': {'total_rows': len(ep), 'control_p0': int((ep.policy_id=='CONTROL').sum()),
+            'active_12cell': int(len(act)),
+            'not_filled_no_position': int(((ep.policy_id!='CONTROL')&(~ep.filled)).sum()),
+            'censored_max_horizon': int(ep.censored.sum()),
+            'daily_rows': int(n_daily),
+            'attribution_rows': len(attr),
+            'suspended_no_trade_days': int(n_susp_total)},
+           'matrix': json.loads(cells.round(6).to_json(orient='records')),
+           'split': json.loads(spm.round(6).to_json(orient='records')),
+           'censor_audit': json.loads(pd.read_parquet(OUT/'t5_8_censor_terminal_audit.parquet'
+                ).to_json(orient='records')),
+           'cf_pool': json.loads(attr.groupby('variant').agg(
+                n=('ret_ep_log','size'), mean_ret_norm=('ret_ep_log','mean'),
+                mean_mdd=('mdd_ep','mean'), mean_exposure=('mean_exposure','mean'),
+                mean_bh=('bh_ret_ep_log','mean')).round(6).reset_index().to_json(orient='records'))}
+    (OUT/'t5_8_report_data.json').write_text(json.dumps(rep, indent=2, ensure_ascii=False))
+
     products = []
     for f in sorted(OUT.glob('t5_8_*.parquet')) + sorted(OUT.glob('t5_8_*.json')):
         if f.name in ('t5_8_manifest.json', 't5_8_gates.json'):
@@ -279,23 +308,9 @@ def main():
            'pnl_computed': True, 'champion_ranking': False, 'parameter_tuning': False,
            'inputs': inputs, 'products': products}
     (OUT/'t5_8_manifest.json').write_text(json.dumps(man, indent=2, ensure_ascii=False))
-
-    # R9: machine-generated report data — every number below is read from the
-    # frozen products; the human report MUST cite these, never retype them.
-    rep = {'manifest_scale': man['episodes'] | {'daily_rows': man['daily_rows'],
-            'attribution_rows': man['attribution_rows'],
-            'suspended_no_trade_days': man['suspended_no_trade_days']},
-           'matrix': json.loads(cells.round(6).to_json(orient='records')),
-           'split': json.loads(spm.round(6).to_json(orient='records')),
-           'censor_audit': json.loads(pd.read_parquet(OUT/'t5_8_censor_terminal_audit.parquet'
-                ).to_json(orient='records')),
-           'cf_pool': json.loads(attr.groupby('variant').agg(
-                n=('ret_ep_log','size'), mean_ret_norm=('ret_ep_log','mean'),
-                mean_mdd=('mdd_ep','mean'), mean_exposure=('mean_exposure','mean'),
-                mean_bh=('bh_ret_ep_log','mean')).round(6).reset_index().to_json(orient='records'))}
-    (OUT/'t5_8_report_data.json').write_text(json.dumps(rep, indent=2, ensure_ascii=False))
     print(json.dumps(man['episodes'] | {'daily_rows': man['daily_rows'],
-          'attribution_rows': man['attribution_rows']}, indent=2))
+          'attribution_rows': man['attribution_rows'],
+          'suspended_no_trade_days': man['suspended_no_trade_days']}, indent=2))
     print(cells.round(4).to_string(index=False))
 
 if __name__ == '__main__':

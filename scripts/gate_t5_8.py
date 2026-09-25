@@ -107,15 +107,20 @@ def main():
          and ep.censored.eq(ep.terminal_reason == 'MAX_HORIZON').fillna(False).all(),
          terminal_reasons=sorted(ep.terminal_reason.dropna().unique().tolist()))
 
-    # G7 preserve + suspension no-trade (R5)
+    # G7 preserve + suspension no-trade (R5) + entry-day relabel (R10)
     es = pd.read_parquet(OUT/'t5_8_daily_exposure_pnl.parquet',
-                         columns=['effective_status', 'pnl_log', 'exposure_prev', 'exposure_after'])
+                         columns=['delta_day', 'effective_status', 'pnl_log',
+                                  'exposure_prev', 'exposure_after'])
     sus = es[es.effective_status == 'SUSPENDED_NO_TRADE']
-    sus_ok = len(sus) > 0 and (sus.pnl_log == 0.0).all() \
-        and (sus.exposure_after == sus.exposure_prev).all()
+    sus_ok = (len(sus) == 0 or ((sus.delta_day > 0).all() and (sus.pnl_log == 0.0).all()
+              and (sus.exposure_after == sus.exposure_prev).all()))
+    d0 = es[es.delta_day == 0]
+    d0_ok = (d0.effective_status == 'ENTRY_DAY_NO_RETURN').all() \
+        and (d0.pnl_log == 0.0).all()
     gate('gate7_preserve_and_suspension',
-         sus_ok and act.n_conflict_preserve.sum() > 0 and act.n_no_evidence_preserve.sum() > 0,
-         suspended_rows=int(len(sus)) if sus is not None else 0,
+         sus_ok and d0_ok and act.n_conflict_preserve.sum() > 0 and act.n_no_evidence_preserve.sum() > 0,
+         true_suspension_rows=int(len(sus)), all_suspended_d_positive=bool(sus_ok),
+         entry_day_rows=int(len(d0)), entry_day_relabel_ok=bool(d0_ok),
          conflict_days_total=int(act.n_conflict_preserve.sum()),
          noev_days_total=int(act.n_no_evidence_preserve.sum()))
 

@@ -37,7 +37,10 @@
   },
   "gate7_preserve_and_suspension": {
     "verdict": "PASS",
-    "suspended_rows": 214083,
+    "true_suspension_rows": 0,
+    "all_suspended_d_positive": true,
+    "entry_day_rows": 214083,
+    "entry_day_relabel_ok": true,
     "conflict_days_total": 123057,
     "noev_days_total": 234144
   },

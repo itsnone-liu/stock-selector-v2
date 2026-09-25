@@ -11,7 +11,7 @@
   },
   "daily_rows": 4196190,
   "attribution_rows": 300783,
-  "suspended_no_trade_days": 260100,
+  "suspended_no_trade_days": 0,
   "pnl_computed": true,
   "champion_ranking": false,
   "parameter_tuning": false,
@@ -43,27 +43,27 @@
     },
     {
       "file": "t5_8_counterfactual_attribution.parquet",
-      "sha256": "45e1ed67de475298ac9cc07c231782f60d9f4d4ca22a27dbda2ed8b67cc21329",
-      "bytes": 3430150
+      "sha256": "809f55a8735157bb77958beae176f4fc26cf76eaa0c23fcba5e358bd312b1113",
+      "bytes": 3529686
     },
     {
       "file": "t5_8_daily_exposure_pnl.parquet",
-      "sha256": "f71cffa3d9a277a46afd0dd05ab716e49cf0213fdcd4adf6a38e350ac7f6be01",
-      "bytes": 24337565
+      "sha256": "5c64ceb2f68cf9e072b2005fb750c4ce49c46269a6442f0808b68ace057f452c",
+      "bytes": 25654139
     },
     {
       "file": "t5_8_episode_results.parquet",
-      "sha256": "51a566656ed9bf6f4575a93799858bc5b77a4e0b434333065cf51062ed54f8bc",
-      "bytes": 4711620
+      "sha256": "23ac9ad29a62bfe5ba632c6eac34d9c777f0fc6deccb22ae6590379204c0543d",
+      "bytes": 4838030
     },
     {
       "file": "t5_8_split_metrics.parquet",
-      "sha256": "3b539fd7c164a802a34c96a187ccf33bc7eeb149381d3ce79237136a377154fa",
+      "sha256": "8eeb25ade5d7b172516972c57ccd35e5e52728b063219e0f6290de4b2ed469e7",
       "bytes": 9153
     },
     {
       "file": "t5_8_strategy_matrix.parquet",
-      "sha256": "5cb6c33e58e1d364144c10d747a2d30cad4331986bca6235afe4f29445b82079",
+      "sha256": "0d4cdc5c5ab674c8bc51ac05ccd364abb9504d1dd5bf0fb7a02912a75c8b10d0",
       "bytes": 11013
     },
     {
@@ -73,8 +73,8 @@
     },
     {
       "file": "t5_8_report_data.json",
-      "sha256": "65f7a91bdee615a5f85428d7a6b5ed2f1088799a713d939b88ff9bb9153c7ace",
-      "bytes": 22843
+      "sha256": "241c7a58df439a65e5244191465d464a6b3ad7248377c7453b32c01cd69634bc",
+      "bytes": 22853
     },
     {
       "file": "t5_8_simulation_contract.json",
