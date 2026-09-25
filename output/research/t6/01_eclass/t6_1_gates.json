@@ -1,0 +1,119 @@
+{
+  "G10_determinism": {
+    "verdict": "PASS",
+    "reason": "",
+    "replayed": "validation/reward/median_return/E3_vs_E2|stock_code",
+    "replay_diff": -0.002006935481543861,
+    "stored_diff": -0.002006935481543861
+  },
+  "G11_anti_story": {
+    "verdict": "PASS",
+    "reason": "",
+    "reasons": []
+  },
+  "G1_lineage": {
+    "verdict": "PASS",
+    "reason": "",
+    "inputs_hash_verified": 3
+  },
+  "G2_upstream_immutability": {
+    "verdict": "PASS",
+    "reason": "",
+    "frozen_products": 11
+  },
+  "G2b_factlayer_immutability": {
+    "verdict": "PASS",
+    "reason": "",
+    "note": "t6_0 json products re-hashed against t6_0 manifest"
+  },
+  "G4_outcome_separation": {
+    "verdict": "PASS",
+    "reason": "",
+    "forbidden_columns": [],
+    "outcome_read_lines": []
+  },
+  "G5_segment_isolation": {
+    "verdict": "PASS",
+    "reason": "",
+    "segments": {
+      "per_event": [
+        "confirmation",
+        "development",
+        "validation"
+      ]
+    }
+  },
+  "G6_preregistration": {
+    "verdict": "PASS",
+    "reason": "",
+    "unregistered_threshold_literals": [],
+    "note": "numeric comparison constants must appear in t6_contract.json"
+  },
+  "G6a_contract_sign_conventions": {
+    "verdict": "PASS",
+    "reason": "",
+    "severe_dd_depth": 0.1053605156578263,
+    "exit_failure_dd_depth": 0.1625189294977749,
+    "large_loss_ret": -0.1053605156578263
+  },
+  "G6b_contract_reference_integrity": {
+    "verdict": "PASS",
+    "reason": "",
+    "dangling_references": [],
+    "references_found": 12
+  },
+  "G6c_contract_semantic_types": {
+    "verdict": "PASS",
+    "reason": "",
+    "type_violations": []
+  },
+  "G7_no_tuning": {
+    "verdict": "PASS",
+    "reason": "",
+    "tuning_idioms_found": [],
+    "allowed_uses": [
+      {
+        "argmax": "peak_tau first-maximum day location (order statistic, not parameter search)"
+      }
+    ]
+  },
+  "G8_conservation": {
+    "verdict": "PASS",
+    "reason": "",
+    "decompositions": {
+      "per_event_vs_reference_cell": {
+        "total": 21675,
+        "parts_sum": 21675,
+        "parts": {
+          "E3": 11560,
+          "E1": 5151,
+          "E2": 4964
+        }
+      },
+      "segments_sum": {
+        "total": 21675,
+        "parts_sum": 21675,
+        "parts": {
+          "validation": 11746,
+          "confirmation": 7127,
+          "development": 2802
+        }
+      }
+    }
+  },
+  "G9_statistical_integrity": {
+    "verdict": "PASS",
+    "reason": "",
+    "bad_p": 0,
+    "bad_ci": 0,
+    "B": 2000,
+    "seed": 20260925,
+    "note": "contract-resolved constants + p/CI sanity on all reported comparisons"
+  },
+  "G9b_point_estimate_recompute": {
+    "verdict": "PASS",
+    "reason": "",
+    "spot_checks": 18
+  },
+  "overall": "PASS"
+}

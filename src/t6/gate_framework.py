@@ -223,13 +223,23 @@ def g6_preregistration(log: GateLog, stage_sources: list, contract: dict):
              note='numeric comparison constants must appear in t6_contract.json')
 
 
-# G7 — no tuning idioms in T6 sources
-def g7_no_tuning(log: GateLog, stage_sources: list):
+# G7 — no tuning idioms in T6 sources. `allow` maps an idiom regex to a
+# written justification when a hit is a non-tuning use (e.g. argmax for
+# peak-location); allowed hits are recorded, not silently dropped.
+def g7_no_tuning(log: GateLog, stage_sources: list, allow: dict | None = None):
+    allow = allow or {}
     src = '\n'.join(stage_sources)
-    hits = [p for p in (r'grid_search', r'param_grid', r'argmax', r'argmin', r'\bbest_',
-                        r'optimize', r'champion', r'itertools\.product', r'np\.linspace')
-            if re.search(p, src)]
-    log.gate('G7_no_tuning', not hits, tuning_idioms_found=hits)
+    hits, allowed = [], []
+    for p in (r'grid_search', r'param_grid', r'argmax', r'argmin', r'\bbest_',
+              r'optimize', r'champion', r'itertools\.product', r'np\.linspace'):
+        if not re.search(p, src):
+            continue
+        pat = [k for k in allow if re.search(k, p) or re.search(p, k)]
+        if pat:
+            allowed.append({p: allow[pat[0]]})
+        else:
+            hits.append(p)
+    log.gate('G7_no_tuning', not hits, tuning_idioms_found=hits, allowed_uses=allowed)
 
 
 # G8 — conservation: decomposition sums exactly
@@ -299,7 +309,12 @@ def g11_anti_story(log: GateLog, report_md: Path, claim_registry: Path | None):
                 reasons.append(why)
     if claim_registry and claim_registry.exists():
         reg = json.loads(claim_registry.read_text())
-        allowed = {c['claim_id'] for c in reg} if isinstance(reg, list) else set(reg)
+        if isinstance(reg, dict) and 'claims' in reg:
+            allowed = {c['claim_id'] for c in reg['claims']}
+        elif isinstance(reg, list):
+            allowed = {c['claim_id'] for c in reg}
+        else:
+            allowed = set(reg)
         cited = set(re.findall(r'C\d{3}', txt))
         uncited = cited - allowed
         if uncited:

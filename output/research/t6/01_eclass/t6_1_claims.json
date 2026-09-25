@@ -1,0 +1,73 @@
+{
+  "stage": "t6_1",
+  "claim_rules_ref": "output/research/t6/t6_contract.json#claim_registry_enum",
+  "enum": ["SUPPORTED", "PARTIALLY_SUPPORTED", "NOT_SUPPORTED", "INCONCLUSIVE", "EXPLORATORY"],
+  "claims": [
+    {
+      "claim_id": "C101",
+      "statement": "E2 vs E1 reward advantage: median/p25 return and p_positive higher in both validation and confirmation (cluster bootstrap, Holm within reward family)",
+      "evidence": "validation E2vE1 median +0.0065 [+0.0034,+0.0101] p<0.001; confirmation +0.0059 [+0.0003,+0.0125] p=0.033; p25 significant both; p_positive significant both",
+      "status": "SUPPORTED"
+    },
+    {
+      "claim_id": "C102",
+      "statement": "E3 vs E2 median-return advantage: NOT supported (CI crosses zero in both segments)",
+      "evidence": "validation -0.0020 [-0.0052,+0.0007] p=0.131; confirmation -0.0000 [-0.0060,+0.0039] p=0.996; mean_return differs (see C109)",
+      "status": "NOT_SUPPORTED"
+    },
+    {
+      "claim_id": "C103",
+      "statement": "E3 vs E2 drawdown-depth advantage: median/p90/p95 abs MDD lower in both segments",
+      "evidence": "validation median -0.0116 [-0.0147,-0.0084]; confirmation -0.0120 [-0.0143,-0.0085]; p90/p95 significant in validation, p90 in confirmation; Holm-adjusted significant",
+      "status": "SUPPORTED"
+    },
+    {
+      "claim_id": "C104",
+      "statement": "E3 vs E2 lower probability of ending with unrepaired severe drawdown (p_terminal_failure)",
+      "evidence": "validation -0.0969 [-0.1200,-0.0734]; confirmation -0.1775 [-0.2089,-0.1467]; both Holm-significant",
+      "status": "SUPPORTED"
+    },
+    {
+      "claim_id": "C105",
+      "statement": "E3 vs E2 shallower left tail (p05 return higher) in both segments",
+      "evidence": "validation +0.0212 [+0.0165,+0.0256]; confirmation +0.0136 [+0.0093,+0.0182]; Holm-significant both",
+      "status": "SUPPORTED"
+    },
+    {
+      "claim_id": "C106",
+      "statement": "E2 vs E1 terminal-failure neutrality: validation null, confirmation shows HIGHER E2 failure than E1",
+      "evidence": "validation +0.0102 [-0.0158,+0.0386] p=0.456; confirmation +0.0873 [+0.0509,+0.1223] Holm-significant deterioration",
+      "status": "PARTIALLY_SUPPORTED"
+    },
+    {
+      "claim_id": "C107",
+      "statement": "E2 vs E1 capital-efficiency advantage (CE1/CE2/CE3 median higher) in both segments",
+      "evidence": "CE2 validation +0.1625, confirmation +0.1865, Holm-significant; CE1/CE3 significant both (magnitude small, unit = return per exposure-day)",
+      "status": "SUPPORTED"
+    },
+    {
+      "claim_id": "C108",
+      "statement": "E3 episodes stay in-position longer: survive-h10 higher vs E2, lose_ref20 (ever below ref20) HIGHER for E3 — holding is part of the E3 design, not a defect",
+      "evidence": "survive_h10 E3vE2 +0.067/+0.090 both significant; lose_ref20 E3vE2 +0.087/+0.058 both significant; interpretation constrained to persistence, not reward",
+      "status": "SUPPORTED"
+    },
+    {
+      "claim_id": "C109",
+      "statement": "E3 vs E2 mean-return DISADVANTAGE coexists with median-return parity (heavy right tail concentrated in E1/E2 means)",
+      "evidence": "mean_return E3vE2 validation -0.0135 [-0.0198,-0.0074], confirmation -0.0139 [-0.0224,-0.0050]; median null in both",
+      "status": "SUPPORTED"
+    },
+    {
+      "claim_id": "C110",
+      "statement": "Overall E-gradient structure: reward NON-monotonic (E2 peak) while risk monotonically decreasing (E3 lowest) — the mapping behaves as a risk-shaping gradient, not a return gradient",
+      "evidence": "C101+C102+C103+C105+C109 jointly; spearman(E_rank, abs_mdd) = -0.130 (val) / -0.156 (conf) vs spearman(E_rank, return) = +0.066/+0.047",
+      "status": "SUPPORTED"
+    },
+    {
+      "claim_id": "C111",
+      "statement": "E0 anchor: NON_PARTICIPATION_CONTROL carries ret≡0 by construction (22,988 control rows); E1-vs-E0 is an existence contrast, not an inferential gradient test",
+      "evidence": "T6.0 fact layer: CONTROL ret_norm_ep unique value {0.0}",
+      "status": "SUPPORTED"
+    }
+  ]
+}
