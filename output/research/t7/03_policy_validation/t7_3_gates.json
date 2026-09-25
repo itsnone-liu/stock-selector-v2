@@ -16,7 +16,19 @@
     "reason": "",
     "false_add_mismatches": 0,
     "missed_mismatches": 0,
-    "sampled": 120
+    "stratified_sampled": 790,
+    "strata": [
+      "A",
+      "B1",
+      "B2",
+      "B3",
+      "B5",
+      "C1",
+      "C1_add_earlier_than_A",
+      "C1_add_later_than_A",
+      "C1_add_same_than_A",
+      "C2"
+    ]
   },
   "G27_sizing_inheritance_no_literals": {
     "verdict": "PASS",
@@ -26,6 +38,15 @@
   "G28_val_only_reporting": {
     "verdict": "PASS",
     "reason": ""
+  },
+  "G29_feature_decision_clock_identity": {
+    "verdict": "PASS",
+    "reason": "",
+    "c_policies_rows": 21927,
+    "cutoff_violations": 0,
+    "r5_trading_day_mismatches": 0,
+    "maxbounce_offset_gt5": 0,
+    "semantics": "feature window: delta_day in (R0, R0+5] (market-day advance, halts NOT compressed) per frozen build_t7_0_features.py line 85; decision day = first effective row with delta_day >= R0+5 (same close basis). B family keeps its contract wording \"N effective trading days\" — two distinct frozen clock words, both honoured."
   },
   "G2b_upstream_immutable": {
     "verdict": "PASS",

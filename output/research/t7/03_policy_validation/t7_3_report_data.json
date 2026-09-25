@@ -55,5 +55,15 @@
       "pos_cost": 111.0,
       "neg_upside": -54.16
     }
+  },
+  "recovery_established_offset_distribution_val": {
+    "n_tr_established": 5780,
+    "median": 3.0,
+    "p25": 2.0,
+    "p75": 3.0,
+    "P_est_le_R1": 0.17249134948096886,
+    "P_est_le_R2": 0.4823529411764706,
+    "P_est_le_R3": 0.7752595155709343,
+    "P_est_le_R5": 0.8228373702422145
   }
 }
