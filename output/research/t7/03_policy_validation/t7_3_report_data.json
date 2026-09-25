@@ -1,0 +1,59 @@
+{
+  "stage": "t7_3",
+  "identity": "frozen-policy replay + dual-clock accounting; VAL primary; CONF deliberately NOT computed in this run (segment protocol t7_3b: validation first, confirmation later)",
+  "policies": [
+    "A",
+    "B1",
+    "B2",
+    "B3",
+    "B5",
+    "C1",
+    "C2"
+  ],
+  "thresholds_from_contract": {
+    "C1": -0.018751312624643024,
+    "C2": 0.01801067333046413,
+    "severe": 0.1053605156578263,
+    "W_fa": 10
+  },
+  "sizing_inheritance": "post-ADD exposure sequence == A post-ADD shape shifted to policy add_day (asserted per row)",
+  "n_val_summary_rows": 7,
+  "contract_sha256": "da671c6f516395fceaa2113671c804fe8ba3080c7041125bbdde979f96f13961",
+  "missed_cost_decomposition_val": {
+    "A": {
+      "missed_n": 698,
+      "pos_cost": 3.23,
+      "neg_upside": -19.19
+    },
+    "B1": {
+      "missed_n": 2101,
+      "pos_cost": 25.84,
+      "neg_upside": -32.89
+    },
+    "B2": {
+      "missed_n": 4580,
+      "pos_cost": 102.24,
+      "neg_upside": -42.07
+    },
+    "B3": {
+      "missed_n": 4604,
+      "pos_cost": 102.5,
+      "neg_upside": -42.98
+    },
+    "B5": {
+      "missed_n": 4908,
+      "pos_cost": 110.56,
+      "neg_upside": -47.51
+    },
+    "C1": {
+      "missed_n": 4753,
+      "pos_cost": 104.01,
+      "neg_upside": -51.08
+    },
+    "C2": {
+      "missed_n": 5179,
+      "pos_cost": 111.0,
+      "neg_upside": -54.16
+    }
+  }
+}

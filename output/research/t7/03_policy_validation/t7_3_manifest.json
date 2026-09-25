@@ -1,0 +1,56 @@
+{
+  "stage": "t7_3",
+  "baseline": "80e934c",
+  "inputs": [
+    {
+      "name": "cycle_master",
+      "path": "output/research/t6/02_recycling/t6_2_cycle_master.parquet",
+      "sha256": "11938ab8cd4239665109f5eb097440b6f46262867f55d855a807b8d397f1bf7d",
+      "bytes": 0
+    },
+    {
+      "name": "t7_0_anchor_features",
+      "path": "output/research/t7/00_path_factlayer/t7_0_features_anchor_features.parquet",
+      "sha256": "fcfdbeaf94c180755f2ada776674c9fb2730f95ddd824b6d68df3fa6d5e60ff9",
+      "bytes": 0
+    },
+    {
+      "name": "t7_0_outcomes",
+      "path": "output/research/t7/00_path_factlayer/t7_0_outcomes_outcomes.parquet",
+      "sha256": "4ec468822c7c3c80dc92e41fb59cc87ffe50a62a8d2775297e3de85fc2473582",
+      "bytes": 0
+    },
+    {
+      "name": "daily_master",
+      "path": "output/research/t6/00_factlayer/t6_0_daily_master.parquet",
+      "sha256": "905c55c322bbd5731c8fde2938c26f7d085f76fc2e0c259c2966cf42b7d6b2a2",
+      "bytes": 0
+    },
+    {
+      "name": "t7_contract",
+      "path": "output/research/t7/t7_contract.json",
+      "sha256": "da671c6f516395fceaa2113671c804fe8ba3080c7041125bbdde979f96f13961",
+      "bytes": 0
+    }
+  ],
+  "upstream_hashes": null,
+  "products": [
+    {
+      "file": "t7_3_replay.parquet",
+      "sha256": "2c49ebf0f8e53d2f456e4b112c93c69b7c86e366b2b2b9ad7d994a66701f08e9",
+      "bytes": 3695544,
+      "rows": 218820
+    },
+    {
+      "file": "t7_3_summary_val.parquet",
+      "sha256": "e68ac1c3b9df2a523466c7f787b5655ddb256f18fb3f0f17a2ecf7121e8046da",
+      "bytes": 7387,
+      "rows": 7
+    },
+    {
+      "file": "t7_3_report_data.json",
+      "sha256": "4d2efe8900d07d3dccaa7f66db179c39cdecf50709ffba92ac50f23d8820e073",
+      "bytes": 677
+    }
+  ]
+}

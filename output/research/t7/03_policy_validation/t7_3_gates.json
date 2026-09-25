@@ -1,0 +1,36 @@
+{
+  "G1_lineage": {
+    "verdict": "PASS",
+    "reason": "",
+    "inputs_hash_verified": 5
+  },
+  "G25_counterfactual_conservation": {
+    "verdict": "PASS",
+    "reason": "",
+    "cycles": 31260,
+    "rows": 218820,
+    "c1_addless": 18395
+  },
+  "G26_dual_clock_replay": {
+    "verdict": "PASS",
+    "reason": "",
+    "false_add_mismatches": 0,
+    "missed_mismatches": 0,
+    "sampled": 120
+  },
+  "G27_sizing_inheritance_no_literals": {
+    "verdict": "PASS",
+    "reason": "",
+    "violations": 0
+  },
+  "G28_val_only_reporting": {
+    "verdict": "PASS",
+    "reason": ""
+  },
+  "G2b_upstream_immutable": {
+    "verdict": "PASS",
+    "reason": "",
+    "products_verified": 5
+  },
+  "overall": "PASS"
+}
