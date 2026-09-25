@@ -1,0 +1,117 @@
+# CAPITAL_ACTOR_ONTOLOGY — CSR-1 (v1.0)
+# 划分原则：按行为约束（behavioral constraints），不按账户标签。
+# 所有 hypothesis（CSR-3）必须引用 actor_id。六属性为最小完备集。
+meta:
+  stage: csr_1
+  source_of_truth: docs/plans/CAPITAL_STATE_RESEARCH_V1_SOURCE.md §4
+  design_rule: actors defined by Scale/Horizon/Entry-Exit constraints/Objective/
+    Observable Footprint — NOT by account type; the same account can act as
+    different actors at different times (noted per actor)
+
+actors:
+  - actor_id: A1
+    name: Policy / Sovereign-like Capital
+    name_cn: 政策型/类主权长期资金
+    scale: 极大（单标的可承接流通盘显著比例；多标的协同）
+    horizon: 超长（年级以上；以退出条件而非盈利目标定义持有期）
+    entry_constraint: 冲击成本主导——只能低位分批、跨周期建仓；不以短期价格有效期为条件
+    exit_constraint: 几乎不主动退出；退出由政策目标/风险功能变化触发，非价格触发
+    objective: 系统稳定/逆周期提供流动性/战略性头寸，非相对收益
+    observable_footprint: |
+      A/B级：市场级份额与申赎异动（宽基ETF）、大宗折价成交与机构席位、
+      定增/协议转让承接、长期不变的十大流通股东席位。
+      C级：超长周期低换手区间、极端行情中的逆向量能。
+    distinguishing_note: 与 A2 的区分特征=政策触发型行为（在系统性压力点
+      出现的承接），非持续配置逻辑。
+
+  - actor_id: A2
+    name: Long-Horizon Institutional Capital
+    name_cn: 保险/养老金/长期配置机构
+    scale: 大（组合级；单标的持仓受比例与流动性规则约束）
+    horizon: 长（季度到年；再平衡周期驱动）
+    entry_constraint: 流动性与指数纳入规则；建仓在再平衡窗与申购流入时点
+    exit_constraint: 赎回压力/负债端变化/规则被动卖出（指数剔除、比例上限）
+    objective: 负债匹配与长期配置，低跟踪误差偏好
+    observable_footprint: |
+      A/B级：季报持仓路径（披露延迟已知）、宽基与行业ETF份额、股东户数
+      长期下降伴随机构席位上升。
+      C级：低换手稳定持有期的价格波动结构（弱证据）。
+    distinguishing_note: 行为节奏=季度再平衡+申赎流，非价格信号驱动。
+
+  - actor_id: A3
+    name: Active Institutional Capital
+    name_cn: 公募/私募等主动管理资金
+    scale: 中大（单标的常达流通盘 1-5% 量级，受双十与流动性约束）
+    horizon: 中（月到季度；考核周期驱动）
+    entry_constraint: 建仓需数日至数周；偏好流动性充足标的；研究触发
+    exit_constraint: 排名压力/止损规则/赎回触发；调仓集中在报告期前后
+    objective: 相对收益与排名；中周期价格发现参与者
+    observable_footprint: |
+      A/B级：季报持仓增减、十大流通股东进出、大宗交易机构席位、
+      定增参与。
+      C级：报告期前后的量能与价格效率变化（弱）。
+    distinguishing_note: 本类是"可追踪持仓"最丰富的主体——证据等级最高的
+      观测对象；但披露延迟使其实时可用性低（B级 DIRECT_DELAYED）。
+
+  - actor_id: A4
+    name: Cross-Market / Allocation Capital
+    name_cn: 跨境/跨资产配置资金
+    scale: 大（组合级，快进快出能力高）
+    horizon: 短中（周到月；全球风险预算驱动）
+    entry_constraint: 汇率/通道/额度；进入 A 股多经 ETF 与大票流动性通道
+    exit_constraint: 全球风险预算收缩时快速撤离，非线性
+    objective: 全球配置效率；相对汇率与利差敏感
+    observable_footprint: |
+      A/B级：北向口径（若可得且 PIT 可靠）、跨境 ETF 份额与折溢价、
+      大票成交额占比突变。
+      C级：与全球风险资产相关性结构变化（市场层，弱）。
+    distinguishing_note: 主要作用于 MARKET/SECTOR 层，个股层多为被动痕迹。
+
+  - actor_id: A5
+    name: Stock-Dominant Capital
+    name_cn: 个股层面具有筹码影响力的大资金
+    scale: 单标的内大（可达流通盘 5% 以上量级）
+    horizon: 长（完整的吸筹-锁筹-拉升-换手-派发周期，月到年）
+    entry_constraint: 冲击成本与隐蔽性——吸筹必须分散、限价、跨周期，
+      不能快速完成（H01 的机制基础）
+    exit_constraint: 派发需要对手方流动性——必须在热度与参与度高时退出
+      （H05/H06 的机制基础）
+    objective: 单标的筹码控制与周期利润
+    observable_footprint: |
+      A/B级：十大流通股东席位变化、股东户数趋势、大宗交易、龙虎榜席位、
+      筹码成本分布迁移（B级）。
+      C级：累计换手/价格位移比（吸筹效率）、缩量上涨（锁定，H02）、
+      高效突破（H03）、放量滞涨（D6 特征）。
+    distinguishing_note: CSR 的核心研究对象—— Lifecycle ontology（CSR-2）
+      的状态 D1-D8 主要描述本 actor；所有 C 级观测只构成"与假说一致的
+      证据"，单独不得断言其存在（C2/C3）。
+
+  - actor_id: A6
+    name: Tactical / Momentum Capital
+    name_cn: 游资/事件/趋势交易资金
+    scale: 中（单日冲击显著，但持有期短，非筹码控制者）
+    horizon: 短（日到周）
+    entry_constraint: 几乎无建仓约束（快进），以流动性与事件催化为条件
+    exit_constraint: 快出；止损纪律与获利了结并行
+    objective: 短周期价差；情绪与博弈参与者
+    observable_footprint: |
+      A/B级：龙虎榜知名席位（A/B级但覆盖窄）、大宗折价快速过桥。
+      C级：单日爆量、连板结构、高换手高波动（D5 加速期的主要贡献者，
+      但与 A5 派发期特征重叠——关键竞争解释，见 H04/H05）。
+    distinguishing_note: 与 A5 的区分是 CSR 核心难题之一：A6 无库存约束、
+      无长期成本区行为；证据区分依赖 B 级（席位/筹码迁移）而非 C 级。
+
+  - actor_id: A7
+    name: Retail / Diffuse Capital
+    name_cn: 分散跟随资金
+    scale: 总量大但协同弱；行为由可得性与注意力驱动
+    horizon: 短（日到月；损失厌恶与追涨并存）
+    entry_constraint: 无约束（流动性提供者）；注意力与赚钱效应驱动
+    exit_constraint: 处置效应——盈利急卖、亏损死扛
+    objective: 短期收益追逐；无统一目标
+    observable_footprint: |
+      A/B级：股东户数上升/户均持股下降（分散化直接证据）、融资余额
+      散户端口径。
+      C级：高位放量换手、跟风盘结构、小单净买入占比（若数据可得）。
+    distinguishing_note: A7 是 D5/D6 阶段流动性的主要供给方——"谁在接"
+      的证据（户数上升+分散）与"谁在退"同等重要。
