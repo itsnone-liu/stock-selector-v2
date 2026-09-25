@@ -224,5 +224,77 @@
       "design_doc_commit": "1212c65",
       "ancestry_assertion": "this Freeze precedes any VAL/CONF policy evaluation artifact; verified by git history order"
     }
+  },
+  "t7_4_f6_taxonomy": {
+    "freeze_kind": "f6_taxonomy_freeze",
+    "order": [
+      "D4",
+      "D1",
+      "D2",
+      "D3",
+      "D5",
+      "F6'"
+    ],
+    "order_semantics": "classification precedence, NOT a risk ranking",
+    "common_fields": {
+      "end_mark_loss": "observed_endpoint_return < 0",
+      "endpoint_status": [
+        "terminal",
+        "censored"
+      ],
+      "censored_rule": "censored mark loss counts for D1/D3/D5 eligibility but is reported separately (completed vs censored panels)"
+    },
+    "classes": {
+      "D4_sudden_break": {
+        "tail_observations": 5,
+        "single_day_ret_log_max": -0.07,
+        "pre_break_dd_rule": "episode max DD before the break day remains non-severe (dd_log > -0.1053605156578263)"
+      },
+      "D1_oscillation": {
+        "cycle_count_min": 3,
+        "requires": [
+          "end_mark_loss"
+        ]
+      },
+      "D2_late_false_recovery": {
+        "clock": "same frozen false-recovery failure condition as T6.3 F3; FIRST occurs at effective-observation offset > 5 after A0; MUST be actually observed within the episode horizon (censoring is not late failure)",
+        "f3_boundary": "failure_offset <= 5 -> already F3 (T6.3 frozen); failure_offset > 5 -> D2-eligible within F6 input set; not observed -> not D2",
+        "clock_variables": [
+          "a0_day",
+          "trigger_day",
+          "effective observation spacing (T6.2 frozen columns)"
+        ]
+      },
+      "D3_slow_grind": {
+        "span_effective_days_min": 60,
+        "dd_interval_log": {
+          "lower_strict": -0.1053605156578263,
+          "upper_inclusive": -0.05129329438755058
+        },
+        "reduce_count_max": 1,
+        "requires": [
+          "end_mark_loss"
+        ]
+      },
+      "D5_high_exposure_stagnation": {
+        "exposure_occupancy_min": 0.8,
+        "requires": [
+          "no RECOVERED_ADD cycle",
+          "end_mark_loss"
+        ]
+      },
+      "F6'_mandatory_residual": {
+        "note": "large residual is NOT failure; GOOD-heavy F6' may show the existing failure taxonomy has no reason to call these episodes failures. T7.4 success is NOT measured by a low residual rate. No threshold retuning after seeing the distribution."
+      }
+    },
+    "gate_additions": {
+      "G34_component_provenance_replay": "every condition variable (cycle count, endpoint return, exposure occupancy, pre-break DD, single-day return, D2 failure clock) independently replayed from frozen T6/T7 facts; runner-side ad-hoc recomputation of near-equivalent versions is forbidden"
+    },
+    "provenance": {
+      "design_doc_sha256": "768402512bf73a2bbb24403046cd16b1121003e7ae4309c19718bd070c41e0da",
+      "design_commit": "b76d653 (v1) + ratified v2 in freeze commit",
+      "severe_source": "t6_contract preregistered_thresholds severe_dd_depth_log",
+      "ancestry_assertion": "this taxonomy freeze precedes any F6 outcome distribution read / t7_4 product; verifiable by git history order"
+    }
   }
 }

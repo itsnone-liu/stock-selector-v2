@@ -20,27 +20,44 @@
 - 新阈值（本预注册引入，读分布前写死）：OSC_N=3、GRIND_SPAN=60、GRIND_DD=−0.05、
   BREAK_RET=−0.07、STAG_EXPO=0.80、TAIL_W=5。
 
-## 1. 首中顺序与五类机械定义
+## 1. 首中顺序与五类机械定义（用户拍板冻结版）
 
-判定对象=F6 episodes 全体（每 episode 按 D1→D2→D3→D4→D5 首中即止，皆不中→F6'）：
+**ORDER（classification precedence，非风险排名）：D4 → D1 → D2 → D3 → D5 → F6'**
+突然破坏最局部最具体先截出（否则暴跌+多轮振荡的 episode 会被 D1 吃掉，
+看不见突然破坏机制）；D1/D2 描述动态失败路径，D3/D5 描述慢滞留路径。
 
-- **D1 反复 REDUCE↔ADD 振荡**：episode 内 REDUCE→ADD cycle 数 ≥OSC_N(3)
-  且 episode 终态为亏损（final outcome ∈ CONTROLLED_LOSS/SEVERE，或 censored
-  且末仓浮亏）。
-- **D2 热反弹后失败（迟发假恢复）**：存在 false_recovery=True 的 RECOVERED_ADD
-  cycle（T6.2 冻结 60 日窗语义——T6.3 的 F3 已截获 A0 后 5 有效日内再破位者，
-  D2 截获**其余**迟发破位，与 F3 窗口语义互补不重叠）。
-- **D3 持续缓慢恶化**：不中 D1/D2；episode 有效跨度 ≥GRIND_SPAN(60) 日；期间
-  最大回撤达 [GRIND_DD(−5%), severe) 区间（阴跌到位但从未触发 severe 结构
-  断裂）；REDUCE 次数 ≤1；终态亏损或 censored 浮亏。
-- **D4 无明显信号突然破坏**：不中 D1-D3；末段 TAIL_W(5) 个有效日内存在单日
-  ret_1d_log ≤BREAK_RET(−7%)，且该日之前 episode 最大回撤 < severe（破坏前
-  无预警）；终态亏损或 censored 浮亏。
-- **D5 长期高暴露滞留**：不中 D1-D4；exposure_after_ref 加权占用占比 ≥
-  STAG_EXPO(80%)（有效日均值/满仓比）且无任何 RECOVERED_ADD cycle；终态亏损
-  或 censored 浮亏。
-- **F6' mandatory residual**：以上皆不中——含全部 GOOD、纯 censored 盈利、
-  以及任何未覆盖形态。**不要求小**；报告如实给占比。
+通用字段（全类共用）：
+- `end_mark_loss = observed_endpoint_return < 0`（不叫 terminal loss）；
+- `endpoint_status ∈ {terminal, censored}`——D1/D3/D5 含 censored 浮亏，
+  报告拆 completed / censored 呈现（防把观察窗截止浮亏误读为已实现终局失败）。
+
+- **D4 sudden_break**：末段 TAIL_W=5 个有效 observation 内存在单日
+  ret_1d_log ≤ BREAK_RET(−7%)，且破坏前 episode 最大回撤保持 non-severe
+  （pre-break max DD 未达 severe）。
+- **D1 oscillation**：episode 内 REDUCE→ADD cycle 计数 ≥ OSC_N(3)；
+  end_mark_loss。
+- **D2 late_false_recovery（严格事件时钟）**：属 F6 输入集；存在
+  recovery/ADD；**相同 frozen false-recovery failure condition 首次发生于
+  A0 后第 >5 个有效 observation，且在 episode observation horizon 内实际
+  观察到**。即：failure_offset ≤ 5 → 已由 T6.3 F3 捕获；failure_offset > 5
+  → F6 内才有资格进 D2；**未观察到 failure（含 censored 截断）→ 不是 D2**。
+- **D3 slow_grind**：有效跨度 ≥ GRIND_SPAN=60 市场日；DD 区间（负 log 口径）
+  `−severe < dd_log ≤ log(0.95)`（≈−5.13%）；REDUCE 计数 ≤1；end_mark_loss。
+- **D5 high_exposure_stagnation**：exposure occupancy ≥ STAG_EXPO(80%)；
+  无任何 RECOVERED_ADD cycle；end_mark_loss。
+- **F6' mandatory residual**：皆不中——含全部 GOOD、censored 盈利、未覆盖
+  形态。**F6' 大完全不是失败**：GOOD 大量进 F6' 反而可能证明 F6 的本质是
+  "现有 failure taxonomy 没有理由把这些 episode 判成失败"。T7.4 **不以
+  residual rate 低作为成功标准**；Freeze 后即使 D4=0、D3 极少或 F6'=60%
+  也不回头调阈值。
+
+## 1b. F3/D2 窗边界（冻结复述）
+
+F3：首次 recovery/ADD 后，接下来 5 个有效 observation 内满足 frozen
+false-recovery failure condition（T6.3 冻结口径）。
+D2：F6 输入集 + 存在 recovery/ADD + 相同 frozen failure condition 首次发生
+于第 >5 个有效 observation + horizon 内实际观察到。
+时钟变量=冻结 trigger_day 与 a0_day 的有效 observation 间距（T6.2 冻结列）。
 
 ## 2. 为什么这些条件（预注册理由，非分布拟合）
 
@@ -65,10 +82,23 @@
    G32 全段覆盖（F6 全体 100% 落入五类或 F6'，无丢失）；G33 禁 policy 语义
    （F6 拆解不参与 policy derivation——产物无 policy 字段）。
 
-## 4. 待您拍板
+## 4. 拍板记录（2026-09，用户四项）
 
-1. 五类机械条件与阈值（OSC_N=3 / GRIND_SPAN=60 / GRIND_DD=−5% / BREAK_RET=
-   −7% / STAG_EXPO=80% / TAIL_W=5）——数字可改，改后冻结；
-2. 首中顺序 D1→D2→D3→D4→D5（振荡/迟发假恢复优先于慢形态；可重排）；
-3. "终态亏损"边界是否含 censored 浮亏（当前：含）；
-4. D2 与 F3 的窗边界复述确认（5 有效日=T6.3 冻结口径）。
+1. 阈值冻结：OSC_N=3 / GRIND_SPAN=60 / GRIND_DD=log(0.95)（负 log 口径，
+   `−severe < dd_log ≤ log(0.95)`）/ BREAK_RET=−7% / STAG_EXPO=80% /
+   TAIL_W=5——round-number semantic thresholds，机械 taxonomy 非最优搜索。
+2. ORDER 改为 D4→D1→D2→D3→D5→F6'（classification precedence 非风险排名）。
+3. end_mark_loss + endpoint_status 双字段（censored 浮亏计入判定但报告拆分）。
+4. D2/F3 边界=严格时钟定义（上文 §1b），非文字"互补"。
+
+新增 Gate：**G34 component provenance replay**——D1-D5 每个条件的变量
+（cycle count、endpoint return、exposure occupancy、pre-break dd、single-day
+return、D2 failure clock）逐项从冻结 T6/T7 fact 独立重放比对，禁 runner
+临时重算"差不多等价"版本。
+
+## 5. Freeze 执行
+
+本文档拍板版 → `t7_4_f6_taxonomy.json`（ORDER+五类+阈值+end_mark_loss
+定义+§1b 时钟+F6' 非失败声明+设计文档 sha）→ contract 增补 commit
+（G-F6 Lock：早于任何 F6 拆解产物，sha+时序 gate 校验）。Freeze 后禁止
+回头调阈值让分类"好看"——独立预注册的价值所在。
