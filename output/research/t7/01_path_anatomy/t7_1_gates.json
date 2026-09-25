@@ -24,6 +24,12 @@
       "exposure_after_ref"
     ]
   },
+  "G21b_dual_cluster_ci": {
+    "verdict": "PASS",
+    "reason": "",
+    "ci95_nonnull": 1176,
+    "ci95_t0date_nonnull": 1176
+  },
   "G2b_t7_0_immutable": {
     "verdict": "PASS",
     "reason": "",

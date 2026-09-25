@@ -90,8 +90,9 @@ def main():
 
     enums = [list(dict.fromkeys(anchors.segment)),
              ['by_type', 'by_false_recovery', 'by_true_recovery'],
-             ['RECOVERED_ADD', 'NO_RECOVERY', 'FAILED_EXIT', 'FR', 'clean', 'TR', 'no_TR'],
-             list(VARS), list(CKPTS)]
+             ['RECOVERED_ADD', 'NO_RECOVERY', 'FAILED_EXIT', 'CENSORED',
+              'FR', 'clean', 'TR', 'no_TR'],
+             list(VARS), list(CKPTS), ['stock', 't0date']]
     rng = make_rng_factory(SEED, enums)
 
     recs = []
@@ -111,17 +112,23 @@ def main():
                             recs.append({'segment': seg, 'grouping': gname,
                                          'group': glabel, 'variable': var,
                                          'checkpoint': f'R+{k}', 'n': cnt,
-                                         'median': np.nan, 'ci95': [np.nan, np.nan],
+                                         'median': np.nan,
+                                         'ci95': [np.nan, np.nan],
+                                         'ci95_t0date': [np.nan, np.nan],
                                          'note': 'insufficient'})
                             continue
-                        est, ci = cluster_boot_level(
+                        est, ci_s = cluster_boot_level(
                             col_vals, ok, anchors.stock_code.to_numpy()[m], 'median',
-                            rng(seg, gname, glabel, var, k), B)
+                            rng(seg, gname, glabel, var, k, 'stock'), B)
+                        _, ci_t = cluster_boot_level(
+                            col_vals, ok, anchors['T0_date'].to_numpy()[m], 'median',
+                            rng(seg, gname, glabel, var, k, 't0date'), B)
                         recs.append({'segment': seg, 'grouping': gname,
                                      'group': glabel, 'variable': var,
                                      'checkpoint': f'R+{k}', 'n': cnt,
                                      'median': float(est),
-                                     'ci95': [float(ci[0]), float(ci[1])]})
+                                     'ci95': [float(ci_s[0]), float(ci_s[1])],
+                                     'ci95_t0date': [float(ci_t[0]), float(ci_t[1])]})
     traj = pd.DataFrame(recs)
 
     report = {
@@ -133,6 +140,9 @@ def main():
                     'separator/veto/confirmation',
         'statistics_used': {'B': B, 'seed': SEED, 'ci': 'percentile 2.5/97.5 (level only)',
                             'clusters': ['stock_code', 'T0_date'],
+                            'cluster_implementation': 'dual independent CIs: ci95 = '
+                                                       'stock_code-cluster bootstrap; '
+                                                       'ci95_t0date = T0_date-cluster bootstrap',
                             'level_statistic': 'median'},
         'groups': {g: {k: int(v.sum()) for k, v in gm.items()} for g, gm in groups.items()},
         'variables': list(VARS), 'checkpoints': [f'R+{k}' for k in CKPTS],
@@ -168,15 +178,18 @@ def main():
     report['trajectory_extract_checkpoints'] = [f'R+{k}' for k in CKPTS]
     claims = [
         {'id': 'C701', 'kind': 'descriptive',
-         'text': '按 cycle type 分层的 REDUCE 后中位轨迹形态清晰：NO_RECOVERY 组 dd 全程稳于 '
-                 'severe 界下方（VAL 中位 ~0.096）且回升暴露几乎为零（中位 0.062）；'
-                 'RECOVERED_ADD 组 dd 先修复（VAL R+3 中位 0.014）后窗尾再扩大（R+40 0.101）'
-                 '——修复-回吐形态。',
+         'text': '按 cycle type 分层的 REDUCE 后中位轨迹形态清晰：NO_RECOVERY 组呈稳定深 DD 形态'
+                 '——VAL 中位 ~0.096 略低于 severe 界，DEV 自 R+2 起 ~0.109-0.112 略高于 severe；'
+                 '两段共同特征是 DD 较深且窗内变化较小（而非稳定处于 severe 界某一侧），'
+                 '且回升暴露几乎为零（VAL exposure 中位 0.062）；RECOVERED_ADD 组 dd 先修复'
+                 '（VAL R+3 中位 0.014）后窗尾再扩大（R+40 0.101）——修复-回吐形态。',
          'scope': 'association-not-prediction; descriptive path record only'},
         {'id': 'C702', 'kind': 'descriptive',
-         'text': 'RECOVERED_ADD 内部 FR 与 clean 的轨迹分岔是路径事实：VAL/DEV 两段一致地 '
-                 'FR 中位换手更高（VAL R+1 1.358 vs 1.186）、R+2 起价格中位分岔、R+40 FR 的 '
-                 'dd 中位越过 severe（VAL 0.117）而 clean 未越过（0.089）。差异仅记录；'
+         'text': 'RECOVERED_ADD 内部 FR 与 clean 的轨迹分岔是路径事实：换手呈 early-hot 结构'
+                 '——FR 在 R+1/R+2 中位换手更高（VAL R+1 1.358 vs 1.186），DEV 后续维持 '
+                 'FR>clean，但 VAL 自 R+5 起方向反转（clean 1.548 vs FR 1.299），即换手路径'
+                 '并非简单的"FR 全程更热"；价格中位 R+2 起分岔；R+40 FR 的 dd 中位越过 '
+                 'severe（VAL 0.117 / DEV 0.128）而 clean 未越过（0.089/0.093）。差异仅记录；'
                  '任何 separator/veto 有效性判断属 T7.2 DEV-only。',
          'scope': 'association-not-prediction; descriptive path record only; '
                   'no separator inference'},

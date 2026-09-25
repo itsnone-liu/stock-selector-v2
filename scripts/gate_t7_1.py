@@ -134,6 +134,14 @@ def main():
         est = float(STATS['median'](sv, np.ones(len(sv))))
         if len(vals) != int(cell.n) or abs(est - float(cell['median'])) > 1e-12:
             mism += 1
+    # dual-cluster CI lineage: both CI families exist and are labeled
+    ok_ci = ('ci95' in traj.columns and 'ci95_t0date' in traj.columns
+             and traj.ci95.notna().sum() == traj.ci95_t0date.notna().sum()
+             and rep['statistics_used']['clusters'] == ['stock_code', 'T0_date']
+             and 'ci95_t0date' in rep['statistics_used'].get('cluster_implementation', ''))
+    log.gate('G21b_dual_cluster_ci', bool(ok_ci),
+             ci95_nonnull=int(traj.ci95.notna().sum()),
+             ci95_t0date_nonnull=int(traj.ci95_t0date.notna().sum()))
     log.gate('G21_median_replay', mism == 0, cells=len(cells), mismatches=mism,
              variables=VARS)
 
