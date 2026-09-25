@@ -223,14 +223,22 @@ if f6p.exists():
     raw6_hl = '\n'.join(str(x) for x in f6.get('headline_findings', {}).values())
     if '1~4' in raw6_hl:
         errs.append('CSR-6 headline stale delay wording (must be 15 working days ~ 4 months)')
-    MIXED = ('E-MKT-06', 'E-STK-06', 'E-STK-07')
-    for e in MIXED:
+    ROLE_STRUCT = {'E-MKT-06': ('REALTIME_T1', 'EVENT_ADVANCE'),
+                   'E-STK-06': ('EVENT_ADVANCE', '事后确认'),
+                   'E-STK-07': ('EVENT_ADVANCE', '事后确认')}
+    for e, need in ROLE_STRUCT.items():
         comps = r6[e].get('realtime_components', [])
         if not comps or not all(
                 c.get('component') and c.get('role') and c.get('latency') for c in comps):
             errs.append(f'{e} mixed-event evidence needs realtime_components contract')
-        if len(comps) < 2:
-            errs.append(f'{e} realtime_components must separate past/plan sub-events')
+        roles = ' | '.join(str(c['role']) for c in comps)
+        for n in need:
+            if n not in roles:
+                errs.append(f'{e} realtime_components missing role structure: {n}')
+        if 'E-STK-06' == e and '短期' not in roles:
+            errs.append('E-STK-06 post-event role must be 短期事后确认 (2 trading days)')
+        if 'E-STK-07' == e and '阶段性' not in roles:
+            errs.append('E-STK-07 post-event role must be 阶段性事后确认 (monthly flow)')
 
 if errs:
     print('FAIL'); [print(' -', e) for e in errs]; sys.exit(1)

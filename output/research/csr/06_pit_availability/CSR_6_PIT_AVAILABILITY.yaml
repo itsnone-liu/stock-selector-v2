@@ -208,7 +208,7 @@ verdicts:
     latency: 方案公告即时/进度公告后续
     realtime_components:
       - {component: 回购方案公告, role: EVENT_ADVANCE, latency: 事前方案}
-      - {component: 实施进度/完成公告, role: 短期事后确认（不新增主枚举档）,
+      - {component: 实施进度/完成公告, role: 阶段性事后确认（不新增主枚举档）,
          latency: 进展公告流（月度/阶段披露）}
     revision_risk: 低-中（方案修订公告存在）
     selection_coverage_note: 回购"公告"≠"完成"——实施进度是后续公告流
@@ -280,9 +280,11 @@ headline_findings:
     未来增持计划字段）构成 EVENT_ADVANCE 层——它们不识别主体，但管理
     "未来供给/需求与流通盘变化窗口"（回购与未来增持是需求侧/供给收缩
     而非供给压力），是真正 lead-forward 的信息；注意其中混合着
-    "已发生行为披露"（REALTIME_T1）与"短期事后确认"（实施结果公告，
-    2 个交易日内——介于 REALTIME_T1 与 LAGGED_VERIFICATION 之间，
-    不新增主枚举档，按 realtime_components 精确记录 latency），
+    "已发生行为披露"（REALTIME_T1）与"事后确认"中间形态——减持实施
+    结果通常在计划实施完毕或期间届满后 2 个交易日内披露（短期事后
+    确认），回购实施进度则按月度/阶段公告流披露（阶段性事后确认）；
+    两者均介于 REALTIME_T1 与 LAGGED_VERIFICATION 之间，不新增主
+    realtime 枚举档，而由 realtime_components.latency 精确记录，
     逐字段区分不得整类混同。
   4: |
     BACKTEST_ONLY 四条：E-MKT-05 北向日频段（制度终止）、E-MKT-04/
