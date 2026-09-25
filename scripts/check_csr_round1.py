@@ -231,8 +231,34 @@ if f7p.exists():
     xpv = str(dvd.get('ex_post_view', {}))
     if 'novel_transition' not in xpv or '白名单' not in xpv:
         errs.append('CSR-7 xp view must allow novel_transition (registered=reference set, not allow-list)')
-    if '在 CSR-2 registered transitions 内' in xpv:
-        errs.append('CSR-7 xp output must NOT constrain transitions to registered set (CSR-2 frozen semantics)')
+    raw7 = f7p.read_text()
+    if 'registered transitions 内' in raw7 or 'registered transitions）内' in raw7:
+        errs.append('CSR-7 whole-file: no transition allow-list phrasing anywhere')
+    ps = str(dvd.get('progressive_sealing', ''))
+    for kw in ('packet(T)', 'sealed_at(T) < revealed_at(T+1)', '永久只读'):
+        if kw not in ps: errs.append(f'CSR-7 progressive_sealing missing {kw}')
+    g3 = str(f7.get('gates', {}).get('G-CS-3_no_reverse_contamination', ''))
+    if 'sealed_at(T) < revealed_at(T+1)' not in g3:
+        errs.append('G-CS-3 must check per-T sealing total order')
+    hb2 = f7.get('case_sheet_schema', {}).get('hypothesis_block', {})
+    if 'rt_observability' not in str(hb2.get('fields', '')) or 'xp_observability' not in str(hb2.get('fields', '')):
+        errs.append('CSR-7 needs orthogonal observability fields (rt_/xp_)')
+    if 'NOT_OBSERVED 档' not in str(hb2.get('scale', '')) and '≠ UNOBSERVABLE' not in str(hb2.get('scale', '')):
+        errs.append('NOT_OBSERVED must be distinguished from UNOBSERVABLE in scale')
+    pq2 = str(f7.get('analysis_plan', {}).get('primary_question', ''))
+    if 'rt_observability = UNOBSERVABLE' not in pq2:
+        errs.append('confusion matrix rt_unobservable must come from observability field')
+    if 'agreement_mapping' not in pq2 or 'excluded_from_binary_agreement' not in pq2:
+        errs.append('agreement mapping must be frozen inline (no deferred mapping)')
+    ag = f7.get('case_selection', {}).get('anchor_generation', '')
+    if isinstance(ag, str):
+        ag = {'anchor_generation': ag}
+    for kw in ('failure severity 最大', '段后 12 个月涨幅最高', '连续重叠 qualifying 窗口合并'):
+        if kw not in str(f7.get('case_selection', {}).get('anchor_generation', '')):
+            errs.append(f'G2/G4/G5 uniqueness rule missing: {kw}')
+    g5c = str(f7.get('gates', {}).get('G-CS-5_annotation_consistency', ''))
+    if 'xp 层第二标注者' not in g5c or 'rt / xp inter-rater' not in g5c:
+        errs.append('G-CS-5 must extend to xp second annotation')
     groups = f7.get('case_selection', {}).get('groups', [])
     if len(groups) != 5 or not all(g.get('n') == 20 for g in groups):
         errs.append('CSR-7 must have 5 groups x 20 cases')
