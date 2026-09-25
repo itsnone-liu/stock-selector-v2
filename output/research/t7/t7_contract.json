@@ -183,5 +183,5 @@
     "policy_specific_outcome_clock_audit": "False-ADD W10 runs from each policy's own add day; Missed Recovery runs from the cycle/opportunity clock; mixing them is a gate failure"
   },
   "t6_contract_sha256": "b307c430edfeafd0ff6cbccb58f0bbc60e04c45ea9e5871b1b15264ad2c98add",
-  "definition_registry_sha256": "cb3576f398412186c2ae612afaa4049db2333e51ae4bd3170aae75f21245f691"
+  "definition_registry_sha256": "a3d71cdb352ac9164fbdf7981e46b7b21ff7ebd788d9b4fffb146d4d3051d7a8"
 }

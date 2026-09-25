@@ -41,27 +41,35 @@ def main():
     manifests = [('00_factlayer', 't6_0_manifest.json'),
                  ('02_recycling', 't6_2_manifest.json'),
                  ('03_failure_anatomy', 't6_3_manifest.json')]
-    ok = all(sha256_file(T6/st/pr['file']) == pr['sha256']
-             for st, mf in manifests
-             for pr in json.loads((T6/st/mf).read_text())['products']
-             if pr['file'].endswith('.json'))
-    log.gate('G2b_upstream_products_immutable', ok)
+    n_prod = 0
+    ok = True
+    for st, mf in manifests:
+        for pr in json.loads((T6/st/mf).read_text())['products']:
+            n_prod += 1
+            if sha256_file(T6/st/pr['file']) != pr['sha256']:
+                ok = False
+    log.gate('G2b_upstream_products_immutable', ok, products_verified=n_prod)
 
     # G8 conservation: anchors == T6.2 cycles; three-table row coherence
     cyc_keys = set(zip(cyc.event_id, cyc.r0_day.astype(int)))
     feat_keys = set(zip(feat.event_id, feat.r0_day.astype(int)))
     out_keys = set(zip(out.event_id, out.r0_day.astype(int)))
+    path_keys = set(zip(path.event_id, path.r0_day.astype(int)))
+    off_ok = bool(np.all(path.day_offset.to_numpy() == path.delta_day.to_numpy()
+                         - path.r0_day.to_numpy())
+                  and path.day_offset.between(1, 40).all())
     ok8 = (feat_keys == cyc_keys and out_keys == cyc_keys
+           and path_keys == cyc_keys
            and len(feat) == len(cyc) == len(out)
-           and len(path) == int(path.day_offset.between(1, 40).sum())
-           and path.groupby('event_id').size().sum() > 0)
+           and off_ok)
     # false_recovery count == T6.3 fired cycles (semantic continuity)
     ok8 = ok8 and int(out.false_recovery.sum()) == int(
         pd.read_parquet(T6/'03_failure_anatomy/t6_3_cycle_trigger.parquet',
                         columns=['false_recovery']).false_recovery.sum())
     log.gate('G8_conservation', ok8,
              anchors=len(feat), cycles=len(cyc), outcomes=len(out),
-             path_rows=int(len(path)),
+             path_rows=int(len(path)), path_anchor_keys=len(path_keys),
+             day_offset_identity=off_ok,
              false_recovery=int(out.false_recovery.sum()))
 
     # G17 (new) physical isolation: features builder never reads outcome tables
@@ -88,7 +96,7 @@ def main():
     # G18 (new) definition provenance: every threshold traces to a channel
     ok18 = True
     prov_bad = []
-    for comp in ('dd_repair', 'ref20_repair'):
+    for comp in ('dd_nonsevere_region', 'ref20_repair'):
         src = reg['true_recovery']['achievement'][comp]['source']
         if src not in reg['provenance_channels']:
             ok18 = False
@@ -104,36 +112,61 @@ def main():
             OUT/'t7_0_definition_registry.json'):
         ok18 = False
         prov_bad.append('contract registry sha mismatch')
+    if 'X_dd' in reg['semantic_doc']['true_recovery']:
+        ok18 = False
+        prov_bad.append('semantic_doc still references retired X_dd')
     # DEV calibration channel unused => no T7_DEFINED entries may exist
-    for comp in ('dd_repair', 'ref20_repair'):
+    for comp in ('dd_nonsevere_region', 'ref20_repair'):
         if reg['true_recovery']['achievement'][comp]['source'] == 'T7_DEFINED_DEV_THRESHOLD':
             ok18 = False
             prov_bad.append(f'unexpected DEV threshold in {comp}')
     log.gate('G18_definition_provenance', ok18, violations=prov_bad,
              channels=reg['provenance_channels'])
 
-    # G19 (new) No-Future-Feature spot replay: recompute one feature from
-    # path rows with cutoff clipping and compare to stored values
+    # G19 (new) No-Future-Feature spot replay: independent recomputation of
+    # the hot-bounce triple (the T7.2 27-cell core) + one repair feature
     dm = pd.read_parquet(T6/'00_factlayer/t6_0_daily_master.parquet',
                          columns=['event_id', 'delta_day', 'close_adj',
-                                  'exposure_after_ref', 'drawdown_from_peak_log'])
+                                  'exposure_after_ref', 'drawdown_from_peak_log',
+                                  'volume_load_vs_prebreak', 'turnover_load_3d_mean'])
     dm = dm[dm.exposure_after_ref.notna()]
-    bad_ff = 0
-    sub = feat.dropna(subset=['max_bounce_R5']).head(300)
-    for ev, r0, stored in zip(sub.event_id, sub.r0_day, sub.max_bounce_R5):
-        g = dm[(dm.event_id == ev) & (dm.delta_day > r0) & (dm.delta_day <= r0 + 5)]
-        if len(g) == 0:
+    bad_by_feat = {'max_bounce_R5': 0, 'vol_load@maxbounce_R5': 0,
+                   'turnover@maxbounce_R5': 0, 'dd_repair_ratio_R5': 0}
+    sub = feat.dropna(subset=['max_bounce_R5', 'vol_load@maxbounce_R5',
+                              'turnover@maxbounce_R5', 'dd_repair_ratio_R5']).head(300)
+    for ev, r0, mb, vb, tb, rp in zip(sub.event_id, sub.r0_day, sub.max_bounce_R5,
+                                      sub['vol_load@maxbounce_R5'],
+                                      sub['turnover@maxbounce_R5'],
+                                      sub.dd_repair_ratio_R5):
+        g = dm[dm.event_id == ev]
+        r0row = g[g.delta_day == r0]
+        if len(r0row) == 0:
             continue
-        c0 = float(dm[(dm.event_id == ev) & (dm.delta_day == r0)].close_adj.iloc[0])
-        replay = float(np.max(np.log(g.close_adj.to_numpy()) - np.log(c0)))
-        if abs(replay - stored) > 1e-12:
-            bad_ff += 1
+        c0 = float(r0row.close_adj.iloc[0])
+        dd0 = float(r0row.drawdown_from_peak_log.iloc[0])
+        w = g[(g.delta_day > r0) & (g.delta_day <= r0 + 5)]
+        if len(w) == 0:
+            continue
+        logret = np.log(w.close_adj.to_numpy()) - np.log(c0)
+        i_mb = int(np.argmax(logret))
+        if abs(float(logret[i_mb]) - mb) > 1e-12:
+            bad_by_feat['max_bounce_R5'] += 1
+        if abs(float(w.volume_load_vs_prebreak.to_numpy()[i_mb]) - vb) > 1e-12:
+            bad_by_feat['vol_load@maxbounce_R5'] += 1
+        if abs(float(w.turnover_load_3d_mean.to_numpy()[i_mb]) - tb) > 1e-12:
+            bad_by_feat['turnover@maxbounce_R5'] += 1
+        if dd0 > 0:
+            dd5 = float(w.drawdown_from_peak_log.to_numpy()[-1])
+            if abs(min(1.0, max(0.0, (dd0 - dd5) / dd0)) - rp) > 1e-12:
+                bad_by_feat['dd_repair_ratio_R5'] += 1
+    bad_ff = sum(bad_by_feat.values())
     # checkpoints confined to 1/2/3/5 in feature columns
     ck_ok = all(re.fullmatch(r'.*_R[0-9]+', c) is None or
                 int(re.search(r'_R(\d+)$', c).group(1)) in (1, 2, 3, 5)
                 for c in feat.columns if c.endswith(tuple(f'_R{k}' for k in range(1, 41))))
     log.gate('G19_no_future_feature', bad_ff == 0 and ck_ok,
-             replay_mismatches=bad_ff, checkpoint_discipline=ck_ok)
+             replay_mismatches_by_feature=bad_by_feat,
+             replayed=len(sub), checkpoint_discipline=ck_ok)
 
     # G9b: independent true_recovery re-judgment on a sample (50 anchors)
     severe = t6c['preregistered_thresholds']['severe_dd_depth_log']

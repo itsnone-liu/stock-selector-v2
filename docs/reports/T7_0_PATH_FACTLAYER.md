@@ -8,10 +8,11 @@
 
 `t7_0_definition_registry.json`（sha 绑定进 contract）：
 
-**True Recovery = Achievement + Persistence**：
-- Achievement(t)：`dist_ref20(t) ≥ 0` AND `drawdown_from_peak_log(t) < severe_dd_depth_log`
-  （0.10536，T6 冻结值）——语义="当初触发 REDUCE 的结构性恶化已修复并离开 severe 区"，
-  等价于 per-anchor 动态修复比门槛 `1 − severe/det_dd_R0`（深恶化精确、浅恶化平凡）；
+**True Recovery = ref20 修复 + non-severe 区 + 持续**（R1 语义修正版）：
+- Achievement(t)：`dist_ref20(t) ≥ 0`（结构位置修复）AND `drawdown_from_peak_log(t) <
+  severe_dd_depth_log`（0.10536，T6 冻结值）——DD 条件是**区域条件**（处于/保持
+  non-severe 区），**不是相对修复主张**：对 R0 时已处于 non-severe 区的 shallow cycles，
+  DD 条件不要求相对 R0 的进一步修复，achievement 由 ref20 修复 + 持续性承担；
 - Persistence：其後 **K=5** 个有效观察日内，T6.3-R1 冻结的 F3 失败条件
   （`dist_ref20<0 OR dd≥severe`）不触发——K 与失败条件均继承 T6.3-R1。
 
@@ -27,7 +28,8 @@ policy 未暴露且 cycle 达成 True Recovery；成本=recovery upside 未捕�
 **Calibration trace（诚实记录）**：最初考虑 X_dd=DEV 无条件中位定标（规则 v1）；诊断发现
 2,500 个 DEV anchor 中仅 **26.9%** 在整个 R+1..R+40 窗口内达到任何正修复（中位 cycle 整窗
 零修复），任何 ≤中位的无条件分位都退化为 0.0 → achievement 条件退化。解决：改走 T6 severe
-界继承（零新增阈值），**T7_DEFINED_DEV_THRESHOLD 通道弃用**（G18 强制校验无 DEV 定标项）。
+界继承（零新增阈值；语义为 non-severe 区域条件，见上），**T7_DEFINED_DEV_THRESHOLD 通道
+弃用**（G18 强制校验无 DEV 定标项 + semantic_doc 无退役 X_dd 残留）。
 
 ## 2. 三层物理隔离事实层（G17 强制）
 
@@ -66,6 +68,18 @@ G8 守恒（三表 anchor 一致 + false_recovery 语义连贯）→ **G17 物�
 
 G9b 首跑抓到 path_fact 缺 r0_day 列（同 event 多 anchor 窗口行无法区分归属）→ 已修复
 （anchor 归属列加入）并重验——gate 有效性的一次实证。
+
+**R1 审计加固**（不改计算/阈值/universe；true_recovery 9,463 逐位不变）：
+- G2b 升级为**全量 products 校验**（9 项含 parquet，原先只查 JSON——真实 Gate 缺口）；
+- G8 加严：path 的 (event_id, r0_day) 键集 == cycle 键集 + 每行 `day_offset ==
+  delta_day − r0_day` 恒等式（封死已发现过的混叠类 schema bug）；
+- G19 扩为 **hot-bounce 三元组 + repair 特征独立重放**（max_bounce_R5 /
+  vol_load@maxbounce / turnover@maxbounce / dd_repair_ratio_R5 各 300 anchors，全部零
+  mismatch——27-cell 核心三元组经独立重算验证）；
+- Sidecar 分母修正：turnover 用 n_turn_valid、breadth/ret 用 n_ret_valid（有前收盘的
+  成员），缺失值不再当 0 进分母；exploratory parquet 重建；
+- Definition registry 语义修正（DD repair → non-severe region，semantic_doc 补 HONEST
+  SCOPING 段），contract sha 同步重绑。
 
 ## 6. 遗留与下一步
 

@@ -72,7 +72,7 @@ def main():
         'diagnosis': ('degenerate: median cycle never repairs within the window '
                       f'(n={n_calib} DEV anchors, only {maxrep_nonzero} reach any '
                       f'positive repair; share={maxrep_nonzero/max(1,n_calib):.3f})'),
-        'resolution': 'achievement-dd inherited from T6 severe boundary (dd(t) < severe_dd_depth_log) == dynamic ratio threshold; T7_DEFINED_DEV_THRESHOLD channel left unused',
+        'resolution': 'achievement-DD restated as a NON-SEVERE-REGION condition (dd(t) < severe_dd_depth_log); for shallow cycles already non-severe at R0 the condition is trivially satisfied and achievement rests on ref20+persistence; T7_DEFINED_DEV_THRESHOLD channel left unused',
         'n_calib': n_calib, 'n_any_repair': maxrep_nonzero,
     }
 
@@ -82,11 +82,14 @@ def main():
             'true_recovery': (
                 'Cycle-level property. recovery_established_day = first effective day t in '
                 '(R0, R+40-K] with achievement AND persistence. Achievement(t): dist_ref20(t) >= 0 '
-                'AND dd_repair_ratio(t) >= X_dd. Persistence(t): within the next K effective '
-                'trading days the T6.3-R1 F3 failure condition (dist_ref20 < 0 OR '
-                'drawdown_from_peak_log >= severe_dd_depth_log) does NOT fire. Semantics: the '
-                'structural deterioration that triggered REDUCE has been repaired and held — '
-                'not merely that price later rose.'),
+                '(structure position repaired) AND drawdown_from_peak_log(t) < severe_dd_depth_log '
+                '(in / maintaining the non-severe drawdown region). Persistence(t): within the '
+                'next K effective trading days the T6.3-R1 F3 failure condition (dist_ref20 < 0 OR '
+                'drawdown_from_peak_log >= severe_dd_depth_log) does NOT fire. HONEST SCOPING: for '
+                'shallow-deterioration cycles already inside the non-severe region at R0, the DD '
+                'condition does NOT require any further repair relative to R0 — achievement then '
+                'rests on ref20 repair + persistence. The DD condition is a REGION condition '
+                '(non-severe), not a relative-repair claim.'),
             'false_add': (
                 'Policy-level (T7.5). Anchor = policy_add_day (the counterfactual policy\'s OWN '
                 'ADD day — NOT the T5 A0). Within W_fa=10 effective days after policy_add_day: '
@@ -110,13 +113,13 @@ def main():
         'calibration_trace': calib_trace,
         'true_recovery': {
             'achievement': {
-                'dd_repair': {'threshold': 'drawdown_from_peak_log(t) < severe_dd_depth_log',
+                'dd_nonsevere_region': {'threshold': 'drawdown_from_peak_log(t) < severe_dd_depth_log',
                               'source': 'T6_FROZEN',
-                              'rule': ('structural repair = leaving the severe-drawdown region; '
-                                       'equivalent to per-anchor dynamic dd_repair_ratio threshold '
-                                       '1 - severe_dd_depth_log/det_dd_R0 floored at 0 (exact for deep cycles, '
-                                       'trivial for shallow ones which never entered the region); both the '
-                                       'value and the region semantics are inherited from t6_contract')},
+                              'rule': ('REGION condition: drawdown is in (or maintains) the non-severe '
+                                       'region; NOT a relative-repair claim — for shallow cycles already '
+                                       'non-severe at R0 the condition is trivially satisfied and achievement '
+                                       'rests on ref20 repair + persistence; both the value and the region '
+                                       'semantics are inherited from t6_contract')},
                 'ref20_repair': {'threshold': 'dist_ref20 >= 0',
                                  'source': 'T6_FROZEN_SEMANTIC',
                                  'rule': 'complement of the T6.3-R1 F3 failure condition (dist_ref20 < 0); zero-literal exemption applies'},

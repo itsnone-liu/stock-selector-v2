@@ -23,7 +23,13 @@
   "G19_no_future_feature": {
     "verdict": "PASS",
     "reason": "",
-    "replay_mismatches": 0,
+    "replay_mismatches_by_feature": {
+      "max_bounce_R5": 0,
+      "vol_load@maxbounce_R5": 0,
+      "turnover@maxbounce_R5": 0,
+      "dd_repair_ratio_R5": 0
+    },
+    "replayed": 300,
     "checkpoint_discipline": true
   },
   "G1_lineage": {
@@ -33,7 +39,8 @@
   },
   "G2b_upstream_products_immutable": {
     "verdict": "PASS",
-    "reason": ""
+    "reason": "",
+    "products_verified": 9
   },
   "G8_conservation": {
     "verdict": "PASS",
@@ -42,6 +49,8 @@
     "cycles": 31260,
     "outcomes": 31260,
     "path_rows": 287795,
+    "path_anchor_keys": 31260,
+    "day_offset_identity": true,
     "false_recovery": 6953
   },
   "G9b_recompute": {

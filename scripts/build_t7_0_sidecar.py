@@ -33,8 +33,9 @@ def main():
         members.setdefault(code, ind)
     industries = sorted(set(members.values()))
 
-    # accumulate per (industry, date): n, n_up, sum_logret, sum_turn
-    agg = defaultdict(lambda: [0, 0, 0.0, 0.0])
+    # accumulate per (industry, date): n_members, n_up, sum_logret,
+    # n_ret_valid (has prev close), sum_turn, n_turn_valid (finite turn)
+    agg = defaultdict(lambda: [0, 0, 0.0, 0, 0.0, 0])
     n_files = 0
     for fp in sorted(PER.glob('*.json.gz')):
         code = fp.name.removesuffix('.json.gz')
@@ -56,16 +57,19 @@ def main():
             if prev is not None and np.isfinite(close) and np.isfinite(prev) and prev > 0:
                 lr = np.log(close / prev)
                 a[2] += lr
+                a[3] += 1
                 if lr > 0:
                     a[1] += 1
             if np.isfinite(turn):
-                a[3] += turn
+                a[4] += turn
+                a[5] += 1
             prev = close
 
     recs = [{'industry': k[0], 'date': k[1], 'n_members': v[0],
-             'sector_breadth': v[1] / max(1, v[0]),
-             'sector_ret_1d': v[2] / max(1, v[0]),
-             'sector_turnover': v[3] / max(1, v[0])}
+             'n_ret_valid': v[3], 'n_turn_valid': v[5],
+             'sector_breadth': v[1] / max(1, v[3]),
+             'sector_ret_1d': v[2] / max(1, v[3]),
+             'sector_turnover': v[4] / max(1, v[5])}
             for k, v in agg.items()]
     df = pd.DataFrame(recs).sort_values(['industry', 'date']).reset_index(drop=True)
     df['sector_ret_20d'] = (df.groupby('industry', sort=False)
