@@ -12,7 +12,8 @@
     "k_no_gaps": true,
     "a0_field_match": true,
     "next_r0_replay": true,
-    "horizon_replay": true,
+    "horizon_episodes_checked": 19404,
+    "horizon_mismatches": 0,
     "competing_rows": 15614
   },
   "overall": "PASS"

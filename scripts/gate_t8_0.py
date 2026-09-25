@@ -58,9 +58,12 @@ def main():
         if not np.array_equal(nr, exp, equal_nan=True):
             nxt_ok = False
             break
-    # horizon_end replay from frozen daily master
-    hz_ok = bool(all(int(r.horizon_end) == hz.get(r.event_id, -1)
-                     for r in att.sample(200, random_state=9).itertuples()))
+    # horizon_end replay from frozen daily master — FULL population
+    # (19,404 episodes; no sampling: R1 hardening, spot-check -> full)
+    hz_series = att.groupby('event_id').horizon_end.first()
+    hz_mism = int(sum(1 for ev, v in hz_series.items()
+                      if int(v) != hz.get(ev, -10**9)))
+    hz_ok = hz_mism == 0
     # competing paths preserved
     comp = att[~att.has_add]
     comp_ok = (len(comp) == 11858 + 3338 + 418
@@ -72,7 +75,8 @@ def main():
              ok and a0_ok and nxt_ok and hz_ok and comp_ok,
              rows=len(att), keyset_equal=True, k_no_gaps=True,
              a0_field_match=a0_ok, next_r0_replay=nxt_ok,
-             horizon_replay=hz_ok, competing_rows=len(comp))
+             horizon_episodes_checked=int(len(hz_series)),
+             horizon_mismatches=hz_mism, competing_rows=len(comp))
 
     sys.exit(log.finish(OUT/'t8_0_gates.json'))
 
