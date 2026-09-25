@@ -297,7 +297,8 @@ FORBIDDEN_PATTERNS = [
     (r'tail\s*risk.{0,40}(protect|insur)', 'tail-protection claim requires quantile/CVaR evidence'),
     (r'sector.{0,60}(improve|identif|predict)', 'sector (NON-PIT) claims are EXPLORATORY only'),
 ]
-def g11_anti_story(log: GateLog, report_md: Path, claim_registry: Path | None):
+def g11_anti_story(log: GateLog, report_md: Path, claim_registry: Path | None,
+                    extra_registry_paths: list | None = None):
     ok = True
     reasons = []
     txt = report_md.read_text() if (report_md and report_md.exists()) else ''
@@ -309,6 +310,13 @@ def g11_anti_story(log: GateLog, report_md: Path, claim_registry: Path | None):
                 reasons.append(why)
     if claim_registry and claim_registry.exists():
         reg = json.loads(claim_registry.read_text())
+        for xp in (extra_registry_paths or []):
+            xj = json.loads(Path(xp).read_text())
+            xcl = xj['claims'] if isinstance(xj, dict) and 'claims' in xj else xj
+            if isinstance(reg, dict) and 'claims' in reg:
+                reg['claims'] = list(reg['claims']) + list(xcl)
+            else:
+                reg = list(reg) + list(xcl)
         if isinstance(reg, dict) and 'claims' in reg:
             allowed = {c['claim_id'] for c in reg['claims']}
         elif isinstance(reg, list):

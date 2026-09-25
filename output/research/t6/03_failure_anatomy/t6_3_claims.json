@@ -1,0 +1,42 @@
+{
+  "stage": "t6_3",
+  "claim_rules_ref": "output/research/t6/t6_contract.json#claim_registry_enum",
+  "claims": [
+    {
+      "claim_id": "C301",
+      "statement": "Failure-stage localization (first-match F1,F3,F2,F4,F5,F6 over the frozen preregistered definitions): F2 (late deterioration) matches ZERO episodes in every segment; F4 (exit failure) and F5 (fast gap/crash) are marginal (<=1%); the failure mass sits in F1 (early first-operator, val 3855/conf 2512 episodes), F3 (false recovery, val 3078/conf 1873) and F6 (residual)",
+      "evidence": "t6_3 report_data freq_F; F2=0 in all segments (preempted by F1/F3 earlier in the first-match order — reported as a structural zero, not a missing stage)",
+      "status": "SUPPORTED"
+    },
+    {
+      "claim_id": "C302",
+      "statement": "Visible-at-first-REDUCE information separates false-recovery cycles from clean recoveries, but NOT via deeper drawdown: FALSE_RECOVERY vs CYCLE_OK show NO median difference in drawdown depth, max_dd_to_date, or first-REDUCE timing; the separators are HIGHER efficiency_signed_3 (+0.0031/+0.0028, both Holm-significant), HIGHER same-day ret_1d_log (+0.0072/+0.0071, both Holm-significant), and in confirmation LOWER dist_ref20 magnitude (-0.0065, Holm-significant) — shallow-deterioration REDUCEs taken on bounce days are the ones that re-add and break down again within 5 valid observations",
+      "evidence": "separability blocks (val/conf), Holm within family; complementary to T6.2 C201: deep deterioration never re-adds (NO_RECOVERY), shallow deterioration on bounce days re-adds prematurely (F3)",
+      "status": "SUPPORTED"
+    },
+    {
+      "claim_id": "C303",
+      "statement": "C106 localized: the confirmation-segment E2-minus-E1 terminal-failure increase (+8.7pp) decomposes (within-E-class shares) as roughly half from F3 false recovery (+4.2pp), a quarter from F1 early-operator (+2.6pp) and a quarter from F6 residual (+2.1pp); validation shows only the F3 component (+2.6pp) offset by F1 (-1.25pp) — the E2 tension is concentrated in false-recovery paths, not in exit absence",
+      "evidence": "p_terminal_failure by E x F: conf E2 0.6457 vs E1 0.5584; F-split shares in e2f blocks (p_term_F1..F6); F4 (exit failure) contributes <=0.5pp in every E-class and segment",
+      "status": "SUPPORTED"
+    },
+    {
+      "claim_id": "C304",
+      "statement": "Two failure calibers diverge for E2: SEVERE_FAILURE (ret<=0 with abs_mdd>=severe) is LOWER for E2 than E1 in confirmation (2.0% vs 3.7%), while terminal-failure (last-day unrepaired severe drawdown regardless of final sign) is HIGHER (64.6% vs 55.8%) — E2's confirmation tension is a carried-to-the-end drawdown pattern (many PAINFUL_WIN-shaped paths), not more final severe losses",
+      "evidence": "p_severe_failure E1/E2/E3: val 3.79/3.42/1.48%, conf 3.66/2.00/1.31%; p_terminal_failure: val 43.8/44.8/35.1%, conf 55.8/64.6/46.8%",
+      "status": "SUPPORTED"
+    },
+    {
+      "claim_id": "C305",
+      "statement": "EXIT-channel localization (C204 anatomy): confirmation exits concentrate in F1 — 2033 of 3328 exit episodes (61%) have their first operator within the 5-day quick-failure window ending in loss; only 590 (18%) sit in F3 and 697 (21%) in F6. The exit mechanism in confirmation is predominantly an EARLY structural cut, not a late repair-give-up",
+      "evidence": "freq_exit_by_seg_F (t6_3 report_data); validation has zero exit episodes (C204)",
+      "status": "SUPPORTED"
+    },
+    {
+      "claim_id": "C306",
+      "statement": "Pipeline-stage verdict on the failure chain (E-misclassification -> late recognition -> wrong ADD -> missing/late EXIT -> unavoidable fast failure): the dominant leak is the ADD stage (F3 false recovery) combined with the early-operator stage (F1); exit failure (F4) and data-gap/crash (F5) are marginal; late-deterioration-recognition (F2) never occurs as defined. These are frozen-rule conditional structures, not causal attributions",
+      "evidence": "C301 + C302 + C303 + C305 jointly",
+      "status": "SUPPORTED"
+    }
+  ]
+}

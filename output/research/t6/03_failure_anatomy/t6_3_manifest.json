@@ -1,0 +1,44 @@
+{
+  "stage": "t6_3",
+  "baseline": "80e934c",
+  "inputs": [
+    {
+      "name": "episode_master",
+      "path": "output/research/t6/00_factlayer/t6_0_episode_master.parquet",
+      "sha256": "c8991e9abf4e27c829c3634a29acab68ecaafcacf70424a32ffa1b0a17467339",
+      "bytes": 0
+    },
+    {
+      "name": "daily_master",
+      "path": "output/research/t6/00_factlayer/t6_0_daily_master.parquet",
+      "sha256": "905c55c322bbd5731c8fde2938c26f7d085f76fc2e0c259c2966cf42b7d6b2a2",
+      "bytes": 0
+    },
+    {
+      "name": "t6_contract",
+      "path": "output/research/t6/t6_contract.json",
+      "sha256": "b307c430edfeafd0ff6cbccb58f0bbc60e04c45ea9e5871b1b15264ad2c98add",
+      "bytes": 0
+    },
+    {
+      "name": "t6_2_cycle_master",
+      "path": "output/research/t6/02_recycling/t6_2_cycle_master.parquet",
+      "sha256": "11938ab8cd4239665109f5eb097440b6f46262867f55d855a807b8d397f1bf7d",
+      "bytes": 0
+    }
+  ],
+  "upstream_hashes": null,
+  "products": [
+    {
+      "file": "t6_3_failure_anatomy.parquet",
+      "sha256": "7c2418974a99182e2af0e993d7a829de547bf5c1f8cb4612b22c86e35713b31b",
+      "bytes": 1312798,
+      "rows": 21675
+    },
+    {
+      "file": "t6_3_report_data.json",
+      "sha256": "06c2de3192cde5e8950db9151336663998d1962d05bcb2b626cb7160e07c91d0",
+      "bytes": 37409
+    }
+  ]
+}

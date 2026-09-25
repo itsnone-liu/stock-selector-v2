@@ -1,0 +1,116 @@
+{
+  "G10_determinism": {
+    "verdict": "PASS",
+    "reason": "",
+    "replayed": "validation/sep/efficiency_signed_3 FR_vs_OK"
+  },
+  "G11_anti_story": {
+    "verdict": "PASS",
+    "reason": "",
+    "reasons": []
+  },
+  "G1_lineage": {
+    "verdict": "PASS",
+    "reason": "",
+    "inputs_hash_verified": 4
+  },
+  "G2_upstream_immutability": {
+    "verdict": "PASS",
+    "reason": "",
+    "frozen_products": 11
+  },
+  "G2b_upstream_products_immutable": {
+    "verdict": "PASS",
+    "reason": ""
+  },
+  "G4_outcome_separation": {
+    "verdict": "PASS",
+    "reason": "",
+    "forbidden_columns": [],
+    "outcome_read_lines": []
+  },
+  "G5_segment_isolation": {
+    "verdict": "PASS",
+    "reason": "",
+    "segments": {
+      "failure_anatomy": [
+        "confirmation",
+        "development",
+        "validation"
+      ]
+    }
+  },
+  "G6_preregistration": {
+    "verdict": "PASS",
+    "reason": "",
+    "unregistered_threshold_literals": [],
+    "note": "numeric comparison constants must appear in t6_contract.json"
+  },
+  "G6a_contract_sign_conventions": {
+    "verdict": "PASS",
+    "reason": "",
+    "severe_dd_depth": 0.1053605156578263,
+    "exit_failure_dd_depth": 0.1625189294977749,
+    "large_loss_ret": -0.1053605156578263
+  },
+  "G6b_contract_reference_integrity": {
+    "verdict": "PASS",
+    "reason": "",
+    "dangling_references": [],
+    "references_found": 12
+  },
+  "G6c_contract_semantic_types": {
+    "verdict": "PASS",
+    "reason": "",
+    "type_violations": []
+  },
+  "G7_no_tuning": {
+    "verdict": "PASS",
+    "reason": "",
+    "tuning_idioms_found": [],
+    "allowed_uses": []
+  },
+  "G8_conservation": {
+    "verdict": "PASS",
+    "reason": "",
+    "decompositions": {
+      "segments_sum": {
+        "total": 21675,
+        "parts_sum": 21675,
+        "parts": {
+          "validation": 11746,
+          "confirmation": 7127,
+          "development": 2802
+        }
+      },
+      "F_stage_sum": {
+        "total": 21675,
+        "parts_sum": 21675,
+        "parts": {
+          "F6": 8477,
+          "F1": 7564,
+          "F3": 5499,
+          "F4": 117,
+          "F5": 18
+        }
+      }
+    }
+  },
+  "G9_statistical_integrity": {
+    "verdict": "PASS",
+    "reason": "",
+    "bad_p": 0,
+    "bad_ci": 0,
+    "bad_nan_consistency": 0,
+    "empty_group_cells": 0
+  },
+  "G9b_recompute": {
+    "verdict": "PASS",
+    "reason": "",
+    "severe_total": {
+      "direct": 481,
+      "reported": 481
+    }
+  },
+  "overall": "PASS"
+}
