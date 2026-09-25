@@ -1,0 +1,56 @@
+{
+  "stage": "t6_5",
+  "claim_rules_ref": "output/research/t6/t6_contract.json#claim_registry_enum",
+  "claims": [
+    {
+      "claim_id": "C501",
+      "statement": "T6 mechanism-chain correction (the synthesis headline): the pre-T6 reading 'deterioration -> REDUCE -> wait for repair confirmation -> ADD' is replaced, on frozen evidence, by 'deterioration magnitude triggers capital contraction; the system re-permits exposure quickly (median 2 days) at LOWER prices WITHOUT indicator-repair confirmation; short-term bounce alone does not demonstrate structural repair, and false recoveries follow'",
+      "evidence": "C201 (magnitude-stratified deterioration) + C202/C207 (ADD at lower prices, repair reading rejected) + C302 (hot-bounce-day false-recovery signature) + C203 (post-R0 path separation)",
+      "status": "SUPPORTED"
+    },
+    {
+      "claim_id": "C502",
+      "statement": "E-class is validated as an initial risk-budget / risk-shaping structure rather than a return ranking: E1->E2 mainly return/capital-efficiency gains (clustering-sensitive), E2->E3 mainly risk reduction without median-return gain; the E3 risk direction holds across all six segment-x-regime strata",
+      "evidence": "C102/C103/C104/C105/C110 + C404 (direction preservation across regimes)",
+      "status": "SUPPORTED"
+    },
+    {
+      "claim_id": "C503",
+      "statement": "Failure structure: the mass sits in F1 (early first-operator) + F3 (false recovery) + F6 (residual); exit-missing (F4) and data-gap (F5) are marginal; the E2 confirmation tension is multi-path (F6~45% / F1~30% / F3~28%) with a PAINFUL_WIN shape (fewer final severe losses, more carried-to-end drawdowns)",
+      "evidence": "C301 + C303 + C304 + C306",
+      "status": "SUPPORTED"
+    },
+    {
+      "claim_id": "C504",
+      "statement": "Regime layer: market regime stratifies recycling outcomes in validation (67% no-recovery in weak) but is segment-dependent; it does not separate same-signature true/false recoveries in the tested representation; E3 risk direction is preserved across regimes",
+      "evidence": "C401 + C402 (scoped) + C403 + C404 + C405",
+      "status": "SUPPORTED",
+      "note": "each component carries its own scoped wording from the frozen stage registries"
+    },
+    {
+      "claim_id": "C505",
+      "statement": "UNRESOLVED BOUNDARY 1 — the separator between true and false recovery was not found in the tested breadth/new-high regime; whether it lies in stock-internal path information or in unobserved external variables (liquidity, volatility, index trend, style, microstructure) remains OPEN. The null result must not be read as 'therefore stock-internal'",
+      "evidence": "C402 scope statement; no T6 stage tested alternative market representations",
+      "status": "INCONCLUSIVE"
+    },
+    {
+      "claim_id": "C506",
+      "statement": "UNRESOLVED BOUNDARY 2 — F6 is the largest unresolved failure residual (val 5,780 / conf 3,283 episodes after the R1 window fix) and was deliberately NOT decomposed post hoc, to avoid taxonomy refinement after seeing results; its internal composition is an open question for a future preregistered stage",
+      "evidence": "C301 (F2 structural zero, F6 residual mass) + C303 (F6 largest component of the E2 tension)",
+      "status": "INCONCLUSIVE"
+    },
+    {
+      "claim_id": "C507",
+      "statement": "UNRESOLVED BOUNDARY 3 — sector interaction is untestable on the frozen fact layer (preregistered sector_metrics absent, NON-PIT retrospective snapshot only); unavailability is NOT evidence of absence of sector effects",
+      "evidence": "C406",
+      "status": "INCONCLUSIVE"
+    },
+    {
+      "claim_id": "C508",
+      "statement": "Policy V1 mapping — frozen for use: E-class as an initial risk-budget dimension; exposure dynamics as deterioration-triggered capital contraction with magnitude-dependent outcomes. Still hypotheses (NOT frozen as design rules): any repair-confirmation criterion for ADD timing (data show no such confirmation exists in current rules); any claimed true/false-recovery discriminator; sector-conditioned behavior",
+      "evidence": "C501 + C502 + C505 + C507; T6 ran under policy_lock (no rule modifications were made or validated as improvements)",
+      "status": "SUPPORTED",
+      "note": "mapping claim about evidential status, not a policy endorsement"
+    }
+  ]
+}

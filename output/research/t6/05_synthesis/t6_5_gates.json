@@ -1,0 +1,46 @@
+{
+  "G11_anti_story": {
+    "verdict": "PASS",
+    "reason": "",
+    "reasons": []
+  },
+  "G12_chain_integrity": {
+    "verdict": "PASS",
+    "reason": "",
+    "stages": [
+      "t6_1",
+      "t6_2",
+      "t6_3",
+      "t6_4"
+    ],
+    "note": "frozen stage gates PASS and byte-identical to aggregation-time hashes"
+  },
+  "G13_citation_completeness": {
+    "verdict": "PASS",
+    "reason": "",
+    "violations": [],
+    "cited_universe": 30
+  },
+  "G14_aggregation_only": {
+    "verdict": "PASS",
+    "reason": "",
+    "leaked_stat_blocks": [],
+    "note": "T6.5 must not introduce new computed statistics"
+  },
+  "G15_status_enum": {
+    "verdict": "PASS",
+    "reason": ""
+  },
+  "G16_inventory_reconciles": {
+    "verdict": "PASS",
+    "reason": "",
+    "inventory": 30,
+    "registries": 30
+  },
+  "G1_lineage": {
+    "verdict": "PASS",
+    "reason": "",
+    "inputs_hash_verified": 4
+  },
+  "overall": "PASS"
+}

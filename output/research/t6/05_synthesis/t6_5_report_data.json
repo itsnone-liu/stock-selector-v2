@@ -1,0 +1,298 @@
+{
+  "stage": "t6_5",
+  "contract_sha256": "b307c430edfeafd0ff6cbccb58f0bbc60e04c45ea9e5871b1b15264ad2c98add",
+  "aggregation_only": true,
+  "no_new_statistics": true,
+  "frozen_chain": [
+    {
+      "stage": "t6_1",
+      "dir": "01_eclass",
+      "frozen_commit": "50575f5",
+      "gate_overall": "PASS",
+      "gate_fail": [],
+      "manifest_products": [
+        "t6_1_per_event.parquet",
+        "t6_1_report_data.json"
+      ],
+      "claims_sha256": "3d4f252e760e7822725a5fd534acb418fad735b153b040ef2e2a564062488841",
+      "gates_sha256": "5d5bbd13c909690e270e21fd8192d1679fbcddc0e3ba8dd72c5bf59237c9c0cc"
+    },
+    {
+      "stage": "t6_2",
+      "dir": "02_recycling",
+      "frozen_commit": "a4e8402",
+      "gate_overall": "PASS",
+      "gate_fail": [],
+      "manifest_products": [
+        "t6_2_cycle_master.parquet",
+        "t6_2_report_data.json"
+      ],
+      "claims_sha256": "29464b95fd18ab3a4f10a562efd73a709e438526ee027ac489054cdde269f5a9",
+      "gates_sha256": "87f23e588872bbfc8b99c0c760adb61b795010e81b121da5aa16b722358409c3"
+    },
+    {
+      "stage": "t6_3",
+      "dir": "03_failure_anatomy",
+      "frozen_commit": "bf0f44f",
+      "gate_overall": "PASS",
+      "gate_fail": [],
+      "manifest_products": [
+        "t6_3_cycle_trigger.parquet",
+        "t6_3_failure_anatomy.parquet",
+        "t6_3_report_data.json"
+      ],
+      "claims_sha256": "994610197d65fe5998d5a3cd0cebaaf6debd1b66c10e88b20257e9116487e80f",
+      "gates_sha256": "a81c79aaee2553492621768992a97bd3213919c76edfb957f8d5bbc4752ffc74"
+    },
+    {
+      "stage": "t6_4",
+      "dir": "04_regime",
+      "frozen_commit": "52ea1f4",
+      "gate_overall": "PASS",
+      "gate_fail": [],
+      "manifest_products": [
+        "t6_4_regime_cycle.parquet",
+        "t6_4_regime_episode.parquet",
+        "t6_4_report_data.json"
+      ],
+      "claims_sha256": "d17354af18b248ddfedf431fbe2ba067bf6aaa11606463381937ec850a9dab71",
+      "gates_sha256": "0223864355543b1431a123669867d72c56a1f3a254770796f3dfd5549a96ec38"
+    }
+  ],
+  "claims_inventory": [
+    {
+      "claim_id": "C101",
+      "status": "PARTIALLY_SUPPORTED",
+      "stage": "t6_10"
+    },
+    {
+      "claim_id": "C102",
+      "status": "NOT_SUPPORTED",
+      "stage": "t6_10"
+    },
+    {
+      "claim_id": "C103",
+      "status": "SUPPORTED",
+      "stage": "t6_10"
+    },
+    {
+      "claim_id": "C104",
+      "status": "SUPPORTED",
+      "stage": "t6_10"
+    },
+    {
+      "claim_id": "C105",
+      "status": "SUPPORTED",
+      "stage": "t6_10"
+    },
+    {
+      "claim_id": "C106",
+      "status": "PARTIALLY_SUPPORTED",
+      "stage": "t6_10"
+    },
+    {
+      "claim_id": "C107",
+      "status": "SUPPORTED",
+      "stage": "t6_10"
+    },
+    {
+      "claim_id": "C108",
+      "status": "SUPPORTED",
+      "stage": "t6_10"
+    },
+    {
+      "claim_id": "C109",
+      "status": "PARTIALLY_SUPPORTED",
+      "stage": "t6_10"
+    },
+    {
+      "claim_id": "C110",
+      "status": "SUPPORTED",
+      "stage": "t6_11"
+    },
+    {
+      "claim_id": "C111",
+      "status": "SUPPORTED",
+      "stage": "t6_11"
+    },
+    {
+      "claim_id": "C201",
+      "status": "SUPPORTED",
+      "stage": "t6_20"
+    },
+    {
+      "claim_id": "C202",
+      "status": "SUPPORTED",
+      "stage": "t6_20"
+    },
+    {
+      "claim_id": "C203",
+      "status": "SUPPORTED",
+      "stage": "t6_20"
+    },
+    {
+      "claim_id": "C204",
+      "status": "SUPPORTED",
+      "stage": "t6_20"
+    },
+    {
+      "claim_id": "C205",
+      "status": "PARTIALLY_SUPPORTED",
+      "stage": "t6_20"
+    },
+    {
+      "claim_id": "C206",
+      "status": "SUPPORTED",
+      "stage": "t6_20"
+    },
+    {
+      "claim_id": "C207",
+      "status": "NOT_SUPPORTED",
+      "stage": "t6_20"
+    },
+    {
+      "claim_id": "C301",
+      "status": "SUPPORTED",
+      "stage": "t6_30"
+    },
+    {
+      "claim_id": "C302",
+      "status": "SUPPORTED",
+      "stage": "t6_30"
+    },
+    {
+      "claim_id": "C303",
+      "status": "SUPPORTED",
+      "stage": "t6_30"
+    },
+    {
+      "claim_id": "C304",
+      "status": "SUPPORTED",
+      "stage": "t6_30"
+    },
+    {
+      "claim_id": "C305",
+      "status": "SUPPORTED",
+      "stage": "t6_30"
+    },
+    {
+      "claim_id": "C306",
+      "status": "SUPPORTED",
+      "stage": "t6_30"
+    },
+    {
+      "claim_id": "C401",
+      "status": "PARTIALLY_SUPPORTED",
+      "stage": "t6_40"
+    },
+    {
+      "claim_id": "C402",
+      "status": "NOT_SUPPORTED",
+      "stage": "t6_40"
+    },
+    {
+      "claim_id": "C403",
+      "status": "PARTIALLY_SUPPORTED",
+      "stage": "t6_40"
+    },
+    {
+      "claim_id": "C404",
+      "status": "SUPPORTED",
+      "stage": "t6_40"
+    },
+    {
+      "claim_id": "C405",
+      "status": "PARTIALLY_SUPPORTED",
+      "stage": "t6_40"
+    },
+    {
+      "claim_id": "C406",
+      "status": "SUPPORTED",
+      "stage": "t6_40"
+    }
+  ],
+  "status_counts": {
+    "PARTIALLY_SUPPORTED": 7,
+    "NOT_SUPPORTED": 3,
+    "SUPPORTED": 20
+  },
+  "decision_mapping": {
+    "frozen_conclusions": [
+      {
+        "conclusion": "E-class is an initial risk-budget structure, not a return score",
+        "cites": [
+          "C102",
+          "C103",
+          "C104",
+          "C105",
+          "C110",
+          "C404"
+        ]
+      },
+      {
+        "conclusion": "REDUCE is deterioration-triggered with magnitude-stratified outcomes",
+        "cites": [
+          "C201"
+        ]
+      },
+      {
+        "conclusion": "ADD re-enters quickly at lower prices without indicator-repair confirmation (behavioral description)",
+        "cites": [
+          "C202",
+          "C207"
+        ]
+      },
+      {
+        "conclusion": "Failure mass sits in F1 early-operator + F3 false-recovery + F6 residual; exit-missing and data-gap stages are marginal",
+        "cites": [
+          "C301",
+          "C306"
+        ]
+      },
+      {
+        "conclusion": "False-recovery signature is a HOT REDUCE day (bounce + efficiency + turnover), median dd non-separating",
+        "cites": [
+          "C302"
+        ]
+      }
+    ],
+    "open_hypotheses": [
+      {
+        "hypothesis": "The remaining separator between true and false recovery (stock-internal path vs unobserved external variables)",
+        "cites": [
+          "C402"
+        ],
+        "boundary": "NOT_FOUND_IN_TESTED_REPRESENTATION"
+      },
+      {
+        "hypothesis": "Mechanism producing E2 confirmation terminal-failure excess (multi-path: F6+F1+F3)",
+        "cites": [
+          "C303",
+          "C304",
+          "C405"
+        ],
+        "boundary": "DESCRIPTIVE_ONLY_NO_INTERACTION_CONTRAST"
+      },
+      {
+        "hypothesis": "F6 residual composition (largest failure class, undecomposed by preregistered taxonomy)",
+        "cites": [
+          "C301",
+          "C303"
+        ],
+        "boundary": "UNRESOLVED_RESIDUAL"
+      },
+      {
+        "hypothesis": "Sector interaction",
+        "cites": [
+          "C406"
+        ],
+        "boundary": "DATA_UNAVAILABLE_NON_PIT"
+      }
+    ]
+  },
+  "unresolved_evidence_boundaries": [
+    "F6 residual: largest failure class not decomposed (preregistered taxonomy residual; decomposition deferred to avoid post-hoc refinement)",
+    "True/false-recovery separator: not found in the tested breadth/new-high regime; stock-internal vs unobserved-external remains open",
+    "Sector interaction: preregistered sector_metrics absent from frozen T6.0 fact layer (NON-PIT) — unavailability is not evidence of absence"
+  ]
+}

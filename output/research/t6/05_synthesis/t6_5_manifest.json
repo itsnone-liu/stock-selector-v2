@@ -1,0 +1,38 @@
+{
+  "stage": "t6_5",
+  "baseline": "80e934c",
+  "inputs": [
+    {
+      "name": "t6_1_claims",
+      "path": "output/research/t6/01_eclass/t6_1_claims.json",
+      "sha256": "3d4f252e760e7822725a5fd534acb418fad735b153b040ef2e2a564062488841",
+      "bytes": 0
+    },
+    {
+      "name": "t6_2_claims",
+      "path": "output/research/t6/02_recycling/t6_2_claims.json",
+      "sha256": "29464b95fd18ab3a4f10a562efd73a709e438526ee027ac489054cdde269f5a9",
+      "bytes": 0
+    },
+    {
+      "name": "t6_3_claims",
+      "path": "output/research/t6/03_failure_anatomy/t6_3_claims.json",
+      "sha256": "994610197d65fe5998d5a3cd0cebaaf6debd1b66c10e88b20257e9116487e80f",
+      "bytes": 0
+    },
+    {
+      "name": "t6_4_claims",
+      "path": "output/research/t6/04_regime/t6_4_claims.json",
+      "sha256": "d17354af18b248ddfedf431fbe2ba067bf6aaa11606463381937ec850a9dab71",
+      "bytes": 0
+    }
+  ],
+  "upstream_hashes": null,
+  "products": [
+    {
+      "file": "t6_5_report_data.json",
+      "sha256": "2ccb32325e056caba892691fb94be26977e2e56c5a862d677403de7f68a114a8",
+      "bytes": 7472
+    }
+  ]
+}
