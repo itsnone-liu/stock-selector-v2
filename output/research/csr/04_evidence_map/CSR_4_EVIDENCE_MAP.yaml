@@ -1,0 +1,165 @@
+# CSR-4 EVIDENCE MAP — schema + 第一轮候选登记 (v1.0)
+# 源方案 §7/§8：一行一个 evidence；本轮只登记 schema 与候选清单，
+# 不抓取数据。availability/confidence 留空——那是 CSR-5/CSR-6 的审计
+# 结论，本轮预填即违反先审后抓的顺序。
+meta:
+  stage: csr_4
+  source_of_truth: docs/plans/CAPITAL_STATE_RESEARCH_V1_SOURCE.md §7/§8
+  product_target: CAPITAL_EVIDENCE_REGISTRY.parquet (built only after CSR-5/6)
+
+schema:
+  columns:
+    - {name: evidence_id, type: str, rule: 'E-MKT-01 / E-SEC-01 / E-STK-01 / E-MRG-01 序列'}
+    - {name: actor_id, type: str, rule: 'must reference CAPITAL_ACTOR_ONTOLOGY actor A1..A7 or MULTI'}
+    - {name: hypothesis_id, type: str, rule: 'must reference CSR_3 H01..H06'}
+    - {name: capital_layer, type: enum, values: [MARKET, SECTOR, STOCK, MARGINAL]}
+    - {name: evidence_name, type: str}
+    - {name: economic_mechanism, type: str, rule: 'C4 mechanism-first 链的观测端表述'}
+    - {name: evidence_level, type: enum, values: [A, B, C]}
+    - {name: data_source, type: str}
+    - {name: raw_field, type: str}
+    - {name: frequency, type: str}
+    - {name: publication_delay, type: str, rule: '留待 CSR-5 审计填；禁止预估'}
+    - {name: historical_depth, type: str, rule: '留待 CSR-5'}
+    - {name: point_in_time, type: str, rule: '留待 CSR-6：observation/publication/available 三日期口径'}
+    - {name: revision_risk, type: str, rule: '留待 CSR-6'}
+    - {name: coverage, type: str, rule: '留待 CSR-5'}
+    - {name: expected_direction, type: str}
+    - {name: counter_evidence, type: str}
+    - {name: alternative_explanations, type: str}
+    - {name: confidence, type: str, rule: '留待 CSR-9 review 填'}
+    - {name: status, type: enum, values: [CANDIDATE, AUDITED, IN_USE, REJECTED, UNOBSERVABLE]}
+
+candidates:
+  # ---- MARKET layer ----
+  - {evidence_id: E-MKT-01, evidence_name: 宽基ETF份额与申赎, actor_id: MULTI,
+     hypothesis_id: H01, capital_layer: MARKET, evidence_level: A,
+     data_source: 交易所ETF份额日报, expected_direction: 份额骤增=风险资本供给扩张,
+     counter_evidence: 份额增但市场宽度不扩, alternative_explanations: 套利盘申赎非配置盘,
+     status: CANDIDATE}
+  - {evidence_id: E-MKT-02, evidence_name: 融资融券余额与增速（市场级）, actor_id: A7,
+     hypothesis_id: H04, capital_layer: MARKET, evidence_level: B,
+     data_source: 交易所两融日报, expected_direction: 余额增速峰值=杠杆参与度高位,
+     counter_evidence: 余额高而宽度收窄, alternative_explanations: 结构性杠杆（TMT集中）,
+     status: CANDIDATE}
+  - {evidence_id: E-MKT-03, evidence_name: 市场宽度（新高/新低、涨跌家数）, actor_id: MULTI,
+     hypothesis_id: H04, capital_layer: MARKET, evidence_level: C,
+     data_source: 行情统计, expected_direction: 宽度领先/同步于指数=健康；
+       宽度背离=集中化末期, counter_evidence: —, alternative_explanations: 权重股行情的结构性收窄,
+     status: CANDIDATE}
+  - {evidence_id: E-MKT-04, evidence_name: 大小盘结构（相对强弱与换手占比）, actor_id: A4,
+     hypothesis_id: H04, capital_layer: MARKET, evidence_level: C,
+     data_source: 行情统计, expected_direction: 小盘/大盘换手占比切换=风险偏好迁移,
+     counter_evidence: —, alternative_explanations: 流动性环境（利率）驱动,
+     status: CANDIDATE}
+  - {evidence_id: E-MKT-05, evidence_name: 跨境资金口径（北向等，若可得且PIT可靠）, actor_id: A4,
+     hypothesis_id: H04, capital_layer: MARKET, evidence_level: A,
+     data_source: 待审计（口径已多次变更）, expected_direction: 净流入与大盘成交正相关,
+     counter_evidence: 口径修订历史, alternative_explanations: 假外资（A6借道）,
+     status: CANDIDATE}
+  - {evidence_id: E-MKT-06, evidence_name: 长期资金公开行为（社保/汇金增持公告）, actor_id: A1,
+     hypothesis_id: H01, capital_layer: MARKET, evidence_level: A,
+     data_source: 公告与持牌披露, expected_direction: 系统性压力点出现=逆周期承接,
+     counter_evidence: 公告后市场延续弱势, alternative_explanations: 政策信号效应≠实际承接量,
+     status: CANDIDATE}
+  # ---- SECTOR layer ----
+  - {evidence_id: E-SEC-01, evidence_name: 行业ETF份额, actor_id: A3,
+     hypothesis_id: H04, capital_layer: SECTOR, evidence_level: A,
+     data_source: 交易所ETF份额日报, expected_direction: 行业份额增=行业配置资金流入,
+     counter_evidence: 份额增而行业相对走弱, alternative_explanations: 套利与对冲盘,
+     status: CANDIDATE}
+  - {evidence_id: E-SEC-02, evidence_name: 行业成交额占比与集中度, actor_id: MULTI,
+     hypothesis_id: H04, capital_layer: SECTOR, evidence_level: C,
+     data_source: 行情统计, expected_direction: 单行业成交占比极值=拥挤,
+     counter_evidence: —, alternative_explanations: 事件驱动的短期脉冲,
+     status: CANDIDATE}
+  - {evidence_id: E-SEC-03, evidence_name: 行业相对强弱与breadth, actor_id: MULTI,
+     hypothesis_id: H03, capital_layer: SECTOR, evidence_level: C,
+     data_source: 行情统计, expected_direction: 个股强+行业强=行业配置背景支持,
+     counter_evidence: —, alternative_explanations: 龙头独立行情带动行业指数,
+     status: CANDIDATE}
+  - {evidence_id: E-SEC-04, evidence_name: 行业龙头贡献度（市值加权指数由几只票贡献）, actor_id: A5,
+     hypothesis_id: H05, capital_layer: SECTOR, evidence_level: C,
+     data_source: 行情统计, expected_direction: 贡献度极端集中=板块行情末期特征,
+     counter_evidence: —, alternative_explanations: 权重结构使然（指数编制偏差）,
+     status: CANDIDATE}
+  # ---- STOCK layer ----
+  - {evidence_id: E-STK-01, evidence_name: 股东户数（季度）, actor_id: MULTI,
+     hypothesis_id: H02, capital_layer: STOCK, evidence_level: B,
+     data_source: 定期报告披露, expected_direction: 户数下降=集中；急升=分散/派发,
+     counter_evidence: 户数降但席位显示机构减仓, alternative_explanations: 回购注销的机械集中,
+     status: CANDIDATE}
+  - {evidence_id: E-STK-02, evidence_name: 十大流通股东/十大股东变化, actor_id: A5,
+     hypothesis_id: H01, capital_layer: STOCK, evidence_level: A,
+     data_source: 定期报告披露, expected_direction: 新进+持续增持=吸筹证据链,
+     counter_evidence: 后续季度快速退出（短线资金）, alternative_explanations: 指数被动纳入,
+     status: CANDIDATE}
+  - {evidence_id: E-STK-03, evidence_name: 基金持仓（重仓股披露全样本/全部持仓半年）, actor_id: A3,
+     hypothesis_id: H04, capital_layer: STOCK, evidence_level: A,
+     data_source: 基金定期报告, expected_direction: 持仓基金数上升=机构参与扩张,
+     counter_evidence: 持仓上升但户均下降（指数化持有）, alternative_explanations: 被动指数配置,
+     status: CANDIDATE}
+  - {evidence_id: E-STK-04, evidence_name: 大宗交易（折价率、量、买卖席位）, actor_id: A5,
+     hypothesis_id: H05, capital_layer: STOCK, evidence_level: A,
+     data_source: 交易所大宗披露, expected_direction: 高位+折价扩大+量增=急于出清,
+     counter_evidence: 平价/溢价大宗+机构买方=承接, alternative_explanations: 大股东过桥减持的技术安排,
+     status: CANDIDATE}
+  - {evidence_id: E-STK-05, evidence_name: 龙虎榜席位, actor_id: A6,
+     hypothesis_id: H04, capital_layer: STOCK, evidence_level: A,
+     data_source: 交易所龙虎榜, expected_direction: 知名游资席位=短线结构；机构席位=配置盘,
+     counter_evidence: —, alternative_explanations: 席位共用/假席位, status: CANDIDATE}
+  - {evidence_id: E-STK-06, evidence_name: 股东增减持公告与预披露, actor_id: A5,
+     hypothesis_id: H05, capital_layer: STOCK, evidence_level: A,
+     data_source: 公告, expected_direction: 高位减持计划预披露=供给预告（PIT可用）,
+     counter_evidence: 预披露后不实施, alternative_explanations: 常规财务性减持（非主导资金）,
+     status: CANDIDATE}
+  - {evidence_id: E-STK-07, evidence_name: 回购（金额、用途、注销vs激励）, actor_id: MULTI,
+     hypothesis_id: H02, capital_layer: STOCK, evidence_level: A,
+     data_source: 公告, expected_direction: 注销式回购=供给收缩的真实锁定,
+     counter_evidence: 激励型回购（供给回归）, alternative_explanations: 市值管理信号操作,
+     status: CANDIDATE}
+  - {evidence_id: E-STK-08, evidence_name: 个股融资余额, actor_id: A7,
+     hypothesis_id: H04, capital_layer: STOCK, evidence_level: B,
+     data_source: 交易所两融日报, expected_direction: 高位融资激增=杠杆散户接筹特征,
+     counter_evidence: —, alternative_explanations: 融资客抄底（非追高）,
+     status: CANDIDATE}
+  - {evidence_id: E-STK-09, evidence_name: 解禁日程与规模, actor_id: MULTI,
+     hypothesis_id: H05, capital_layer: STOCK, evidence_level: A,
+     data_source: 预先披露的解禁表, expected_direction: 大比例解禁前后的供给压力窗口,
+     counter_evidence: 解禁后不跌（承接强）, alternative_explanations: 解禁股东不卖（成本极低的长线）,
+     status: CANDIDATE}
+  - {evidence_id: E-STK-10, evidence_name: 筹码成本分布迁移（B级代理构造）, actor_id: A5,
+     hypothesis_id: H01, capital_layer: STOCK, evidence_level: B,
+     data_source: 由行情+换手构造（方法论待 CSR-5 审定）, expected_direction:
+       低位集中→高位扩散=筹码迁移路径, counter_evidence: 构造对除权的敏感性,
+     alternative_explanations: 构造型指标的全部内生问题（须方法论审计后才能升级）,
+     status: CANDIDATE}
+  # ---- MARGINAL layer（末端观测，永远 C 级）----
+  - {evidence_id: E-MRG-01, evidence_name: 累计换手/价格位移比（吸筹效率）, actor_id: A5,
+     hypothesis_id: H01, capital_layer: MARGINAL, evidence_level: C,
+     data_source: 行情计算, expected_direction: 高换手低位移=与吸筹一致（仅C级）,
+     counter_evidence: —, alternative_explanations: 高频做市/多空分歧, status: CANDIDATE}
+  - {evidence_id: E-MRG-02, evidence_name: 缩量上涨/量价弹性, actor_id: A5,
+     hypothesis_id: H02, capital_layer: MARGINAL, evidence_level: C,
+     data_source: 行情计算, expected_direction: 上涨量能需求下降=与锁定一致（仅C级）,
+     counter_evidence: —, alternative_explanations: 惜售情绪/系统性缩量, status: CANDIDATE}
+  - {evidence_id: E-MRG-03, evidence_name: 价格效率（位移/回撤比、趋势R²）, actor_id: A5,
+     hypothesis_id: H03, capital_layer: MARGINAL, evidence_level: C,
+     data_source: 行情计算, expected_direction: D4 期效率高于对照组,
+     counter_evidence: —, alternative_explanations: 单边基本面重估, status: CANDIDATE}
+  - {evidence_id: E-MRG-04, evidence_name: 放量滞涨/量能对称性, actor_id: A5,
+     hypothesis_id: H05, capital_layer: MARGINAL, evidence_level: C,
+     data_source: 行情计算, expected_direction: 高位巨量+效率衰减=与交接一致（不能单独定派发）,
+     counter_evidence: —, alternative_explanations: 高位分歧/双向博弈, status: CANDIDATE}
+  - {evidence_id: E-MRG-05, evidence_name: T3-T8 冻结观测（ADD/REDUCE/EXIT序列、MFE/DD）,
+     actor_id: MULTI, hypothesis_id: H06, capital_layer: MARGINAL, evidence_level: C,
+     data_source: T6/T8 冻结产物（只读引用，C5 防火墙）, expected_direction:
+       D8 候选期的 MFE flat+兑现率下降结构, counter_evidence: —,
+     alternative_explanations: 这些是执行层观测，永远只作背景动机，禁止反向定义资金状态,
+     status: CANDIDATE}
+
+audit_sequence_note: |
+  本清单的每一行在 CSR-5（可得性）与 CSR-6（PIT）审计前都是 CANDIDATE。
+  审计后可能被 REJECTED 或 UNOBSERVABLE——UNOBSERVABLE 是正式且允许的
+  结论（源方案 §18）。任何本轮填入 availability/confidence 的冲动都
+  违反"先审数据再写抓取器"的顺序纪律。
