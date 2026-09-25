@@ -1,0 +1,365 @@
+{
+  "stage": "t8_2",
+  "identity": "preregistered order inference: fixed contrasts (marginal k1/k2/k3+ + conditional outcome1 strata k2 vs k3+), Estimand B conditional order contrast; NO policy, NO additional condition variables",
+  "contrasts_marginal": [
+    "k1_vs_k2",
+    "k2_vs_k3+",
+    "k1_vs_k3+"
+  ],
+  "contrasts_conditional": [
+    "FR:k2_vs_k3+",
+    "CYCLE_OK:k2_vs_k3+",
+    "OTHER:k2_vs_k3+"
+  ],
+  "outcome1_mapping": "FR > CYCLE_OK > OTHER from frozen ADD1 flags; both-true conflicts=1347",
+  "outcome1_conflicts_both_true": 1347,
+  "primary_sample": "validation+confirmation pooled (frozen t6 statistics contract); dev/all reference",
+  "stats": {
+    "B": 2000,
+    "seed": 20260925,
+    "clusters": [
+      "stock_code",
+      "T0_date"
+    ],
+    "holm_family": "metric x cluster x family-type (3 marginal contrasts | 3 strata)"
+  },
+  "n_tests": 144,
+  "reading_grid": "three preregistered outcomes: gradient-gone | gradient-persists | strata-diverge",
+  "descriptives": {
+    "primary_by_k": {
+      "false_add_rate": {
+        "k1": [
+          9033,
+          0.4484
+        ],
+        "k2": [
+          3372,
+          0.4442
+        ],
+        "k3+": [
+          1700,
+          0.4335
+        ]
+      },
+      "recovery_rate": {
+        "k1": [
+          9033,
+          0.6154
+        ],
+        "k2": [
+          3372,
+          0.573
+        ],
+        "k3+": [
+          1700,
+          0.5159
+        ]
+      },
+      "dd_w10": {
+        "k1": [
+          9033,
+          -0.0052
+        ],
+        "k2": [
+          3372,
+          -0.0099
+        ],
+        "k3+": [
+          1700,
+          -0.0167
+        ]
+      },
+      "mfe_w10": {
+        "k1": [
+          9033,
+          0.0633
+        ],
+        "k2": [
+          3372,
+          0.0619
+        ],
+        "k3+": [
+          1700,
+          0.0615
+        ]
+      },
+      "ret_w10": {
+        "k1": [
+          9033,
+          0.0221
+        ],
+        "k2": [
+          3372,
+          0.0158
+        ],
+        "k3+": [
+          1700,
+          0.0138
+        ]
+      },
+      "contrib_w10": {
+        "k1": [
+          9033,
+          0.0142
+        ],
+        "k2": [
+          3372,
+          0.0102
+        ],
+        "k3+": [
+          1700,
+          0.0073
+        ]
+      }
+    },
+    "primary_by_k_outcome1": {
+      "false_add_rate": {
+        "CYCLE_OK|k1": [
+          4348,
+          0.0
+        ],
+        "CYCLE_OK|k2": [
+          1631,
+          0.4396
+        ],
+        "CYCLE_OK|k3+": [
+          750,
+          0.4347
+        ],
+        "FR|k1": [
+          4050,
+          1.0
+        ],
+        "FR|k2": [
+          1686,
+          0.4365
+        ],
+        "FR|k3+": [
+          931,
+          0.4211
+        ],
+        "OTHER|k1": [
+          635,
+          0.0
+        ],
+        "OTHER|k2": [
+          55,
+          0.8182
+        ],
+        "OTHER|k3+": [
+          19,
+          1.0
+        ]
+      },
+      "recovery_rate": {
+        "CYCLE_OK|k1": [
+          4348,
+          1.0
+        ],
+        "CYCLE_OK|k2": [
+          1631,
+          0.553
+        ],
+        "CYCLE_OK|k3+": [
+          750,
+          0.5147
+        ],
+        "FR|k1": [
+          4050,
+          0.299
+        ],
+        "FR|k2": [
+          1686,
+          0.6109
+        ],
+        "FR|k3+": [
+          931,
+          0.5274
+        ],
+        "OTHER|k1": [
+          635,
+          0.0
+        ],
+        "OTHER|k2": [
+          55,
+          0.0
+        ],
+        "OTHER|k3+": [
+          19,
+          0.0
+        ]
+      },
+      "dd_w10": {
+        "CYCLE_OK|k1": [
+          4348,
+          0.0
+        ],
+        "CYCLE_OK|k2": [
+          1631,
+          -0.017
+        ],
+        "CYCLE_OK|k3+": [
+          750,
+          -0.024
+        ],
+        "FR|k1": [
+          4050,
+          -0.0369
+        ],
+        "FR|k2": [
+          1686,
+          -0.0023
+        ],
+        "FR|k3+": [
+          931,
+          -0.0091
+        ],
+        "OTHER|k1": [
+          635,
+          0.0
+        ],
+        "OTHER|k2": [
+          55,
+          -0.062
+        ],
+        "OTHER|k3+": [
+          19,
+          -0.0518
+        ]
+      },
+      "mfe_w10": {
+        "CYCLE_OK|k1": [
+          4348,
+          0.0954
+        ],
+        "CYCLE_OK|k2": [
+          1631,
+          0.055
+        ],
+        "CYCLE_OK|k3+": [
+          750,
+          0.0637
+        ],
+        "FR|k1": [
+          4050,
+          0.0375
+        ],
+        "FR|k2": [
+          1686,
+          0.0701
+        ],
+        "FR|k3+": [
+          931,
+          0.0613
+        ],
+        "OTHER|k1": [
+          635,
+          0.0482
+        ],
+        "OTHER|k2": [
+          55,
+          0.0366
+        ],
+        "OTHER|k3+": [
+          19,
+          0.0243
+        ]
+      },
+      "ret_w10": {
+        "CYCLE_OK|k1": [
+          4348,
+          0.0546
+        ],
+        "CYCLE_OK|k2": [
+          1631,
+          0.01
+        ],
+        "CYCLE_OK|k3+": [
+          750,
+          0.0125
+        ],
+        "FR|k1": [
+          4050,
+          -0.0179
+        ],
+        "FR|k2": [
+          1686,
+          0.0268
+        ],
+        "FR|k3+": [
+          931,
+          0.0169
+        ],
+        "OTHER|k1": [
+          635,
+          0.0246
+        ],
+        "OTHER|k2": [
+          55,
+          -0.0509
+        ],
+        "OTHER|k3+": [
+          19,
+          -0.0505
+        ]
+      },
+      "contrib_w10": {
+        "CYCLE_OK|k1": [
+          4348,
+          0.0464
+        ],
+        "CYCLE_OK|k2": [
+          1631,
+          0.0062
+        ],
+        "CYCLE_OK|k3+": [
+          750,
+          0.0071
+        ],
+        "FR|k1": [
+          4050,
+          -0.0048
+        ],
+        "FR|k2": [
+          1686,
+          0.017
+        ],
+        "FR|k3+": [
+          931,
+          0.0091
+        ],
+        "OTHER|k1": [
+          635,
+          0.017
+        ],
+        "OTHER|k2": [
+          55,
+          -0.0262
+        ],
+        "OTHER|k3+": [
+          19,
+          -0.0137
+        ]
+      }
+    },
+    "outcome1_dist_k1": {
+      "CYCLE_OK": 4348,
+      "FR": 4050,
+      "OTHER": 635
+    }
+  },
+  "inputs": [
+    {
+      "name": "t8_1_order_anatomy",
+      "path": "output/research/t8/01_order_anatomy/t8_1_order_anatomy.parquet",
+      "sha256": "de58d2a5b6785b41de0d55957ad28e583066e51ccd775f7cf698d6f7fb75c5d2",
+      "bytes": 0
+    },
+    {
+      "name": "t6_contract_statistics",
+      "path": "output/research/t6/t6_contract.json",
+      "sha256": "b307c430edfeafd0ff6cbccb58f0bbc60e04c45ea9e5871b1b15264ad2c98add",
+      "bytes": 0
+    }
+  ]
+}

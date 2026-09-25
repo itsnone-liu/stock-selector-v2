@@ -1,0 +1,37 @@
+{
+  "G1_lineage": {
+    "verdict": "PASS",
+    "reason": "",
+    "inputs_hash_verified": 2
+  },
+  "G45_preregistered_contrasts": {
+    "verdict": "PASS",
+    "reason": "",
+    "contrasts": [
+      "CYCLE_OK:k2_vs_k3+",
+      "FR:k2_vs_k3+",
+      "OTHER:k2_vs_k3+",
+      "k1_vs_k2",
+      "k1_vs_k3+",
+      "k2_vs_k3+"
+    ],
+    "n_tests": 144
+  },
+  "G46_primary_sample_reconcile": {
+    "verdict": "PASS",
+    "reason": "",
+    "expected_k": {
+      "k1": 9033,
+      "k2": 3372,
+      "k3+": 1700
+    },
+    "strata_partition": true
+  },
+  "G47_holm_family_replay": {
+    "verdict": "PASS",
+    "reason": "",
+    "families": 48,
+    "mismatches": 0
+  },
+  "overall": "PASS"
+}

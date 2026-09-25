@@ -1,0 +1,32 @@
+{
+  "stage": "t8_2",
+  "baseline": "80e934c",
+  "inputs": [
+    {
+      "name": "t8_1_order_anatomy",
+      "path": "output/research/t8/01_order_anatomy/t8_1_order_anatomy.parquet",
+      "sha256": "de58d2a5b6785b41de0d55957ad28e583066e51ccd775f7cf698d6f7fb75c5d2",
+      "bytes": 0
+    },
+    {
+      "name": "t6_contract_statistics",
+      "path": "output/research/t6/t6_contract.json",
+      "sha256": "b307c430edfeafd0ff6cbccb58f0bbc60e04c45ea9e5871b1b15264ad2c98add",
+      "bytes": 0
+    }
+  ],
+  "upstream_hashes": null,
+  "products": [
+    {
+      "file": "t8_2_inference.parquet",
+      "sha256": "da9730c9fc8eed4ebbc54cedf94283d60c59829f2dc9382c56be825aeca9c968",
+      "bytes": 12635,
+      "rows": 144
+    },
+    {
+      "file": "t8_2_report_data.json",
+      "sha256": "570d2b6579ade8ebf33a0002fa6e32fcd486dc602cde82d0c752ea50c43c2e70",
+      "bytes": 6571
+    }
+  ]
+}
