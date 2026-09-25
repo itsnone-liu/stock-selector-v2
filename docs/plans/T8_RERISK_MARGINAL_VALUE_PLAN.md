@@ -1,96 +1,123 @@
-# T8 Plan：第 N 次 Re-risk 的边际价值（独立预注册，不从 D1 派生）
+# T8 Plan：第 N 次 Re-risk 的边际价值（独立预注册，已拍板冻结版 v2）
 
-> **立项依据**（T7 Synthesis §3.1，用户终审确认）：及时 re-expansion 很重要，
-> 但 repeated re-risk 是否仍具有相同的风险收益结构——T5-T7 动态仓位体系最后
-> 一个核心未答问题："允许资金循环重新进入"与"什么时候应该停止给这条路径
-> 继续下注"之间的边界在哪里。
+> **立项 provenance（拍板④）**：T7 synthesis 暴露的 open question（§3.1）——
+> **不是** "T7.4 D1→新规则"。研究对象已变：从"何时恢复风险"转向"风险重新
+> 扩张的次数/顺序是否改变边际价值"。段编号 T8 独立（T7 已 FINAL FROZEN）。
 >
-> **纪律边界**：不从 T7.4 D1（振荡形态）反推规则；不寻找新价格/量能特征；
-> 核心是先把 episode 重构为 re-risk 序列，再研究条件边际价值。
+> **研究纪律句（冻结）**：T8 研究 repeated re-risk 的**条件边际结构**，
+> 不预设"次数越多越差"，也不从 T7.4 的 D1=75.9% 反推出停止规则。
 
-## 1. 研究问题（预注册）
+## 1. 研究问题与 estimand（拍板新增：两个 estimand 严格区分）
 
-**RQ1（主）**：ADD₁ / ADD₂ / ADD₃+ 的**条件边际价值**是否发生系统性变化？
-维度（每 k 分组报，全部 outcome-based）：
-- False ADD 风险（frozen 定义：policy-independent W10+adverse excursion，
-  承 T7.3 口径但锚各 cycle 自己的 a0_day）；
-- 恢复捕获（该次 re-risk 是否参与 TrueRecovery 建立，承 T7.0 冻结定义）；
-- 资本占用（exposure-days / occupancy）；
-- 后续 drawdown（ADD_k 后的 MAE/running dd）；
-- 每 cycle 收益贡献（exposure-weighted，承 T7.3 sizing 语义=实际 A 路径）。
+**Conditioning 契约（冻结）**：ADD₂/ADD₃ 的存在本身是前序路径的结果——能到
+ADD₃ 的 episode 已经历至少两轮状态转移，是高度选择后的 risk set。因此：
 
-**RQ2（次）**：若边际价值递减存在，其**结构**是信息性的（前期 outcome₁ 可
-预测后续 ADD_k 的价值——如 outcome₁=FR 后的 ADD₂ 更差）还是纯序数性的
-（第 k 次本身就差）？——RQ2 只做预注册对比，不产生 policy。
+- **Estimand A — Observed order profile**：在实际到达 ADD_k 的 risk set 中，
+  ADD_k 后五维 outcome 如何随 k 变化？（描述性 risk-set profile）
+- **Estimand B — Conditional order contrast**：在预注册 outcome₁ 条件
+  （{FR, CYCLE_OK, OTHER}）下，k 的差异是否仍然存在？（条件分解）
 
-## 2. 数据基础：T8.0 Sequence Fact Layer（唯一新 fact 层）
+**命名纪律**：即使 B 有差异，也只能叫 **conditional association / marginal
+profile**，禁止表述为"第三次 ADD 导致更差"（因果词禁用）。
 
-从**已冻结**产物重构（零新变量定义）：
-- T6.2 cycle master（31,260 cycles：event_id/r0_day/a0_day/type/false_recovery/
-  true_recovery）→ 按 episode 内时间序编 **k = cycle_index**（第 k 次
-  REDUCE→ADD 尝试）；
-- T7.0 outcomes（per-cycle mfe/mae/bh、true_recovery、recovery_established_day）；
-- T6.0 daily master（exposure path、close_adj）→ per-cycle 窗口计量。
+**RQ1（主）**：Estimand A——k1/k2/k3+ 五维：False ADD 风险（frozen 定义，
+锚各 ADD_k 自己的 a0_day）/恢复捕获/资本占用/后续 dd/收益贡献。
+**RQ2（次）**：Estimand B——outcome₁ 已能解释多少 order gradient？（先回答
+order effect 是否存在；MAE 深度分层**明确不做**——防"第几次 re-risk"变成
+新的状态发现工程，MAE 留后续独立机制研究。）
 
-**守恒 Gate（先于任何分析）**：重构后 Σcycles（各 k）=31,260；每 episode 的
-k 序列连续（无跳号）；与 T6.2/T7.0 冻结行逐位对账（G40 lineage）。
+## 2. k 分组（拍板①：无数据依赖规则）
 
-## 3. 分段协议（沿用 T7 纪律）
+- **主分析固定三组：k=1 / k=2 / k≥3**。不设"k=4 若 n≥300 则单列"——报告
+  结构不得由样本量决定。
+- 原始 cycle_index 全量保存；预注册**纯描述 appendix**：逐 k 报 n 与五维
+  指标，达到最低展示量可显示 k=4/5/…，但**不进主 inference、不改主
+  grouping**。
 
-| 段 | 内容 | 段权限 |
+## 3. 分段结构（拍板③：T8.2 不产生 policy）
+
+| 段 | 内容 | 权限 |
 |---|---|---|
-| T8.0 | sequence fact layer 重构+守恒 gate | 全段，机械重构 |
-| T8.1 | k-分组的描述性 frontier（RQ1 全维度×全段报告） | development 报告，VAL/CONF primary |
-| T8.2 | RQ2 预注册对比（outcome₁ 条件下的 ADD₂/₃+ 边际） | 若含任何可执行规则形态 → 先 Freeze 后 VAL（承 T7 Amendment Freeze 纪律）；纯描述则止于报告 |
-| T8.3 | synthesis（成立/否定/开放三分法，承 T7 格式） | — |
+| **T8.0** | Sequence Fact Layer：完整 REDUCE-cycle risk set + ADD order 重构 + G40 守恒 | 全段，机械重构 |
+| **T8.1** | Order Anatomy：k1/k2/k3+ 五维 outcome | **descriptive only**（dev 报告，VAL/CONF primary） |
+| **T8.2** | Preregistered Order Inference：三个固定 contrast（k1 vs k2 / k2 vs k3+ / k1 vs k3+）+ outcome₁ conditional decomposition | **descriptive + preregistered inference 止步**，不产生"第 3 次禁止 ADD"类规则 |
+| **T8.3** | Synthesis：decreasing / flat / conditional 三形态均合法 | — |
+| [条件门] | **仅当证据值得继续**：独立 Policy Amendment Design → Freeze → VAL → CONF（仅 VAL 通过才进） | 完整 C1 纪律管线 |
 
-**红线**：T8.1 的任何"递减"视觉/统计印象不得直接进入 T8.2 的规则设计——
-若 T8.2 需要阈值，须 DEV-only 选择 + Amendment Freeze + VAL 验证完整管线
-（T7 C1 案例的全部纪律）。
+红线：发现"漂亮的 order gradient"≠它具有可执行政策价值（C1 教训原文承继）。
 
-## 4. 统计框架（全部冻结复用）
+## 4. T8.0 数据结构（拍板新增：competing path 完整 risk set）
 
-- 双 cluster bootstrap（stock_code / T0_date，cluster_boot_level/diff 4 元组）；
-- est=wmedian（STATS 冻结）；Holm dict 接口；
-- k 组间对比：ADD₁ vs ADD₂ vs ADD₃+（若 k≥4 样本不足则合并为 3+，预注册
-  合并规则：k≥3 合并，k=4 单列仅当 n≥300）；
-- frontier 呈现：x=False ADD 风险，y=恢复捕获/收益贡献（承 T7 二维纪律，
-  禁单轴 score）。
+**cycle_attempt table（全分类，无样本消失）**：
 
-## 5. Gate 计划（编号承 T7 继续）
+```
+cycle_attempt
+├── RECOVERED_ADD → 有 ADD_k（k 序列编在此）
+├── NO_RECOVERY   → 无 ADD（competing path：未再次进入）
+├── FAILED_EXIT   → 无 ADD（competing path：失败退出）
+└── CENSORED      → censor
+```
 
-- **G40 lineage/守恒**：重构逐位对账+k 连续性；
-- **G41 分段纪律**：VAL/CONF 在任何规则 Freeze 前不可见（承 G22 防污染：
-  产物 segment 列+计算路径扫描）；
-- **G42 双 clock**：False ADD 锚各 ADD_k 自己的 a0_day；恢复捕获锚公共
-  cycle clock（承 G26/G29）；
-- **G43 描述纪律**：T8.1 零规则词、零阈值（承 G20）；
-- **G44（若 T8.2 走 freeze 路线）**：Amendment Freeze 时序+counterfactual
-  守恒+sizing 继承（承 G25/G27/G-F6 Lock）。
+**为什么**：只重构 ADD 序列会条件化在"系统最终又 ADD 了"，恰好漏掉
+"什么时候停止下注"问题的一半——无 ADD 的 REDUCE cycle 是
+"停止重新承担风险"的 competing path，**不能从样本中消失**。
 
-## 6. 预期结果形态（预注册三种可能，防止事后择优解读）
+**G40 守恒（升级版，先于任何分析）**：
+- 每个冻结 REDUCE→ADD cycle 恰好映射到一个 T8 cycle row；
+- `(event_id, cycle_index)` unique；
+- Σ cycle rows = 冻结 T6.2 eligible cycles 总数；
+- 每个 ADD_k 的 `a0_day` / preceding `r0_day` / next reduce-or-exit /
+  horizon end 全部可追溯 frozen fact（逐字段对账）。
 
-1. **递减**（ADD₃+ 边际价值显著低于 ADD₁）→ 边界存在，值得后续 policy 研究；
-2. **平坦**（各 k 无系统差异）→ 循环再入无衰减，"停止规则"无数据基础；
-3. **条件性**（outcome₁=FR 后的 ADD₂ 差，CYCLE_OK 后不差）→ RQ2 结构成立，
-   边界在"路径历史"而非"次数"。
+k 定义（预注册）：k 锚 **REDUCE→ADD 尝试**（含 FR cycle）；
+NO_RECOVERY/NO_ADD cycle 不入 k 序列（无 re-risk 行为）；episode 首次建仓
+不是 re-risk（k 从首次 REDUCE 后的首次 ADD 起算）。
 
-三种形态均为合法终点；报告按实际落入形态收束，不因结果"不显著"视为失败
-（承 T7.4 F6' 大≠失败的同型纪律）。
+## 5. 统计框架（全冻结复用）
 
-## 7. 开放边界如实清单（预注册时点）
+双 cluster bootstrap（stock_code/T0_date，cluster_boot_diff 4 元组）；
+est=wmedian；Holm dict 接口；三个固定 contrast 的 p 值族内 Holm 校正；
+frontier 二维呈现（x=False ADD 风险，y=恢复捕获/收益贡献），禁单轴 score。
 
-- k 的定义锚 REDUCE→ADD 尝试（含 FR cycle）；NO_RECOVERY/NO_ADD cycle 不入
-  k 序列（它们没有 re-risk 行为）——该排除规则预注册；
-- episode 首次建仓不是 re-risk（k 从首次 REDUCE 后的首次 ADD 起算）；
-- horizon 限制承 T7.4：≥60 日形态不可检验（max span=41）不在 T8 范围；
-- sector/市场情境变量：EXPLORATORY sidecar 至多，禁入 primary（承 T7 纪律）。
+## 6. Gate 计划（承 T7 编号）
 
-## 8. 待您拍板
+- **G40 lineage+守恒（升级版如上）**；
+- **G41 分段防污染**（VAL/CONF 在任何规则 Freeze 前不可见；产物 segment 列
+  +计算路径扫描，承 G22）；
+- **G42 双 clock**（False ADD 锚各 ADD_k 自己的 a0_day；恢复捕获锚公共
+  cycle clock，承 G26/G29）；
+- **G43 描述纪律**（T8.1 零规则词/零阈值，承 G20）；
+- **G44 estimand 命名纪律**（B 类结果禁因果词——报告扫描
+  "导致/造成/因果"于 contrast 表述）；
+- G45（仅条件门触发）：Amendment Freeze 时序+counterfactual 守恒+sizing
+  继承（承 G25/G27/G-F6 Lock）。
 
-1. k 合并规则（k≥3 合并；k=4 单列仅当 n≥300）；
-2. RQ2 的条件变量集（当前仅 outcome₁ ∈ {FR, CYCLE_OK, 其他}；是否加
-   outcome₁ 的 MAE 深度分层）；
-3. T8.2 走"纯描述"还是"预注册 freeze 路线"（影响 gate 集合）；
-4. 段编号沿用 T8 还是并入 T7.5（建议 T8：独立预注册阶段，与用户"不从
-   D1 派生"的边界一致）。
+## 7. 预期结果三形态（预注册，防事后择优）
+
+1. **decreasing**：ADD₃+ 边际 profile 显著低于 ADD₁ → 边界存在，值得后续
+   policy 研究（仍需独立 Freeze→VAL）；
+2. **flat**：各 k 无系统差异 → 循环再入无衰减，"停止规则"无数据基础；
+3. **conditional**：outcome₁ 条件化后 order gradient 消失/大幅缩小 →
+   边界在"路径历史"而非"次数"（RQ2 成立）。
+
+三形态均合法终点；不因不显著视为失败（承 T7.4 F6' 大≠失败纪律）。
+
+## 8. 开放边界如实清单
+
+- horizon 限制承 T7.4（≥60 日形态不可检验，max span=41）不在 T8 范围；
+- sector/市场情境变量：EXPLORATORY sidecar 至多，禁入 primary；
+- MAE 深度分层：明确不做（§1 RQ2）。
+
+## 9. 拍板记录（2026-09，用户四项+两项结构增强）
+
+1. k 分组固定三组无数据依赖规则；描述 appendix 承载逐 k；
+2. RQ2 仅 outcome₁ 三值条件，MAE 不做；
+3. T8.2 止于 descriptive+preregistered inference，不产生 policy；policy
+   路线仅条件门后另开完整管线；
+4. 段编号 T8 独立；provenance=T7 synthesis open question≠D1 派生。
+5. （新增）两个 estimand（A observed order profile / B conditional order
+   contrast）严格区分；B 结果命名禁因果词；
+6. （新增）cycle_attempt table 全分类 + G40 升级守恒（无 ADD 的 REDUCE
+   cycle=competing path 不消失）。
+
+**本 Plan 冻结后开工 T8.0 编码。**
