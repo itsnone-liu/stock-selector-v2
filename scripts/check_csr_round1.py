@@ -150,9 +150,22 @@ if f5p.exists():
               'BROKEN_OR_STRUCTURAL_LIMIT': 1}:
         errs.append(f'CSR-5 build_class counts {bc} != 9/15/1')
     rb = ' '.join(mkt05.get('regime_breaks', []))
-    for d_ in ('2016-12-05', '2024-08-19', '2014-11-17'):
+    for d_ in ('2016-12-05', '2024-08-19'):
         if d_ not in rb:
             errs.append(f'E-MKT-05 regime_breaks missing {d_}')
+    if '2014-11-17' in rb:
+        errs.append('E-MKT-05: 2014-11-17 is series_start, must not sit in regime_breaks')
+    if '2014-11-17' not in str(mkt05.get('series_start', '')):
+        errs.append('E-MKT-05 missing series_start 2014-11-17')
+    env = str(f5.get('environment_finding', {}).get('installed_state', ''))
+    if '未安装' in env:
+        errs.append('CSR-5 installed_state stale (akshare/tushare now installed)')
+    if '积分 0' not in env:
+        errs.append('CSR-5 installed_state must state tushare credit=0 fact')
+    off = [x for x in v if x['build_class'] == 'NEW_EXTERNAL_CHANNEL'
+           and x['trust'] == 'official' and x['rating'] != 'BROKEN_SERIES']
+    if len(off) != 12:
+        errs.append(f'headline arithmetic: NEW_EXTERNAL∩official count {len(off)} != 12')
     for e in ('E-MKT-04', 'E-SEC-04'):
         x = [y for y in v if y['evidence_id'] == e][0]
         if x['build_class'] != 'NEW_EXTERNAL_CHANNEL' or 'reference' not in str(x.get('note', '')):

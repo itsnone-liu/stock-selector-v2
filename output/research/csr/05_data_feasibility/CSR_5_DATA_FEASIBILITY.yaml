@@ -31,7 +31,7 @@ environment_finding:
     （含 E-MKT-04/E-SEC-04 两条"仅缺历史市值 reference"子类——行情
     已在但市值序列缺失，baostock 抓取未含 totalValue/floatValue，
     已实测确认）、1 条制度断裂。
-  installed_state: 'akshare 未安装；tushare 未安装（无 key）；baostock 0.9.40 在用'
+  installed_state: 'akshare 1.18.97 已安装；tushare 1.4.29 已安装且 token 鉴权有效、当前积分 0；baostock 0.9.40 在用'
 
 verdicts:
   # ---- MARKET ----
@@ -50,8 +50,8 @@ verdicts:
     rating: BROKEN_SERIES
     build_class: BROKEN_OR_STRUCTURAL_LIMIT
     channel: 沪深港通官方披露（两段结构断点，缺一不可）
+    series_start: '2014-11-17 沪港通启动（沪股通-only 起点）'
     regime_breaks:
-      - '2014-11-17 沪港通启动（沪股通-only 起点）'
       - '2016-12-05 深港通启动——此后才是完整意义的北向双市场结构；2014-11~2016-12 的沪股通-only 总量不得与后续双市场总量做长期水平比较'
       - '2024-08-19 披露机制调整：盘中实时取消，日频净买入序列中断改盘后成交总额，单证券持股转季度披露'
     historical_depth: '2014-11-17~2016-12-02 沪股通-only；2016-12-05~2024-08-16 双市场日频完整段；2024-08-19 后仅成交总额+季度持股'
@@ -112,7 +112,7 @@ verdicts:
      historical_depth: 冻结区间, coverage: 冻结样本, cost: 零, trust: frozen_product}
 
 headline_findings:
-  1: 'build_class 三分：EXISTING_ASSET_CONSTRUCTIBLE 9 条（E-MRG-01..04+E-MKT-03/E-SEC-02/E-SEC-03/E-STK-10 共 8 条可计算——本地字段已实测核过；E-MRG-05 冻结只读不计工程量）；NEW_EXTERNAL_CHANNEL 15 条（13 官方披露+1 第三方整理[E-STK-09]+2 条仅缺历史市值 reference 子类[E-MKT-04/E-SEC-04]——市值缺口已实测确认：baostock 逐股 9 字段无 totalValue/floatValue）；BROKEN_OR_STRUCTURAL_LIMIT 1 条（E-MKT-05）'
+  1: 'build_class 三分：EXISTING_ASSET_CONSTRUCTIBLE 9 条（E-MRG-01..04+E-MKT-03/E-SEC-02/E-SEC-03/E-STK-10 共 8 条可计算——本地字段已实测核过；E-MRG-05 冻结只读不计工程量）；NEW_EXTERNAL_CHANNEL 15 条（12 官方披露+1 第三方整理[E-STK-09]+2 条仅缺历史市值 reference 子类[E-MKT-04/E-SEC-04]——市值缺口已实测确认：baostock 逐股 9 字段无 totalValue/floatValue）；BROKEN_OR_STRUCTURAL_LIMIT 1 条（E-MKT-05）'
   2: 'E-MKT-05 北向两处结构断点：2016-12-05 深港通启动（此前沪股通-only，总量不可与双市场段做水平比较）+ 2024-08-19 披露机制调整（日频净买入中断）——CSR-6 须登记两个断点日，三段互不可拼接'
   3: '日频资金证据只有四类：两融/大宗/龙虎榜/ETF 份额——披露型 STOCK 证据主体是季频+延迟（户数/十大股东/基金持仓），CSR-6 的三日期口径审计将决定这些证据能否用于任何近实时解释'
   4: '行业 ETF 份额的深度不足（2019 前稀疏）限制行业层检验的时间窗口'
