@@ -94,8 +94,10 @@ def main():
            and rep['contract_sha256'] == sha256_file(T6/'t6_contract.json'))
     n_bad_p = n_bad_ci = n_empty = 0
 
+    n_bad_nan = 0
+
     def walk_ci(o):
-        nonlocal n_bad_ci, n_empty
+        nonlocal n_bad_ci, n_empty, n_bad_nan
         if isinstance(o, dict):
             if set(o) >= {'ci95'} and isinstance(o['ci95'], (list, tuple)) and len(o['ci95']) == 2:
                 lo, hi = o['ci95']
@@ -108,14 +110,26 @@ def main():
                     n_empty += 1
                 elif not (0.0 <= o['p_boot'] <= 1.0):
                     n_bad_p += 1
+            # R1 (audit): NaN consistency — a not-performed cell must be NaN
+            # in diff AND both CI bounds AND p; a performed cell must be
+            # finite in all of them. p=0 with NaN diff is forbidden.
+            if set(o) >= {'diff', 'ci95', 'p_boot'}:
+                d_nan = isinstance(o['diff'], float) and np.isnan(o['diff'])
+                c_nan = all(isinstance(x, float) and np.isnan(x) for x in o['ci95'])
+                p_nan = isinstance(o['p_boot'], float) and np.isnan(o['p_boot'])
+                if not (d_nan == c_nan == p_nan):
+                    n_bad_nan += 1
             for v in o.values():
                 walk_ci(v)
         elif isinstance(o, list):
             for v in o:
                 walk_ci(v)
     walk_ci(rep['segments'])
-    log.gate('G9_statistical_integrity', ok9 and n_bad_p == 0 and n_bad_ci == 0,
-             bad_p=n_bad_p, bad_ci=n_bad_ci, empty_group_cells=n_empty,
+    walk_ci(rep.get('holm_adj_p', {}))
+    log.gate('G9_statistical_integrity',
+             ok9 and n_bad_p == 0 and n_bad_ci == 0 and n_bad_nan == 0,
+             bad_p=n_bad_p, bad_ci=n_bad_ci, bad_nan_consistency=n_bad_nan,
+             empty_group_cells=n_empty,
              note='NaN cells allowed only for structurally empty groups (FAILED_EXIT in validation: zero exits)')
 
     # G9b: independent recomputation of frequencies + one det median

@@ -275,7 +275,10 @@
                 -0.05732117950214023,
                 -0.030394515230420156
               ],
-              "p_boot": 0.0
+              "p_boot": 0.0,
+              "n_boot_valid": 2000,
+              "n_hi": 8714,
+              "n_lo": 253
             }
           },
           "efficiency_signed_3": {
@@ -285,7 +288,10 @@
                 0.0014625787657537796,
                 0.005680863109662798
               ],
-              "p_boot": 0.0
+              "p_boot": 0.0,
+              "n_boot_valid": 2000,
+              "n_hi": 6145,
+              "n_lo": 251
             }
           },
           "dist_ref20": {
@@ -295,7 +301,10 @@
                 0.10564654414776374,
                 0.14660466474756945
               ],
-              "p_boot": 0.0
+              "p_boot": 0.0,
+              "n_boot_valid": 2000,
+              "n_hi": 8714,
+              "n_lo": 253
             }
           },
           "turnover_load_3d_mean": {
@@ -305,7 +314,10 @@
                 0.7019953954244036,
                 0.9817897838141488
               ],
-              "p_boot": 0.0
+              "p_boot": 0.0,
+              "n_boot_valid": 2000,
+              "n_hi": 6847,
+              "n_lo": 253
             }
           },
           "cum_ret_from_t0_log": {
@@ -315,7 +327,10 @@
                 0.08954403395555507,
                 0.11807543227631301
               ],
-              "p_boot": 0.0
+              "p_boot": 0.0,
+              "n_boot_valid": 2000,
+              "n_hi": 8714,
+              "n_lo": 253
             }
           }
         },
@@ -327,7 +342,10 @@
                 -0.17230567535447944,
                 -0.08569509571730319
               ],
-              "p_boot": 0.0
+              "p_boot": 0.0,
+              "n_boot_valid": 2000,
+              "n_hi": 7066,
+              "n_lo": 19
             }
           },
           "efficiency_signed_3": {
@@ -337,7 +355,10 @@
                 0.0048713533956159984,
                 0.034026757058968064
               ],
-              "p_boot": 0.004
+              "p_boot": 0.004,
+              "n_boot_valid": 2000,
+              "n_hi": 4842,
+              "n_lo": 18
             }
           },
           "dist_ref20": {
@@ -347,7 +368,10 @@
                 0.2012552369379948,
                 0.32263689997349154
               ],
-              "p_boot": 0.0
+              "p_boot": 0.0,
+              "n_boot_valid": 2000,
+              "n_hi": 7066,
+              "n_lo": 19
             }
           },
           "turnover_load_3d_mean": {
@@ -357,7 +381,10 @@
                 1.13381933746522,
                 4.3090530641938924
               ],
-              "p_boot": 0.0
+              "p_boot": 0.0,
+              "n_boot_valid": 2000,
+              "n_hi": 5431,
+              "n_lo": 19
             }
           },
           "cum_ret_from_t0_log": {
@@ -367,7 +394,10 @@
                 0.16389550644066597,
                 0.255047242045543
               ],
-              "p_boot": 0.0
+              "p_boot": 0.0,
+              "n_boot_valid": 2000,
+              "n_hi": 7066,
+              "n_lo": 19
             }
           }
         },
@@ -379,7 +409,10 @@
                 NaN,
                 NaN
               ],
-              "p_boot": 0.0
+              "p_boot": NaN,
+              "n_boot_valid": 0,
+              "n_hi": 3411,
+              "n_lo": 0
             }
           },
           "efficiency_signed_3": {
@@ -389,7 +422,10 @@
                 NaN,
                 NaN
               ],
-              "p_boot": 0.0
+              "p_boot": NaN,
+              "n_boot_valid": 0,
+              "n_hi": 2265,
+              "n_lo": 0
             }
           },
           "dist_ref20": {
@@ -399,7 +435,10 @@
                 NaN,
                 NaN
               ],
-              "p_boot": 0.0
+              "p_boot": NaN,
+              "n_boot_valid": 0,
+              "n_hi": 3411,
+              "n_lo": 0
             }
           },
           "turnover_load_3d_mean": {
@@ -409,7 +448,10 @@
                 NaN,
                 NaN
               ],
-              "p_boot": 0.0
+              "p_boot": NaN,
+              "n_boot_valid": 0,
+              "n_hi": 2573,
+              "n_lo": 0
             }
           },
           "cum_ret_from_t0_log": {
@@ -419,7 +461,10 @@
                 NaN,
                 NaN
               ],
-              "p_boot": 0.0
+              "p_boot": NaN,
+              "n_boot_valid": 0,
+              "n_hi": 3411,
+              "n_lo": 0
             }
           }
         }
@@ -453,7 +498,10 @@
               0.08908393102700016,
               0.11720519440676516
             ],
-            "p_boot": 0.0
+            "p_boot": 0.0,
+            "n_boot_valid": 2000,
+            "n_hi": 8714,
+            "n_lo": 253
           }
         },
         "H10": {
@@ -484,7 +532,10 @@
               0.1646285700599177,
               0.24708919783749722
             ],
-            "p_boot": 0.0
+            "p_boot": 0.0,
+            "n_boot_valid": 2000,
+            "n_hi": 7066,
+            "n_lo": 19
           }
         },
         "H20": {
@@ -515,7 +566,10 @@
               NaN,
               NaN
             ],
-            "p_boot": 0.0
+            "p_boot": NaN,
+            "n_boot_valid": 0,
+            "n_hi": 3411,
+            "n_lo": 0
           }
         },
         "H40": {
@@ -546,7 +600,10 @@
               NaN,
               NaN
             ],
-            "p_boot": 0.0
+            "p_boot": NaN,
+            "n_boot_valid": 0,
+            "n_hi": 132,
+            "n_lo": 0
           }
         }
       },
@@ -568,15 +625,8 @@
         "drift|H10|REC_vs_NO|dist_ref20": 0.0,
         "drift|H10|REC_vs_NO|turnover_load_3d_mean": 0.0,
         "drift|H10|REC_vs_NO|cum_ret_from_t0_log": 0.0,
-        "drift|H20|REC_vs_NO|drawdown_from_peak_log": 0.0,
-        "drift|H20|REC_vs_NO|efficiency_signed_3": 0.0,
-        "drift|H20|REC_vs_NO|dist_ref20": 0.0,
-        "drift|H20|REC_vs_NO|turnover_load_3d_mean": 0.0,
-        "drift|H20|REC_vs_NO|cum_ret_from_t0_log": 0.0,
         "path|REC_vs_NO|H5": 0.0,
         "path|REC_vs_NO|H10": 0.0,
-        "path|REC_vs_NO|H20": 0.0,
-        "path|REC_vs_NO|H40": 0.0,
         "drift|H10|REC_vs_NO|efficiency_signed_3": 0.032,
         "det|RECOVERED_ADD|dist_ref20": 1.0,
         "det|RECOVERED_ADD|cum_ret_from_t0_log": 1.0,
@@ -817,7 +867,10 @@
                 -0.02083323308041745,
                 0.014156356345170523
               ],
-              "p_boot": 0.74
+              "p_boot": 0.74,
+              "n_boot_valid": 2000,
+              "n_hi": 4406,
+              "n_lo": 83
             }
           },
           "efficiency_signed_3": {
@@ -827,7 +880,10 @@
                 -0.012079756858677829,
                 -0.002581832381463579
               ],
-              "p_boot": 0.002
+              "p_boot": 0.002,
+              "n_boot_valid": 2000,
+              "n_hi": 2984,
+              "n_lo": 81
             }
           },
           "dist_ref20": {
@@ -837,7 +893,10 @@
                 0.05979175178393953,
                 0.10728394790131368
               ],
-              "p_boot": 0.0
+              "p_boot": 0.0,
+              "n_boot_valid": 2000,
+              "n_hi": 4406,
+              "n_lo": 83
             }
           },
           "turnover_load_3d_mean": {
@@ -847,7 +906,10 @@
                 0.5563772565902492,
                 1.4253798756913438
               ],
-              "p_boot": 0.0
+              "p_boot": 0.0,
+              "n_boot_valid": 2000,
+              "n_hi": 3355,
+              "n_lo": 83
             }
           },
           "cum_ret_from_t0_log": {
@@ -857,7 +919,10 @@
                 0.054275094090672577,
                 0.08730262092390587
               ],
-              "p_boot": 0.0
+              "p_boot": 0.0,
+              "n_boot_valid": 2000,
+              "n_hi": 4406,
+              "n_lo": 83
             }
           }
         },
@@ -869,7 +934,10 @@
                 -0.05308567231333682,
                 -0.010186127920779258
               ],
-              "p_boot": 0.0
+              "p_boot": 0.0,
+              "n_boot_valid": 2000,
+              "n_hi": 3169,
+              "n_lo": 2
             }
           },
           "efficiency_signed_3": {
@@ -879,7 +947,10 @@
                 0.004387487436689988,
                 0.014262153873313635
               ],
-              "p_boot": 0.0
+              "p_boot": 0.0,
+              "n_boot_valid": 2000,
+              "n_hi": 2007,
+              "n_lo": 2
             }
           },
           "dist_ref20": {
@@ -889,7 +960,10 @@
                 0.16428087035692376,
                 0.21529008874176805
               ],
-              "p_boot": 0.0
+              "p_boot": 0.0,
+              "n_boot_valid": 2000,
+              "n_hi": 3169,
+              "n_lo": 2
             }
           },
           "turnover_load_3d_mean": {
@@ -899,7 +973,10 @@
                 1.9625262597252717,
                 2.081038288940711
               ],
-              "p_boot": 0.0
+              "p_boot": 0.0,
+              "n_boot_valid": 2000,
+              "n_hi": 2303,
+              "n_lo": 2
             }
           },
           "cum_ret_from_t0_log": {
@@ -909,7 +986,10 @@
                 0.13151733443589447,
                 0.17645079540275774
               ],
-              "p_boot": 0.0
+              "p_boot": 0.0,
+              "n_boot_valid": 2000,
+              "n_hi": 3169,
+              "n_lo": 2
             }
           }
         },
@@ -921,7 +1001,10 @@
                 NaN,
                 NaN
               ],
-              "p_boot": 0.0
+              "p_boot": NaN,
+              "n_boot_valid": 0,
+              "n_hi": 1164,
+              "n_lo": 0
             }
           },
           "efficiency_signed_3": {
@@ -931,7 +1014,10 @@
                 NaN,
                 NaN
               ],
-              "p_boot": 0.0
+              "p_boot": NaN,
+              "n_boot_valid": 0,
+              "n_hi": 706,
+              "n_lo": 0
             }
           },
           "dist_ref20": {
@@ -941,7 +1027,10 @@
                 NaN,
                 NaN
               ],
-              "p_boot": 0.0
+              "p_boot": NaN,
+              "n_boot_valid": 0,
+              "n_hi": 1164,
+              "n_lo": 0
             }
           },
           "turnover_load_3d_mean": {
@@ -951,7 +1040,10 @@
                 NaN,
                 NaN
               ],
-              "p_boot": 0.0
+              "p_boot": NaN,
+              "n_boot_valid": 0,
+              "n_hi": 810,
+              "n_lo": 0
             }
           },
           "cum_ret_from_t0_log": {
@@ -961,7 +1053,10 @@
                 NaN,
                 NaN
               ],
-              "p_boot": 0.0
+              "p_boot": NaN,
+              "n_boot_valid": 0,
+              "n_hi": 1164,
+              "n_lo": 0
             }
           }
         }
@@ -995,7 +1090,10 @@
               0.05402750391406755,
               0.088120177043343
             ],
-            "p_boot": 0.0
+            "p_boot": 0.0,
+            "n_boot_valid": 2000,
+            "n_hi": 4406,
+            "n_lo": 83
           }
         },
         "H10": {
@@ -1026,7 +1124,10 @@
               0.13138372818840643,
               0.1764476111458833
             ],
-            "p_boot": 0.0
+            "p_boot": 0.0,
+            "n_boot_valid": 2000,
+            "n_hi": 3169,
+            "n_lo": 2
           }
         },
         "H20": {
@@ -1057,7 +1158,10 @@
               NaN,
               NaN
             ],
-            "p_boot": 0.0
+            "p_boot": NaN,
+            "n_boot_valid": 0,
+            "n_hi": 1164,
+            "n_lo": 0
           }
         },
         "H40": {
@@ -1088,7 +1192,10 @@
               NaN,
               NaN
             ],
-            "p_boot": 0.0
+            "p_boot": NaN,
+            "n_boot_valid": 0,
+            "n_hi": 36,
+            "n_lo": 0
           }
         }
       },
@@ -1116,15 +1223,8 @@
         "drift|H10|REC_vs_NO|dist_ref20": 0.0,
         "drift|H10|REC_vs_NO|turnover_load_3d_mean": 0.0,
         "drift|H10|REC_vs_NO|cum_ret_from_t0_log": 0.0,
-        "drift|H20|REC_vs_NO|drawdown_from_peak_log": 0.0,
-        "drift|H20|REC_vs_NO|efficiency_signed_3": 0.0,
-        "drift|H20|REC_vs_NO|dist_ref20": 0.0,
-        "drift|H20|REC_vs_NO|turnover_load_3d_mean": 0.0,
-        "drift|H20|REC_vs_NO|cum_ret_from_t0_log": 0.0,
         "path|REC_vs_NO|H5": 0.0,
         "path|REC_vs_NO|H10": 0.0,
-        "path|REC_vs_NO|H20": 0.0,
-        "path|REC_vs_NO|H40": 0.0,
         "drift|H5|REC_vs_NO|efficiency_signed_3": 0.004,
         "drift|H5|REC_vs_NO|drawdown_from_peak_log": 0.74
       }
@@ -1359,7 +1459,10 @@
                 -0.09552731683519039,
                 0.0031029625252893493
               ],
-              "p_boot": 0.069
+              "p_boot": 0.069,
+              "n_boot_valid": 2000,
+              "n_hi": 1433,
+              "n_lo": 48
             }
           },
           "efficiency_signed_3": {
@@ -1369,7 +1472,10 @@
                 0.0021462362580537244,
                 0.018382553104333326
               ],
-              "p_boot": 0.015
+              "p_boot": 0.015,
+              "n_boot_valid": 2000,
+              "n_hi": 953,
+              "n_lo": 46
             }
           },
           "dist_ref20": {
@@ -1379,7 +1485,10 @@
                 0.08238375019945209,
                 0.16939871904289436
               ],
-              "p_boot": 0.0
+              "p_boot": 0.0,
+              "n_boot_valid": 2000,
+              "n_hi": 1433,
+              "n_lo": 48
             }
           },
           "turnover_load_3d_mean": {
@@ -1389,7 +1498,10 @@
                 -0.122462561707657,
                 0.5294629977653337
               ],
-              "p_boot": 0.228
+              "p_boot": 0.228,
+              "n_boot_valid": 2000,
+              "n_hi": 1089,
+              "n_lo": 47
             }
           },
           "cum_ret_from_t0_log": {
@@ -1399,7 +1511,10 @@
                 0.06975405822959045,
                 0.14134108958049088
               ],
-              "p_boot": 0.0
+              "p_boot": 0.0,
+              "n_boot_valid": 2000,
+              "n_hi": 1433,
+              "n_lo": 48
             }
           }
         },
@@ -1411,7 +1526,10 @@
                 NaN,
                 NaN
               ],
-              "p_boot": 0.0
+              "p_boot": NaN,
+              "n_boot_valid": 0,
+              "n_hi": 1090,
+              "n_lo": 0
             }
           },
           "efficiency_signed_3": {
@@ -1421,7 +1539,10 @@
                 NaN,
                 NaN
               ],
-              "p_boot": 0.0
+              "p_boot": NaN,
+              "n_boot_valid": 0,
+              "n_hi": 705,
+              "n_lo": 0
             }
           },
           "dist_ref20": {
@@ -1431,7 +1552,10 @@
                 NaN,
                 NaN
               ],
-              "p_boot": 0.0
+              "p_boot": NaN,
+              "n_boot_valid": 0,
+              "n_hi": 1090,
+              "n_lo": 0
             }
           },
           "turnover_load_3d_mean": {
@@ -1441,7 +1565,10 @@
                 NaN,
                 NaN
               ],
-              "p_boot": 0.0
+              "p_boot": NaN,
+              "n_boot_valid": 0,
+              "n_hi": 811,
+              "n_lo": 0
             }
           },
           "cum_ret_from_t0_log": {
@@ -1451,7 +1578,10 @@
                 NaN,
                 NaN
               ],
-              "p_boot": 0.0
+              "p_boot": NaN,
+              "n_boot_valid": 0,
+              "n_hi": 1090,
+              "n_lo": 0
             }
           }
         },
@@ -1463,7 +1593,10 @@
                 NaN,
                 NaN
               ],
-              "p_boot": 0.0
+              "p_boot": NaN,
+              "n_boot_valid": 0,
+              "n_hi": 448,
+              "n_lo": 0
             }
           },
           "efficiency_signed_3": {
@@ -1473,7 +1606,10 @@
                 NaN,
                 NaN
               ],
-              "p_boot": 0.0
+              "p_boot": NaN,
+              "n_boot_valid": 0,
+              "n_hi": 279,
+              "n_lo": 0
             }
           },
           "dist_ref20": {
@@ -1483,7 +1619,10 @@
                 NaN,
                 NaN
               ],
-              "p_boot": 0.0
+              "p_boot": NaN,
+              "n_boot_valid": 0,
+              "n_hi": 448,
+              "n_lo": 0
             }
           },
           "turnover_load_3d_mean": {
@@ -1493,7 +1632,10 @@
                 NaN,
                 NaN
               ],
-              "p_boot": 0.0
+              "p_boot": NaN,
+              "n_boot_valid": 0,
+              "n_hi": 319,
+              "n_lo": 0
             }
           },
           "cum_ret_from_t0_log": {
@@ -1503,7 +1645,10 @@
                 NaN,
                 NaN
               ],
-              "p_boot": 0.0
+              "p_boot": NaN,
+              "n_boot_valid": 0,
+              "n_hi": 448,
+              "n_lo": 0
             }
           }
         }
@@ -1537,7 +1682,10 @@
               0.07131800450024645,
               0.1416197010241055
             ],
-            "p_boot": 0.0
+            "p_boot": 0.0,
+            "n_boot_valid": 2000,
+            "n_hi": 1433,
+            "n_lo": 48
           }
         },
         "H10": {
@@ -1568,7 +1716,10 @@
               NaN,
               NaN
             ],
-            "p_boot": 0.0
+            "p_boot": NaN,
+            "n_boot_valid": 0,
+            "n_hi": 1090,
+            "n_lo": 0
           }
         },
         "H20": {
@@ -1599,7 +1750,10 @@
               NaN,
               NaN
             ],
-            "p_boot": 0.0
+            "p_boot": NaN,
+            "n_boot_valid": 0,
+            "n_hi": 448,
+            "n_lo": 0
           }
         },
         "H40": {
@@ -1630,7 +1784,10 @@
               NaN,
               NaN
             ],
-            "p_boot": 0.0
+            "p_boot": NaN,
+            "n_boot_valid": 0,
+            "n_hi": 10,
+            "n_lo": 0
           }
         }
       },
@@ -1650,20 +1807,7 @@
         "det|NO_RECOVERY|cum_ret_from_t0_log": 0.0,
         "drift|H5|REC_vs_NO|dist_ref20": 0.0,
         "drift|H5|REC_vs_NO|cum_ret_from_t0_log": 0.0,
-        "drift|H10|REC_vs_NO|drawdown_from_peak_log": 0.0,
-        "drift|H10|REC_vs_NO|efficiency_signed_3": 0.0,
-        "drift|H10|REC_vs_NO|dist_ref20": 0.0,
-        "drift|H10|REC_vs_NO|turnover_load_3d_mean": 0.0,
-        "drift|H10|REC_vs_NO|cum_ret_from_t0_log": 0.0,
-        "drift|H20|REC_vs_NO|drawdown_from_peak_log": 0.0,
-        "drift|H20|REC_vs_NO|efficiency_signed_3": 0.0,
-        "drift|H20|REC_vs_NO|dist_ref20": 0.0,
-        "drift|H20|REC_vs_NO|turnover_load_3d_mean": 0.0,
-        "drift|H20|REC_vs_NO|cum_ret_from_t0_log": 0.0,
         "path|REC_vs_NO|H5": 0.0,
-        "path|REC_vs_NO|H10": 0.0,
-        "path|REC_vs_NO|H20": 0.0,
-        "path|REC_vs_NO|H40": 0.0,
         "drift|H5|REC_vs_NO|efficiency_signed_3": 0.075,
         "drift|H5|REC_vs_NO|drawdown_from_peak_log": 0.276,
         "drift|H5|REC_vs_NO|turnover_load_3d_mean": 0.684,

@@ -109,7 +109,8 @@
     "reason": "",
     "bad_p": 0,
     "bad_ci": 0,
-    "empty_group_cells": 40,
+    "bad_nan_consistency": 0,
+    "empty_group_cells": 67,
     "note": "NaN cells allowed only for structurally empty groups (FAILED_EXIT in validation: zero exits)"
   },
   "G9b_recompute": {

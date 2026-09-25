@@ -4,13 +4,13 @@
   "claims": [
     {
       "claim_id": "C201",
-      "statement": "REDUCE days mark deterioration in ALL cycle types (dd depth increases, efficiency_signed_3 falls, turnover load falls vs the R0-5..R0-1 baseline); the MAGNITUDE strongly stratifies the outcome: NO_RECOVERY/FAILED_EXIT deteriorate several times more than RECOVERED_ADD",
-      "evidence": "det dd: RECOVERED +0.0059/+0.0068 (val/conf) vs NO_RECOVERY +0.0333/+0.0238, FAILED_EXIT +0.0372 (conf only); det cum: RECOVERED ~+0.002 vs NO_RECOVERY -0.0314/-0.0165, FAILED_EXIT -0.0352; all Holm-significant within their families",
+      "statement": "REDUCE days show overall deterioration (dd deepens, efficiency falls, turnover load falls vs the R0-5..R0-1 baseline) and the MAGNITUDE strongly stratifies the outcome: NO_RECOVERY/FAILED_EXIT deteriorate several times more than RECOVERED_ADD; within RECOVERED_ADD some price/reference measures are near zero (validation cum +0.0002 CI crosses zero, dist_ref20 ~ 0)",
+      "evidence": "det dd: RECOVERED +0.0059/+0.0068 (val/conf) vs NO_RECOVERY +0.0333/+0.0238, FAILED_EXIT +0.0372 (conf only); det cum: RECOVERED +0.0002 (val, CI crosses zero) / +0.0023 vs NO_RECOVERY -0.0314/-0.0165, FAILED_EXIT -0.0352; the dd/efficiency/turnover deterioration is significant in every non-empty group; price-adjacent measures are near zero for RECOVERED_ADD in validation",
       "status": "SUPPORTED"
     },
     {
       "claim_id": "C202",
-      "statement": "ADD does NOT mark state repair: at A0 (median 2 days after R0) drawdown is DEEPER, price is LOWER (cum/dist_ref20 below R0), efficiency lower — the re-entry is a low-price buyback, not a confirmation of recovered indicators",
+      "statement": "ADD does NOT mark state repair: at A0 (median 2 days after R0) drawdown is DEEPER, price is LOWER (cum/dist_ref20 below R0), efficiency lower — descriptive characterization: a fast re-entry occurring while price sits below R0 and most preregistered state measures remain unrepaired. This is a behavioral description of the rule output, NOT a value/cheapness judgment and NOT a causal mechanism claim",
       "evidence": "rep levels (RECOVERED_ADD): dd +0.0151/+0.0183 deeper; cum_ret -0.0148/-0.0181 lower; dist_ref20 -0.0151/-0.0191 lower; efficiency -0.0039/-0.0043 lower; turnover -0.0653/-0.0494 lower (only this dimension cools); all CI exclude zero",
       "status": "SUPPORTED",
       "note": "this REJECTS the pre-registered 'deterioration->repair->re-add' reading of Q2 and replaces it with 'deterioration->further-drop->buy-back-lower'"

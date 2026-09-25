@@ -84,9 +84,17 @@ def cluster_boot_diff(vals: np.ndarray, mask_hi: np.ndarray, mask_lo: np.ndarray
             m_d = np.bincount(pick, minlength=C)[:Cu]
             d += sign * fn(v, m_d[inv])
         diffs[b] = d
-    ci = (float(np.percentile(diffs, 2.5)), float(np.percentile(diffs, 97.5)))
-    p = 2 * min((diffs <= 0).mean(), (diffs >= 0).mean())
-    return est, ci, float(min(p, 1.0))
+    # R1 (audit): an empty group or all-invalid replicates means the test is
+    # NOT PERFORMED — propagate NaN to diff/CI/p together. p=0 would wrongly
+    # mean 'maximally significant'.
+    valid = np.isfinite(diffs)
+    diag = {'n_boot_valid': int(valid.sum()), 'n_hi': int(len(ph[0])), 'n_lo': int(len(pl[0]))}
+    if valid.sum() == 0:
+        return float('nan'), (float('nan'), float('nan')), float('nan'), diag
+    d = diffs[valid]
+    ci = (float(np.percentile(d, 2.5)), float(np.percentile(d, 97.5)))
+    p = 2 * min(float(np.mean(d <= 0)), float(np.mean(d >= 0)))
+    return est, ci, float(min(p, 1.0)), diag
 
 
 def cluster_boot_level(vals: np.ndarray, mask: np.ndarray, clusters: np.ndarray,
@@ -106,6 +114,19 @@ def cluster_boot_level(vals: np.ndarray, mask: np.ndarray, clusters: np.ndarray,
 
 
 def holm(pvals: dict) -> dict:
+    # NaN p (not-tested cells: empty groups) are excluded from correction and
+    # returned as NaN so they can never appear as 'significant'.
+    finite = {k: v for k, v in pvals.items() if np.isfinite(v)}
+    adj = holm._core(finite) if hasattr(holm, '_core') else None
+    if adj is None:
+        adj = _holm_core(finite)
+    for k, v in pvals.items():
+        if not np.isfinite(v):
+            adj[k] = float('nan')
+    return adj
+
+
+def _holm_core(pvals: dict) -> dict:
     items = sorted(pvals.items(), key=lambda kv: kv[1])
     m = len(items)
     adj, running = {}, 0.0

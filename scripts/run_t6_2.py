@@ -196,11 +196,12 @@ def main():
             for col in STATE_COLS:
                 vals = cs[f'drift_{col}@H{h}'].to_numpy(float)
                 ml = (cs.type == 'NO_RECOVERY').to_numpy()
-                est, ci, p = cluster_boot_diff(vals, mh, ml, cs.stock_code.to_numpy(), 'median',
-                                               rng(seg, 'repair', col, f'RECvNO_H{h}'), B)
+                est, ci, p, diag = cluster_boot_diff(vals, mh, ml, cs.stock_code.to_numpy(), 'median',
+                                                     rng(seg, 'repair', col, f'RECvNO_H{h}'), B)
                 rep.setdefault(f'driftH{h}', {})[col] = {
-                    'RECOVERED_minus_NORECOVERY': {'diff': est, 'ci95': ci, 'p_boot': p}}
-                pvals[f'drift|H{h}|REC_vs_NO|{col}'] = p
+                    'RECOVERED_minus_NORECOVERY': {'diff': est, 'ci95': ci, 'p_boot': p, **diag}}
+                if np.isfinite(p):
+                    pvals[f'drift|H{h}|REC_vs_NO|{col}'] = p
         seg_out['repair'] = rep
         path = {}
         for h in H:
@@ -212,12 +213,13 @@ def main():
                                              rng(seg, 'path', 'cum_ret_from_t0_log', gname, h), B)
                 entry[gname] = {'median': est, 'ci95': ci}
             vals = cs[f'bh_R0_H{h}'].to_numpy(float)
-            est, ci, p = cluster_boot_diff(vals, (cs.type == 'RECOVERED_ADD').to_numpy(),
-                                           (cs.type == 'NO_RECOVERY').to_numpy(),
-                                           cs.stock_code.to_numpy(), 'median',
-                                           rng(seg, 'path', 'cum_ret_from_t0_log', f'RECvNO_{h}'), B)
-            entry['RECOVERED_minus_NORECOVERY'] = {'diff': est, 'ci95': ci, 'p_boot': p}
-            pvals[f'path|REC_vs_NO|H{h}'] = p
+            est, ci, p, diag = cluster_boot_diff(vals, (cs.type == 'RECOVERED_ADD').to_numpy(),
+                                                 (cs.type == 'NO_RECOVERY').to_numpy(),
+                                                 cs.stock_code.to_numpy(), 'median',
+                                                 rng(seg, 'path', 'cum_ret_from_t0_log', f'RECvNO_{h}'), B)
+            entry['RECOVERED_minus_NORECOVERY'] = {'diff': est, 'ci95': ci, 'p_boot': p, **diag}
+            if np.isfinite(p):
+                pvals[f'path|REC_vs_NO|H{h}'] = p
             path[f'H{h}'] = entry
         seg_out['path'] = path
         seg_out['holm_adj_p'] = holm(pvals)
