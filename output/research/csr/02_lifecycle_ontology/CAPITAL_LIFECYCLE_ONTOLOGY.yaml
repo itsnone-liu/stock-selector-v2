@@ -1,0 +1,92 @@
+# CAPITAL_LIFECYCLE_ONTOLOGY — CSR-2 (v1.0)
+# 原则（源方案 §5）：不强制线性状态机；允许回退/重构路径；
+# 尤其不得预设 D6 必然进入 D7。
+meta:
+  stage: csr_2
+  source_of_truth: docs/plans/CAPITAL_STATE_RESEARCH_V1_SOURCE.md §5
+  applies_primarily_to: actor A5 (Stock-Dominant Capital)
+  # 其他 actor（A2/A3/A6/A7）在其自身时间尺度上也可映射到部分状态，
+  # 但 lifecycle 的完整序列只为 A5 定义（见各状态 notes）。
+
+states:
+  - id: D0
+    name: No Dominant Evidence
+    name_cn: 无明显主导资金证据
+    meaning: 现有证据不足以提出任何 A5 级主导资金假说（注意：D0 是证据
+      状态，不是市场状态——一个"有主力但未被观测到"的标的同样处于 D0）
+    evidence_note: 默认状态；进入其他状态需 B 级或 A 级证据支持
+  - id: D1
+    name: Accumulation
+    name_cn: 潜伏/吸筹
+    meaning: 主导资金在冲击约束下持续建立库存——量显著而价格位移有限，
+      成本区逐步形成（H01）
+  - id: D2
+    name: Concentration / Lock
+    name_cn: 筹码集中/锁定
+    meaning: 稳定持有者控制更多筹码，有效流通供给下降（H02）
+  - id: D3
+    name: Probe / Activation
+    name_cn: 试盘/启动
+    meaning: 主导资金测试卖压与跟风结构；短促量价脉冲但无持续位移
+  - id: D4
+    name: Markup
+    name_cn: 突破/主升
+    meaning: 锁定+边际需求+有限供给形成高价格效率；健康回调卖压弱于
+      上涨推动（H03）
+  - id: D5
+    name: External Participation / Acceleration
+    name_cn: 外部资金进入/加速
+    meaning: 赚钱效应吸引 A3/A6/A7 进入；需区分健康接力与为退出提供
+      流动性（H04）
+  - id: D6
+    name: High-Turnover Transfer
+    name_cn: 高位换手/筹码交接
+    meaning: 巨大换手+价格效率下降；供给（原主导库存）与需求（外部）
+      同时增加——放量滞涨本身不能等同于派发（H05 的边界条件）
+  - id: D7
+    name: Distribution
+    name_cn: 派发
+    meaning: 有直接或 B 级证据支持的原主导库存系统性下降（户数上升、
+      席位转手、筹码分布上移）；与 D6 的区别=证据方向明确指向转移完成
+  - id: D8
+    name: Dominant Capital Exit
+    name_cn: 主导资金退出
+    meaning: 主导资金已退出控制；仍可能出现强反弹，但趋势持续能力下降
+      （H06；T8 的 MFE flat+Recovery↓ 结构仅为研究动机，不构成证明）
+
+transitions:
+  # 声明式允许转移（allow-list）；未列出的转移不预设禁止，但任何
+  # transition 判定本身属于后续 Case Study 的研究对象，第一轮不判定。
+  allowed:
+    - [D0, D1]        # 首次出现吸筹一致证据
+    - [D1, D2]        # 吸筹→集中（自然演进）
+    - [D1, D0]        # 吸筹证据消失（假吸筹/证据不足）
+    - [D2, D1]        # 回退：集中证据减弱（源方案明确允许）
+    - [D2, D3]        # 集中→试盘
+    - [D3, D2]        # 试盘失败回退
+    - [D3, D4]        # 试盘→主升
+    - [D4, D2]        # 回调至再集中（源方案明确允许 D4→D2）
+    - [D4, D5]        # 主升→外部进入
+    - [D5, D4]        # 回退（源方案明确允许 D5→D4）
+    - [D5, D6]        # 加速→高位换手
+    - [D6, D4]        # 回退：换手后再度走强（源方案明确允许 D6→D4）
+    - [D6, D7]        # 换手→派发（不预设必然！D6 可长期持续或回退）
+    - [D6, D5]        # 换手后外部接力继续
+    - [D7, D8]        # 派发→退出
+    - [D7, D6]        # 派发中断/再度换手
+    - [D8, D0]        # 证据窗口过期，回到无证据状态
+  forbidden_presets:
+    - "D6 必然进入 D7"   # 源方案明确禁止的预设
+    - "线性单向 D1→D8"   # 允许的所有回退路径即否定单向必然性
+  open_questions:
+    - D8 后是否存在"再度吸筹"（D8→D1）：允许作为 case study 问题，不预设
+    - A6 主导的标的是否经历压缩版 D5→D6→D8：待 CSR-8 案例检验
+
+state_assignment_rules:
+  principle: 状态是 latent state 的假说载体——状态判定=证据登记+置信度，
+    不是分类器输出
+  minimum_evidence: 进入 D1-D8 任一状态需要 B 级证据或两个独立 C 级证据
+    （G-H-2 evidence independence）；单独 C 级只能停留在"与某状态一致的
+    观测"，不得登记状态
+  multiple_actors: 同一标的同时存在多个 actor 时，lifecycle 状态只对 A5
+    声明；A2/A3/A6/A7 的活动记入 evidence 层，不驱动状态机
