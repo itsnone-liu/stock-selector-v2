@@ -220,6 +220,17 @@ if f6p.exists():
         errs.append('E-STK-10 must be C_RELIABLE_PROXY + REALTIME_T1 (proxy stays C however fast)')
     if '本地构造=代理性质' not in str(f6.get('meta', {}).get('two_scales_declaration', '')):
         errs.append('two-scales declaration must forbid proxy promoting to A/B by speed')
+    raw6 = f6p.read_text()
+    if '滞后 1~4 月' in raw6 or '1~4 个月' in raw6:
+        errs.append('CSR-6 stale delay wording (must be 15 working days ~ 4 months)')
+    MIXED = ('E-MKT-06', 'E-STK-06', 'E-STK-07')
+    for e in MIXED:
+        comps = r6[e].get('realtime_components', [])
+        if not comps or not all(
+                c.get('component') and c.get('role') and c.get('latency') for c in comps):
+            errs.append(f'{e} mixed-event evidence needs realtime_components contract')
+        if len(comps) < 2:
+            errs.append(f'{e} realtime_components must separate past/plan sub-events')
 
 if errs:
     print('FAIL'); [print(' -', e) for e in errs]; sys.exit(1)

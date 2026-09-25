@@ -96,9 +96,10 @@ verdicts:
     available_date_rule: publication +0
     latency: 事件即时（行为发生与公告之间的公司自报间隔如实登记）
     revision_risk: 低（公告事实；后续实施进度另有公告）
-    selection_coverage_note: 事件稀疏——只作背景/案例证据，不进统计检验主列；
-      公告中若含"未来继续增持计划"字段则该字段单独属 EVENT_ADVANCE（lead-forward），
-      与已发生行为披露分开登记
+    realtime_components:
+      - {component: 已发生增持行为, role: REALTIME_T1, latency: 公告日即时}
+      - {component: 未来继续增持计划字段, role: EVENT_ADVANCE, latency: 事前}
+    selection_coverage_note: 事件稀疏——只作背景/案例证据，不进统计检验主列
   # ---------- SECTOR ----------
   - evidence_id: E-SEC-01
     availability_rating: A_DIRECT_PIT
@@ -191,7 +192,11 @@ verdicts:
     observation_date_rule: 预披露公告日（计划）/实施公告日（结果）
     publication_date_rule: 预披露事前公告；实施结果 T+2 内公告
     available_date_rule: 各自公告日 +0
-    latency: 事前（预披露）/事后 2 日内（实施）
+    latency: 事前（预披露）/事后（实施结果）
+    realtime_components:
+      - {component: 减持预披露计划, role: EVENT_ADVANCE, latency: 事前公告}
+      - {component: 实施完毕/期间届满结果公告, role: 短期事后确认（不新增主枚举档）,
+         latency: 计划实施完毕或期间届满后 2 个交易日内}
     revision_risk: 中（计划可变更/延期/终止——预披露≠必然实施，CSR-4 已记 counter_evidence）
     selection_coverage_note: 达披露门槛的股东与比例才有义务——小规模减持不可见
   - evidence_id: E-STK-07
@@ -200,7 +205,11 @@ verdicts:
     observation_date_rule: 公告日
     publication_date_rule: 当日公告
     available_date_rule: publication +0
-    latency: 事件即时
+    latency: 方案公告即时/进度公告后续
+    realtime_components:
+      - {component: 回购方案公告, role: EVENT_ADVANCE, latency: 事前方案}
+      - {component: 实施进度/完成公告, role: 短期事后确认（不新增主枚举档）,
+         latency: 进展公告流（月度/阶段披露）}
     revision_risk: 低-中（方案修订公告存在）
     selection_coverage_note: 回购"公告"≠"完成"——实施进度是后续公告流
   - evidence_id: E-STK-08
@@ -253,7 +262,8 @@ headline_findings:
     两融（市场+个股）/大宗/龙虎榜/ETF 份额（市场+行业）+全部本地构造类
     ——但这些里 A/B 级直接资金证据只有四类，且龙虎榜与两融个股均带
     选择机制（上榜规则/标的池）。ownership 类直接证据（户数/十大股东/
-    基金持仓）全部 LAGGED_VERIFICATION（滞后 1~4 月）。
+    基金持仓）全部 LAGGED_VERIFICATION（滞后约 15 个工作日至 4 个月，
+    视披露类型而定——基金季报前十大最快，上市公司年报口径股东结构最长）。
   2: |
     由此得出 CSR 的核心结构性结论：实时层可以确认离散资金行为、交易
     参与或未来供给事件（大宗一笔成交/龙虎榜上榜席位/减持预披露/ETF
@@ -268,8 +278,12 @@ headline_findings:
   3: |
     事前已知类（解禁日程/减持预披露、回购方案公告、E-MKT-06 中的
     未来增持计划字段）构成 EVENT_ADVANCE 层——它们不识别主体，但管理
-    "未来供给压力窗口"，是真正 lead-forward 的信息；注意其中混合着
-    "已发生行为披露"（REALTIME_T1），逐字段区分不得整类混同。
+    "未来供给/需求与流通盘变化窗口"（回购与未来增持是需求侧/供给收缩
+    而非供给压力），是真正 lead-forward 的信息；注意其中混合着
+    "已发生行为披露"（REALTIME_T1）与"短期事后确认"（实施结果公告，
+    2 个交易日内——介于 REALTIME_T1 与 LAGGED_VERIFICATION 之间，
+    不新增主枚举档，按 realtime_components 精确记录 latency），
+    逐字段区分不得整类混同。
   4: |
     BACKTEST_ONLY 四条：E-MKT-05 北向日频段（制度终止）、E-MKT-04/
     E-SEC-04（市值 reference 未补——补齐后重评级，不冒充当前可用）、
