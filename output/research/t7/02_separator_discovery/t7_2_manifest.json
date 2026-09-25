@@ -1,0 +1,44 @@
+{
+  "stage": "t7_2",
+  "baseline": "80e934c",
+  "inputs": [
+    {
+      "name": "t7_0_anchor_features",
+      "path": "output/research/t7/00_path_factlayer/t7_0_features_anchor_features.parquet",
+      "sha256": "fcfdbeaf94c180755f2ada776674c9fb2730f95ddd824b6d68df3fa6d5e60ff9",
+      "bytes": 0
+    },
+    {
+      "name": "t7_0_outcomes",
+      "path": "output/research/t7/00_path_factlayer/t7_0_outcomes_outcomes.parquet",
+      "sha256": "4ec468822c7c3c80dc92e41fb59cc87ffe50a62a8d2775297e3de85fc2473582",
+      "bytes": 0
+    },
+    {
+      "name": "t7_contract",
+      "path": "output/research/t7/t7_contract.json",
+      "sha256": "6c003681e41a85952fead9353c7f66d82cfdbfd1f34df4af1abab1f4e0d61119",
+      "bytes": 0
+    }
+  ],
+  "upstream_hashes": null,
+  "products": [
+    {
+      "file": "t7_2_discovery.parquet",
+      "sha256": "8b1ca5c896bbe30839cd80b5048f66b30c1ba1a627b12437d051a4b5d32094c2",
+      "bytes": 7564,
+      "rows": 12
+    },
+    {
+      "file": "t7_2_cells.parquet",
+      "sha256": "fd386b10a97c3a5a60d5609b19adbe837020c34fab340ba2b5bae5b6fe95943f",
+      "bytes": 9139,
+      "rows": 27
+    },
+    {
+      "file": "t7_2_report_data.json",
+      "sha256": "d5d07685d17c1c021b3785e77ba3511e289b513c2b0c371df2bace0ec503c713",
+      "bytes": 2621
+    }
+  ]
+}

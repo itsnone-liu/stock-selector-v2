@@ -1,0 +1,27 @@
+{
+  "G1_lineage": {
+    "verdict": "PASS",
+    "reason": "",
+    "inputs_hash_verified": 3
+  },
+  "G22_dev_only": {
+    "verdict": "PASS",
+    "reason": "",
+    "dev_anchors": 3764
+  },
+  "G23_frozen_space_bins": {
+    "verdict": "PASS",
+    "reason": ""
+  },
+  "G24_exposure_and_mechanical_rule": {
+    "verdict": "PASS",
+    "reason": "",
+    "exposure_entries": 6
+  },
+  "G2b_t7_0_immutable": {
+    "verdict": "PASS",
+    "reason": "",
+    "products_verified": 5
+  },
+  "overall": "PASS"
+}

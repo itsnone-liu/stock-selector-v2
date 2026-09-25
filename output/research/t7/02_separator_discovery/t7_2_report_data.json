@@ -1,0 +1,96 @@
+{
+  "stage": "t7_2",
+  "identity": "DEV-ONLY DISCOVERY — candidates may be found, nothing is proven; no VAL/CONF computation; candidate space frozen (same-clock hot-bounce triple + 27-cell cross); human selection deferred to Policy Amendment Freeze",
+  "n_dev_anchors": 3764,
+  "bins_dev_tertiles": {
+    "max_bounce_R5": {
+      "q1": -0.018751312624643024,
+      "q2": 0.01801067333046413
+    },
+    "vol_load@maxbounce_R5": {
+      "q1": 0.8966848962719676,
+      "q2": 1.5917993695753807
+    },
+    "turnover@maxbounce_R5": {
+      "q1": 0.8930308828339009,
+      "q2": 1.4687817858838879
+    }
+  },
+  "families": {
+    "FR_within_recovered": "hi vs lo tertile, Holm per cluster",
+    "TR_all": "hi vs lo tertile, Holm per cluster"
+  },
+  "discovery_contrasts": 12,
+  "exposure_log": [
+    {
+      "target": "FR_within_recovered",
+      "feature": "max_bounce_R5",
+      "n_base": 1541,
+      "n_hi": 930,
+      "n_lo": 169,
+      "rate_hi": 0.3225806451612903,
+      "rate_lo": 0.621301775147929
+    },
+    {
+      "target": "FR_within_recovered",
+      "feature": "vol_load@maxbounce_R5",
+      "n_base": 1530,
+      "n_hi": 707,
+      "n_lo": 284,
+      "rate_hi": 0.43422913719943423,
+      "rate_lo": 0.4823943661971831
+    },
+    {
+      "target": "FR_within_recovered",
+      "feature": "turnover@maxbounce_R5",
+      "n_base": 1541,
+      "n_hi": 663,
+      "n_lo": 311,
+      "rate_hi": 0.444947209653092,
+      "rate_lo": 0.4662379421221865
+    },
+    {
+      "target": "TR_all",
+      "feature": "max_bounce_R5",
+      "n_base": 3764,
+      "n_hi": 1255,
+      "n_lo": 1255,
+      "rate_hi": 0.5123505976095617,
+      "rate_lo": 0.05179282868525897
+    },
+    {
+      "target": "TR_all",
+      "feature": "vol_load@maxbounce_R5",
+      "n_base": 3728,
+      "n_hi": 1243,
+      "n_lo": 1243,
+      "rate_hi": 0.34271922767497986,
+      "rate_lo": 0.13274336283185842
+    },
+    {
+      "target": "TR_all",
+      "feature": "turnover@maxbounce_R5",
+      "n_base": 3647,
+      "n_hi": 1216,
+      "n_lo": 1216,
+      "rate_hi": 0.3199013157894737,
+      "rate_lo": 0.15213815789473684
+    }
+  ],
+  "mechanical_candidates": [
+    {
+      "feature": "max_bounce_R5",
+      "passes_both_clusters": true
+    },
+    {
+      "feature": "vol_load@maxbounce_R5",
+      "passes_both_clusters": false
+    },
+    {
+      "feature": "turnover@maxbounce_R5",
+      "passes_both_clusters": false
+    }
+  ],
+  "mechanical_rule": "FR_within_recovered hi-vs-lo CI excludes 0 AND Holm reject, on BOTH stock and t0date cluster units",
+  "contract_sha256": "6c003681e41a85952fead9353c7f66d82cfdbfd1f34df4af1abab1f4e0d61119"
+}
