@@ -1,5 +1,6 @@
 {
   "stage": "T5.8_full_lifecycle",
+  "revision": "R",
   "baseline": "8c4a992",
   "episodes": {
     "total_rows": 283088,
@@ -10,7 +11,75 @@
   },
   "daily_rows": 4196190,
   "attribution_rows": 300783,
+  "suspended_no_trade_days": 260100,
   "pnl_computed": true,
   "champion_ranking": false,
-  "parameter_tuning": false
+  "parameter_tuning": false,
+  "inputs": [
+    {
+      "name": "t5_daily_state",
+      "path": "output/research/t5/facts/t5_daily_state.parquet",
+      "sha256": "70cb5e19d07b466252f7337ab887617321810abdf2e57acf37cc6d59c0305ff0",
+      "bytes": 91982809
+    },
+    {
+      "name": "t5_7_exposure_trajectory",
+      "path": "output/research/t5/exposure_adjustment/t5_7_exposure_trajectory.parquet",
+      "sha256": "4c9c6f39449ba697779341fec33cbc24af548b55fafacff2b4f8cf617d4d9f02",
+      "bytes": 8496913
+    },
+    {
+      "name": "t4_6_assignment",
+      "path": "output/research/t4/entry_policy/t4_6_assignment.parquet",
+      "sha256": "b341e213fc6bd709488a9e63011bb48d869132dcfcd317b445fd5552f75cbb13",
+      "bytes": 1963913
+    }
+  ],
+  "products": [
+    {
+      "file": "t5_8_censor_terminal_audit.parquet",
+      "sha256": "1bce8b2c2557e663eaab3ee7a94a64ec9e5f3166d046fb699dbb1750085fdfd7",
+      "bytes": 2379
+    },
+    {
+      "file": "t5_8_counterfactual_attribution.parquet",
+      "sha256": "45e1ed67de475298ac9cc07c231782f60d9f4d4ca22a27dbda2ed8b67cc21329",
+      "bytes": 3430150
+    },
+    {
+      "file": "t5_8_daily_exposure_pnl.parquet",
+      "sha256": "f71cffa3d9a277a46afd0dd05ab716e49cf0213fdcd4adf6a38e350ac7f6be01",
+      "bytes": 24337565
+    },
+    {
+      "file": "t5_8_episode_results.parquet",
+      "sha256": "51a566656ed9bf6f4575a93799858bc5b77a4e0b434333065cf51062ed54f8bc",
+      "bytes": 4711620
+    },
+    {
+      "file": "t5_8_split_metrics.parquet",
+      "sha256": "3b539fd7c164a802a34c96a187ccf33bc7eeb149381d3ce79237136a377154fa",
+      "bytes": 9153
+    },
+    {
+      "file": "t5_8_strategy_matrix.parquet",
+      "sha256": "5cb6c33e58e1d364144c10d747a2d30cad4331986bca6235afe4f29445b82079",
+      "bytes": 11013
+    },
+    {
+      "file": "t5_8_execution_clock.json",
+      "sha256": "808aade0b2056ca7e84aed0e66c4ed54ebe0fce2d045774b13b3c1a1c3656a58",
+      "bytes": 474
+    },
+    {
+      "file": "t5_8_report_data.json",
+      "sha256": "65f7a91bdee615a5f85428d7a6b5ed2f1088799a713d939b88ff9bb9153c7ace",
+      "bytes": 22843
+    },
+    {
+      "file": "t5_8_simulation_contract.json",
+      "sha256": "1f7be59315cfc238fd7c1a20f3367c6c79912b5d24294560558965144fbe8f02",
+      "bytes": 2434
+    }
+  ]
 }

@@ -1,6 +1,18 @@
 {
+  "revision": "T5.8R (audit response; supersedes bc8d6a7 products in place)",
   "baseline": "8c4a992",
-  "execution_clock": "signal at close t -> target exposure effective for the (t, t+1] return; pnl_d = x_{d-1} * ret_1d_log_d; day-0 return not traded (entry fills at close)",
+  "audit_fixes": [
+    "R1 mdd peak-to-trough",
+    "R2 mfe cumulative & renamed max_cum_pnl_ep",
+    "R3 bh clock aligned (d>0)",
+    "R4 normalized vs contribution layers explicit",
+    "R5 suspension = no-trade (operator frozen)",
+    "R6 policy-invariance verified before collapse",
+    "R7 POST_EXIT_LOCKED permanent (no EXIT->ADD re-entry)",
+    "R8 counterfactuals = disable-operator simulations",
+    "R9 sha256 input/product lineage in manifest"
+  ],
+  "execution_clock": "signal at close t -> target exposure effective for the (t, t+1] return; pnl_d = x_{d-1} * ret_1d_log_d; day-0 return not traded (entry fills at close); buy-and-hold comparator accrues returns for d>0 only (same clock)",
   "real_x0": {
     "rule": "x_0 = actual_initial_exposure / base_risk_budget",
     "filled(close)": 1.0,
@@ -17,6 +29,12 @@
     "E0_exact": "primary: any x>0 remains a position",
     "E1_dust": "sensitivity only: x<0.05 counted as dust-days, threshold NOT frozen, not converted to EXIT"
   },
+  "metric_layers": {
+    "ret_ep_log": "normalized policy return (unit base risk budget); x = actual/base",
+    "portfolio_contribution": "base * ret_ep_log (account level)"
+  },
+  "suspension": "ret NaN days are NO-TRADE: no quoted price -> pnl=0 AND operator frozen (x unchanged); verified by gate G7",
+  "post_exit": "RESOLVED_EXIT zeroes exposure and locks the episode permanently (POST_EXIT_LOCKED); re-entry does not exist in this contract",
   "matrix": {
     "entry_strategies": [
       "direct_chase",
@@ -31,8 +49,7 @@
     ],
     "counterfactuals": [
       "static_no_T5 (per strategy)",
-      "no_ADD/no_REDUCE/no_EXIT (P2 attribution)"
+      "disable-operator: no_ADD / no_REDUCE / no_EXIT (P2, one-component-disabled simulation, NOT additive contribution decomposition)"
     ]
-  },
-  "suspension": "ret NaN days contribute zero pnl; exposure carried frozen"
+  }
 }

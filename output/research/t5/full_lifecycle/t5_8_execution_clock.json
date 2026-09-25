@@ -1,5 +1,6 @@
 {
-  "rule": "signal at close t -> target exposure effective for the (t, t+1] return; pnl_d = x_{d-1} * ret_1d_log_d; day-0 return not traded (entry fills at close)",
+  "rule": "signal at close t -> target exposure effective for the (t, t+1] return; pnl_d = x_{d-1} * ret_1d_log_d; day-0 return not traded (entry fills at close); buy-and-hold comparator accrues returns for d>0 only (same clock)",
   "fill_basis": "fill_status_close",
-  "return_source": "t5_daily_state.ret_1d_log (T5.4 outcome clock, suspension-skipped)"
+  "return_source": "t5_daily_state.ret_1d_log (T5.4 outcome clock, suspension-skipped)",
+  "bh_clock": "buy-and-hold accrues ret_1d_log for d>0 only (entry at close t, same execution clock as strategy)"
 }

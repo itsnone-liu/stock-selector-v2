@@ -1,22 +1,28 @@
 {
-  "gate1_baseline": {
+  "gate10_product_integrity": {
     "verdict": "PASS",
+    "products_hash_matched": 9
+  },
+  "gate1_baseline_input_lineage": {
+    "verdict": "PASS",
+    "inputs_hash_verified": 3,
     "baseline": "8c4a992",
-    "reads": 0
+    "revision": "R"
   },
   "gate2_real_x0": {
     "verdict": "PASS",
     "not_filled_episodes": 46017,
-    "not_filled_pnl_nonzero": 0
+    "not_filled_nonzero_pnl": 0
   },
   "gate3_no_reopen": {
     "verdict": "PASS",
     "zero_exposure_all_days": true
   },
-  "gate4_clock": {
+  "gate4_execution_clock": {
     "verdict": "PASS",
     "day0_pnl_zero": true,
-    "pnl_identity": true
+    "bh_clock_sample": 2000,
+    "bh_clock_mismatch": 0
   },
   "gate5_accounting": {
     "verdict": "PASS",
@@ -29,41 +35,31 @@
       "MAX_HORIZON"
     ]
   },
-  "gate7_preserve": {
+  "gate7_preserve_and_suspension": {
     "verdict": "PASS",
+    "suspended_rows": 214083,
     "conflict_days_total": 123057,
     "noev_days_total": 234144
   },
   "gate8_no_retuning": {
     "verdict": "PASS",
-    "policies": "P1/P2/P3 frozen a priori",
-    "strategies": "4 T4.6 strategies frozen"
+    "tuning_idioms_found": [],
+    "quantile_lines_reporting_only": true,
+    "policy_constants_pinned": true
   },
-  "gate9_splits_cf": {
+  "gate9_splits_and_counterfactuals": {
     "verdict": "PASS",
-    "variants": [
+    "segments": [
+      "confirmation",
+      "development",
+      "validation"
+    ],
+    "cf_variants": [
       "disable_add",
       "disable_exit",
       "disable_reduce",
       "static_no_T5"
     ]
   },
-  "gate10_inventory": {
-    "verdict": "PASS",
-    "expected": [
-      "t5_8_simulation_contract.json",
-      "t5_8_execution_clock.json",
-      "t5_8_strategy_matrix.parquet",
-      "t5_8_episode_results.parquet",
-      "t5_8_daily_exposure_pnl.parquet",
-      "t5_8_split_metrics.parquet",
-      "t5_8_counterfactual_attribution.parquet",
-      "t5_8_censor_terminal_audit.parquet",
-      "t5_8_manifest.json"
-    ]
-  },
-  "overall": {
-    "verdict": "PASS",
-    "baseline": "8c4a992"
-  }
+  "overall": "PASS"
 }
