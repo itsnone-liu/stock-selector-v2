@@ -21,6 +21,12 @@
     "violations": [],
     "cited_universe": 30
   },
+  "G13b_decision_mapping_provenance": {
+    "verdict": "PASS",
+    "reason": "",
+    "checked_cites": 19,
+    "violations": []
+  },
   "G14_aggregation_only": {
     "verdict": "PASS",
     "reason": "",

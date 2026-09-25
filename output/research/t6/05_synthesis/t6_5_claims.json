@@ -4,7 +4,7 @@
   "claims": [
     {
       "claim_id": "C501",
-      "statement": "T6 mechanism-chain correction (the synthesis headline): the pre-T6 reading 'deterioration -> REDUCE -> wait for repair confirmation -> ADD' is replaced, on frozen evidence, by 'deterioration magnitude triggers capital contraction; the system re-permits exposure quickly (median 2 days) at LOWER prices WITHOUT indicator-repair confirmation; short-term bounce alone does not demonstrate structural repair, and false recoveries follow'",
+      "statement": "T6 mechanism-chain correction (the synthesis headline): the pre-T6 reading 'deterioration -> REDUCE -> wait for repair confirmation -> ADD' is replaced, on frozen evidence, by 'deterioration magnitude triggers capital contraction; the system re-permits exposure quickly (median 2 days) at LOWER prices WITHOUT indicator-repair confirmation; short-term bounce alone does not demonstrate structural repair, and false recoveries are empirically ASSOCIATED with a hotter REDUCE-day signature (conditional association, not a causal mechanism claim)'",
       "evidence": "C201 (magnitude-stratified deterioration) + C202/C207 (ADD at lower prices, repair reading rejected) + C302 (hot-bounce-day false-recovery signature) + C203 (post-R0 path separation)",
       "status": "SUPPORTED"
     },

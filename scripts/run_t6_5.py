@@ -29,12 +29,15 @@ FROZEN_COMMITS = {
 def main():
     contract = load_contract()
     all_claims = []
+    claim_stage = {}
     chain = []
     for stage, d in STAGES.items():
         cl = __import__('json').loads((d/f'{stage}_claims.json').read_text())['claims']
         gates = __import__('json').loads((d/f'{stage}_gates.json').read_text())
         man = __import__('json').loads((d/f'{stage}_manifest.json').read_text())
         all_claims.extend(cl)
+        for c in cl:
+            claim_stage[c['claim_id']] = stage
         chain.append({
             'stage': stage, 'dir': d.name, 'frozen_commit': FROZEN_COMMITS[stage],
             'gate_overall': gates.get('overall'),
@@ -57,7 +60,7 @@ def main():
         'no_new_statistics': True,
         'frozen_chain': chain,
         'claims_inventory': [
-            {'claim_id': c['claim_id'], 'status': c['status'], 'stage': c['claim_id'][:3].replace('C', 't6_')}
+            {'claim_id': c['claim_id'], 'status': c['status'], 'stage': claim_stage[c['claim_id']]}
             for c in all_claims],
         'status_counts': status_counts,
         'decision_mapping': {

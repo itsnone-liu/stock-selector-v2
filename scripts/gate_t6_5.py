@@ -58,9 +58,24 @@ def main():
                 bad.append(f"{c['claim_id']}->{cid}:missing")
             # intra-synthesis citations (C5xx -> other C5xx) are legal:
             # the chain bottoms out in frozen stage registries
+    # R1 (final audit): decision_mapping cites are ALSO provenance-bearing
+    # and must land DIRECTLY in the frozen T6.1-T6.4 registries (no C5xx
+    # allowed there — the mapping is frozen-evidence -> decision).
+    dm = rep.get('decision_mapping', {})
+    n_dm_cites = 0
+    for group in ('frozen_conclusions', 'open_hypotheses'):
+        for item in dm.get(group, []):
+            for cid in item.get('cites', []):
+                n_dm_cites += 1
+                if cid not in all_ids:
+                    ok_cite = False
+                    bad.append(f"decision_mapping.{group}->{cid}:missing_or_intra")
+    log.gate('G13b_decision_mapping_provenance', ok_cite,
+             checked_cites=n_dm_cites, violations=bad[-10:])
     # status consistency: synthesis claims citing NOT_SUPPORTED evidence may
     # not be SUPPORTED unless the statement is explicitly a rejection framing
-    log.gate('G13_citation_completeness', ok_cite, violations=bad[:10], cited_universe=len(all_ids))
+    log.gate('G13_citation_completeness', ok_cite,
+             violations=bad[:10], cited_universe=len(all_ids))
 
     # aggregation-only: report_data must contain no computed statistic blocks
     stat_keys = {'holm_adj_p', 'separability', 'deterioration', 'repair', 'path',

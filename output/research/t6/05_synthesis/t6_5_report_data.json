@@ -63,152 +63,152 @@
     {
       "claim_id": "C101",
       "status": "PARTIALLY_SUPPORTED",
-      "stage": "t6_10"
+      "stage": "t6_1"
     },
     {
       "claim_id": "C102",
       "status": "NOT_SUPPORTED",
-      "stage": "t6_10"
+      "stage": "t6_1"
     },
     {
       "claim_id": "C103",
       "status": "SUPPORTED",
-      "stage": "t6_10"
+      "stage": "t6_1"
     },
     {
       "claim_id": "C104",
       "status": "SUPPORTED",
-      "stage": "t6_10"
+      "stage": "t6_1"
     },
     {
       "claim_id": "C105",
       "status": "SUPPORTED",
-      "stage": "t6_10"
+      "stage": "t6_1"
     },
     {
       "claim_id": "C106",
       "status": "PARTIALLY_SUPPORTED",
-      "stage": "t6_10"
+      "stage": "t6_1"
     },
     {
       "claim_id": "C107",
       "status": "SUPPORTED",
-      "stage": "t6_10"
+      "stage": "t6_1"
     },
     {
       "claim_id": "C108",
       "status": "SUPPORTED",
-      "stage": "t6_10"
+      "stage": "t6_1"
     },
     {
       "claim_id": "C109",
       "status": "PARTIALLY_SUPPORTED",
-      "stage": "t6_10"
+      "stage": "t6_1"
     },
     {
       "claim_id": "C110",
       "status": "SUPPORTED",
-      "stage": "t6_11"
+      "stage": "t6_1"
     },
     {
       "claim_id": "C111",
       "status": "SUPPORTED",
-      "stage": "t6_11"
+      "stage": "t6_1"
     },
     {
       "claim_id": "C201",
       "status": "SUPPORTED",
-      "stage": "t6_20"
+      "stage": "t6_2"
     },
     {
       "claim_id": "C202",
       "status": "SUPPORTED",
-      "stage": "t6_20"
+      "stage": "t6_2"
     },
     {
       "claim_id": "C203",
       "status": "SUPPORTED",
-      "stage": "t6_20"
+      "stage": "t6_2"
     },
     {
       "claim_id": "C204",
       "status": "SUPPORTED",
-      "stage": "t6_20"
+      "stage": "t6_2"
     },
     {
       "claim_id": "C205",
       "status": "PARTIALLY_SUPPORTED",
-      "stage": "t6_20"
+      "stage": "t6_2"
     },
     {
       "claim_id": "C206",
       "status": "SUPPORTED",
-      "stage": "t6_20"
+      "stage": "t6_2"
     },
     {
       "claim_id": "C207",
       "status": "NOT_SUPPORTED",
-      "stage": "t6_20"
+      "stage": "t6_2"
     },
     {
       "claim_id": "C301",
       "status": "SUPPORTED",
-      "stage": "t6_30"
+      "stage": "t6_3"
     },
     {
       "claim_id": "C302",
       "status": "SUPPORTED",
-      "stage": "t6_30"
+      "stage": "t6_3"
     },
     {
       "claim_id": "C303",
       "status": "SUPPORTED",
-      "stage": "t6_30"
+      "stage": "t6_3"
     },
     {
       "claim_id": "C304",
       "status": "SUPPORTED",
-      "stage": "t6_30"
+      "stage": "t6_3"
     },
     {
       "claim_id": "C305",
       "status": "SUPPORTED",
-      "stage": "t6_30"
+      "stage": "t6_3"
     },
     {
       "claim_id": "C306",
       "status": "SUPPORTED",
-      "stage": "t6_30"
+      "stage": "t6_3"
     },
     {
       "claim_id": "C401",
       "status": "PARTIALLY_SUPPORTED",
-      "stage": "t6_40"
+      "stage": "t6_4"
     },
     {
       "claim_id": "C402",
       "status": "NOT_SUPPORTED",
-      "stage": "t6_40"
+      "stage": "t6_4"
     },
     {
       "claim_id": "C403",
       "status": "PARTIALLY_SUPPORTED",
-      "stage": "t6_40"
+      "stage": "t6_4"
     },
     {
       "claim_id": "C404",
       "status": "SUPPORTED",
-      "stage": "t6_40"
+      "stage": "t6_4"
     },
     {
       "claim_id": "C405",
       "status": "PARTIALLY_SUPPORTED",
-      "stage": "t6_40"
+      "stage": "t6_4"
     },
     {
       "claim_id": "C406",
       "status": "SUPPORTED",
-      "stage": "t6_40"
+      "stage": "t6_4"
     }
   ],
   "status_counts": {
