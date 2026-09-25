@@ -1,0 +1,38 @@
+{
+  "baseline": "8c4a992",
+  "execution_clock": "signal at close t -> target exposure effective for the (t, t+1] return; pnl_d = x_{d-1} * ret_1d_log_d; day-0 return not traded (entry fills at close)",
+  "real_x0": {
+    "rule": "x_0 = actual_initial_exposure / base_risk_budget",
+    "filled(close)": 1.0,
+    "not_filled": 0.0,
+    "t5_7_x0_eq_1_assumption": "REVOKED"
+  },
+  "p0": "NON_PARTICIPATION_CONTROL: base=0 branches recorded as control, excluded from dynamic exposure stats",
+  "not_filled": "NO_POSITION for the entire lifecycle; T5 ADD can never create a position (hard invariant)",
+  "terminal": {
+    "LIFECYCLE_END": "episode settlement (natural end)",
+    "MAX_HORIZON": "right-censored episode, reported separately"
+  },
+  "execution_semantics": {
+    "E0_exact": "primary: any x>0 remains a position",
+    "E1_dust": "sensitivity only: x<0.05 counted as dust-days, threshold NOT frozen, not converted to EXIT"
+  },
+  "matrix": {
+    "entry_strategies": [
+      "direct_chase",
+      "staged_entry",
+      "wait_first_pullback",
+      "wait_support_hold"
+    ],
+    "policies": [
+      "P1_conservative",
+      "P2_balanced",
+      "P3_decisive"
+    ],
+    "counterfactuals": [
+      "static_no_T5 (per strategy)",
+      "no_ADD/no_REDUCE/no_EXIT (P2 attribution)"
+    ]
+  },
+  "suspension": "ret NaN days contribute zero pnl; exposure carried frozen"
+}

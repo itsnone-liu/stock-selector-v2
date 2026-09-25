@@ -1,0 +1,16 @@
+{
+  "stage": "T5.8_full_lifecycle",
+  "baseline": "8c4a992",
+  "episodes": {
+    "total_rows": 283088,
+    "control_p0": 22988,
+    "active_12cell": 260100,
+    "not_filled_no_position": 46017,
+    "censored_max_horizon": 21132
+  },
+  "daily_rows": 4196190,
+  "attribution_rows": 300783,
+  "pnl_computed": true,
+  "champion_ranking": false,
+  "parameter_tuning": false
+}

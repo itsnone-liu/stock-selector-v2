@@ -1,0 +1,69 @@
+{
+  "gate1_baseline": {
+    "verdict": "PASS",
+    "baseline": "8c4a992",
+    "reads": 0
+  },
+  "gate2_real_x0": {
+    "verdict": "PASS",
+    "not_filled_episodes": 46017,
+    "not_filled_pnl_nonzero": 0
+  },
+  "gate3_no_reopen": {
+    "verdict": "PASS",
+    "zero_exposure_all_days": true
+  },
+  "gate4_clock": {
+    "verdict": "PASS",
+    "day0_pnl_zero": true,
+    "pnl_identity": true
+  },
+  "gate5_accounting": {
+    "verdict": "PASS",
+    "branches_checked": 214083
+  },
+  "gate6_terminal": {
+    "verdict": "PASS",
+    "terminal_reasons": [
+      "LIFECYCLE_END",
+      "MAX_HORIZON"
+    ]
+  },
+  "gate7_preserve": {
+    "verdict": "PASS",
+    "conflict_days_total": 123057,
+    "noev_days_total": 234144
+  },
+  "gate8_no_retuning": {
+    "verdict": "PASS",
+    "policies": "P1/P2/P3 frozen a priori",
+    "strategies": "4 T4.6 strategies frozen"
+  },
+  "gate9_splits_cf": {
+    "verdict": "PASS",
+    "variants": [
+      "disable_add",
+      "disable_exit",
+      "disable_reduce",
+      "static_no_T5"
+    ]
+  },
+  "gate10_inventory": {
+    "verdict": "PASS",
+    "expected": [
+      "t5_8_simulation_contract.json",
+      "t5_8_execution_clock.json",
+      "t5_8_strategy_matrix.parquet",
+      "t5_8_episode_results.parquet",
+      "t5_8_daily_exposure_pnl.parquet",
+      "t5_8_split_metrics.parquet",
+      "t5_8_counterfactual_attribution.parquet",
+      "t5_8_censor_terminal_audit.parquet",
+      "t5_8_manifest.json"
+    ]
+  },
+  "overall": {
+    "verdict": "PASS",
+    "baseline": "8c4a992"
+  }
+}

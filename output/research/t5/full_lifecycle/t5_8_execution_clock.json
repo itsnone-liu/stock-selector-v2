@@ -1,0 +1,5 @@
+{
+  "rule": "signal at close t -> target exposure effective for the (t, t+1] return; pnl_d = x_{d-1} * ret_1d_log_d; day-0 return not traded (entry fills at close)",
+  "fill_basis": "fill_status_close",
+  "return_source": "t5_daily_state.ret_1d_log (T5.4 outcome clock, suspension-skipped)"
+}
