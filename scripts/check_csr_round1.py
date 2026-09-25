@@ -163,7 +163,9 @@ if f5p.exists():
 
 if errs:
     print('FAIL'); [print(' -', e) for e in errs]; sys.exit(1)
-print(f'PASS v2: 7 actors(6 fields) / 9 states+17 registered transitions+two-tier'
+print(f'PASS v2.3: 7 actors(6 fields) / 9 states+17 registered transitions+two-tier'
       f'+D3 ONTOLOGY_ONLY / 6 hypotheses(8 fields,gates 3-state no-checkmark)'
       f' / {len(cands)} evidence({LAYERS}) unique ids, 20-col coverage,'
-      f' audit-order clean, E-STK-10=C')
+      f' audit-order clean, E-STK-10=C'
+      + ('' if not f5p.exists() else
+         f' / CSR-5: 25 ids reconciled, build_class 9/15/1, regime_breaks 3d, trust+rating enums'))
