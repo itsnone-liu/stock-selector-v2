@@ -174,11 +174,52 @@ if f5p.exists():
     if 'H0' in ''.join(f5.get('headline_findings', {}).values()) and '支持' in ''.join(f5.get('headline_findings', {}).values()):
         errs.append('CSR-5 must not judge hypotheses')
 
+# --- CSR-6 PIT/availability (optional stage) ---
+f6p = R/'06_pit_availability/CSR_6_PIT_AVAILABILITY.yaml'
+if f6p.exists():
+    f6 = yaml.safe_load(f6p.read_text())
+    v6 = f6['verdicts']
+    ids6 = [x['evidence_id'] for x in v6]
+    if len(ids6) != len(set(ids6)): errs.append('CSR-6 duplicate evidence_id')
+    if set(ids6) != set(ids): errs.append('CSR-6 ids != CSR-4 candidate ids')
+    AV = {'A_DIRECT_PIT', 'B_DIRECT_DELAYED', 'C_RELIABLE_PROXY', 'D_WEAK_PROXY', 'E_UNAVAILABLE'}
+    RT = {'REALTIME_T1', 'EVENT_ADVANCE', 'LAGGED_VERIFICATION', 'BACKTEST_ONLY'}
+    for x in v6:
+        for f in ('availability_rating', 'realtime', 'observation_date_rule',
+                  'publication_date_rule', 'available_date_rule', 'latency',
+                  'revision_risk', 'selection_coverage_note'):
+            if not x.get(f): errs.append(f'CSR-6 {x["evidence_id"]} missing {f}')
+        if x['availability_rating'] not in AV: errs.append(f'CSR-6 {x["evidence_id"]} bad rating')
+        if x['realtime'] not in RT: errs.append(f'CSR-6 {x["evidence_id"]} bad realtime')
+    r6 = {y['evidence_id']: y for y in v6}
+    if r6['E-MKT-05']['availability_rating'] != 'D_WEAK_PROXY':
+        errs.append('E-MKT-05 rating must be D_WEAK_PROXY (current regime)')
+    if r6['E-MKT-05']['realtime'] != 'BACKTEST_ONLY':
+        errs.append('E-MKT-05 realtime must be BACKTEST_ONLY')
+    for e in ('E-STK-01', 'E-STK-02', 'E-STK-03'):
+        if r6[e]['realtime'] != 'LAGGED_VERIFICATION':
+            errs.append(f'{e} (ownership quarterly) must be LAGGED_VERIFICATION')
+    for e in ('E-MKT-04', 'E-SEC-04'):
+        if r6[e]['realtime'] != 'BACKTEST_ONLY':
+            errs.append(f'{e} must be BACKTEST_ONLY until market-cap reference lands')
+    if '两套字母必须严格区分' not in yaml.dump(f6.get('meta', {}), allow_unicode=True):
+        errs.append('CSR-6 must declare evidence_level vs availability_rating distinction')
+    if not f6.get('contract_items_for_ingestion'):
+        errs.append('CSR-6 contract items missing')
+    from collections import Counter as _C
+    arc = _C(x['availability_rating'] for x in v6)
+    rtc = _C(x['realtime'] for x in v6)
+    n_lag = sum(1 for x in v6 if x['realtime'] == 'LAGGED_VERIFICATION')
+    if n_lag == 0:
+        errs.append('LAGGED_VERIFICATION layer vanished — structural conclusion lost')
+
 if errs:
     print('FAIL'); [print(' -', e) for e in errs]; sys.exit(1)
-print(f'PASS v2.3: 7 actors(6 fields) / 9 states+17 registered transitions+two-tier'
+print(f'PASS v2.4: 7 actors(6 fields) / 9 states+17 registered transitions+two-tier'
       f'+D3 ONTOLOGY_ONLY / 6 hypotheses(8 fields,gates 3-state no-checkmark)'
       f' / {len(cands)} evidence({LAYERS}) unique ids, 20-col coverage,'
       f' audit-order clean, E-STK-10=C'
       + ('' if not f5p.exists() else
-         f' / CSR-5: 25 ids reconciled, build_class 9/15/1, series_start+2 breaks, official==12, trust+rating enums'))
+         f' / CSR-5: 25 ids reconciled, build_class 9/15/1, series_start+2 breaks, official==12, trust+rating enums'
+         + ('' if not f6p.exists() else
+            f' / CSR-6: 25 ids, ratings ' + str(dict(arc)) + ', realtime ' + str(dict(rtc)))))
