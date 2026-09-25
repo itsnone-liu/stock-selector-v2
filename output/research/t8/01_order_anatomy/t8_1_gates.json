@@ -12,17 +12,28 @@
   "G42_dual_clock_replay": {
     "verdict": "PASS",
     "reason": "",
-    "sampled": 150,
-    "mismatches": 0
+    "rows_checked": 15646,
+    "mismatches": 0,
+    "replay_fields": "n_obs/dd/mfe/ret/occ/expo_days/contrib/cycle_life/false_add/recovery"
   },
   "G43_descriptive_only": {
     "verdict": "PASS",
-    "reason": ""
+    "reason": "",
+    "scans": [
+      "report_data.json",
+      "T8_1_ORDER_ANATOMY.md"
+    ]
   },
   "G44_estimand_naming": {
     "verdict": "PASS",
     "reason": "",
-    "estimand": "A_observed_order_profile (risk-set conditional on reaching ADD_k; NOT causal marginal value)"
+    "estimand": "A_observed_order_profile (risk-set conditional on reaching ADD_k; NOT causal marginal value)",
+    "scans": [
+      "report_data.json",
+      "T8_1_ORDER_ANATOMY.md"
+    ],
+    "banned_extra": "先验概率/prior probab (R1)",
+    "scanner": "drops gate self-description + negated quotes; \\b on latin"
   },
   "overall": "PASS"
 }
