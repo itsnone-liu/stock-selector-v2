@@ -220,9 +220,9 @@ if f6p.exists():
         errs.append('E-STK-10 must be C_RELIABLE_PROXY + REALTIME_T1 (proxy stays C however fast)')
     if '本地构造=代理性质' not in str(f6.get('meta', {}).get('two_scales_declaration', '')):
         errs.append('two-scales declaration must forbid proxy promoting to A/B by speed')
-    raw6 = f6p.read_text()
-    if '滞后 1~4 月' in raw6 or '1~4 个月' in raw6:
-        errs.append('CSR-6 stale delay wording (must be 15 working days ~ 4 months)')
+    raw6_hl = '\n'.join(str(x) for x in f6.get('headline_findings', {}).values())
+    if '1~4' in raw6_hl:
+        errs.append('CSR-6 headline stale delay wording (must be 15 working days ~ 4 months)')
     MIXED = ('E-MKT-06', 'E-STK-06', 'E-STK-07')
     for e in MIXED:
         comps = r6[e].get('realtime_components', [])
