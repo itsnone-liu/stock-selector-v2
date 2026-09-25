@@ -1,13 +1,19 @@
 {
   "stage": "t6_1",
   "claim_rules_ref": "output/research/t6/t6_contract.json#claim_registry_enum",
-  "enum": ["SUPPORTED", "PARTIALLY_SUPPORTED", "NOT_SUPPORTED", "INCONCLUSIVE", "EXPLORATORY"],
+  "enum": [
+    "SUPPORTED",
+    "PARTIALLY_SUPPORTED",
+    "NOT_SUPPORTED",
+    "INCONCLUSIVE",
+    "EXPLORATORY"
+  ],
   "claims": [
     {
       "claim_id": "C101",
-      "statement": "E2 vs E1 reward advantage: median/p25 return and p_positive higher in both validation and confirmation (cluster bootstrap, Holm within reward family)",
-      "evidence": "validation E2vE1 median +0.0065 [+0.0034,+0.0101] p<0.001; confirmation +0.0059 [+0.0003,+0.0125] p=0.033; p25 significant both; p_positive significant both",
-      "status": "SUPPORTED"
+      "statement": "E2 vs E1 reward advantage: point estimates positive in both segments; robustness varies by clustering dimension",
+      "evidence": "p25_return significant under BOTH cluster units in BOTH segments (val +0.0061 p<0.001 stock & T0; conf +0.0060/+0.0060 p<0.001/p=0.013). median_return & p_positive: significant under both units in validation, but confirmation T0_date CI crosses zero (median p=0.19, p_positive p=0.104). Mean-return E2vE1: stock-significant both segments, T0_date crosses zero in confirmation (p=0.149). Reward advantage direction is stable; its statistical robustness to common-date shocks is segment- and measure-dependent.",
+      "status": "PARTIALLY_SUPPORTED"
     },
     {
       "claim_id": "C102",
@@ -53,14 +59,14 @@
     },
     {
       "claim_id": "C109",
-      "statement": "E3 vs E2 mean-return DISADVANTAGE coexists with median-return parity (heavy right tail concentrated in E1/E2 means)",
-      "evidence": "mean_return E3vE2 validation -0.0135 [-0.0198,-0.0074], confirmation -0.0139 [-0.0224,-0.0050]; median null in both",
-      "status": "SUPPORTED"
+      "statement": "E3 vs E2 mean-return point estimates lower in both segments; significant under stock-code clustering in both, but T0-date clustering crosses zero in BOTH segments — not fully robust to common-date shocks",
+      "evidence": "stock_code: val -0.0135 [-0.0198,-0.0074] p<0.001; conf -0.0139 [-0.0224,-0.0050] p=0.001. T0_date: val -0.0135 [-0.0263,+0.0005] p=0.059; conf -0.0139 [-0.0317,+0.0021] p=0.094. Median-parity coexists (C102). Mean/median divergence indicates tail-structure differences in the return distribution; the tail source itself is NOT directly tested in T6.1 (no p90/p95/top-decile/trimmed-mean decomposition) — candidate for a dedicated tail study, not a T6.1 add-on.",
+      "status": "PARTIALLY_SUPPORTED"
     },
     {
       "claim_id": "C110",
-      "statement": "Overall E-gradient structure: reward NON-monotonic (E2 peak) while risk monotonically decreasing (E3 lowest) — the mapping behaves as a risk-shaping gradient, not a return gradient",
-      "evidence": "C101+C102+C103+C105+C109 jointly; spearman(E_rank, abs_mdd) = -0.130 (val) / -0.156 (conf) vs spearman(E_rank, return) = +0.066/+0.047",
+      "statement": "E-gradient structure: non-monotonic returns with a clearer risk-shaping structure — E1->E2 mainly improves return/capital-efficiency, E2->E3 mainly improves risk (MDD depth, left tail, terminal failure) without further median-return gain",
+      "evidence": "C101 (partial, clustering-conditional) + C102 + C103 + C105 + C109 (partial) jointly. spearman(E_rank, abs_mdd) = -0.130 (val) / -0.156 (conf) vs spearman(E_rank, return) = +0.066/+0.047. Risk-axis comparisons are significant under BOTH cluster units in BOTH segments (C103-C105), the most robust block in T6.1; reward-axis comparisons are clustering-sensitive.",
       "status": "SUPPORTED"
     },
     {

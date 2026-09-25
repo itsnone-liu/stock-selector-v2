@@ -50,19 +50,30 @@
 | CE2 | 0.033 | 0.218 | 0.212 | +0.187 [+0.068,+0.288] | −0.007 [−0.101,+0.086] |
 
 Holm 校正后仍显著的比较：validation 22 项、confirmation 17 项（全清单见 report_data
-`holm_adj_p`）；粗体为两段一致且 Holm 显著的核心事实。
+`holm_adj_p`）。**双口径稳健性**：表中 CI 为 stock_code cluster；T0_date cluster 下，
+E3−E2 风险轴（median_mdd / p95 / p05 / p_terminal_failure）**两段均仍显著**（本阶段最
+稳健的结果块），而收益轴比较多在 T0_date 下跨零（E3−E2 mean_return 两段 p=0.059/0.094；
+E2−E1 median/p_positive 在 confirmation 段 p=0.19/0.104；例外：p25_return 双段双口径
+全显著）。收益类结论应读作"方向稳定、对共同日期冲击的统计稳健性依口径与段而异"。
 
 ## 3. 结构解读（约束在数据支持的范围内）
 
-1. **收益轴非单调**（C101/C102/C109）：E2 中位收益两段显著高于 E1（+0.6pp 左右），
-   E3 vs E2 中位收益两段均无差异；但 E3 vs E2 **均值**收益两段显著更低（右尾大赢家
-   集中在 E1/E2 均值里）——同一事实的两面。
-2. **风险轴单调向好**（C103/C105）：E3 的回撤深度（中位/p90/p95）两段显著低于 E2，
-   左尾 p05 两段显著更浅。spearman(E_rank, abs_mdd) = −0.130（val）/ −0.156（conf），
-   而 spearman(E_rank, return) 仅 +0.066/+0.047。
-3. **E 梯度本质是风险塑形梯度而非收益梯度**（C110）：E1→E2 提升收益与资金效率（CE2
-   两段显著），E2→E3 收益持平、风险与未修复深回撤概率（p_terminal_failure 两段显著
-   −0.10/−0.18）显著改善。
+1. **收益轴非单调**（C101 部分 / C102 / C109 部分）：E2 中位收益点估计两段高于 E1，
+   E3 vs E2 中位收益两段均无差异；E3 vs E2 **均值**收益点估计两段更低——stock-code
+   cluster 下两段显著，但 **T0_date cluster 下两段 CI 跨零**（p=0.059/0.094），均值
+   劣势对共同时间冲击的稳健性不足。均值与中位背离**提示** E2/E3 收益分布尾部结构存在
+   差异；尾部来源本身未在本阶段直接检验（无 p90/p95/top-decile/trimmed-mean 分解），
+   如需证明须单独立项，不在 T6.1 追加。
+2. **风险轴单调向好且双口径稳健**（C103/C104/C105）：E3 的回撤深度（中位/p90/p95）
+   两段显著低于 E2，左尾 p05 两段显著更浅——**stock_code 与 T0_date 两种 cluster 下
+   均显著**（本阶段最稳健结果块）。spearman(E_rank, abs_mdd) = −0.130（val）/ −0.156
+   （conf），而 spearman(E_rank, return) 仅 +0.066/+0.047。
+3. **E 梯度的真实含义**（C110）：呈现**非单调收益结构 + 更清晰的风险塑形结构**——
+   E1→E2 主要改善收益与资金效率（CE2 双段显著，p25 双口径稳健；中位收益对聚类维度
+   的稳健性依段而异），E2→E3 主要改善风险（回撤深度、左尾、未修复深回撤概率）而非
+   进一步的中位收益提升。E3 并非"收益最高档"，更接近"能承担更高初始风险预算、下行
+   路径相对更受控的 T0 结构"——修正 E0→E3 收益递增的直觉，但不引申为纯风险梯度
+   （E1→E2 的收益/效率信息是真实的）。
 4. **分段不一致处如实报告**（C106）：E2 vs E1 的 p_terminal_failure 在 validation 无差异，
    confirmation 显著恶化（+0.087）——E2 在确认段"赢得更多但也更深"的模式未跨段复现
    稳定，属于 PARTIALLY_SUPPORTED，交由 T6.3 failure anatomy 深挖。
@@ -85,9 +96,9 @@ E0 = NON_PARTICIPATION_CONTROL，ret≡0 按构造（22,988 控制行）。E1 �
 
 ## 6. Claims（⊂ t6_1_claims.json，G11 机检）
 
-C101 SUPPORTED / C102 NOT_SUPPORTED / C103 SUPPORTED / C104 SUPPORTED / C105 SUPPORTED /
-C106 PARTIALLY_SUPPORTED / C107 SUPPORTED / C108 SUPPORTED / C109 SUPPORTED /
-C110 SUPPORTED / C111 SUPPORTED。
+C101 PARTIALLY_SUPPORTED / C102 NOT_SUPPORTED / C103 SUPPORTED / C104 SUPPORTED / C105 SUPPORTED /
+C106 PARTIALLY_SUPPORTED / C107 SUPPORTED / C108 SUPPORTED / C109 PARTIALLY_SUPPORTED /
+C110 SUPPORTED（措辞限定版）/ C111 SUPPORTED。
 
 ## 7. Gate 结果
 
