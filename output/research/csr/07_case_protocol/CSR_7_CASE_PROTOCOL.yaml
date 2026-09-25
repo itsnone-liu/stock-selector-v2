@@ -20,11 +20,25 @@ dual_view_discipline:
     forbidden: 引用任何 LAGGED_VERIFICATION/事后信息；引用 available_date > T 的任何字段
   ex_post_view:
     evidence_pool: 全量证据（ownership 披露到达后：户数/十大股东/基金持仓/减持实施/龙虎榜历史）
-    output: actor-confirmed 事件与 lifecycle 重建（D 状态转移的最终判定层）
+    output: actor-confirmed 事件与 lifecycle 重建（最终判定层）
+    transition_semantics: |
+      CSR-2 registered_candidate_transitions = 已登记参考路径，不是运行时白名单。
+      案例观察到未登记转移：不得拒绝、不得强行改写为已登记路径——
+      登记为 novel_transition + 记录 supporting evidence + 进入 CSR-9 review。
+      （CSR-8 的任务之一就是发现 ontology 不完整处。）
     forbidden: '不得倒灌（reverse contamination）：ex_post 结论不得用于改写任何 T 时点的 real_time_view 记录'
   legal_direction: 'ex_post → real_time 的唯一合法用法=验证：统计 real-time 判定与事后确认的一致/不一致率（这是 CSR-7 的核心检验目标）'
   annotation_order: 标注者必须先完成案例 real_time_view 再打开 ex_post_view——操作顺序本身是防 hindsight 纪律，记录标注时间戳
-  physical_separation: case sheet 中两视角字段物理分列（rt_*/xp_* 前缀），共享字段仅 stock_code/案例窗口
+  physical_separation: case sheet 中两视角字段物理分列（rt_*/xp_* 前缀），共享字段仅 opaque_case_id/案例窗口起点
+  rt_blind_packet: |
+    available_date<=T 不足以防 hindsight——group 标签/window_end/未来路径本身就是结局信息。
+    RT 标注包必须是严格 as-of-T packet：
+    - 不可见：group、selector outcome/metrics、window_end、T 之后的一切价格/成交/市场/
+      行业数据、xp_* 字段、真实 stock_code/name（匿名化为 opaque_case_id）
+    - 可见：仅 available_date <= T 的数据
+    - 案例真实 group 与 selector metadata 存放 selector_only_hidden_block，
+      整个 rt 序列锁定（时间戳+内容哈希）后方可解封
+    - rt 标注界面的图表截断于 T（不得展示完整窗口曲线）
 
 case_selection:
   sampling_frame: '冻结股票池（研究 universe 5,241 股）× 冻结研究窗（与 T3-T8 资产一致的全历史）'
@@ -34,41 +48,81 @@ case_selection:
     - {group: G2_breakout_fail, n: 20, rule: '突破日（T3 冻结定义的 breakout 事件）后 120 日内回撤至突破位下方且未创新高'}
     - {group: G3_high_collapse, n: 20, rule: '区间高点后 180 日内回撤 ≥60%（高点前 12 个月涨幅分位 ≥90%）'}
     - {group: G4_quiet_then_go, n: 20, rule: '启动前 ≥24 个月年化波动分位 ≤20% 且换手分位 ≤30%，随后 12 个月涨幅分位 ≥85%'}
-    - {group: G5_sector_follower, n: 20, rule: '板块行情（行业指数区间涨幅分位 ≥95%）中，个股涨幅位于行业 40-60 分位的普通跟随股'}
+    - {group: G5_sector_follower, n: 20, rule: '板块行情（行业指数区间涨幅分位 ≥95%）中，个股涨幅位于行业 40-60 分位的普通跟随股', role: sector_follower_comparator}
+  anchor_generation: |
+    episode/anchor 生成算法（冻结——执行者不得在完整历史里自行挑选窗口）：
+    - G1：episode=每股滚动窗口（起点≥上市后 6 个月，长度 18~60 个月）内区间最大涨幅最优窗口；
+      一股多窗口取涨幅最大、并列取最早（每股至多 1 个 episode）；全池 episode 按该涨幅排序取分位 ≥99.5%
+    - G2：anchor=T3 冻结 breakout 事件定义（确定性，无需另行生成）；episode=事件日起 120 个交易日；每事件 1 个 episode
+    - G3：anchor 日=满足"前 12 个月涨幅分位 ≥90% 且其后 180 日回撤 ≥60%"的收盘高点；
+      一股多高点取回撤最深、并列取最早；episode=anchor 前推 12 个月至后推 180 日
+    - G4：低波动段=连续 ≥24 个月 rolling 年化波动分位 ≤20% 且换手分位 ≤30%；启动日=低波动段结束后
+      12 个月内 20 日滚动涨幅首次达到当日全池截面分位 ≥85% 的首日；episode=低波动段起点至启动日后 12 个月
+    - G5：行业行情 episode=本地构造 csrc 行业等权指数（等权日收益累积）滚动 120 日涨幅分位 ≥95% 的区间；
+      个股=区间内涨幅位于行业内 40~60 分位
+  overlap_policy: |
+    同组同股：按各组唯一化规则取 1 个 episode（上述）。
+    跨组：允许 multi-group membership（同一股票先暴涨后崩塌可同时入 G1/G3）——登记 membership 全表；
+    一致率分析必须报告 per-group 与 leave-shared-out（剔除跨组案例）两种口径（预注册）。
   tie_break: '候选 > n 时随机抽样（seed=20260925 预注册，与 t6 契约种子同源）；每组替补序列同种子生成，记录落选者'
-  stratification_note: '跨年份/行业/市值覆盖（G-H-6）在五组内自然分散——抽样后登记分布，若单一年份占比 >50% 则分层重抽一次（规则预注册）'
+  stratified_redraw: |
+    分层重抽算法（冻结）：episode 按起始年份分桶（每年 1 桶）；quota=floor(n/桶数)，余数按组内
+    规则指标值降序分配到桶；桶内不足额→从最多桶按指标排名补足。触发条件：抽中样本单一年份
+    占比 >50%。重抽至多 1 次，仍超则如实登记（不隐藏结构事实）。'
 
 case_sheet_schema:
-  identity: [case_id, group, stock_code, window_start, window_end, selector_rule_version]
+  identity: [opaque_case_id, window_start]   # rt 标注者可见层
+  identity_hidden: [real_stock_code, group, selector_metrics, window_end, selector_rule_version]  # hidden block，rt 锁定后解封
   market_block:  {fields: [rt_market_state_daily, xp_market_narrative], evidence_refs: [E-MKT-01..06]}
   sector_block:  {fields: [rt_sector_state_daily, xp_sector_narrative], evidence_refs: [E-SEC-01..04]}
   stock_block:   {fields: [rt_stock_observables_daily], evidence_refs: [E-STK-10, E-MRG-01..04]}
   direct_block:  {fields: [rt_direct_events, xp_ownership_trajectory], evidence_refs: [E-STK-01..09]}
   hypothesis_block:
-    fields: [h_support_H01..H06]
+    fields: [rt_h_support_H01..H06, xp_h_support_H01..H06]   # 物理分列，无覆盖性 h_support 字段
     scale: 5 档预注册——
       SUPPORTED_STRONG（机制+≥2 独立证据层一致且无反证）
       SUPPORTED_PARTIAL（机制+≥1 证据层一致，反证弱）
       MIXED（证据层冲突）
       NOT_OBSERVED（预期观测未出现）
       CONTRADICTED（反证占优）
-    rule: 评分必须先 rt 后 xp 两遍独立给出（rt_support / xp_support），最终 h_support=xp 层但 rt 层单独保留统计
+    rule: 评分必须先 rt 后 xp 两遍独立给出；两层字段并列保留，不存在"最终层覆盖"——
+      CSR-9 汇总以 xp 层为 actor 视角、rt 层为可用性视角，两列同时报告
   counter_evidence_block: [registered_alternatives, searched_counterexamples]
   lifecycle_annotation:
-    rt_layer: 日级 candidate_state 序列（D0-D8 候选；D3 允许标注但必须带 unmodeled 标记）
+    rt_layer: 日级 candidate_state 序列（D0-D8 候选；D3=ONTOLOGY_ONLY retrospective marker——
+      只作回溯现象记录，无独立机制假说，不进入 H 支持度与一致率统计）
     xp_layer: actor-confirmed 事件与转移（CSR-2 registered transitions 内）
   gates_on_sheet: [G-H-1..6 的案例级勾稽]
 
 analysis_plan:
-  primary_question: 'real-time 证据组合与 ex-post ownership confirmation 的一致率（按 H×组分格）'
-  secondary: ['五组 lifecycle 路径分布差异（转移序列的描述性对比）', '每 H 的 SUPPORTED/CONTRADICTED 计数（CSR-9 输入）', 'G5 跟随股作为"无 A5 主导"参照组的 D0 占比']
+  primary_question: |
+    RT×XP 混淆矩阵（按 H×组分格报告，不先压成单一 accuracy 数字）：
+    rt_candidate_positive   = rt_h_support ∈ {SUPPORTED_STRONG, SUPPORTED_PARTIAL}
+    rt_candidate_negative   = rt_h_support = CONTRADICTED
+    rt_mixed                = rt_h_support = MIXED
+    rt_unobservable         = rt_h_support = NOT_OBSERVED
+    xp_confirmed_positive   = xp actor-confirmed 事件存在 且 xp_h_support ∈ {SUPPORTED_STRONG, SUPPORTED_PARTIAL}
+    xp_not_confirmed        = xp_h_support = CONTRADICTED 或证据明确不支持（≠数据缺失）
+    xp_unobservable         = ownership 证据缺失/不可判（数据缺席≠证伪）
+    agreement_rate（若报告）= 预注册映射下的主对角可判定格 / (rt 可判定 且 xp 可判定) 分母；
+    UNOBSERVABLE 单列不计入 agreement 分母，但缺失率本身必须报告（PIT 结论的一部分）。
+    解释边界（冻结声明）：本样本为 outcome-conditioned five-strata 抽样——agreement 只能解释为
+    "conditional agreement within these five case strata"，禁止表述为全市场识别准确率。'
+  secondary:
+    - '五组 lifecycle 路径分布差异（转移序列的描述性对比；含 novel_transition 登记）'
+    - '每 H 的 SUPPORTED/CONTRADICTED 计数（CSR-9 输入）'
+    - 'G5 sector-follower comparator：其 xp actor-confirmation 率与 D0 占比是否与其他组不同——
+      "无 A5"只能是 CSR-8/9 的结果，禁止作为抽样标签预设（latent-state 原则：普通跟随股
+      照样可能存在长期 A5，只是未表现为极端价格位移）'
   allowed_methods: [descriptive_statistics, cross_tab, sequence_description, case_narrative]
   forbidden: [ML, feature_selection, return_optimization, threshold_search, policy_backtest, '把案例评分当策略参数']
 
 gates:
   G-CS-1_dual_view_separation: 'case sheet 两视角物理分列；rt_* 字段不得出现在 xp 计算依赖里（结构检查）'
   G-CS-2_selection_replayable: '抽样规则+种子冻结，重放得同一样本集'
-  G-CS-3_no_reverse_contamination: 'hindsight 禁令：任何 rt_ 判定引用 xp_ 信息即 FAIL；标注顺序时间戳可审计'
+  G-CS-3_no_reverse_contamination: 'hindsight 禁令：任何 rt_ 判定引用 xp_ 信息即 FAIL；标注顺序时间戳可审计；
+    RT 标注包必须是 as-of-T blind packet——group/window_end/future path/真实代码不可见，
+    selector metadata 锁于 hidden block 至 rt 序列锁定（G-CS-1 结构检查覆盖 packet 内容清单）'
   G-CS-4_group_balance: '五组各 20、替补与落选记录完整、分层重抽规则被执行情况登记'
   G-CS-5_annotation_consistency: '抽 ≥10% 案例双标注（第二标注者盲标 rt 层），分歧率报告不强制一致'
   G-H_gates_apply: 'CSR-3 的 G-H-1..6 在每案例勾稽；G-H-4（反例主动搜索）与 G-H-6（跨年份/行业/市值）在案例层落地'

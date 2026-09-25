@@ -225,6 +225,14 @@ if f7p.exists():
         errs.append('CSR-7 xp view must declare no-reverse-contamination')
     if '先完成案例 real_time_view 再打开 ex_post_view' not in str(dvd.get('annotation_order', '')):
         errs.append('CSR-7 annotation order (rt before xp) must be enforced')
+    bp = str(dvd.get('rt_blind_packet', ''))
+    for kw in ('group', 'window_end', 'opaque_case_id', 'hidden_block', 'as-of-T'):
+        if kw not in bp: errs.append(f'CSR-7 rt_blind_packet missing {kw}')
+    xpv = str(dvd.get('ex_post_view', {}))
+    if 'novel_transition' not in xpv or '白名单' not in xpv:
+        errs.append('CSR-7 xp view must allow novel_transition (registered=reference set, not allow-list)')
+    if '在 CSR-2 registered transitions 内' in xpv:
+        errs.append('CSR-7 xp output must NOT constrain transitions to registered set (CSR-2 frozen semantics)')
     groups = f7.get('case_selection', {}).get('groups', [])
     if len(groups) != 5 or not all(g.get('n') == 20 for g in groups):
         errs.append('CSR-7 must have 5 groups x 20 cases')
@@ -238,11 +246,13 @@ if f7p.exists():
     scale = str(f7.get('case_sheet_schema', {}).get('hypothesis_block', {}))
     for need in ('SUPPORTED_STRONG', 'SUPPORTED_PARTIAL', 'MIXED', 'NOT_OBSERVED', 'CONTRADICTED'):
         if need not in scale: errs.append(f'CSR-7 h-support scale missing {need}')
-    if 'rt_support' not in scale or 'xp_support' not in scale:
-        errs.append('CSR-7 hypothesis scoring must be rt/xp dual-pass')
+    if 'rt_h_support' not in scale or 'xp_h_support' not in scale:
+        errs.append('CSR-7 hypothesis scoring must be rt/xp dual columns')
     la = str(f7.get('case_sheet_schema', {}).get('lifecycle_annotation', {}))
-    if 'candidate_state' not in la or 'unmodeled' not in la:
-        errs.append('CSR-7 lifecycle annotation must keep two-tier + D3 unmodeled mark')
+    if 'candidate_state' not in la or 'ONTOLOGY_ONLY' not in la:
+        errs.append('CSR-7 lifecycle annotation must keep two-tier + D3 ONTOLOGY_ONLY')
+    if '不进入 H 支持度' not in la:
+        errs.append('D3 must be excluded from H-support and concordance stats')
     gates7 = set(f7.get('gates', {}))
     for g in ('G-CS-1_dual_view_separation', 'G-CS-2_selection_replayable',
               'G-CS-3_no_reverse_contamination', 'G-CS-4_group_balance',
@@ -252,6 +262,30 @@ if f7p.exists():
     forb = str(ap.get('forbidden', ''))
     for kw in ('ML', 'return_optimization', 'threshold_search', 'policy_backtest'):
         if kw not in forb: errs.append(f'CSR-7 forbidden list missing {kw}')
+    pq = str(ap.get('primary_question', ''))
+    for kw in ('rt_candidate_positive', 'xp_confirmed_positive', 'xp_unobservable',
+               'agreement_rate', 'conditional agreement', '全市场'):
+        if kw not in pq: errs.append(f'CSR-7 confusion-matrix contract missing {kw}')
+    if 'outcome-conditioned' not in pq:
+        errs.append('CSR-7 must declare outcome-conditioned sampling interpretation limit')
+    g5 = [g for g in groups if g['group'] == 'G5_sector_follower']
+    if g5 and g5[0].get('role') != 'sector_follower_comparator':
+        errs.append('G5 must be sector_follower_comparator (no preset latent-actor claim)')
+    if '无 A5' in str(ap.get('secondary', '')) and '只能是' not in str(ap.get('secondary', '')):
+        errs.append('G5 wording: 无 A5 may appear only as forbidden-preset declaration')
+    cs = f7.get('case_selection', {})
+    for k in ('anchor_generation', 'overlap_policy', 'stratified_redraw'):
+        if not cs.get(k): errs.append(f'CSR-7 case_selection missing frozen {k}')
+    if 'multi-group membership' not in str(cs.get('overlap_policy', '')):
+        errs.append('CSR-7 overlap policy must declare multi-group membership handling')
+    hb = str(f7.get('case_sheet_schema', {}).get('hypothesis_block', {}))
+    if 'rt_h_support' not in hb or 'xp_h_support' not in hb or 'h_support=xp' in hb.replace('rt_h_support','').replace('xp_h_support',''):
+        errs.append('CSR-7 hypothesis fields must be rt_/xp_ dual columns, no overriding field')
+    idn = f7.get('case_sheet_schema', {}).get('identity', [])
+    if 'opaque_case_id' not in idn or 'group' in idn or 'window_end' in idn:
+        errs.append('CSR-7 rt-visible identity must hide group/window_end')
+    if not f7.get('case_sheet_schema', {}).get('identity_hidden'):
+        errs.append('CSR-7 needs identity_hidden block')
     rtc = _C(x['realtime'] for x in v6)
     if arc != _C({'A_DIRECT_PIT': 10, 'B_DIRECT_DELAYED': 3,
                   'C_RELIABLE_PROXY': 11, 'D_WEAK_PROXY': 1}):
