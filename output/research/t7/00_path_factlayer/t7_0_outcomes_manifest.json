@@ -1,0 +1,44 @@
+{
+  "stage": "t7_0_outcomes",
+  "baseline": "80e934c",
+  "inputs": [
+    {
+      "name": "t6_2_cycle_master",
+      "path": "output/research/t6/02_recycling/t6_2_cycle_master.parquet",
+      "sha256": "11938ab8cd4239665109f5eb097440b6f46262867f55d855a807b8d397f1bf7d",
+      "bytes": 0
+    },
+    {
+      "name": "t6_3_cycle_trigger",
+      "path": "output/research/t6/03_failure_anatomy/t6_3_cycle_trigger.parquet",
+      "sha256": "09be944e2479278afcbec77c6a6a7dd7d7d7570e39bdb169f0397cffdb9065f8",
+      "bytes": 0
+    },
+    {
+      "name": "daily_master",
+      "path": "output/research/t6/00_factlayer/t6_0_daily_master.parquet",
+      "sha256": "905c55c322bbd5731c8fde2938c26f7d085f76fc2e0c259c2966cf42b7d6b2a2",
+      "bytes": 0
+    },
+    {
+      "name": "definition_registry",
+      "path": "output/research/t7/00_path_factlayer/t7_0_definition_registry.json",
+      "sha256": "cb3576f398412186c2ae612afaa4049db2333e51ae4bd3170aae75f21245f691",
+      "bytes": 0
+    }
+  ],
+  "upstream_hashes": null,
+  "products": [
+    {
+      "file": "t7_0_outcomes_outcomes.parquet",
+      "sha256": "4ec468822c7c3c80dc92e41fb59cc87ffe50a62a8d2775297e3de85fc2473582",
+      "bytes": 1320210,
+      "rows": 31260
+    },
+    {
+      "file": "t7_0_outcomes_report_data.json",
+      "sha256": "73d5133b2998dae5c8ff52a2006f202bde02f800b612dea921a606bbf72d0c36",
+      "bytes": 376
+    }
+  ]
+}

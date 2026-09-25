@@ -1,0 +1,29 @@
+{
+  "stage": "t7_0_features",
+  "isolation_statement": {
+    "tables_written": [
+      "t7_0_features_path_fact.parquet",
+      "t7_0_features_anchor_features.parquet"
+    ],
+    "outcome_tables_read": [],
+    "cycle_master_column_whitelist": [
+      "event_id",
+      "segment",
+      "E_class",
+      "r0_day"
+    ],
+    "note": "path_fact rows are pure PIT daily facts within R+1..R+40; anchor_features carry decision-time trajectory summaries at checkpoints R+1/2/3/5 only"
+  },
+  "counts": {
+    "anchors": 31260,
+    "path_rows": 287795,
+    "dropped_anchors_no_window": 0
+  },
+  "checkpoints": [
+    1,
+    2,
+    3,
+    5
+  ],
+  "horizon": 40
+}

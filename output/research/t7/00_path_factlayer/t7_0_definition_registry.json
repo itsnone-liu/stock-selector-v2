@@ -1,0 +1,66 @@
+{
+  "registry_version": "t7_0_v1",
+  "semantic_doc": {
+    "true_recovery": "Cycle-level property. recovery_established_day = first effective day t in (R0, R+40-K] with achievement AND persistence. Achievement(t): dist_ref20(t) >= 0 AND dd_repair_ratio(t) >= X_dd. Persistence(t): within the next K effective trading days the T6.3-R1 F3 failure condition (dist_ref20 < 0 OR drawdown_from_peak_log >= severe_dd_depth_log) does NOT fire. Semantics: the structural deterioration that triggered REDUCE has been repaired and held — not merely that price later rose.",
+    "false_add": "Policy-level (T7.5). Anchor = policy_add_day (the counterfactual policy's OWN ADD day — NOT the T5 A0). Within W_fa=10 effective days after policy_add_day: True-Recovery-not-established-in-window AND adverse excursion (drawdown_from_peak_log from the add >= severe_dd_depth_log). Re-REDUCE/EXIT are SECONDARY diagnostics only (action-based, self-referential).",
+    "missed_recovery": "Policy-level (T7.5). Anchor = the cycle/recovery-opportunity clock (R0), NOT any policy add day. Requires: policy not exposed (veto/delayed past the opportunity) AND the cycle reaches True Recovery. Cost = recovery upside not captured, measured on the cycle recovery path.",
+    "dd_repair_ratio": "dd_repair_ratio(t) = clip((det_dd_R0 - drawdown_from_peak_log(t)) / det_dd_R0, 0, 1) where det_dd_R0 = drawdown_from_peak_log at R0 (>0 by cycle definition). Variables inherited from frozen T6 fact layer.",
+    "clock_separation": "False ADD clock: policy-ADD-anchored. Missed Recovery clock: cycle/opportunity-anchored. Mixing them is a gate violation (G-Counterfactual Conservation: policy-specific outcome clock audit)."
+  },
+  "calibration_trace": {
+    "rule_v1": "DEV unconditional median of dd_repair_ratio@R+5",
+    "diagnosis": "degenerate: median cycle never repairs within the window (n=2500 DEV anchors, only 672 reach any positive repair; share=0.269)",
+    "resolution": "achievement-dd inherited from T6 severe boundary (dd(t) < severe_dd_depth_log) == dynamic ratio threshold; T7_DEFINED_DEV_THRESHOLD channel left unused",
+    "n_calib": 2500,
+    "n_any_repair": 672
+  },
+  "true_recovery": {
+    "achievement": {
+      "dd_repair": {
+        "threshold": "drawdown_from_peak_log(t) < severe_dd_depth_log",
+        "source": "T6_FROZEN",
+        "rule": "structural repair = leaving the severe-drawdown region; equivalent to per-anchor dynamic dd_repair_ratio threshold 1 - severe_dd_depth_log/det_dd_R0 floored at 0 (exact for deep cycles, trivial for shallow ones which never entered the region); both the value and the region semantics are inherited from t6_contract"
+      },
+      "ref20_repair": {
+        "threshold": "dist_ref20 >= 0",
+        "source": "T6_FROZEN_SEMANTIC",
+        "rule": "complement of the T6.3-R1 F3 failure condition (dist_ref20 < 0); zero-literal exemption applies"
+      }
+    },
+    "persistence": {
+      "days": 5,
+      "source": "T6_FROZEN",
+      "rule": "K=5 effective trading days inherited from the frozen T6.3-R1 false-recovery trigger window; the persistence condition is the mirror of the frozen F3 trigger (same 5-day window, same failure conditions, must NOT fire)"
+    }
+  },
+  "false_add": {
+    "anchor": "policy_add_day",
+    "horizon": 10,
+    "requires": [
+      "not_true_recovery_in_window",
+      "adverse_excursion"
+    ],
+    "adverse_excursion": {
+      "threshold": 0.1053605156578263,
+      "source": "T6_FROZEN",
+      "rule": "severe_dd_depth_log inherited verbatim from t6_contract preregistered_thresholds"
+    },
+    "action_diagnostics": {
+      "re_reduce": "secondary",
+      "exit": "secondary"
+    }
+  },
+  "missed_recovery": {
+    "anchor": "recovery_opportunity",
+    "requires": [
+      "policy_not_exposed",
+      "true_recovery"
+    ],
+    "cost": "recovery_upside_not_captured"
+  },
+  "provenance_channels": [
+    "T6_FROZEN",
+    "T6_FROZEN_SEMANTIC",
+    "T7_DEFINED_DEV_THRESHOLD"
+  ]
+}

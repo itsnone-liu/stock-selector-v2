@@ -1,0 +1,187 @@
+{
+  "stage_order": [
+    "T7.0 fact layer + definitions",
+    "T7.1 path anatomy",
+    "T7.2 hot-bounce structure (DEV only)",
+    "T7.3a separator discovery (DEV only) + Policy Amendment Freeze",
+    "T7.3b VAL->CONF validation of frozen candidates",
+    "T7.4 F6 preregistered decomposition",
+    "T7.5 ADD policy counterfactual",
+    "T7.6 synthesis"
+  ],
+  "baseline_t6": "69a5bfd",
+  "planning_baseline": "40e6268",
+  "policy_lock": "T7 MUST NOT modify E0-E3 / C-states / operators / P1-P3; T7.0-T7.4 operator source diff must stay empty; T7.5 counterfactual only; T7A=timing only (P2_balanced fixed), sizing deferred to T7B.",
+  "segment_protocol": {
+    "t7_1": "all segments, descriptive only, no candidate selection",
+    "t7_2": "development only (discovery)",
+    "t7_3a": "development only (discovery); output = frozen candidate list",
+    "policy_amendment_freeze": "contract amendment commit BEFORE any VAL/CONF validation product exists",
+    "t7_3b": "validation then confirmation (validate frozen candidates; failures recorded NOT_VALIDATED, no DEV re-selection)",
+    "t7_4": "all segments (independent preregistration, no policy derivation)",
+    "t7_5": "development reported, validation+confirmation primary"
+  },
+  "anchors": {
+    "R0": "identical to frozen T6.2 recycling R0 definition (consecutive-REDUCE fold-forward); anchor set must equal T6.2 cycle set (G8)",
+    "observation_horizon": 40,
+    "primary_decision_checkpoints": [
+      1,
+      2,
+      3,
+      5
+    ],
+    "rule": "trajectory information at R+10 and beyond is outcome/description only and may not enter primary ADD decision-rule derivation",
+    "windows": {
+      "W_fa": 10,
+      "W_fa_secondary": [
+        5,
+        20
+      ],
+      "delay_primary_N": 3,
+      "delay_curve": [
+        1,
+        2,
+        3,
+        5
+      ]
+    }
+  },
+  "factlayer_isolation": {
+    "tables": [
+      "t7_0_path_fact.parquet (pure PIT daily facts)",
+      "t7_0_anchor_features.parquet (decision-time trajectory features only)",
+      "t7_0_outcomes.parquet (outcomes incl. true_recovery judgment)"
+    ],
+    "rule": "the features builder never imports/reads the outcomes table (dependency-graph scan in gate); outcome builder may read path_fact",
+    "sector_sidecar": "t7_0_sector_sidecar.parquet — QUASI-PIT (2026-09-21 membership backfill), EXPLORATORY ONLY, physically separate file, forbidden in C/D policy families and in any primary claim"
+  },
+  "trajectory_features": {
+    "variable_semantics": {
+      "max_bounce_Rk": "max close-to-close log bounce within R+1..R+k vs R0 close (close_adj)",
+      "consec_up_days_Rk": "consecutive ret_1d_log>0 days as of R+k",
+      "vol_load@maxbounce_R5": "volume_load_vs_prebreak on the max-bounce day within R+1..R+5 (T6 frozen volume semantics)",
+      "turnover@maxbounce_R5": "turnover_load_3d_mean on the same max-bounce day (T6.3 signature source)",
+      "vol_decay_Rk": "volume_load_vs_prebreak(R+k) / volume_load_vs_prebreak(R+1) (continuous, no internal threshold)",
+      "consec_shrink_days_Rk": "consecutive volume_load_vs_prebreak<1 days as of R+k",
+      "turnover_level_Rk": "turnover_load_3d_mean at R+k",
+      "turnover_traj_slope": "turnover_load_3d_mean(R+5) - turnover_load_3d_mean(R+1) (continuous)",
+      "eff_pos_share_Rk": "share of efficiency_signed_3>0 days within R+1..R+k",
+      "dd_repair_ratio_Rk": "as defined in definition registry",
+      "ref20_repair_Rk": "dist_ref20 at R+k",
+      "new_high_after_R0_Rk": "1 if drawdown_from_peak_log==0 on any day in R+1..R+k (at prior peak)"
+    },
+    "decision_checkpoints": [
+      1,
+      2,
+      3,
+      5
+    ],
+    "threshold_free": "continuous features carry no internal thresholds (0/1 literals exempt)"
+  },
+  "hotbounce_strata": {
+    "dimensions": {
+      "bounce": "max_bounce_R5",
+      "volume": "vol_load@maxbounce_R5",
+      "turnover": "turnover@maxbounce_R5"
+    },
+    "clock": "all three share the same decision clock: the max-bounce day within R+1..R+5",
+    "bins": "development-segment tertiles, frozen in this contract before any VAL/CONF application; no grid search"
+  },
+  "f6_taxonomy": {
+    "classes": [
+      "slow_persistent_deterioration",
+      "reduce_add_oscillation",
+      "hot_bounce_failure",
+      "sudden_break_no_signal",
+      "long_high_exposure_drift"
+    ],
+    "mandatory_residual": "F6p (unclassified share accepted at any level; no post-hoc residual splitting)",
+    "lock": "taxonomy frozen before reading any F6 outcome distribution (sha+time-order gate)"
+  },
+  "policy_families": {
+    "A_current": "frozen T5 ADD rule as-is (benchmark)",
+    "B_delay": "delay ADD by N=3 effective trading days (primary); N in {1,2,3,5} reported as curve",
+    "C_repair_confirmation": "derived policy: DEV-only discovery -> Policy Amendment Freeze -> VAL/CONF validation; FORBIDDEN to reference sector variables",
+    "D_hotbounce_veto": "veto/delay ADD when hot-bounce stratum (bounce x volume x turnover tertiles) hits the preregistered cell; FORBIDDEN to reference sector variables",
+    "matched_diff_wording": "paired counterfactual difference of complete policy paths within the same cycle — NOT a local treatment effect of a single ADD (exposure paths diverge after the first differing ADD decision)"
+  },
+  "error_cost": {
+    "false_add": {
+      "anchor": "policy_add_day",
+      "horizon": 10,
+      "requires": [
+        "not_true_recovery_in_window",
+        "adverse_excursion"
+      ],
+      "adverse_excursion": {
+        "threshold": 0.1053605156578263,
+        "source": "T6_FROZEN",
+        "rule": "severe_dd_depth_log inherited verbatim from t6_contract preregistered_thresholds"
+      },
+      "action_diagnostics": {
+        "re_reduce": "secondary",
+        "exit": "secondary"
+      }
+    },
+    "missed_recovery": {
+      "anchor": "recovery_opportunity",
+      "requires": [
+        "policy_not_exposed",
+        "true_recovery"
+      ],
+      "cost": "recovery_upside_not_captured"
+    },
+    "secondary_windows": [
+      5,
+      20
+    ]
+  },
+  "statistics_prereg": {
+    "bootstrap_B": 2000,
+    "bootstrap_seed": 20260925,
+    "ci": "percentile 2.5/97.5",
+    "cluster_units": [
+      "stock_code",
+      "T0_date"
+    ],
+    "holm": "Holm within each preregistered family",
+    "rng": "SeedSequence substreams; each T7 stage registers its enums in its stage gate before first run",
+    "paired_counterfactual": "matched within-cycle diff (cluster {stock_code, T0_date})"
+  },
+  "claim_rules": {
+    "enum": [
+      "SUPPORTED",
+      "PARTIALLY_SUPPORTED",
+      "NOT_SUPPORTED",
+      "INCONCLUSIVE",
+      "EXPLORATORY"
+    ],
+    "association_not_prediction": "separator claims must read \"associated with subsequent path\", never \"predicts/identifies\"",
+    "policy_two_axis": "policy claims must report both false-ADD axis and missed-recovery axis; single-axis statements forbidden",
+    "derived_policy_label": "C-family claims must carry \"derived policy (DEV-only derivation, Policy Amendment Freeze <sha>)\"",
+    "sector_quasi_pit": "sector claims forced EXPLORATORY with backfill-bias annotation; unavailability is not evidence of absence",
+    "counterfactual_bound": "T7.5 conclusions must carry the same-price-clock/same-cost qualifier"
+  },
+  "hard_gates": [
+    "G-Policy Lock",
+    "G-No Threshold Search",
+    "G-No Future Feature",
+    "G-F6 Lock",
+    "G-Counterfactual Conservation",
+    "G-Policy Derivation Isolation"
+  ],
+  "counterfactual_conservation": {
+    "same": [
+      "universe",
+      "T0",
+      "entry",
+      "price clock",
+      "transaction cost"
+    ],
+    "only_difference": "ADD trigger decision",
+    "pre_add_bitwise": "pre-ADD daily state sequences of all policy variants must be bitwise identical (divergence only after differing ADD decisions)",
+    "policy_specific_outcome_clock_audit": "False-ADD W10 runs from each policy's own add day; Missed Recovery runs from the cycle/opportunity clock; mixing them is a gate failure"
+  },
+  "t6_contract_sha256": "b307c430edfeafd0ff6cbccb58f0bbc60e04c45ea9e5871b1b15264ad2c98add",
+  "definition_registry_sha256": "cb3576f398412186c2ae612afaa4049db2333e51ae4bd3170aae75f21245f691"
+}

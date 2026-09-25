@@ -1,0 +1,15 @@
+{
+  "kind": "sector_quasi_pit_sidecar",
+  "exploratory_only": true,
+  "membership_source": "data/t4/sector_map/csrc_industry_snapshot.json (as-of 2026-09-21, NON-PIT backfill)",
+  "price_source": "data/adjustment_baostock/per_stock (hfq close, turn)",
+  "n_files_used": 5240,
+  "n_industries": 84,
+  "n_rows": 116378,
+  "forbidden_in": [
+    "C policy family",
+    "D policy family",
+    "any primary claim"
+  ],
+  "sha256_sidecar": "1ad5098d3eebd378ab109fee32814f87570ca47c09a2f2e99751d2565598eb17"
+}

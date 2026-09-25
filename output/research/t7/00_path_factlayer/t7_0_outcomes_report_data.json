@@ -1,0 +1,10 @@
+{
+  "stage": "t7_0_outcomes",
+  "true_recovery_semantics": "judged per frozen definition registry (achievement + K=5 persistence); persistence requires K subsequent effective observations with finite values (censored tails do not establish)",
+  "counts": {
+    "rows": 31260,
+    "true_recovery": 9463,
+    "false_recovery_inherited": 6953,
+    "terminal_failure": 15887
+  }
+}

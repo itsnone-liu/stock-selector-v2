@@ -1,0 +1,50 @@
+{
+  "stage": "t7_0_features",
+  "baseline": "80e934c",
+  "inputs": [
+    {
+      "name": "daily_master",
+      "path": "output/research/t6/00_factlayer/t6_0_daily_master.parquet",
+      "sha256": "905c55c322bbd5731c8fde2938c26f7d085f76fc2e0c259c2966cf42b7d6b2a2",
+      "bytes": 0
+    },
+    {
+      "name": "t6_2_cycle_master",
+      "path": "output/research/t6/02_recycling/t6_2_cycle_master.parquet",
+      "sha256": "11938ab8cd4239665109f5eb097440b6f46262867f55d855a807b8d397f1bf7d",
+      "bytes": 0
+    },
+    {
+      "name": "t6_contract",
+      "path": "output/research/t6/t6_contract.json",
+      "sha256": "b307c430edfeafd0ff6cbccb58f0bbc60e04c45ea9e5871b1b15264ad2c98add",
+      "bytes": 0
+    },
+    {
+      "name": "definition_registry",
+      "path": "output/research/t7/00_path_factlayer/t7_0_definition_registry.json",
+      "sha256": "cb3576f398412186c2ae612afaa4049db2333e51ae4bd3170aae75f21245f691",
+      "bytes": 0
+    }
+  ],
+  "upstream_hashes": null,
+  "products": [
+    {
+      "file": "t7_0_features_path_fact.parquet",
+      "sha256": "f3a44614dc7d9e29c0019c142016f164ee50901fe2cbba2c171bbae6e47a01ed",
+      "bytes": 14990948,
+      "rows": 287795
+    },
+    {
+      "file": "t7_0_features_anchor_features.parquet",
+      "sha256": "fcfdbeaf94c180755f2ada776674c9fb2730f95ddd824b6d68df3fa6d5e60ff9",
+      "bytes": 4850203,
+      "rows": 31260
+    },
+    {
+      "file": "t7_0_features_report_data.json",
+      "sha256": "af68a0ab471c7f4edf1af745a1022b502b3766b6360d355fdafd67058e4c9a1a",
+      "bytes": 652
+    }
+  ]
+}

@@ -1,0 +1,59 @@
+{
+  "G17_feature_outcome_isolation": {
+    "verdict": "PASS",
+    "reason": "",
+    "violations": [],
+    "cycle_whitelist": [
+      "E_class",
+      "event_id",
+      "r0_day",
+      "segment"
+    ]
+  },
+  "G18_definition_provenance": {
+    "verdict": "PASS",
+    "reason": "",
+    "violations": [],
+    "channels": [
+      "T6_FROZEN",
+      "T6_FROZEN_SEMANTIC",
+      "T7_DEFINED_DEV_THRESHOLD"
+    ]
+  },
+  "G19_no_future_feature": {
+    "verdict": "PASS",
+    "reason": "",
+    "replay_mismatches": 0,
+    "checkpoint_discipline": true
+  },
+  "G1_lineage": {
+    "verdict": "PASS",
+    "reason": "",
+    "inputs_hash_verified": 4
+  },
+  "G2b_upstream_products_immutable": {
+    "verdict": "PASS",
+    "reason": ""
+  },
+  "G8_conservation": {
+    "verdict": "PASS",
+    "reason": "",
+    "anchors": 31260,
+    "cycles": 31260,
+    "outcomes": 31260,
+    "path_rows": 287795,
+    "false_recovery": 6953
+  },
+  "G9b_recompute": {
+    "verdict": "PASS",
+    "reason": "",
+    "sampled": 50,
+    "mismatches": 0
+  },
+  "G_sector_sidecar_quarantine": {
+    "verdict": "PASS",
+    "reason": "",
+    "present": true
+  },
+  "overall": "PASS"
+}
