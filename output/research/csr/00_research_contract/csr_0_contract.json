@@ -1,0 +1,57 @@
+{
+  "stage": "csr_0",
+  "name": "Capital-State Research Contract",
+  "version": "1.0",
+  "source_of_truth": "docs/plans/CAPITAL_STATE_RESEARCH_V1_SOURCE.md (user docx, 2026-09-25)",
+  "inherits_frozen_boundary": "T8 FINAL FROZEN 97879ca; T3-T8 stay FROZEN as Portfolio/Execution Layer",
+  "layer_identity": "Capital-State Research = Market Understanding Layer; first round produces NO trading rules",
+  "causal_direction": {
+    "id": "C1",
+    "chain": ["capital_actor", "constraint/incentive", "capital_behavior", "chip/flow_state", "observable_evidence", "price_volume"],
+    "rule": "FORBIDDEN: inferring 'main-force accumulation/distribution' directly from a K-line or price-volume pattern"
+  },
+  "latent_state_principle": {
+    "id": "C2",
+    "rule": "Dominant capital / accumulation / locking / distribution are LATENT states. Without direct evidence, may only be stated as 'evidence consistent with hypothesis Hxx', never as actor fact."
+  },
+  "evidence_levels": {
+    "id": "C3",
+    "levels": {
+      "A": "Direct Capital Evidence: holdings, subscriptions/redemptions, seats, insider/holder changes",
+      "B": "Chip / Ownership Evidence: concentration, cost migration, holding structure, turnover structure",
+      "C": "Price-Volume Proxy: price, volume, turnover, efficiency, momentum, MFE/DD end-stage proxies"
+    },
+    "hard_constraint": "Level C alone can NEVER establish a Level-A capital-actor state."
+  },
+  "mechanism_first": {
+    "id": "C4",
+    "rule": "Every formal variable must be writable as: Capital Actor -> Behavior Mechanism -> Expected Observable -> Variable. FORBIDDEN: scanning many features first, then writing a capital story post hoc on significance."
+  },
+  "policy_firewall": {
+    "id": "C5",
+    "rule": "Capital-State discovery stage FORBIDS selecting state definitions by return/Sharpe/backtest; FORBIDS modifying any T3-T8 frozen rule."
+  },
+  "first_round_scope": ["CSR-0", "CSR-1", "CSR-2", "CSR-3", "CSR-4"],
+  "first_round_forbidden": ["backtest", "return_optimization", "threshold_search", "ML", "feature_selection", "trading_rules", "data_scraping"],
+  "first_round_allowed": ["descriptive_statistics", "event_study", "cross_sectional_comparison", "trajectory_analysis", "case_study", "hypothesis_testing"],
+  "anti_numeric_maze_gate": {
+    "id": "G-VAR",
+    "questions": [
+      "which capital behavior does this variable correspond to?",
+      "why should that behavior theoretically produce this observation?",
+      "which OTHER mechanisms can produce the same number?",
+      "what independent evidence can distinguish these explanations?"
+    ],
+    "rule": "any variable failing a complete answer goes to exploratory appendix, never into a Capital State Engine"
+  },
+  "hypothesis_gates": {
+    "G-H-1": "mechanism: explicit capital mechanism chain exists",
+    "G-H-2": "evidence independence: >=2 different sources/layers, not correlated technical indicators",
+    "G-H-3": "alternative explanation: competing explanations registered",
+    "G-H-4": "counterexample: counter-examples actively searched",
+    "G-H-5": "PIT: all real-time interpretive data satisfy point-in-time",
+    "G-H-6": "generalization: observable across years/industries/cap-size bands"
+  },
+  "stop_rule": "after CSR-0..CSR-4 commits: STOP and await audit; no data ingestion before CSR-5/CSR-6 audit passes",
+  "north_star": "who is the capital currently setting price; what chips do they hold and at what cost; are they adding/maintaining/transferring/exiting risk; and is the market/sector capital environment helping or fighting them"
+}
