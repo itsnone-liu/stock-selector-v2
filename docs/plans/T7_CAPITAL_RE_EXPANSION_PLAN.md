@@ -1,10 +1,18 @@
 # T7 实施方案：REDUCE 后资本再扩张研究（Capital Re-Expansion）
 
-> 状态：**DRAFT——待用户审计后作为 T7.0 contract 输入冻结**
-> 依据：T6 最终冻结链（`0f3783d→50575f5→a4e8402→bf0f44f→52ea1f4→69a5bfd`）+ 用户 T7 方向十五节（2026-09-25）
-> 数据事实核查（本方案撰写时实测）：`data/t4/sector_map/csrc_industry_snapshot.json` 为单一 as-of 日期
-> 2026-09-21 的 84 证监会行业 × 5,555 股成员映射——**NON-PIT 回溯快照，且无任何动态 sector 指标**；
-> e2_sector_context 仅有行业+两融上下文（PIT：T-1 margin）。T7 的 sector 状态必须自行构造（§3.4）。
+> 状态：**DRAFT v2——审计修订版（8b19a96 v1 审计意见全部落地），待用户确认后作为 T7.0 contract 输入冻结**
+> v2 核心修订（相对 v1）：①Feature/Outcome **物理三层隔离**（feature builder 永不能读 outcome 表）；
+> ②decision horizon 与 outcome observation horizon **分离**（primary decision checkpoints = R+1/2/3/5）；
+> ③False ADD 改 **outcome-based 定义**（非 action-based，消除策略自引用）；Missed Recovery 改
+> **结构性恢复定义**（非 RECOVERED 样本分位定标）；④C-family 定性为 **derived policy**：T7.2/T7.3
+> **DEV-only discovery → Policy Amendment Freeze → VAL/CONF 验证**（新增 G-Policy Derivation
+> Isolation）；⑤Sector 拍板路线 A=QUASI-PIT exploratory sidecar，**C/D family 禁引 sector**；
+> ⑥W_fa=10、Delay N=3、R+40、F6 五类+mandatory residual 全部冻结；⑦frontier 加 capital
+> efficiency side panel；⑧matched diff 措辞=policy-path paired counterfactual。
+> 依据：T6 最终冻结链（`0f3783d→50575f5→a4e8402→bf0f44f→52ea1f4→69a5bfd`）+ 用户 T7 方向
+> 十五节 + T7 方案 v1 审计十五节（2026-09-25）。
+> 数据事实核查（实测）：`data/t4/sector_map/csrc_industry_snapshot.json` = 单一 as-of 2026-09-21
+> 的 84 证监会行业 × 5,555 股成员映射（NON-PIT）；全仓库无动态 sector 指标。
 
 ## 0. 定位与核心问题
 
@@ -16,7 +24,7 @@
 
 | | 后续真恢复 | 后续无恢复 |
 |---|---|---|
-| **ADD** | 抓住恢复 | **False ADD**（二次 drawdown/再 REDUCE/资本重套/交易成本/terminal failure） |
+| **ADD** | 抓住恢复 | **False ADD**（二次 drawdown/资本重套/交易成本/terminal failure） |
 | **不 ADD / 延迟** | **Missed Recovery**（少赚） | 正确规避 |
 
 **目标命题（待检验，非结论）**：在 REDUCE 后，单日强反弹本身不是充分的资本再扩张条件；
@@ -31,233 +39,253 @@
 3. **T7A / T7B 分离**：第一轮只做 **WHEN to re-expand（timing）**，不做 HOW MUCH（sizing）。
    全程固定 `direct_chase | P2_balanced` 为 reference cell（与 T6 一致）。
 4. **Policy Lock**：T7.0–T7.4 禁止改动 T5 operator（源码 diff 必须为空）；T7.5 只在
-   counterfactual 层模拟 ADD 决策变体，不回写任何生产规则。真正修改 Policy V1 不属于
-   T7——T7 交付的是 frontier 证据，改规则是之后的独立决策。
+   counterfactual 层模拟 ADD 决策变体，不回写任何生产规则。
 
-## 2. 阶段总览
+## 2. 阶段总览与段使用协议（v2 新增：derive/validate 分离链）
 
-| 阶段 | 内容 | 性质 | 冻结产物目录 |
-|---|---|---|---|
-| T7.0 | Contract + Post-REDUCE Fact Layer（含 sector PIT 审计） | 数据/契约 | `output/research/t7/00_path_factlayer/` |
-| T7.1 | Path Anatomy（trajectory 描述性分层） | 研究 | `01_path_anatomy/` |
-| T7.2 | Hot-Bounce × Volume × Turnover 正交分层（H7-A 检验） | 研究 | `02_hotbounce/` |
-| T7.3 | Recovery Separator + Market/Sector Context（H7-B） | 研究 | `03_separator/` |
-| T7.4 | F6 预注册拆解（taxonomy 先冻结） | 研究 | `04_f6_decomposition/` |
-| T7.5 | ADD Policy Counterfactual（四 family + frontier） | 决策分析 | `05_policy_counterfactual/` |
-| T7.6 | Synthesis（aggregation-only，同 T6.5 模式） | 综合 | `05_synthesis/ → 06_synthesis/` |
+```
+T7.0  Contract + Fact Layer（三层物理隔离；全段构建，无 outcome 分析）
+  ↓
+T7.1  Path Anatomy（全段描述性；不产生任何 separator/repair candidate）
+  ↓
+T7.2  Hot-Bounce Structure          ┐ DEV ONLY（discovery）
+T7.3a Separator / Repair Candidate  ┘ Holm 幸存结构 → candidate 冻结清单
+  ↓
+【Policy Amendment Freeze】C1/C2/D veto/ Delay N/全部阈值写死（contract 增补 commit）
+  ↓
+T7.3b VAL 首次验证 → CONF 二次确认（验证冻结 candidate，不参与定义）
+  ↓
+T7.4  F6 预注册拆解（独立预注册；taxonomy 在读 F6 outcome 前冻结；全段报告）
+  ↓
+T7.5  Policy Counterfactual（Current/Delay/Repair/Veto；DEV 报告 + VAL/CONF primary）
+  ↓
+T7.6  Synthesis（aggregation-only）
+```
 
-每阶段流程沿用 T6 纪律：code → products → Gate → report → 独立审计 → freeze commit；
-下一阶段只读上一冻结阶段。报告数字只从 report_data.json；claim 必须有 CI+Holm。
+**段使用铁律**：T7.2/T7.3a 只用 development；VAL/CONF 在 Policy Amendment Freeze 之前
+**不得以任何形式参与 candidate 选择**（G-Policy Derivation Isolation 强制）。T7.5 C-family
+是 **derived policy**（非 preregistered policy），报告必须如此标注。
 
 ## 3. T7.0 Contract + Post-REDUCE Fact Layer
 
 ### 3.1 Anchor 定义（与 T6.2 严格兼容）
 
-- **R0** = 有效 REDUCE 日（连续 REDUCE 前移合并，同 T6.2 contract `recycling` 定义——
-  保证 T7 anchor 集与 T6.2 cycle 集逐位一致，G8 守恒沿用）。
-- 观察窗：R+1 … R+40（有效观察日；censored 右截断如实标记）。
+- **R0** = 有效 REDUCE 日（连续 REDUCE 前移合并，同 T6.2 contract `recycling` 定义——anchor
+  集与 T6.2 cycle 集逐位一致，G8 守恒沿用）。
 - 研究单元：`(event_id, R0)`。**不要求 A0 存在**（无恢复路径同样是被研究对象）。
 
-### 3.2 产物 schema
+### 3.2 产物 schema：三层物理隔离（v2 核心结构修改）
 
-**`t7_0_path_master.parquet`（long）**：`event_id, stock_code, T0_date, segment, E_class,
-r0_day, day_offset(R+1..R+40), price_log, ret_1d_log, volume_ratio, turnover_load,
-efficiency_signed_3, drawdown_from_peak_log, dist_ref20, mkt_breadth_5d, mkt_new_high_20d,
-sector_*（若 §3.4 通过）, resolution_state, censored`。
+```
+t7_0_path_fact.parquet        纯 PIT daily facts（R+1..R+40 窗口内的逐日行情/状态）
+        ↓（只读）
+t7_0_anchor_features.parquet  只含截至各 decision checkpoint 已知的 trajectory features
+        ↓（研究阶段 join 使用）
+t7_0_outcomes.parquet         H5/H10/H20 ret、MFE/MAE、terminal failure、false_recovery
+                              （继承 T6.3-R1 冻结口径）、cycle type、再 REDUCE/EXIT 时点
+```
 
-**`t7_0_anchor_master.parquet`（宽）**：每 (event_id, R0) 一行的预注册 trajectory 摘要
-（全部 decision-time，见 §3.3）+ 结局（H5/H10/H20 ret、MFE/MAE after R0、再 REDUCE 日、
-EXIT 日、terminal failure、A0 日（若存在）、cycle type、false_recovery（继承 T6.3-R1 冻结
-trigger 口径））。
+**硬规则**：feature builder 代码路径**永不 import / 读取 outcome 表**（gate 扫描 import 与
+数据依赖图）；outcome builder 可读 path_fact（计算结局）但不产 feature。这比依赖 accessor
+纪律更安全——结构天然阻止未来信息进入 feature 侧。
 
-**`t7_contract.json`**：全部预注册（thresholds/path_vars/bins/taxonomy/policy_defs/
-statistics_prereg/claim_rules）——T7.0 冻结后与 T6 contract 同等不可变。
+### 3.3 两个 horizon 的分离（v2 新增）
 
-### 3.3 Trajectory 变量预注册清单（snapshot → trajectory 是 T7 与 T6 的本质差异）
+- **Decision horizon**：primary decision checkpoints 冻结为 **R+1 / R+2 / R+3 / R+5**——
+  只有这些 checkpoint 的 trajectory 信息可进入 primary ADD decision rule derivation
+  （含 T7.2 分层与 C-family 条件）。R+10 及以后仅用于 outcome / path description。
+- **Outcome observation horizon**：R+40（冻结）。不为其覆盖 terminal failure 长尾而拉长。
 
-全部以"截至 R+k 的窗口"定义，decision-time 可得（G-No Future Feature 的检查锚点）：
+trajectory 变量（全部 decision-time，在 anchor_features 落盘时逐列带 `decision_checkpoint`
+元数据标注）：
 
-| 组 | 变量（候选名） | 定义要点 |
+| 组 | 变量 | 定义要点 |
 |---|---|---|
-| 反弹 | `bounce_ret_Rk`, `max_bounce_Rk`, `consec_up_days_Rk` | R0→R+k 收益 / 窗口内最大反弹 / 连续上涨天数 |
-| 量能 | `volume_ratio_Rk`（vs 预注册基准窗 R-20..R-1 均量）, `vol_decay_Rk`（首日放量后 2-3 日量比衰减）, `consec_shrink_days_Rk` | 缩量/放量/持续性 |
-| 换手 | `turnover_traj_Rk`（高→快速回落 vs 持续高位，预注册斜率/水平二元刻画） | T6.3 签名的动态化 |
-| 效率 | `eff_traj_Rk`（瞬间转正 vs 连续改善：R+1..R+k 内 efficiency>0 的天数占比） | |
-| 修复 | `dd_repair_ratio_Rk` =（R0 后低点起的恢复幅度）/（R0 前恶化幅度）；`ref20_repair_Rk` = dist_ref20 回正程度 | **定义在此冻结，禁止看结果后调** |
-| 新高 | `new_high_after_R0`（是否创 R0 前峰值新高） | 价格持续性 |
+| 反弹 | `max_bounce_Rk`（k∈{1,2,3,5}）, `consec_up_days_Rk` | R0→R+k 窗口内最大反弹 / 连续上涨天数 |
+| 量能 | `volume_ratio_Rk`（vs 预注册基准窗 R-20..R-1 均量）, `vol_decay_Rk`, `consec_shrink_days_Rk` | 缩量/放量/衰减速度 |
+| 换手 | `turnover_level_Rk`, `turnover_traj`（水平×斜率二元刻画） | T6.3 签名的动态化 |
+| 效率 | `eff_pos_share_Rk`（R+1..R+k 内 efficiency>0 天数占比） | 瞬间转正 vs 连续改善 |
+| 修复 | `dd_repair_ratio_Rk`, `ref20_repair_Rk` | 结构修复度量，定义冻结禁止后调 |
+| 新高 | `new_high_after_R0_Rk` | 价格持续性 |
 
-### 3.4 Sector PIT 审计（T7.0 Step 0，独立子任务）
+### 3.4 Sector：路线 A 拍板——QUASI-PIT exploratory sidecar（永久隔离）
 
-实测现状：行业成员映射仅单一 NON-PIT 快照；无动态 sector 指标。两条路线，**T7.0 contract
-冻结时由用户拍板**：
+- 构造：日线 × 行业映射聚合出 sector_breadth / sector_relative_strength / sector_turnover
+  日级指标；标注 **QUASI-PIT**（成员集=2026-09-21 回溯映射，含 survivor/reclassification
+  偏差），存独立 `t7_0_sector_sidecar.parquet`（物理上不与 primary 表同文件）。
+- 用途：T7.3 conditional 分层与描述，**EXPLORATORY 强制**；primary 主线（Stock PIT + Market
+  PIT）零 sector 引用。
+- **C/D family 禁止引用任何 sector variable**（即使 T7.3 sector 结果极强）——sector 只能生成
+  "值得未来获得真正 PIT sector history 后重新验证"的 exploratory claim。
 
-- **路线 A（推荐）**：用日线 × 行业映射自行构造 sector 日级指标（sector_breadth /
-  sector_relative_strength / sector_turnover），标注 **QUASI-PIT**（成员集含回溯归属偏差：
-  2026-09-21 映射回溯应用到全期）。用途限制：T7.3 条件分层 + 描述，**EXPLORATORY 强制**，
-  永不进入 primary 结论或规则层（沿用 T6 G9 sector 隔离 gate）。
-- **路线 B**：若用户认定回溯偏差不可接受，T7 维持 T6 的 UNAVAILABLE 边界，T7.3 只做
-  market context。
+### 3.5 T7.0 其余任务
 
-### 3.5 T7.0 Gate 增量
+- **True Recovery / False ADD 结构性定义审计**（唯一遗留开放项，§14）：目标=尽可能继承
+  T6 frozen semantics（dist_ref20 / dd repair / severe_dd_depth_log / T6.3-R1 trigger 口径），
+  不重新发明 label；审计产出进 contract 后冻结。
+- Gate 增量：G8 守恒（anchor 集==T6.2 cycle 集；三表行数守恒）；**G-Feature/Outcome 隔离**
+  （feature builder 依赖图扫描）；G-No Future Feature 首检（cutoff 参数化 accessor，越界
+  raise；抽查重放）；沿用 T6 G1-G11。
 
-- G8 守恒：anchor 集 == T6.2 cycle 集（R0 定义一致）；path_master 行数 == anchor×观察窗
-  内有效日数。
-- G-No Future Feature 首检：每个特征列必须由 cutoff 参数化的 accessor 生成（读 >cutoff
-  数据 raise）；gate 抽查若干 (anchor, k) 用真实未来数据重放必须报错/失配。
-- 沿用 T6 G1-G11 全框架（lineage/不可变/预注册/no-tuning/统计完整性/重放/anti-story）。
-
-## 4. T7.1 Path Anatomy（描述性）
+## 4. T7.1 Path Anatomy（全段描述性）
 
 按结局三组（true recovery / false recovery / no recovery，口径继承 T6.3-R1 冻结定义）对比
-§3.3 trajectory 变量分布：median level CI + 组间 diff CI（cluster bootstrap
-{stock_code, T0_date}，Holm within family；val+conf primary，dev reference）。
-产出：trajectory 变量的"哪些组间在双段分离"基线表——为 T7.2/T7.3 提供描述性基础，
-**不产生 separator 主张**。
+trajectory 变量分布：median level CI + 组间 diff CI（cluster bootstrap {stock_code, T0_date}，
+Holm within family；DEV/VAL/CONF 三段同表呈现）。**明确不产生 separator/repair candidate**
+（candidate 只能出自 T7.2/T7.3a 的 DEV discovery）——本阶段是 trajectory 版描述基线。
 
-## 5. T7.2 Hot-Bounce × Volume × Turnover 正交分层（H7-A 检验）
+## 5. T7.2 Hot-Bounce Structure（DEV ONLY）
 
 - **H7-A（预注册假设）**：REDUCE 后的大幅反弹 + 放量 + 高换手组合不是可靠的 repair
   confirmation（与后续更差路径相联系）。
-- 分层维度三分（各 3 档）：反弹幅度（bounce_ret_R5）× 量能（volume_ratio）× 换手
-  （turnover）→ 27 cells。**bin 边界来自 development 段分位数（tertile），冻结于
-  contract；val/conf 仅应用**——G-No Threshold Search 的正面满足（无搜索）。
-- 每 cell 报告：H5/H10/H20 ret、MFE/MAE after R0、再 REDUCE 率、EXIT 率、terminal
-  failure 率、recovery persistence（H10 后回撤不破 R0 低点的比例）、capital efficiency。
-- 关键 cell 预注册对比（Holm family）："强反弹+缩量" vs "强反弹+放量" vs "强反弹+放量+
-  高换手"（即用户经验规则的统计结构检验——**检验它，不是采纳它**）。
-- 明确措辞纪律：所有结论为 conditional association，不写"主力出货"等不可观测机制语言。
+- 分层三维**共用同一 decision clock**（v2 写死，禁漂移）：
+  - `bounce = max_bounce_R5`（R+1..R+5 窗口最大反弹）
+  - `volume = volume_ratio at the max-bounce day`（最大反弹当日的量比）
+  - `turnover = turnover_load at the same max-bounce day`（同日换手）
+  三维各按 development 段三分位分 bin（边界冻结于 contract；VAL/CONF 仅应用）。
+- 每 cell 报告（DEV）：H5/H10/H20、MFE/MAE after R0、再 REDUCE 率、EXIT 率、terminal
+  failure 率、recovery persistence、capital efficiency。
+- 预注册 cell 对比（Holm family，DEV only）："强反弹+缩量" vs "强反弹+放量" vs "强反弹+
+  放量+高换手"——检验用户经验规则的统计结构。
+- 措辞纪律：conditional association；禁"主力出货"等不可观测机制语言。
 
-## 6. T7.3 Recovery Separator + Market/Sector Context（H7-B）
+## 6. T7.3 Separator / Repair Candidate（DEV-only discovery → freeze → VAL/CONF 验证）
 
-- **H7-B（预注册假设）**：热反弹中混合两类终局——新资金接力（后续持续上涨）与原资金
-  利用反弹退出（后续再恶化）；T7 研究的是**这两类终局能否从可观测量价轨迹进一步分离**，
-  不声称能观测"主力"。
-- 方法：conditional on 热反弹 cell（T7.2 的强+放+高换手），检验 §3.3 持续性变量
-  （价格持续性/量能持续性/换手轨迹/效率轨迹/repair completeness）对后续结局的分离度
-  （level CI + diff CI + Holm）。**association-not-prediction 措辞强制**（claim 规则 §11）。
-- Market context：复用 T6.4 冻结的 M_STRONG/M_NEUTRAL/M_WEAK（不重定义），检验同签名
-  条件下市场层是否修正 trajectory 分离度（描述性 + 交互仅在有预注册对比时检验）。
-- Sector context（仅当 §3.4 路线 A 通过）：**同一热反弹，板块同步修复 vs 个股独立反弹**
-  的结局差——QUASI-PIT + EXPLORATORY 强制，Gate 沿用 sector 隔离（primary 块零 sector）。
+- **H7-B（预注册假设）**：热反弹混合两类终局——新资金接力（持续上涨）与原资金反弹退出
+  （再恶化）；研究问题是两类终局**能否从可观测量价轨迹分离**，不声称观测"主力"。
+- **T7.3a（DEV only）**：conditional on 热反弹 cell，检验 §3.3 持续性变量对后续结局的分离度
+  （level CI + diff CI + Holm）。产出 **candidate 冻结清单**（separator candidates + repair
+  confirmation candidates，含全部阈值）。
+- **【Policy Amendment Freeze】**：T7.3a（及 T7.4 前）结束后的 contract 增补 commit，完整
+  写死 C1/C2 condition、D veto 条件、Delay N、全部阈值；此 freeze 前 VAL/CONF 数据不得
+  参与任何 candidate 选择。
+- **T7.3b（VAL → CONF）**：对冻结 candidate 做第一次/第二次验证（同统计框架，只验证不修改；
+  若 VAL 失败，candidate 记 NOT_VALIDATED，不得回 DEV 重选后再用同一 VAL——避免序贯 peeking）。
+- Market context：复用 T6.4 冻结 M_STRONG/M_NEUTRAL/M_WEAK（不重定义）。
+- Sector sidecar（EXPLORATORY）：同一热反弹，板块同步修复 vs 个股独立反弹的结局差——
+  QUASI-PIT 标注 + G-sector 隔离（primary 块零 sector）。
 
-## 7. T7.4 F6 预注册拆解
+## 7. T7.4 F6 预注册拆解（独立预注册）
 
-- **G-F6 Lock**：taxonomy JSON 于读取任何 F6 outcome 分布**之前**冻结进 contract commit
-  （sha256 + 时序由 gate 校验）。候选方向（仅为 taxonomy 候选，不是结论）：持续缓慢恶化 /
-  反复 REDUCE↔ADD / 热反弹后失败 / 无明显信号突然破坏 / 长期高暴露滞留。
-- taxonomy 设计输入 = T6 已知现象（C303/C306）+ T7.0-T7.3 冻结变量体系；分类器为首中
-  判定（同 T6.3 F1-F6 纪律），残差类保留（F6'），**禁止看分布后拆残差**。
-- 产出：F6 → 预注册子类的分布 + 子类 × 结局关联（val/conf 分离，cluster bootstrap）。
+- **taxonomy 冻结五类，不增删**（用户拍板）：持续缓慢恶化 / 反复 REDUCE↔ADD / 热反弹后失败 /
+  无明显信号突然破坏 / 长期高暴露滞留 + **mandatory residual F6'**（不要求 100% 覆盖，
+  F6'=40% 也可接受——比强行解释所有失败更好的纪律）。
+- **G-F6 Lock**：taxonomy JSON 于读取任何 F6 outcome 分布之前冻结进 contract commit（sha256
+  + 时序 gate 校验）。分类器首中判定（同 T6.3 纪律），禁止看分布后拆残差。
+- 全段报告（F6 拆解不参与 policy derivation，无 reuse 风险）。
 
 ## 8. T7.5 ADD Policy Counterfactual（唯一触碰 policy 的阶段）
 
-### 8.1 四个 policy family（全部预注册）
+### 8.1 四个 policy family
 
-| Family | 定义 | 回答 |
+| Family | 定义 | 性质 |
 |---|---|---|
 | **A Current** | 冻结 T5 当前 ADD 规则原样 | benchmark |
-| **B Delay** | 出现 ADD 信号 → 延迟 N 日（N∈{1,2,3,5} 全部报告成曲线，primary 对比预注册 N=3；不挑最优） | 单纯多等有没有价值 |
-| **C Repair confirmation** | ADD eligibility + 持续修复证据；**具体判据在 T7.2/T7.3 冻结后、T7.5 开工前的 contract 增补中预注册**（从预注册胜出结构推导，非临时挑指标） | 确认机制值多少 |
-| **D Hot-bounce veto** | 原规则允许 ADD 时，若命中"强反弹+放量+高换手"（T7.2 冻结 cell 定义）→ 禁止/延迟 ADD | 用户经验规则的正式检验 |
+| **B Delay** | ADD 信号 → 延迟 N=3 有效交易日（primary）；N∈{1,2,3,5} 全报 curve | preregistered |
+| **C Repair confirmation** | ADD eligibility + 持续修复证据（条件=Policy Amendment Freeze 写死） | **derived policy**（DEV-only 推导，报告强制标注） |
+| **D Hot-bounce veto** | 原规则允许 ADD 时命中"强反弹+放量+高换手"（T7.2 冻结 cell）→ 禁止/延迟 ADD | preregistered（cell 定义 DEV 冻结） |
 
-### 8.2 预注册错误成本定义（contract 冻结，三选一由 T7.0 定稿）
+C/D 均禁引 sector variable（§3.4）。
 
-- **False ADD**（候选口径）：ADD 后 W_fa=10 有效观察日内发生 再次 REDUCE / EXIT /
-  episode abs_mdd 触 severe 之一；成本 = 该 ADD 起至下次 REDUCE/EXIT/窗口末的 ret。
-- **Missed Recovery**（候选口径）：策略未 ADD 但该 cycle 在窗口内达到真恢复标准
-  （候选：H20 from R0 ≥ development 段 RECOVERED cycle 的中位 H20；或 dist_ref20 回正
-  且未再 REDUCE）；成本 = 少赚的 ret。
-- W_fa 与真恢复标准**禁止网格搜索**，用 development 段一次定标后冻结。
+### 8.2 错误成本定义（outcome-based，v2 重写）
 
-### 8.3 指标四组（每 policy × 每 segment）
+- **False ADD（primary，outcome-based）**：ADD 后 **W_fa=10** 有效观察日内，路径未达到
+  True Recovery criterion 且发生预注册 adverse excursion（MAE 门槛，承 T6 severe 语义）。
+  **再次 REDUCE / EXIT 只作 secondary diagnostic**——它们是 policy 自身行为，进入 primary
+  定义会造成策略自引用。
+- **Missed Recovery（primary，结构性定义）**：策略未 ADD（veto/delay 错过）但该 cycle 达到
+  True Recovery criterion——**结构性恢复语义**（价格重新站上 pre-R0 reference + 持续 K 日
+  不重新跌破；或 dd_repair_ratio ≥ X + ref20 repair + 后续 N 日无再破坏；阈值 DEV-only
+  一次定标后冻结），**不用 RECOVERED 样本 outcome 分位动态定标**（循环定义）。
+- True Recovery / False ADD 的精确结构定义 = T7.0 定义审计产出（继承 T6 frozen semantics，
+  §3.5/§14）。secondary report：W5 / W20。
+- 成本度量：False ADD loss = 该 ADD 起至窗口内 adverse excursion 的幅度；Missed Recovery
+  upside = 错过的 recovery 段收益。
+
+### 8.3 指标四组（每 policy × 每 segment；v2：capital efficiency 独立 side panel）
 
 收益获取：terminal return / MFE captured / recovery upside captured；
 风险：MDD / MAE after ADD / severe failure / terminal failure；
-资本效率：average exposure / exposure-days / return per exposure-day / capital released days；
+**资本效率（frontier side panel）**：average exposure / exposure-days / capital released days /
+return per exposure-day——允许"收益略低但 false-ADD 与资本占用双降"的策略形态被看见；
 错误成本：False ADD rate & loss / Missed Recovery rate & upside。
 
 ### 8.4 Counterfactual 守恒（G-Counterfactual Conservation）
 
-复用 T5.8 生命周期模拟器（只读 import）：所有 policy variant 在**同一 universe、同一 T0、
-同一 entry、同一 price clock、同一 transaction cost** 下重放，唯一差异 = ADD 触发判定。
-Gate 机制：各 variant 的 pre-ADD 逐日状态序列必须逐位一致（分歧只允许出现在 ADD 决策
-差异之后）；RNG 用同 SeedSequence 子流（policy 维度入 enums）。
+复用 T5.8 生命周期模拟器（只读 import）：同一 universe / T0 / entry / price clock /
+transaction cost，唯一差异 = ADD 触发判定。Gate：各 variant 的 pre-ADD 逐日状态序列逐位
+一致（分歧只允许出现在 ADD 决策差异之后）；RNG 同 SeedSequence 子流。
 
 ### 8.5 统计与呈现
 
-- 配对结构：同 cycle 在两 policy 下的结果做 **matched within-cycle diff**，cluster
-  bootstrap {stock_code, T0_date} + Holm within family。
-- **Policy frontier**（核心交付）：x=recovery upside captured，y=false-ADD 风险
-  （rate/loss），四 family 的点 + CI 椭圆——回答"为减少一次 false ADD 要放弃多少真实
-  recovery"。**禁止单轴收益排名**（不排冠军，claim 规则强制双轴）。
+- **matched within-cycle diff，措辞冻结（v2）**：两 policy 首次 ADD 决策不同后 exposure path
+  已分叉，后继不共享 treatment history——统计解释为**"同一 cycle 下完整 policy path 的
+  paired counterfactual difference"**，不是"某一次 ADD 的局部 treatment effect"。此句写入
+  contract 措辞要求。
+- cluster bootstrap {stock_code, T0_date} + Holm within family；DEV 报告 + VAL/CONF primary。
+- **Policy frontier（核心交付）**：primary 二维（x=recovery upside captured，y=false-ADD
+  risk）+ capital efficiency side panel；四 family 点 + CI。**禁止单轴排名**（claim 双轴强制）。
 
 ## 9. T7.6 Synthesis
 
-同 T6.5 模式：aggregation-only（G14 同款断言）、引用完整性（claims + decision_mapping
-cites 必须落冻结 registry）、三类开放边界延续（separator 若仍未找到 / F6' 残差 /
-sector QUASI-PIT 限制）+ T7 新增边界（counterfactual 的模型假设边界：无滑点变化、
-同 price clock）。
+同 T6.5 模式：aggregation-only、引用完整性（claims + decision_mapping cites 落冻结 registry）、
+开放边界如实清单（separator 若未通过验证 / F6' 残差占比 / sector QUASI-PIT / counterfactual
+模型假设边界：同 price clock、无滑点变化）。
 
 ## 10. Gate 体系汇总
 
-**沿用 T6 G1-G11 全框架**（lineage sha256 / 上游不可变 / outcome 分离 / segment 隔离 /
-预注册+符号+引用+语义 / no-tuning / 守恒 / 统计完整性+NaN 一致性 / 独立重算 / SeedSequence
-重放 / anti-story + 跨阶段 registry）。**新增五硬 Gate**：
+沿用 T6 G1-G11 全框架，**新增六硬 Gate**：
 
 | Gate | 检查机制 |
 |---|---|
-| **G-Policy Lock** | T7.0–T7.4：`git diff <t5_freeze> -- src/ operators 相关路径` 为空；T7.5：counterfactual 模块对 T5 代码 import-only（写操作扫描） |
-| **G-No Threshold Search** | T6 G7 扩展：禁止数值网格循环；所有 bin/阈值旁的字面量必须出现在 contract 文本（0/1 豁免沿用）；分位边界必须标注 development-only 计算路径 |
-| **G-No Future Feature** | 特征 accessor 强制 (df, cutoff) 签名，读越界 raise；gate 抽查若干 (anchor,k) 用 +1 日 cutoff 重放必须失配；path_master 每特征带 decision_offset 元数据 |
-| **G-F6 Lock** | taxonomy sha256 与首份 F6 outcome 产物的创建时序校验（contract commit 早于读取）；taxonomy 文本 diff 为空 |
-| **G-Counterfactual Conservation** | 各 policy variant pre-ADD 状态序列逐位一致重放比对 + universe/T0/entry/cost 五同断言 |
+| **G-Policy Lock** | T7.0–T7.4：operator 相关源码 diff 为空；T7.5：counterfactual 模块对 T5 import-only |
+| **G-No Threshold Search** | 禁数值网格；bin/阈值字面量必须溯源 contract；分位边界标注 development-only 计算路径 |
+| **G-No Future Feature** | 三层物理隔离（feature builder 依赖图扫描，永不读 outcome 表）+ cutoff 参数化 accessor 越界 raise + 抽查重放 + 逐列 decision_checkpoint 元数据 |
+| **G-F6 Lock** | taxonomy sha256 创建时序校验（contract commit 早于任何 F6 outcome 读取） |
+| **G-Counterfactual Conservation** | 各 variant pre-ADD 状态序列逐位一致重放 + 五同断言 |
+| **G-Policy Derivation Isolation**（v2 新增） | T7.2/T7.3a 产物只含 DEV 段数据（segment 字段全量断言）；Policy Amendment Freeze 的 sha256 时序早于任何 VAL/CONF 验证产物；C-family 报告强制 derived-policy 标注 |
 
 ## 11. Claim Registry 规则（C7xx，enum 沿用 T6 五值）
 
-新增四条强制规则（其余沿用 T6 claim_rules）：
-
-1. **Association-not-prediction**：separator 类 claim 措辞必须为"X 与后续路径相联系"，
-   禁止"X 预测/识别真假恢复"。
-2. **双轴强制**：policy 类 claim 必须同时报 false-ADD 轴与 missed-recovery 轴坐标，
-   禁止单轴（收益或风险）表述。
-3. **Sector QUASI-PIT 隔离**：涉 sector 的 claim 一律 EXPLORATORY + 成员映射回溯偏差
-   显式标注（不可分析 ≠ 无效应 的 T6 教训延续）。
-4. **Counterfactual 边界**：T7.5 结论必须带"同 price clock/同 cost 假设下"限定词，
-   不外推到执行层改善。
+1. **Association-not-prediction**：separator 类 claim 必须"X 与后续路径相联系"，禁"预测/识别"。
+2. **双轴强制**：policy 类 claim 必须同报 false-ADD 轴与 missed-recovery 轴，禁单轴。
+3. **Derived-policy 标注**：C-family 相关 claim 必须标注 "derived policy (DEV-only derivation,
+   Policy Amendment Freeze <commit_sha>)"。
+4. **Sector QUASI-PIT 隔离**：涉 sector claim 一律 EXPLORATORY + 回溯偏差显式标注。
+5. **Counterfactual 边界**：T7.5 结论必须带"同 price clock/同 cost 假设下"限定。
 
 ## 12. 统计规范
 
-沿用 `src/t6/stats.py`（将迁移/引用为共享模块，不改语义——迁移本身过 G10 重放验证）：
-B=2000、seed 派生 SeedSequence 子流（T7 各阶段定义自己的 enums 并在 contract 登记）、
-percentile CI、Holm within family、双 cluster {stock_code, T0_date}、val+conf primary /
-dev reference。新增：matched within-cycle diff（T7.5 配对 bootstrap）；delay 曲线为
-描述性全家族（N∈{1,2,3,5} 全报）。
+沿用 `src/t6/stats.py`（迁移为共享模块不改语义，迁移过 G10 重放验证）：B=2000、SeedSequence
+子流（T7 各阶段 enums 登记 contract）、percentile CI、Holm within family、双 cluster
+{stock_code, T0_date}。**段协议按 §2**：T7.2/T7.3a=DEV only；T7.3b=VAL→CONF；T7.5=DEV 报告
++VAL/CONF primary；T7.1/T7.4=全段描述。新增：matched within-cycle paired counterfactual
+diff（T7.5）；delay 曲线全家族描述（N∈{1,2,3,5}）。
 
 ## 13. 冻结顺序与审计流程
 
-```
-T7.0 contract+factlayer → 用户审计 → freeze commit
-  ↓ （每阶段：code→products→gate→report→审计→freeze commit；只读上游冻结）
-T7.1 → T7.2 → T7.3 → T7.4 → T7.5 → T7.6
-```
+每阶段：code → products → gate → report → 独立审计 → freeze commit；只读上游冻结；T6 全链
+sha 校验不变。特殊冻结点：**Policy Amendment Freeze**（T7.3a 后、T7.3b 前的 contract 增补
+commit，用户审计确认后才可进入 VAL/CONF 验证）。
 
-- commit 推 github main；output/research/t7 产物 `git add -f`（小 json/parquet 入库，
-  大 parquet 只入 manifest sha）。
-- 用户为每阶段唯一审计者；审计可要求 R1（解释层修正优先，统计重跑仅限计算 bug）。
-- T6 全链保持只读——任何 T7 阶段 gate 都会校验 T6 冻结产物 sha 未变。
+## 14. 决策点状态（v2：除一项外全部拍板冻结）
 
-## 14. 待用户在 T7.0 contract 冻结时拍板的开放决策点
-
-1. **观察窗长度**：R+40（本方案默认）是否够（terminal failure 的长尾可能超出）。
-2. **W_fa（False ADD 窗口）与真恢复标准**：§8.2 三候选中选定（development 一次定标）。
-3. **Delay primary N**：默认 N=3，可改（一次定，不搜索）。
-4. **Sector 路线 A/B**：QUASI-PIT 构造 + EXPLORATORY，或维持 UNAVAILABLE。
-5. **F6 taxonomy 候选清单**：§7 五方向是否增删（冻结前最后机会）。
-6. **C family repair 判据的推导来源**：限定为 T7.2/T7.3 预注册对比中 Holm 幸存的
-   结构（contract 增补时点冻结）。
+| 决策 | 冻结值 |
+|---|---|
+| Observation horizon | R+40 |
+| Primary decision checkpoints | R+1 / R+2 / R+3 / R+5（R+10+ 仅 outcome/description） |
+| False ADD window | W10 primary（W5/W20 secondary report） |
+| False ADD 定义性质 | outcome-based（再 REDUCE/EXIT 仅 secondary diagnostic） |
+| Delay primary | N=3（N∈{1,2,3,5} curve 全报） |
+| Sector | 路线 A：QUASI-PIT sidecar，EXPLORATORY 永久隔离，C/D 禁引 |
+| F6 taxonomy | 五类冻结不增删 + mandatory residual F6' |
+| C-family 来源 | DEV-only discovery → Policy Amendment Freeze → VAL/CONF 验证（derived policy） |
+| Hot-bounce 三维 clock | max_bounce_R5 + 同一 max-bounce day 的 volume_ratio 与 turnover_load |
+| **True Recovery / False ADD 结构精确定义** | **唯一遗留**：T7.0 定义审计（继承 T6 frozen semantics：dist_ref20 / dd_repair / severe_dd_depth / T6.3-R1 trigger），审计产物进 contract 冻结 |
 
 ---
 
-**一句话收束**：T6 证明了"短期反弹不能证明结构修复，而假恢复路径在 REDUCE 日呈现更热
-的短期签名"（条件关联）；T7 把这个知识变成决策问题——**为了减少一次 false ADD，愿意
-放弃多少真实 recovery upside**——并用预注册的 counterfactual frontier 回答它。
+**一句话收束**：T6 证明了"短期反弹不能证明结构修复，而假恢复路径在 REDUCE 日呈现更热的
+短期签名"（条件关联）；T7 把这个知识变成决策问题——**为了减少一次 false ADD，愿意放弃
+多少真实 recovery upside**——并在 feature/outcome 物理隔离、DEV-only 推导、outcome-based
+错误定义、counterfactual 守恒的纪律下用预注册 frontier 回答它。
