@@ -1,0 +1,1675 @@
+{
+  "stage": "t6_2",
+  "contract_sha256": "b307c430edfeafd0ff6cbccb58f0bbc60e04c45ea9e5871b1b15264ad2c98add",
+  "reference_cell": {
+    "strategy": "direct_chase",
+    "policy": "P2_balanced"
+  },
+  "statistics_used": {
+    "B": 2000,
+    "seed": 20260925,
+    "ci": "percentile 2.5/97.5",
+    "clusters": [
+      "stock_code",
+      "T0_date"
+    ],
+    "holm": "Holm within each test family",
+    "rng": "SeedSequence substreams via t6.stats.make_rng_factory"
+  },
+  "metric_defs": {
+    "R0": "last RESOLVED_REDUCE day before any ADD (repeated REDUCE moves R0, contract rule)",
+    "A0": "first RESOLVED_ADD day after R0 in same lifecycle",
+    "det_X": "X@R0 - mean(X over R0-5..R0-1 valid rows) — deterioration at reduce",
+    "rep_X": "X@A0 - X@R0 — repair between reduce and re-add (RECOVERED_ADD only; NaN otherwise)",
+    "bh_R0_Hh": "cum_ret_from_t0_log at last day with (day - R0) >= h, minus value at R0 — buy&hold path from R0 (PIT prefix stat); NaN if no such day",
+    "censored_cyc": "lifecycle censored (terminal_reason=MAX_HORIZON) with cycle unresolved at data end"
+  },
+  "freq": {
+    "confirmation": {
+      "CENSORED": 143,
+      "FAILED_EXIT": 3320,
+      "NO_RECOVERY": 2090,
+      "RECOVERED_ADD": 4793
+    },
+    "development": {
+      "CENSORED": 47,
+      "FAILED_EXIT": 18,
+      "NO_RECOVERY": 2158,
+      "RECOVERED_ADD": 1541
+    },
+    "validation": {
+      "CENSORED": 228,
+      "FAILED_EXIT": 0,
+      "NO_RECOVERY": 7610,
+      "RECOVERED_ADD": 9312
+    }
+  },
+  "segments": {
+    "validation": {
+      "n": 17150,
+      "role": "primary",
+      "deterioration": {
+        "RECOVERED_ADD": {
+          "drawdown_from_peak_log": {
+            "median": 0.005923111614640413,
+            "ci95_stock": [
+              0.0051780490765083445,
+              0.006485395644896745
+            ],
+            "ci95_T0": [
+              0.005102636958685289,
+              0.00661366740244336
+            ]
+          },
+          "efficiency_signed_3": {
+            "median": -0.0005289266191708924,
+            "ci95_stock": [
+              -0.0008415088023374321,
+              -0.00024051663759230222
+            ],
+            "ci95_T0": [
+              -0.0009043644153535638,
+              -0.00017185020416548652
+            ]
+          },
+          "dist_ref20": {
+            "median": 0.0,
+            "ci95_stock": [
+              -0.0006825492107265316,
+              0.000689429543023215
+            ],
+            "ci95_T0": [
+              -0.0008592705005917133,
+              0.0010638297872341946
+            ]
+          },
+          "turnover_load_3d_mean": {
+            "median": -0.03925931653828335,
+            "ci95_stock": [
+              -0.048934058579170006,
+              -0.028331923981255697
+            ],
+            "ci95_T0": [
+              -0.0482656164071126,
+              -0.02870047506395427
+            ]
+          },
+          "cum_ret_from_t0_log": {
+            "median": 0.00020227215052692066,
+            "ci95_stock": [
+              -0.00041340889448298647,
+              0.0009877301477093923
+            ],
+            "ci95_T0": [
+              -0.0006600556277800737,
+              0.0013169171291985485
+            ]
+          }
+        },
+        "FAILED_EXIT": {
+          "drawdown_from_peak_log": {
+            "median": NaN,
+            "ci95_stock": [
+              NaN,
+              NaN
+            ],
+            "ci95_T0": [
+              NaN,
+              NaN
+            ]
+          },
+          "efficiency_signed_3": {
+            "median": NaN,
+            "ci95_stock": [
+              NaN,
+              NaN
+            ],
+            "ci95_T0": [
+              NaN,
+              NaN
+            ]
+          },
+          "dist_ref20": {
+            "median": NaN,
+            "ci95_stock": [
+              NaN,
+              NaN
+            ],
+            "ci95_T0": [
+              NaN,
+              NaN
+            ]
+          },
+          "turnover_load_3d_mean": {
+            "median": NaN,
+            "ci95_stock": [
+              NaN,
+              NaN
+            ],
+            "ci95_T0": [
+              NaN,
+              NaN
+            ]
+          },
+          "cum_ret_from_t0_log": {
+            "median": NaN,
+            "ci95_stock": [
+              NaN,
+              NaN
+            ],
+            "ci95_T0": [
+              NaN,
+              NaN
+            ]
+          }
+        },
+        "NO_RECOVERY": {
+          "drawdown_from_peak_log": {
+            "median": 0.033346024106749306,
+            "ci95_stock": [
+              0.03258924687301326,
+              0.034200069780367146
+            ],
+            "ci95_T0": [
+              0.03167839411990697,
+              0.035320730597850944
+            ]
+          },
+          "efficiency_signed_3": {
+            "median": -0.006923002001281835,
+            "ci95_stock": [
+              -0.00735358979051006,
+              -0.0066623789715683085
+            ],
+            "ci95_T0": [
+              -0.00777509353109215,
+              -0.006155806943755069
+            ]
+          },
+          "dist_ref20": {
+            "median": -0.03183023171927474,
+            "ci95_stock": [
+              -0.0325989699429033,
+              -0.030899453036357365
+            ],
+            "ci95_T0": [
+              -0.03357795228748565,
+              -0.029887054735013074
+            ]
+          },
+          "turnover_load_3d_mean": {
+            "median": -0.1321413951146316,
+            "ci95_stock": [
+              -0.13950036941445543,
+              -0.12456989223107742
+            ],
+            "ci95_T0": [
+              -0.1469770627044435,
+              -0.11543038377339979
+            ]
+          },
+          "cum_ret_from_t0_log": {
+            "median": -0.0314318193816631,
+            "ci95_stock": [
+              -0.032285101080389546,
+              -0.030649424301221175
+            ],
+            "ci95_T0": [
+              -0.03337247766884316,
+              -0.029513201472332894
+            ]
+          }
+        }
+      },
+      "repair": {
+        "drawdown_from_peak_log": {
+          "RECOVERED_ADD_rep_level": {
+            "median": 0.015096736258767118,
+            "ci95": [
+              0.014457430038244061,
+              0.015683955330868422
+            ]
+          }
+        },
+        "efficiency_signed_3": {
+          "RECOVERED_ADD_rep_level": {
+            "median": -0.003875380984968347,
+            "ci95": [
+              -0.004236945394685178,
+              -0.0035394894077195854
+            ]
+          }
+        },
+        "dist_ref20": {
+          "RECOVERED_ADD_rep_level": {
+            "median": -0.015127388535031927,
+            "ci95": [
+              -0.015779092702169484,
+              -0.01449275362318847
+            ]
+          }
+        },
+        "turnover_load_3d_mean": {
+          "RECOVERED_ADD_rep_level": {
+            "median": -0.0652881186519263,
+            "ci95": [
+              -0.07305084194133508,
+              -0.05753660397622428
+            ]
+          }
+        },
+        "cum_ret_from_t0_log": {
+          "RECOVERED_ADD_rep_level": {
+            "median": -0.014789308270865041,
+            "ci95": [
+              -0.015372097659932388,
+              -0.014097299528560512
+            ]
+          }
+        },
+        "driftH5": {
+          "drawdown_from_peak_log": {
+            "RECOVERED_minus_NORECOVERY": {
+              "diff": -0.0487273659100667,
+              "ci95": [
+                -0.05732117950214023,
+                -0.030394515230420156
+              ],
+              "p_boot": 0.0
+            }
+          },
+          "efficiency_signed_3": {
+            "RECOVERED_minus_NORECOVERY": {
+              "diff": 0.00371635871159633,
+              "ci95": [
+                0.0014625787657537796,
+                0.005680863109662798
+              ],
+              "p_boot": 0.0
+            }
+          },
+          "dist_ref20": {
+            "RECOVERED_minus_NORECOVERY": {
+              "diff": 0.12395856931595828,
+              "ci95": [
+                0.10564654414776374,
+                0.14660466474756945
+              ],
+              "p_boot": 0.0
+            }
+          },
+          "turnover_load_3d_mean": {
+            "RECOVERED_minus_NORECOVERY": {
+              "diff": 0.7762953160008095,
+              "ci95": [
+                0.7019953954244036,
+                0.9817897838141488
+              ],
+              "p_boot": 0.0
+            }
+          },
+          "cum_ret_from_t0_log": {
+            "RECOVERED_minus_NORECOVERY": {
+              "diff": 0.10840580639381783,
+              "ci95": [
+                0.08954403395555507,
+                0.11807543227631301
+              ],
+              "p_boot": 0.0
+            }
+          }
+        },
+        "driftH10": {
+          "drawdown_from_peak_log": {
+            "RECOVERED_minus_NORECOVERY": {
+              "diff": -0.12504384027376964,
+              "ci95": [
+                -0.17230567535447944,
+                -0.08569509571730319
+              ],
+              "p_boot": 0.0
+            }
+          },
+          "efficiency_signed_3": {
+            "RECOVERED_minus_NORECOVERY": {
+              "diff": 0.01608489639922577,
+              "ci95": [
+                0.0048713533956159984,
+                0.034026757058968064
+              ],
+              "p_boot": 0.004
+            }
+          },
+          "dist_ref20": {
+            "RECOVERED_minus_NORECOVERY": {
+              "diff": 0.23097310362071222,
+              "ci95": [
+                0.2012552369379948,
+                0.32263689997349154
+              ],
+              "p_boot": 0.0
+            }
+          },
+          "turnover_load_3d_mean": {
+            "RECOVERED_minus_NORECOVERY": {
+              "diff": 1.6989996470216344,
+              "ci95": [
+                1.13381933746522,
+                4.3090530641938924
+              ],
+              "p_boot": 0.0
+            }
+          },
+          "cum_ret_from_t0_log": {
+            "RECOVERED_minus_NORECOVERY": {
+              "diff": 0.17689829794777184,
+              "ci95": [
+                0.16389550644066597,
+                0.255047242045543
+              ],
+              "p_boot": 0.0
+            }
+          }
+        },
+        "driftH20": {
+          "drawdown_from_peak_log": {
+            "RECOVERED_minus_NORECOVERY": {
+              "diff": NaN,
+              "ci95": [
+                NaN,
+                NaN
+              ],
+              "p_boot": 0.0
+            }
+          },
+          "efficiency_signed_3": {
+            "RECOVERED_minus_NORECOVERY": {
+              "diff": NaN,
+              "ci95": [
+                NaN,
+                NaN
+              ],
+              "p_boot": 0.0
+            }
+          },
+          "dist_ref20": {
+            "RECOVERED_minus_NORECOVERY": {
+              "diff": NaN,
+              "ci95": [
+                NaN,
+                NaN
+              ],
+              "p_boot": 0.0
+            }
+          },
+          "turnover_load_3d_mean": {
+            "RECOVERED_minus_NORECOVERY": {
+              "diff": NaN,
+              "ci95": [
+                NaN,
+                NaN
+              ],
+              "p_boot": 0.0
+            }
+          },
+          "cum_ret_from_t0_log": {
+            "RECOVERED_minus_NORECOVERY": {
+              "diff": NaN,
+              "ci95": [
+                NaN,
+                NaN
+              ],
+              "p_boot": 0.0
+            }
+          }
+        }
+      },
+      "path": {
+        "H5": {
+          "RECOVERED_ADD": {
+            "median": -0.01512316157422084,
+            "ci95": [
+              -0.017619901162132603,
+              -0.012460569123122621
+            ]
+          },
+          "FAILED_EXIT": {
+            "median": NaN,
+            "ci95": [
+              NaN,
+              NaN
+            ]
+          },
+          "NO_RECOVERY": {
+            "median": -0.12352896796803867,
+            "ci95": [
+              -0.13294942549263844,
+              -0.10543855458555129
+            ]
+          },
+          "RECOVERED_minus_NORECOVERY": {
+            "diff": 0.10840580639381783,
+            "ci95": [
+              0.08908393102700016,
+              0.11720519440676516
+            ],
+            "p_boot": 0.0
+          }
+        },
+        "H10": {
+          "RECOVERED_ADD": {
+            "median": 0.001693480506332945,
+            "ci95": [
+              -0.0014853395273831682,
+              0.00476366740616693
+            ]
+          },
+          "FAILED_EXIT": {
+            "median": NaN,
+            "ci95": [
+              NaN,
+              NaN
+            ]
+          },
+          "NO_RECOVERY": {
+            "median": -0.1752048174414389,
+            "ci95": [
+              -0.2374014368439085,
+              -0.16358168772066628
+            ]
+          },
+          "RECOVERED_minus_NORECOVERY": {
+            "diff": 0.17689829794777184,
+            "ci95": [
+              0.1646285700599177,
+              0.24708919783749722
+            ],
+            "p_boot": 0.0
+          }
+        },
+        "H20": {
+          "RECOVERED_ADD": {
+            "median": 0.06404378824259882,
+            "ci95": [
+              0.05825528128206475,
+              0.06997483812019242
+            ]
+          },
+          "FAILED_EXIT": {
+            "median": NaN,
+            "ci95": [
+              NaN,
+              NaN
+            ]
+          },
+          "NO_RECOVERY": {
+            "median": NaN,
+            "ci95": [
+              NaN,
+              NaN
+            ]
+          },
+          "RECOVERED_minus_NORECOVERY": {
+            "diff": NaN,
+            "ci95": [
+              NaN,
+              NaN
+            ],
+            "p_boot": 0.0
+          }
+        },
+        "H40": {
+          "RECOVERED_ADD": {
+            "median": 0.1824892154413422,
+            "ci95": [
+              0.15540119790948623,
+              0.2019837324922476
+            ]
+          },
+          "FAILED_EXIT": {
+            "median": NaN,
+            "ci95": [
+              NaN,
+              NaN
+            ]
+          },
+          "NO_RECOVERY": {
+            "median": NaN,
+            "ci95": [
+              NaN,
+              NaN
+            ]
+          },
+          "RECOVERED_minus_NORECOVERY": {
+            "diff": NaN,
+            "ci95": [
+              NaN,
+              NaN
+            ],
+            "p_boot": 0.0
+          }
+        }
+      },
+      "holm_adj_p": {
+        "det|RECOVERED_ADD|drawdown_from_peak_log": 0.0,
+        "det|RECOVERED_ADD|efficiency_signed_3": 0.0,
+        "det|RECOVERED_ADD|turnover_load_3d_mean": 0.0,
+        "det|NO_RECOVERY|drawdown_from_peak_log": 0.0,
+        "det|NO_RECOVERY|efficiency_signed_3": 0.0,
+        "det|NO_RECOVERY|dist_ref20": 0.0,
+        "det|NO_RECOVERY|turnover_load_3d_mean": 0.0,
+        "det|NO_RECOVERY|cum_ret_from_t0_log": 0.0,
+        "drift|H5|REC_vs_NO|drawdown_from_peak_log": 0.0,
+        "drift|H5|REC_vs_NO|efficiency_signed_3": 0.0,
+        "drift|H5|REC_vs_NO|dist_ref20": 0.0,
+        "drift|H5|REC_vs_NO|turnover_load_3d_mean": 0.0,
+        "drift|H5|REC_vs_NO|cum_ret_from_t0_log": 0.0,
+        "drift|H10|REC_vs_NO|drawdown_from_peak_log": 0.0,
+        "drift|H10|REC_vs_NO|dist_ref20": 0.0,
+        "drift|H10|REC_vs_NO|turnover_load_3d_mean": 0.0,
+        "drift|H10|REC_vs_NO|cum_ret_from_t0_log": 0.0,
+        "drift|H20|REC_vs_NO|drawdown_from_peak_log": 0.0,
+        "drift|H20|REC_vs_NO|efficiency_signed_3": 0.0,
+        "drift|H20|REC_vs_NO|dist_ref20": 0.0,
+        "drift|H20|REC_vs_NO|turnover_load_3d_mean": 0.0,
+        "drift|H20|REC_vs_NO|cum_ret_from_t0_log": 0.0,
+        "path|REC_vs_NO|H5": 0.0,
+        "path|REC_vs_NO|H10": 0.0,
+        "path|REC_vs_NO|H20": 0.0,
+        "path|REC_vs_NO|H40": 0.0,
+        "drift|H10|REC_vs_NO|efficiency_signed_3": 0.032,
+        "det|RECOVERED_ADD|dist_ref20": 1.0,
+        "det|RECOVERED_ADD|cum_ret_from_t0_log": 1.0,
+        "det|FAILED_EXIT|drawdown_from_peak_log": 1.0,
+        "det|FAILED_EXIT|efficiency_signed_3": 1.0,
+        "det|FAILED_EXIT|dist_ref20": 1.0,
+        "det|FAILED_EXIT|turnover_load_3d_mean": 1.0,
+        "det|FAILED_EXIT|cum_ret_from_t0_log": 1.0
+      }
+    },
+    "confirmation": {
+      "n": 10346,
+      "role": "primary",
+      "deterioration": {
+        "RECOVERED_ADD": {
+          "drawdown_from_peak_log": {
+            "median": 0.006844494887387066,
+            "ci95_stock": [
+              0.0055418514501316875,
+              0.008248802406259746
+            ],
+            "ci95_T0": [
+              0.005265907587842915,
+              0.008250744280323703
+            ]
+          },
+          "efficiency_signed_3": {
+            "median": -0.0010423195357634344,
+            "ci95_stock": [
+              -0.0016063327539059128,
+              -0.0005700594674098085
+            ],
+            "ci95_T0": [
+              -0.0017839144793421367,
+              -0.00024630197543434147
+            ]
+          },
+          "dist_ref20": {
+            "median": 0.001977750309023474,
+            "ci95_stock": [
+              0.0010022605879346908,
+              0.0032335847565947676
+            ],
+            "ci95_T0": [
+              0.00023887283091579423,
+              0.00387289072640723
+            ]
+          },
+          "turnover_load_3d_mean": {
+            "median": -0.03460394342229145,
+            "ci95_stock": [
+              -0.046541689841184224,
+              -0.020581428414713596
+            ],
+            "ci95_T0": [
+              -0.04852503402404728,
+              -0.01639107379060007
+            ]
+          },
+          "cum_ret_from_t0_log": {
+            "median": 0.002318960469219672,
+            "ci95_stock": [
+              0.0011981542383589076,
+              0.0033409630391924463
+            ],
+            "ci95_T0": [
+              0.0005437527359541703,
+              0.0039041032264036605
+            ]
+          }
+        },
+        "FAILED_EXIT": {
+          "drawdown_from_peak_log": {
+            "median": 0.037242463807841325,
+            "ci95_stock": [
+              0.03580620303879139,
+              0.03853132532860552
+            ],
+            "ci95_T0": [
+              0.03534836897924298,
+              0.039094700360302964
+            ]
+          },
+          "efficiency_signed_3": {
+            "median": -0.00661103910504029,
+            "ci95_stock": [
+              -0.007121604230580999,
+              -0.0059808862192514585
+            ],
+            "ci95_T0": [
+              -0.007995750673796369,
+              -0.0048030294979109316
+            ]
+          },
+          "dist_ref20": {
+            "median": -0.03483337387496952,
+            "ci95_stock": [
+              -0.036246114354043756,
+              -0.03347373224431544
+            ],
+            "ci95_T0": [
+              -0.037198517319354536,
+              -0.03287539140436788
+            ]
+          },
+          "turnover_load_3d_mean": {
+            "median": -0.13075301115437998,
+            "ci95_stock": [
+              -0.1410003180089334,
+              -0.1197267832940166
+            ],
+            "ci95_T0": [
+              -0.15239379587775004,
+              -0.10988816796434263
+            ]
+          },
+          "cum_ret_from_t0_log": {
+            "median": -0.035201727649465976,
+            "ci95_stock": [
+              -0.03666585510647751,
+              -0.03355837473172278
+            ],
+            "ci95_T0": [
+              -0.03722833744769552,
+              -0.03291837535031624
+            ]
+          }
+        },
+        "NO_RECOVERY": {
+          "drawdown_from_peak_log": {
+            "median": 0.023786603712153118,
+            "ci95_stock": [
+              0.021840586997758787,
+              0.02601354441537118
+            ],
+            "ci95_T0": [
+              0.0204134430120573,
+              0.02735657791493943
+            ]
+          },
+          "efficiency_signed_3": {
+            "median": -0.0062056263499776715,
+            "ci95_stock": [
+              -0.007067752304100459,
+              -0.005437363191129635
+            ],
+            "ci95_T0": [
+              -0.007460869655201182,
+              -0.004958685700641582
+            ]
+          },
+          "dist_ref20": {
+            "median": -0.018456557916712236,
+            "ci95_stock": [
+              -0.02097652403738185,
+              -0.016316699939503954
+            ],
+            "ci95_T0": [
+              -0.022777532037443073,
+              -0.014272649405846247
+            ]
+          },
+          "turnover_load_3d_mean": {
+            "median": -0.10907541857905712,
+            "ci95_stock": [
+              -0.12289173189417439,
+              -0.08971215180946857
+            ],
+            "ci95_T0": [
+              -0.12888871979031596,
+              -0.08360302334258456
+            ]
+          },
+          "cum_ret_from_t0_log": {
+            "median": -0.016500762944367982,
+            "ci95_stock": [
+              -0.018677981526444003,
+              -0.01439056232253962
+            ],
+            "ci95_T0": [
+              -0.019644569282931408,
+              -0.01258508588696286
+            ]
+          }
+        }
+      },
+      "repair": {
+        "drawdown_from_peak_log": {
+          "RECOVERED_ADD_rep_level": {
+            "median": 0.018301049912898014,
+            "ci95": [
+              0.017358638703828633,
+              0.019505586119248294
+            ]
+          }
+        },
+        "efficiency_signed_3": {
+          "RECOVERED_ADD_rep_level": {
+            "median": -0.0043298892743388545,
+            "ci95": [
+              -0.004904874633323219,
+              -0.003852577493832018
+            ]
+          }
+        },
+        "dist_ref20": {
+          "RECOVERED_ADD_rep_level": {
+            "median": -0.019076037077826735,
+            "ci95": [
+              -0.0201859693137686,
+              -0.017958733974358876
+            ]
+          }
+        },
+        "turnover_load_3d_mean": {
+          "RECOVERED_ADD_rep_level": {
+            "median": -0.049408874145033366,
+            "ci95": [
+              -0.06138047518597304,
+              -0.03774130342887222
+            ]
+          }
+        },
+        "cum_ret_from_t0_log": {
+          "RECOVERED_ADD_rep_level": {
+            "median": -0.018137734729435903,
+            "ci95": [
+              -0.01926074032941908,
+              -0.01723229184167599
+            ]
+          }
+        },
+        "driftH5": {
+          "drawdown_from_peak_log": {
+            "RECOVERED_minus_NORECOVERY": {
+              "diff": -0.0021543049180719476,
+              "ci95": [
+                -0.02083323308041745,
+                0.014156356345170523
+              ],
+              "p_boot": 0.74
+            }
+          },
+          "efficiency_signed_3": {
+            "RECOVERED_minus_NORECOVERY": {
+              "diff": -0.006612985322255778,
+              "ci95": [
+                -0.012079756858677829,
+                -0.002581832381463579
+              ],
+              "p_boot": 0.002
+            }
+          },
+          "dist_ref20": {
+            "RECOVERED_minus_NORECOVERY": {
+              "diff": 0.08488864027376553,
+              "ci95": [
+                0.05979175178393953,
+                0.10728394790131368
+              ],
+              "p_boot": 0.0
+            }
+          },
+          "turnover_load_3d_mean": {
+            "RECOVERED_minus_NORECOVERY": {
+              "diff": 0.8385071120842797,
+              "ci95": [
+                0.5563772565902492,
+                1.4253798756913438
+              ],
+              "p_boot": 0.0
+            }
+          },
+          "cum_ret_from_t0_log": {
+            "RECOVERED_minus_NORECOVERY": {
+              "diff": 0.0701749823896144,
+              "ci95": [
+                0.054275094090672577,
+                0.08730262092390587
+              ],
+              "p_boot": 0.0
+            }
+          }
+        },
+        "driftH10": {
+          "drawdown_from_peak_log": {
+            "RECOVERED_minus_NORECOVERY": {
+              "diff": -0.014708552419534782,
+              "ci95": [
+                -0.05308567231333682,
+                -0.010186127920779258
+              ],
+              "p_boot": 0.0
+            }
+          },
+          "efficiency_signed_3": {
+            "RECOVERED_minus_NORECOVERY": {
+              "diff": 0.013062374855035808,
+              "ci95": [
+                0.004387487436689988,
+                0.014262153873313635
+              ],
+              "p_boot": 0.0
+            }
+          },
+          "dist_ref20": {
+            "RECOVERED_minus_NORECOVERY": {
+              "diff": 0.20970051793317024,
+              "ci95": [
+                0.16428087035692376,
+                0.21529008874176805
+              ],
+              "p_boot": 0.0
+            }
+          },
+          "turnover_load_3d_mean": {
+            "RECOVERED_minus_NORECOVERY": {
+              "diff": 2.0523276251708795,
+              "ci95": [
+                1.9625262597252717,
+                2.081038288940711
+              ],
+              "p_boot": 0.0
+            }
+          },
+          "cum_ret_from_t0_log": {
+            "RECOVERED_minus_NORECOVERY": {
+              "diff": 0.17119824961403893,
+              "ci95": [
+                0.13151733443589447,
+                0.17645079540275774
+              ],
+              "p_boot": 0.0
+            }
+          }
+        },
+        "driftH20": {
+          "drawdown_from_peak_log": {
+            "RECOVERED_minus_NORECOVERY": {
+              "diff": NaN,
+              "ci95": [
+                NaN,
+                NaN
+              ],
+              "p_boot": 0.0
+            }
+          },
+          "efficiency_signed_3": {
+            "RECOVERED_minus_NORECOVERY": {
+              "diff": NaN,
+              "ci95": [
+                NaN,
+                NaN
+              ],
+              "p_boot": 0.0
+            }
+          },
+          "dist_ref20": {
+            "RECOVERED_minus_NORECOVERY": {
+              "diff": NaN,
+              "ci95": [
+                NaN,
+                NaN
+              ],
+              "p_boot": 0.0
+            }
+          },
+          "turnover_load_3d_mean": {
+            "RECOVERED_minus_NORECOVERY": {
+              "diff": NaN,
+              "ci95": [
+                NaN,
+                NaN
+              ],
+              "p_boot": 0.0
+            }
+          },
+          "cum_ret_from_t0_log": {
+            "RECOVERED_minus_NORECOVERY": {
+              "diff": NaN,
+              "ci95": [
+                NaN,
+                NaN
+              ],
+              "p_boot": 0.0
+            }
+          }
+        }
+      },
+      "path": {
+        "H5": {
+          "RECOVERED_ADD": {
+            "median": -0.026027495244775413,
+            "ci95": [
+              -0.03121445230412077,
+              -0.021760274586206673
+            ]
+          },
+          "FAILED_EXIT": {
+            "median": -0.007968169649176685,
+            "ci95": [
+              -0.021608030742456007,
+              0.003598570845964693
+            ]
+          },
+          "NO_RECOVERY": {
+            "median": -0.0962024776343898,
+            "ci95": [
+              -0.11313218831188182,
+              -0.08038909750383963
+            ]
+          },
+          "RECOVERED_minus_NORECOVERY": {
+            "diff": 0.0701749823896144,
+            "ci95": [
+              0.05402750391406755,
+              0.088120177043343
+            ],
+            "p_boot": 0.0
+          }
+        },
+        "H10": {
+          "RECOVERED_ADD": {
+            "median": -0.011315744397867752,
+            "ci95": [
+              -0.01730647733962421,
+              -0.005613112828559448
+            ]
+          },
+          "FAILED_EXIT": {
+            "median": 0.00194363520857109,
+            "ci95": [
+              -0.01338786003046162,
+              0.01571654362752811
+            ]
+          },
+          "NO_RECOVERY": {
+            "median": -0.18251399401190668,
+            "ci95": [
+              -0.18251399401190668,
+              -0.14650588886167434
+            ]
+          },
+          "RECOVERED_minus_NORECOVERY": {
+            "diff": 0.17119824961403893,
+            "ci95": [
+              0.13138372818840643,
+              0.1764476111458833
+            ],
+            "p_boot": 0.0
+          }
+        },
+        "H20": {
+          "RECOVERED_ADD": {
+            "median": 0.07228357027938646,
+            "ci95": [
+              0.062293961839941805,
+              0.08725353582578214
+            ]
+          },
+          "FAILED_EXIT": {
+            "median": 0.09804541001808437,
+            "ci95": [
+              0.06721040046864343,
+              0.12790260023818661
+            ]
+          },
+          "NO_RECOVERY": {
+            "median": NaN,
+            "ci95": [
+              NaN,
+              NaN
+            ]
+          },
+          "RECOVERED_minus_NORECOVERY": {
+            "diff": NaN,
+            "ci95": [
+              NaN,
+              NaN
+            ],
+            "p_boot": 0.0
+          }
+        },
+        "H40": {
+          "RECOVERED_ADD": {
+            "median": 0.22733618674557726,
+            "ci95": [
+              0.11163653421459592,
+              0.3382967725931568
+            ]
+          },
+          "FAILED_EXIT": {
+            "median": NaN,
+            "ci95": [
+              NaN,
+              NaN
+            ]
+          },
+          "NO_RECOVERY": {
+            "median": NaN,
+            "ci95": [
+              NaN,
+              NaN
+            ]
+          },
+          "RECOVERED_minus_NORECOVERY": {
+            "diff": NaN,
+            "ci95": [
+              NaN,
+              NaN
+            ],
+            "p_boot": 0.0
+          }
+        }
+      },
+      "holm_adj_p": {
+        "det|RECOVERED_ADD|drawdown_from_peak_log": 0.0,
+        "det|RECOVERED_ADD|efficiency_signed_3": 0.0,
+        "det|RECOVERED_ADD|dist_ref20": 0.0,
+        "det|RECOVERED_ADD|turnover_load_3d_mean": 0.0,
+        "det|RECOVERED_ADD|cum_ret_from_t0_log": 0.0,
+        "det|FAILED_EXIT|drawdown_from_peak_log": 0.0,
+        "det|FAILED_EXIT|efficiency_signed_3": 0.0,
+        "det|FAILED_EXIT|dist_ref20": 0.0,
+        "det|FAILED_EXIT|turnover_load_3d_mean": 0.0,
+        "det|FAILED_EXIT|cum_ret_from_t0_log": 0.0,
+        "det|NO_RECOVERY|drawdown_from_peak_log": 0.0,
+        "det|NO_RECOVERY|efficiency_signed_3": 0.0,
+        "det|NO_RECOVERY|dist_ref20": 0.0,
+        "det|NO_RECOVERY|turnover_load_3d_mean": 0.0,
+        "det|NO_RECOVERY|cum_ret_from_t0_log": 0.0,
+        "drift|H5|REC_vs_NO|dist_ref20": 0.0,
+        "drift|H5|REC_vs_NO|turnover_load_3d_mean": 0.0,
+        "drift|H5|REC_vs_NO|cum_ret_from_t0_log": 0.0,
+        "drift|H10|REC_vs_NO|drawdown_from_peak_log": 0.0,
+        "drift|H10|REC_vs_NO|efficiency_signed_3": 0.0,
+        "drift|H10|REC_vs_NO|dist_ref20": 0.0,
+        "drift|H10|REC_vs_NO|turnover_load_3d_mean": 0.0,
+        "drift|H10|REC_vs_NO|cum_ret_from_t0_log": 0.0,
+        "drift|H20|REC_vs_NO|drawdown_from_peak_log": 0.0,
+        "drift|H20|REC_vs_NO|efficiency_signed_3": 0.0,
+        "drift|H20|REC_vs_NO|dist_ref20": 0.0,
+        "drift|H20|REC_vs_NO|turnover_load_3d_mean": 0.0,
+        "drift|H20|REC_vs_NO|cum_ret_from_t0_log": 0.0,
+        "path|REC_vs_NO|H5": 0.0,
+        "path|REC_vs_NO|H10": 0.0,
+        "path|REC_vs_NO|H20": 0.0,
+        "path|REC_vs_NO|H40": 0.0,
+        "drift|H5|REC_vs_NO|efficiency_signed_3": 0.004,
+        "drift|H5|REC_vs_NO|drawdown_from_peak_log": 0.74
+      }
+    },
+    "development": {
+      "n": 3764,
+      "role": "reference_only",
+      "deterioration": {
+        "RECOVERED_ADD": {
+          "drawdown_from_peak_log": {
+            "median": 0.0035843150279739385,
+            "ci95_stock": [
+              0.001575316476335624,
+              0.005879899342879403
+            ],
+            "ci95_T0": [
+              0.0006067651897602616,
+              0.006592395559373459
+            ]
+          },
+          "efficiency_signed_3": {
+            "median": -0.0007077063179328665,
+            "ci95_stock": [
+              -0.0016703937000586457,
+              0.00022859940904759399
+            ],
+            "ci95_T0": [
+              -0.0016575227532588917,
+              0.00024473719215541275
+            ]
+          },
+          "dist_ref20": {
+            "median": 0.0022041244145709514,
+            "ci95_stock": [
+              8.300651832549023e-17,
+              0.0040654523857570155
+            ],
+            "ci95_T0": [
+              -0.0010417248259328993,
+              0.0060619493697104485
+            ]
+          },
+          "turnover_load_3d_mean": {
+            "median": -0.06560384137788211,
+            "ci95_stock": [
+              -0.08147602703211214,
+              -0.03784143404642115
+            ],
+            "ci95_T0": [
+              -0.08744949288998259,
+              -0.028626756199764344
+            ]
+          },
+          "cum_ret_from_t0_log": {
+            "median": 0.002309017436129359,
+            "ci95_stock": [
+              0.0005700712004632713,
+              0.003957935216269903
+            ],
+            "ci95_T0": [
+              -0.0009093630695783881,
+              0.005911635123777409
+            ]
+          }
+        },
+        "FAILED_EXIT": {
+          "drawdown_from_peak_log": {
+            "median": 0.05481327216539489,
+            "ci95_stock": [
+              0.021514254525740628,
+              0.06961987143383491
+            ],
+            "ci95_T0": [
+              0.020153350911174615,
+              0.06761802746297893
+            ]
+          },
+          "efficiency_signed_3": {
+            "median": -0.011752923010793864,
+            "ci95_stock": [
+              -0.01483682187417363,
+              -0.0012716425379414881
+            ],
+            "ci95_T0": [
+              -0.014838841918225959,
+              -0.0022483934648731864
+            ]
+          },
+          "dist_ref20": {
+            "median": -0.04360360360360356,
+            "ci95_stock": [
+              -0.07115995115995113,
+              -0.02376940133037688
+            ],
+            "ci95_T0": [
+              -0.07115995115995113,
+              -0.024194987343097375
+            ]
+          },
+          "turnover_load_3d_mean": {
+            "median": -0.22802076709028563,
+            "ci95_stock": [
+              -0.34241432314688725,
+              0.016134566252385407
+            ],
+            "ci95_T0": [
+              -0.3325260513069661,
+              0.016058962535684368
+            ]
+          },
+          "cum_ret_from_t0_log": {
+            "median": -0.0407170631856429,
+            "ci95_stock": [
+              -0.06961987143383493,
+              -0.02044328570991319
+            ],
+            "ci95_T0": [
+              -0.06979980531840768,
+              -0.021335759723102723
+            ]
+          }
+        },
+        "NO_RECOVERY": {
+          "drawdown_from_peak_log": {
+            "median": 0.03292503480631822,
+            "ci95_stock": [
+              0.030859671722982252,
+              0.03465700321103594
+            ],
+            "ci95_T0": [
+              0.030446067323285135,
+              0.035392127515003376
+            ]
+          },
+          "efficiency_signed_3": {
+            "median": -0.005830749978729163,
+            "ci95_stock": [
+              -0.006682758562474466,
+              -0.005083659450754199
+            ],
+            "ci95_T0": [
+              -0.006973908113096469,
+              -0.004783729084888946
+            ]
+          },
+          "dist_ref20": {
+            "median": -0.03066921699819449,
+            "ci95_stock": [
+              -0.032465172230979805,
+              -0.028395536744901917
+            ],
+            "ci95_T0": [
+              -0.03301263956201137,
+              -0.02739289765290981
+            ]
+          },
+          "turnover_load_3d_mean": {
+            "median": -0.11905661782442539,
+            "ci95_stock": [
+              -0.13241219848219268,
+              -0.1073144750118897
+            ],
+            "ci95_T0": [
+              -0.1421158938922288,
+              -0.09925120322967555
+            ]
+          },
+          "cum_ret_from_t0_log": {
+            "median": -0.02971643088618172,
+            "ci95_stock": [
+              -0.03179458619558792,
+              -0.027502219743101953
+            ],
+            "ci95_T0": [
+              -0.03272519446524568,
+              -0.026910304990770868
+            ]
+          }
+        }
+      },
+      "repair": {
+        "drawdown_from_peak_log": {
+          "RECOVERED_ADD_rep_level": {
+            "median": 0.01269634222469767,
+            "ci95": [
+              0.011443887675007997,
+              0.014239386045741416
+            ]
+          }
+        },
+        "efficiency_signed_3": {
+          "RECOVERED_ADD_rep_level": {
+            "median": -0.002718760051076581,
+            "ci95": [
+              -0.003924274755828051,
+              -0.0015382009783362883
+            ]
+          }
+        },
+        "dist_ref20": {
+          "RECOVERED_ADD_rep_level": {
+            "median": -0.012931884173792652,
+            "ci95": [
+              -0.01467830383645589,
+              -0.011521451689238885
+            ]
+          }
+        },
+        "turnover_load_3d_mean": {
+          "RECOVERED_ADD_rep_level": {
+            "median": -0.04306744267829732,
+            "ci95": [
+              -0.0708494640224258,
+              -0.023794527258730325
+            ]
+          }
+        },
+        "cum_ret_from_t0_log": {
+          "RECOVERED_ADD_rep_level": {
+            "median": -0.012403289599139253,
+            "ci95": [
+              -0.014087497361402516,
+              -0.011256482552642258
+            ]
+          }
+        },
+        "driftH5": {
+          "drawdown_from_peak_log": {
+            "RECOVERED_minus_NORECOVERY": {
+              "diff": -0.04684956068966581,
+              "ci95": [
+                -0.09552731683519039,
+                0.0031029625252893493
+              ],
+              "p_boot": 0.069
+            }
+          },
+          "efficiency_signed_3": {
+            "RECOVERED_minus_NORECOVERY": {
+              "diff": 0.006156281226422866,
+              "ci95": [
+                0.0021462362580537244,
+                0.018382553104333326
+              ],
+              "p_boot": 0.015
+            }
+          },
+          "dist_ref20": {
+            "RECOVERED_minus_NORECOVERY": {
+              "diff": 0.1412423324502332,
+              "ci95": [
+                0.08238375019945209,
+                0.16939871904289436
+              ],
+              "p_boot": 0.0
+            }
+          },
+          "turnover_load_3d_mean": {
+            "RECOVERED_minus_NORECOVERY": {
+              "diff": 0.24237923118998778,
+              "ci95": [
+                -0.122462561707657,
+                0.5294629977653337
+              ],
+              "p_boot": 0.228
+            }
+          },
+          "cum_ret_from_t0_log": {
+            "RECOVERED_minus_NORECOVERY": {
+              "diff": 0.10499861683468481,
+              "ci95": [
+                0.06975405822959045,
+                0.14134108958049088
+              ],
+              "p_boot": 0.0
+            }
+          }
+        },
+        "driftH10": {
+          "drawdown_from_peak_log": {
+            "RECOVERED_minus_NORECOVERY": {
+              "diff": NaN,
+              "ci95": [
+                NaN,
+                NaN
+              ],
+              "p_boot": 0.0
+            }
+          },
+          "efficiency_signed_3": {
+            "RECOVERED_minus_NORECOVERY": {
+              "diff": NaN,
+              "ci95": [
+                NaN,
+                NaN
+              ],
+              "p_boot": 0.0
+            }
+          },
+          "dist_ref20": {
+            "RECOVERED_minus_NORECOVERY": {
+              "diff": NaN,
+              "ci95": [
+                NaN,
+                NaN
+              ],
+              "p_boot": 0.0
+            }
+          },
+          "turnover_load_3d_mean": {
+            "RECOVERED_minus_NORECOVERY": {
+              "diff": NaN,
+              "ci95": [
+                NaN,
+                NaN
+              ],
+              "p_boot": 0.0
+            }
+          },
+          "cum_ret_from_t0_log": {
+            "RECOVERED_minus_NORECOVERY": {
+              "diff": NaN,
+              "ci95": [
+                NaN,
+                NaN
+              ],
+              "p_boot": 0.0
+            }
+          }
+        },
+        "driftH20": {
+          "drawdown_from_peak_log": {
+            "RECOVERED_minus_NORECOVERY": {
+              "diff": NaN,
+              "ci95": [
+                NaN,
+                NaN
+              ],
+              "p_boot": 0.0
+            }
+          },
+          "efficiency_signed_3": {
+            "RECOVERED_minus_NORECOVERY": {
+              "diff": NaN,
+              "ci95": [
+                NaN,
+                NaN
+              ],
+              "p_boot": 0.0
+            }
+          },
+          "dist_ref20": {
+            "RECOVERED_minus_NORECOVERY": {
+              "diff": NaN,
+              "ci95": [
+                NaN,
+                NaN
+              ],
+              "p_boot": 0.0
+            }
+          },
+          "turnover_load_3d_mean": {
+            "RECOVERED_minus_NORECOVERY": {
+              "diff": NaN,
+              "ci95": [
+                NaN,
+                NaN
+              ],
+              "p_boot": 0.0
+            }
+          },
+          "cum_ret_from_t0_log": {
+            "RECOVERED_minus_NORECOVERY": {
+              "diff": NaN,
+              "ci95": [
+                NaN,
+                NaN
+              ],
+              "p_boot": 0.0
+            }
+          }
+        }
+      },
+      "path": {
+        "H5": {
+          "RECOVERED_ADD": {
+            "median": -0.02853277578983782,
+            "ci95": [
+              -0.03351152711731923,
+              -0.022973835238518252
+            ]
+          },
+          "FAILED_EXIT": {
+            "median": -0.09646026618756234,
+            "ci95": [
+              -0.17802311603374024,
+              -0.041585177831100585
+            ]
+          },
+          "NO_RECOVERY": {
+            "median": -0.13353139262452263,
+            "ci95": [
+              -0.16948232675198374,
+              -0.10179852452265711
+            ]
+          },
+          "RECOVERED_minus_NORECOVERY": {
+            "diff": 0.10499861683468481,
+            "ci95": [
+              0.07131800450024645,
+              0.1416197010241055
+            ],
+            "p_boot": 0.0
+          }
+        },
+        "H10": {
+          "RECOVERED_ADD": {
+            "median": -0.011385322225125394,
+            "ci95": [
+              -0.018996500690655147,
+              -0.001574306916672497
+            ]
+          },
+          "FAILED_EXIT": {
+            "median": -0.1652020985490122,
+            "ci95": [
+              -0.19408275705108555,
+              0.018591419749080705
+            ]
+          },
+          "NO_RECOVERY": {
+            "median": NaN,
+            "ci95": [
+              NaN,
+              NaN
+            ]
+          },
+          "RECOVERED_minus_NORECOVERY": {
+            "diff": NaN,
+            "ci95": [
+              NaN,
+              NaN
+            ],
+            "p_boot": 0.0
+          }
+        },
+        "H20": {
+          "RECOVERED_ADD": {
+            "median": 0.04987183004017286,
+            "ci95": [
+              0.03211972226717362,
+              0.06367624837157264
+            ]
+          },
+          "FAILED_EXIT": {
+            "median": -0.17802311603374024,
+            "ci95": [
+              -0.17802311603374024,
+              -0.17802311603374024
+            ]
+          },
+          "NO_RECOVERY": {
+            "median": NaN,
+            "ci95": [
+              NaN,
+              NaN
+            ]
+          },
+          "RECOVERED_minus_NORECOVERY": {
+            "diff": NaN,
+            "ci95": [
+              NaN,
+              NaN
+            ],
+            "p_boot": 0.0
+          }
+        },
+        "H40": {
+          "RECOVERED_ADD": {
+            "median": 0.130273830080919,
+            "ci95": [
+              0.059567352995481784,
+              0.18778982729187707
+            ]
+          },
+          "FAILED_EXIT": {
+            "median": NaN,
+            "ci95": [
+              NaN,
+              NaN
+            ]
+          },
+          "NO_RECOVERY": {
+            "median": NaN,
+            "ci95": [
+              NaN,
+              NaN
+            ]
+          },
+          "RECOVERED_minus_NORECOVERY": {
+            "diff": NaN,
+            "ci95": [
+              NaN,
+              NaN
+            ],
+            "p_boot": 0.0
+          }
+        }
+      },
+      "holm_adj_p": {
+        "det|RECOVERED_ADD|drawdown_from_peak_log": 0.0,
+        "det|RECOVERED_ADD|dist_ref20": 0.0,
+        "det|RECOVERED_ADD|turnover_load_3d_mean": 0.0,
+        "det|RECOVERED_ADD|cum_ret_from_t0_log": 0.0,
+        "det|FAILED_EXIT|drawdown_from_peak_log": 0.0,
+        "det|FAILED_EXIT|efficiency_signed_3": 0.0,
+        "det|FAILED_EXIT|dist_ref20": 0.0,
+        "det|FAILED_EXIT|cum_ret_from_t0_log": 0.0,
+        "det|NO_RECOVERY|drawdown_from_peak_log": 0.0,
+        "det|NO_RECOVERY|efficiency_signed_3": 0.0,
+        "det|NO_RECOVERY|dist_ref20": 0.0,
+        "det|NO_RECOVERY|turnover_load_3d_mean": 0.0,
+        "det|NO_RECOVERY|cum_ret_from_t0_log": 0.0,
+        "drift|H5|REC_vs_NO|dist_ref20": 0.0,
+        "drift|H5|REC_vs_NO|cum_ret_from_t0_log": 0.0,
+        "drift|H10|REC_vs_NO|drawdown_from_peak_log": 0.0,
+        "drift|H10|REC_vs_NO|efficiency_signed_3": 0.0,
+        "drift|H10|REC_vs_NO|dist_ref20": 0.0,
+        "drift|H10|REC_vs_NO|turnover_load_3d_mean": 0.0,
+        "drift|H10|REC_vs_NO|cum_ret_from_t0_log": 0.0,
+        "drift|H20|REC_vs_NO|drawdown_from_peak_log": 0.0,
+        "drift|H20|REC_vs_NO|efficiency_signed_3": 0.0,
+        "drift|H20|REC_vs_NO|dist_ref20": 0.0,
+        "drift|H20|REC_vs_NO|turnover_load_3d_mean": 0.0,
+        "drift|H20|REC_vs_NO|cum_ret_from_t0_log": 0.0,
+        "path|REC_vs_NO|H5": 0.0,
+        "path|REC_vs_NO|H10": 0.0,
+        "path|REC_vs_NO|H20": 0.0,
+        "path|REC_vs_NO|H40": 0.0,
+        "drift|H5|REC_vs_NO|efficiency_signed_3": 0.075,
+        "drift|H5|REC_vs_NO|drawdown_from_peak_log": 0.276,
+        "drift|H5|REC_vs_NO|turnover_load_3d_mean": 0.684,
+        "det|RECOVERED_ADD|efficiency_signed_3": 1.0,
+        "det|FAILED_EXIT|turnover_load_3d_mean": 1.0
+      }
+    }
+  }
+}

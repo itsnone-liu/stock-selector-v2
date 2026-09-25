@@ -1,0 +1,50 @@
+{
+  "stage": "t6_2",
+  "claim_rules_ref": "output/research/t6/t6_contract.json#claim_registry_enum",
+  "claims": [
+    {
+      "claim_id": "C201",
+      "statement": "REDUCE days mark deterioration in ALL cycle types (dd depth increases, efficiency_signed_3 falls, turnover load falls vs the R0-5..R0-1 baseline); the MAGNITUDE strongly stratifies the outcome: NO_RECOVERY/FAILED_EXIT deteriorate several times more than RECOVERED_ADD",
+      "evidence": "det dd: RECOVERED +0.0059/+0.0068 (val/conf) vs NO_RECOVERY +0.0333/+0.0238, FAILED_EXIT +0.0372 (conf only); det cum: RECOVERED ~+0.002 vs NO_RECOVERY -0.0314/-0.0165, FAILED_EXIT -0.0352; all Holm-significant within their families",
+      "status": "SUPPORTED"
+    },
+    {
+      "claim_id": "C202",
+      "statement": "ADD does NOT mark state repair: at A0 (median 2 days after R0) drawdown is DEEPER, price is LOWER (cum/dist_ref20 below R0), efficiency lower — the re-entry is a low-price buyback, not a confirmation of recovered indicators",
+      "evidence": "rep levels (RECOVERED_ADD): dd +0.0151/+0.0183 deeper; cum_ret -0.0148/-0.0181 lower; dist_ref20 -0.0151/-0.0191 lower; efficiency -0.0039/-0.0043 lower; turnover -0.0653/-0.0494 lower (only this dimension cools); all CI exclude zero",
+      "status": "SUPPORTED",
+      "note": "this REJECTS the pre-registered 'deterioration->repair->re-add' reading of Q2 and replaces it with 'deterioration->further-drop->buy-back-lower'"
+    },
+    {
+      "claim_id": "C203",
+      "statement": "Path separation from R0: RECOVERED_ADD cycles have materially better subsequent buy&hold paths than NO_RECOVERY (H5: +10.8pp val / +7.0pp conf; H10: +17.7pp / +17.1pp; all p<0.001, Holm-significant). Descriptive separation under frozen rules; NOT a causal claim about the ADD rule's information content",
+      "evidence": "bh_R0 medians H5: REC -0.015/-0.026 vs NO -0.124/-0.096; H10: REC +0.002/-0.011 vs NO -0.175/-0.183; diffs see report_data",
+      "status": "SUPPORTED"
+    },
+    {
+      "claim_id": "C204",
+      "statement": "The EXIT channel fired only in the confirmation segment (3,328 of 3,347 exit episodes); validation has ZERO exits — the validation-segment dynamic exposure contains no exit insurance, and T5.8R-2's no_exit counterfactual contrast is confirmation-driven",
+      "evidence": "episode n_exit>0 by segment: confirmation 3,328, development 19, validation 0 (t6_0 episode master, reference cell); cycle FAILED_EXIT counts 3,320/18/0",
+      "status": "SUPPORTED"
+    },
+    {
+      "claim_id": "C205",
+      "statement": "Same-window state drift comparison (REC minus NO at fixed horizons) is strong in validation (H5: dd -0.049, price +0.108, turnover +0.78) but weaker/mixed at confirmation H5 (dd diff insignificant p=0.74, efficiency -0.0066) — the short-horizon state advantage of recoverable cycles is segment-dependent",
+      "evidence": "driftH5/driftH10 blocks in report_data; conf H10 recovers significance on all five quantities",
+      "status": "PARTIALLY_SUPPORTED"
+    },
+    {
+      "claim_id": "C206",
+      "statement": "NO_RECOVERY cycles are structurally SHORT: at H20/H40 the group has too few surviving paths for a median (NaN by construction), while RECOVERED_ADD extends to +0.064/+0.183 (val) and +0.072/+0.227 (conf) — survival differences are part of the recycling structure",
+      "evidence": "bh_R0_H20/H40 medians: RECOVERED +0.0640/+0.1825 (val), +0.0723/+0.2273 (conf); NO_RECOVERY NaN at both horizons in both segments",
+      "status": "SUPPORTED"
+    },
+    {
+      "claim_id": "C207",
+      "statement": "Q2 core hypothesis verdict: 'REDUCE releases capital in bad states and ADD re-enters after REPAIR' is NOT supported; the data support 'REDUCE releases capital in bad states (magnitude-stratified) and ADD re-enters quickly (median 2 days) at LOWER prices' — the advantage pattern is consistent with low-price buyback on mild deterioration, not with waiting for indicator repair",
+      "evidence": "C201 + C202 + C203 jointly",
+      "status": "NOT_SUPPORTED",
+      "note": "status refers to the pre-registered repair reading; the alternative low-price-buyback description is C202"
+    }
+  ]
+}
