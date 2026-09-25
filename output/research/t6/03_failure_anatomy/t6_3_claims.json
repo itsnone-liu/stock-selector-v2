@@ -4,20 +4,20 @@
   "claims": [
     {
       "claim_id": "C301",
-      "statement": "Failure-stage localization (first-match F1,F3,F2,F4,F5,F6 over the frozen preregistered definitions): F2 (late deterioration) matches ZERO episodes in every segment; F4 (exit failure) and F5 (fast gap/crash) are marginal (<=1%); the failure mass sits in F1 (early first-operator, val 3855/conf 2512 episodes), F3 (false recovery, val 3078/conf 1873) and F6 (residual)",
-      "evidence": "t6_3 report_data freq_F; F2=0 in all segments (preempted by F1/F3 earlier in the first-match order — reported as a structural zero, not a missing stage)",
+      "statement": "Failure-stage localization (first-match F1,F3,F2,F4,F5,F6, corrected trigger window): F2 (late deterioration) matches ZERO episodes in every segment — a structural zero of the preregistered first-match taxonomy (preempted by F1/F3 earlier in the order); this does NOT establish that late-deterioration features are absent inside F1/F3 episodes (potential overlap not decomposed at this stage). F4/F5 are marginal (<=1%); the failure mass sits in F1 (val 3855/conf 2512), F3 (val 2017/conf 1303, -34%/-30% vs the buggy window) and F6 (val 5780/conf 3283)",
+      "evidence": "report_data freq_F after R1 window fix; F2=0 in all segments reported as taxonomy structural zero, not mechanism absence",
       "status": "SUPPORTED"
     },
     {
       "claim_id": "C302",
-      "statement": "Visible-at-first-REDUCE information separates false-recovery cycles from clean recoveries, but NOT via deeper drawdown: FALSE_RECOVERY vs CYCLE_OK show NO median difference in drawdown depth, max_dd_to_date, or first-REDUCE timing; the separators are HIGHER efficiency_signed_3 (+0.0031/+0.0028, both Holm-significant), HIGHER same-day ret_1d_log (+0.0072/+0.0071, both Holm-significant), and in confirmation LOWER dist_ref20 magnitude (-0.0065, Holm-significant) — shallow-deterioration REDUCEs taken on bounce days are the ones that re-add and break down again within 5 valid observations",
-      "evidence": "separability blocks (val/conf), Holm within family; complementary to T6.2 C201: deep deterioration never re-adds (NO_RECOVERY), shallow deterioration on bounce days re-adds prematurely (F3)",
+      "statement": "Visible-at-first-REDUCE information separates false-recovery cycles from clean recoveries (median-caliber tests): NO median separation in drawdown depth, max_dd_to_date, or first-REDUCE timing; the separators are HIGHER efficiency_signed_3 (+0.0046/+0.0050), HIGHER same-day ret_1d_log (+0.0136/+0.0134), HIGHER dist_ref20 (price further ABOVE ref20: +0.0072/+0.0155) and HIGHER turnover_load_3d_mean (+0.44/+0.28) — all four Holm-significant in BOTH segments under the corrected (strictly-after-A0) trigger window. Bounce-day shallow deterioration is the false-recovery signature; only the MEDIAN caliber of dd/max_dd/first-timing is claimed non-separating, not the full distributions",
+      "evidence": "separability blocks val/conf, Holm within family, corrected R1 window; complementary to T6.2 C201: deep deterioration never re-adds (NO_RECOVERY), shallow deterioration on bounce days re-adds and breaks again",
       "status": "SUPPORTED"
     },
     {
       "claim_id": "C303",
-      "statement": "C106 localized: the confirmation-segment E2-minus-E1 terminal-failure increase (+8.7pp) decomposes (within-E-class shares) as roughly half from F3 false recovery (+4.2pp), a quarter from F1 early-operator (+2.6pp) and a quarter from F6 residual (+2.1pp); validation shows only the F3 component (+2.6pp) offset by F1 (-1.25pp) — the E2 tension is concentrated in false-recovery paths, not in exit absence",
-      "evidence": "p_terminal_failure by E x F: conf E2 0.6457 vs E1 0.5584; F-split shares in e2f blocks (p_term_F1..F6); F4 (exit failure) contributes <=0.5pp in every E-class and segment",
+      "statement": "C106 localized (corrected window): the confirmation E2-minus-E1 terminal-failure increase (+8.7pp) decomposes as F6 residual +3.9pp (~45%), F1 early-operator +2.6pp (~30%), F3 false recovery +2.4pp (~28%), F4/F5 ~0 — the E2 tension is spread across residual/early/false-recovery stages rather than concentrated in any one; validation net +1.0pp nets F3 +2.1pp against F1 -1.2pp",
+      "evidence": "p_term by E x F under the strictly-after-A0 window: conf E2/E1 F6 0.252/0.213, F1 0.222/0.196, F3 0.167/0.143; F4 <=0.5pp everywhere",
       "status": "SUPPORTED"
     },
     {
@@ -28,14 +28,14 @@
     },
     {
       "claim_id": "C305",
-      "statement": "EXIT-channel localization (C204 anatomy): confirmation exits concentrate in F1 — 2033 of 3328 exit episodes (61%) have their first operator within the 5-day quick-failure window ending in loss; only 590 (18%) sit in F3 and 697 (21%) in F6. The exit mechanism in confirmation is predominantly an EARLY structural cut, not a late repair-give-up",
-      "evidence": "freq_exit_by_seg_F (t6_3 report_data); validation has zero exit episodes (C204)",
+      "statement": "EXIT-channel localization (C204 anatomy, corrected window): confirmation exits concentrate in F1 — 2033 of 3328 exit episodes (61%) have their first operator within the 5-day quick-failure window ending in loss; 477 (14%) in F3 and 810 (24%) in F6. The exit mechanism in confirmation is predominantly an EARLY structural cut",
+      "evidence": "freq_exit_by_seg_F after R1; validation zero exits (C204)",
       "status": "SUPPORTED"
     },
     {
       "claim_id": "C306",
-      "statement": "Pipeline-stage verdict on the failure chain (E-misclassification -> late recognition -> wrong ADD -> missing/late EXIT -> unavoidable fast failure): the dominant leak is the ADD stage (F3 false recovery) combined with the early-operator stage (F1); exit failure (F4) and data-gap/crash (F5) are marginal; late-deterioration-recognition (F2) never occurs as defined. These are frozen-rule conditional structures, not causal attributions",
-      "evidence": "C301 + C302 + C303 + C305 jointly",
+      "statement": "Pipeline-stage verdict (conditional structures under frozen rules, not causal attributions): the dominant leak sits in the ADD stage (F3, 2017/1303 episodes) plus the early-operator stage (F1, 3855/2512); exit failure (F4) and data-gap/crash (F5) are marginal; late-deterioration forms no independent first-match class (F2=0 — taxonomy structural zero, mechanism overlap with F1/F3 not decomposed here)",
+      "evidence": "C301 + C302 + C303 + C305 jointly, corrected window",
       "status": "SUPPORTED"
     }
   ]

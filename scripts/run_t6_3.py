@@ -111,6 +111,7 @@ def main():
     # --- false-recovery trigger per cycle (contract: 5 valid obs after A0) ---
     key = {(e, dd): i for i, (e, dd) in enumerate(zip(d.event_id.values, d.delta_day.values))}
     trig = {}
+    trig_day = {}
     for e, r0, a0 in zip(cyc2.event_id, cyc2.r0_day, cyc2.a0_day):
         if np.isnan(a0):
             continue
@@ -118,8 +119,11 @@ def main():
         if i0 is None:
             continue
         fired = False
+        fired_day = None
         seen = 0
-        j = i0
+        j = i0 + 1  # R1 (audit): strictly AFTER A0 — the A0 day itself is
+        # NOT part of the '5 valid observations after A0' window (A0-day
+        # indicators are typically unrepaired; including it inflated F3).
         ev_arr = d.event_id.values
         while j < len(d) and ev_arr[j] == e and seen < t['false_recovery_window_valid_obs']:
             if bool(d.row_present.iloc[j]):
@@ -128,11 +132,15 @@ def main():
                 ddv = d.drawdown_from_peak_log.iloc[j]
                 if (not np.isnan(dv) and dv < 0) or (not np.isnan(ddv) and ddv >= t['severe_dd_depth_log']):
                     fired = True
+                    fired_day = int(d.delta_day.iloc[j])
                     break
             j += 1
         trig[(e, int(r0))] = fired
+        trig_day[(e, int(r0))] = fired_day
     cyc2['false_recovery'] = [trig.get((e, int(r0)), False)
                               for e, r0 in zip(cyc2.event_id, cyc2.r0_day)]
+    cyc2['trigger_day'] = [trig_day.get((e, int(r0)))
+                           for e, r0 in zip(cyc2.event_id, cyc2.r0_day)]
     ev_trigger = cyc2.groupby('event_id').false_recovery.any()
 
     # --- classify each episode + collect REDUCE-time discriminators ---
@@ -205,7 +213,7 @@ def main():
                             'rng': 'SeedSequence substreams via t6.stats.make_rng_factory'},
         'metric_defs': {
             'F1..F6': 'contract failure_anatomy_prereg first-match order F1,F3,F2,F4,F5,F6',
-            'false_recovery(cycle)': 'within 5 valid observations after A0: dist_ref20 < 0 (lose_ref20_today) OR drawdown_from_peak_log >= severe_dd_depth_log',
+            'false_recovery(cycle)': 'within the first 5 row_present=True observations STRICTLY AFTER the A0 day (A0 excluded; trigger_day > a0_day enforced by G8d): dist_ref20 < 0 (lose_ref20_today) OR drawdown_from_peak_log >= severe_dd_depth_log',
             'episode_class': 'GOOD/PAINFUL_WIN (ret>0) x CONTROLLED_LOSS/SEVERE_FAILURE (ret<=0), risk axis abs_mdd vs severe_dd_depth_log',
             'cohort_sep': 'NO_CYCLE (no RECOVERED cycle), FALSE_RECOVERY (episode F3), CYCLE_OK (cycle, no trigger fired)',
             'discriminator snapshot': 'values of PIT state columns at FIRST REDUCE day (visible at that time)',
@@ -266,8 +274,9 @@ def main():
         seg_out['holm_adj_p'] = holm(pvals)
         report['segments'][seg] = seg_out
 
+    cyc_out = cyc2[['event_id', 'r0_day', 'a0_day', 'type', 'false_recovery', 'trigger_day']]
     write_stage_outputs(
-        OUT, 't6_3', {'failure_anatomy': ea},
+        OUT, 't6_3', {'failure_anatomy': ea, 'cycle_trigger': cyc_out},
         {'inputs': [
             {'name': 'episode_master', 'path': 'output/research/t6/00_factlayer/t6_0_episode_master.parquet',
              'sha256': sha256_file(T6/'00_factlayer/t6_0_episode_master.parquet'), 'bytes': 0},

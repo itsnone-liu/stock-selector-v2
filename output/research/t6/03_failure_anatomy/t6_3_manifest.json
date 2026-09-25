@@ -31,14 +31,20 @@
   "products": [
     {
       "file": "t6_3_failure_anatomy.parquet",
-      "sha256": "7c2418974a99182e2af0e993d7a829de547bf5c1f8cb4612b22c86e35713b31b",
-      "bytes": 1312798,
+      "sha256": "36c79258e4797e826f705f3649fb3372009da94c32b10b208f024b6cd0c1f40c",
+      "bytes": 1312792,
       "rows": 21675
     },
     {
+      "file": "t6_3_cycle_trigger.parquet",
+      "sha256": "09be944e2479278afcbec77c6a6a7dd7d7d7570e39bdb169f0397cffdb9065f8",
+      "bytes": 243194,
+      "rows": 31260
+    },
+    {
       "file": "t6_3_report_data.json",
-      "sha256": "06c2de3192cde5e8950db9151336663998d1962d05bcb2b626cb7160e07c91d0",
-      "bytes": 37409
+      "sha256": "f92b765dc9593342179d7edc8893745717a82a8226738e49be81ff9dfb5c3ec8",
+      "bytes": 37455
     }
   ]
 }

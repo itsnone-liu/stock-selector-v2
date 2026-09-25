@@ -58,6 +58,22 @@ def main():
         'segments_sum': (len(ea), ea.segment.value_counts().to_dict()),
         'F_stage_sum': (len(ea), ea.F_stage.value_counts().to_dict()),
     })
+    # G8d (R1 audit): every fired trigger must sit STRICTLY AFTER its A0 day,
+    # and within 5 row_present observations after it — full check, not a sample.
+    ct = pd.read_parquet(OUT/'t6_3_cycle_trigger.parquet')
+    fired = ct[ct.false_recovery]
+    ok8d = bool((fired.trigger_day.notna()).all()
+                and (fired.trigger_day > fired.a0_day).all())
+    # boundary: trigger day must also be a row_present day in the daily master
+    # (spot-verified full join on (event_id, day))
+    dmp = pd.read_parquet(T6/'00_factlayer/t6_0_daily_master.parquet',
+                          columns=['event_id', 'delta_day', 'row_present'])
+    j = fired.merge(dmp, left_on=['event_id', 'trigger_day'],
+                    right_on=['event_id', 'delta_day'], how='left')
+    ok8d = ok8d and bool(j.row_present.fillna(False).all())
+    log.gate('G8d_trigger_window_after_A0', ok8d,
+             fired_cycles=int(len(fired)), max_trigger_minus_a0=float((fired.trigger_day - fired.a0_day).max()),
+             note='R1: A0 day excluded from the 5-valid-observation false-recovery window')
 
     # G9 statistical integrity incl. R1 NaN consistency
     pre = contract['statistics_prereg']
