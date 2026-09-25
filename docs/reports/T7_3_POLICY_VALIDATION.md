@@ -15,10 +15,20 @@
   **inheritance violations = 0**（G27，逐行断言）。
 - **G25 反事实守恒**：7 policies × 31,260 cycles 全等键集（218,820 行）；C1 否决
   ADD 的 18,395 个 cycle **保留在评价样本内**（has_add=False），无选择性消失。
-- **G26 双 clock 重放**（120 抽样逐位重算）：False ADD 从**各 policy 自己的
+- **G26 双 clock 分层重放**（R1 升级：per-policy 100×7 + C1 按 add_day 与 A 的
+  a0 关系三分层各 30，共 790 抽样逐位重算）：False ADD 从**各 policy 自己的
   add_day** 起 W10（est∈(add, add+10] 视为 in-window；add 前已恢复不算 false
   add）；Missed Recovery 用**公共 cycle est clock**（TR 且 est 日未暴露）。0
   mismatch。
+- **G29 feature-decision-clock identity**（R1 新增，**全量**非抽样，21,927 个
+  C1/C2 ADD 行）：冻结 builder `build_t7_0_features.py` 第 85 行证明
+  `max_bounce_R5` 窗口为 `delta_day ∈ (R0, R0+5]`（**市场日推进，停牌不压缩**
+  ——A 语义）；C1/C2 的 decision day（首个 `delta_day ≥ R0+5` 的有效行，同收盘
+  基准）被断言 **≥ feature observation cutoff**（0 违规）且 R+5 当日有交易时
+  decision day==R+5（0 错位）、maxbounce_day_offset≤5（0 违规）——confirmation
+  feature 在 ADD 时完全可知，无未来信息。B family 维持 contract 原文
+  "N effective trading days"（有效日位移）——两种 clock 定义词并存且各自符合
+  冻结文本，非实现不一致。
 
 ## 2. VAL frontier（17,150 cycles；primary=A, B3；curve/sensitivity 全报）
 
@@ -45,8 +55,12 @@ C2=+111.00/−54.16；精确分解已持久化 `t7_3_report_data.json` 的
    policy-level false_add_rate 的改善——C1 的统一 R+5 进场时点改变了各 ADD 的
    自身 clock（提前于 a0 的进场暴露在更早的回撤窗），W10/severe 口径下风险端
    反而略升。
-2. **C1 的恢复捕获大幅劣化**：TR missed 82.2% vs A 的 12.1%（est 日中位远早于
-   R+5——恢复确认点先于 C1 的确认进场时点本身）；wret_R40 −0.32% vs +2.08%。
+2. **C1 的恢复捕获大幅劣化**：TR missed 82.2% vs A 的 12.1%。R1 持久化的 VAL
+   est 分布（`recovery_established_offset_distribution_val`，5,780 个 TR
+   cycle）：median=**R+3**、p25=R+2、p75=R+3、P(est≤R+3)=77.5%、
+   P(est≤R+5)=82.3%——**C1 missed 82.23% 与 P(est≤R+5)=82.28% 精确闭环**
+   （est≤R+4 的 TR cycle 因 C1 恒于 R+5 进场而必然 missed）。恢复确认点结构性
+   先于 C1 的确认时点。wret_R40 −0.32% vs +2.08%。
 3. B 全曲线同向（延迟越久越差）；C2 一致更差（21.1% / 89.6%）。
 
 ## 4. 段协议结论
@@ -59,11 +73,17 @@ t7_4 的全段独立预注册研究（不涉及 policy 选择）。
 
 ## 5. Gate
 
-`t7_3_gates.json` 全 PASS：G1（5 输入）/ G2b（上游 5 产物不可变）/ **G25 反事实
-守恒**（31,260×7 全等；C1 的 18,395 个无 ADD cycle 保留在样本）/ **G26 双 clock
-重放**（0 mismatch）/ **G27 sizing 继承 + 阈值零字面量**（0 violations）/
-**G28 VAL-only 报告纪律**。
+`t7_3_gates.json` 全 PASS（R1 版）：G1（5 输入）/ G2b（上游 5 产物不可变）/
+**G25 反事实守恒**（31,260×7 全等；C1 的 18,395 个无 ADD cycle 保留在样本）/
+**G26 双 clock 分层重放**（790 抽样，0 mismatch）/ **G27 sizing 继承 + 阈值零
+字面量**（0 violations）/ **G28 VAL-only 报告纪律** / **G29 feature-decision-
+clock identity**（全量 21,927 行，0 违规）。
 
 过程修正（诚实）：初版 inheritance 断言按"无 pad"语义写，把 C1 提前进场的 237
 个合法形状重放记为违规——修正断言语义（pad 段=A 末仓延续）后 0 违规；B_N 延迟
-越界从"钳到末日"改为"该 cycle 无 ADD"。
+越界从"钳到末日"改为"该 cycle 无 ADD"；报告首版 missed 正成本和含未核算近似值
+（重算 7 policies 精确分解持久化后修正）；R1 审计（用户 BLOCKED）指出 clock
+identity 未被证明——G29 全量断言后证明 feature 与 decision 同为 A 语义
+（delta_day 基准），VAL 数字不变、结论解释加固（est 分布持久化）。6837464 的
+commit message 宣称的报告更新实际未落盘（heredoc assert 失败但命令链未断），
+本 commit 补齐三段报告修改。
