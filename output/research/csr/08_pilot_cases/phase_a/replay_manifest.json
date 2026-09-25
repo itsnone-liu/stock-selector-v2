@@ -1,50 +1,120 @@
 {
  "stage": "csr_8_phase_a_sample_selection",
- "protocol": "CSR-7 FROZEN @ 8f4b1f2",
+ "protocol": "CSR-7 FROZEN @ 8f4b1f2 + IMPLEMENTATION_ERRATUM (this rerun)",
  "seed": 20260925,
- "month_granularity_trading_days": 21,
+ "n_per_group": 20,
+ "g1_start_grid": "calendar_month_first_trading_day",
+ "g1_window_min_days": 375,
+ "g1_window_max_days": 1250,
+ "g1_recovery_definition": "erratum G1-E1: 20% drawdown from running peak; recovery=close returns to dd-start peak; <=3; sensitivity 15/20/25 registered (main=20%)",
+ "g1_threshold_995": 14.861838817596436,
+ "g1_threshold_sensitivity": {
+  "15%": {
+   "n_episodes": 3461,
+   "thr995": 11.108752155303947,
+   "n_candidates": 18
+  },
+  "20%": {
+   "n_episodes": 4101,
+   "thr995": 14.861838817596436,
+   "n_candidates": 21
+  },
+  "25%": {
+   "n_episodes": 4576,
+   "thr995": 17.372297048568726,
+   "n_candidates": 23
+  }
+ },
+ "g4_authoritative_rule": "erratum G4-E1: anchor_generation detailed rule; group-rule phrase is shorthand; gain_12m only for uniqueness",
+ "universe": {
+  "authoritative": "config/universe_frozen.json",
+  "count": 5240,
+  "erratum": "CSR-7 text said 5,241; frozen source says 5,240 (UNI-E1)",
+  "exact_set_gate": "assert set equality passed"
+ },
  "data_window": {
   "first": "2021-01-04",
   "last": "2026-09-18",
   "n_days": 1386,
   "n_stocks": 5240,
-  "caveat": "研究窗 2021 起（本地资产边界）；G1 窗口 18-60 月可行；G3/G4 右删失排除如实登记；G2 事件表覆盖 2024-01..2026-09"
+  "caveat": "研究窗 2021 起（本地资产边界）；G1 窗口 18-60 月可行；G3/G4 右删失排除如实登记；G2 事件表覆盖 2024-01..2026-09；G5 provisional（现时行业快照，G5-E1：Phase B PIT 行业表落地后 revalidation+同规则整体重放）"
  },
- "g1_threshold_995": 26.171336174011216,
+ "sampling": {
+  "algorithm": "single seeded rng flow; random 20; if single-year>50% then seeded stratified RANDOM redraw (bucket shuffle, not metric top-N); remainder by global metric desc; <=1 redraw (erratum SAM-E1)",
+  "conservation": "chosen/substitutes/excluded pairwise disjoint, union=candidates (script gate, erratum SAM-E2)"
+ },
  "rules_implemented": [
-  "G1 monthly-start rolling window best-gain per stock; pool 99.5% quantile threshold",
-  "G2 T3 frozen events; <breakout close & no new high vs prior 20d; severity=max dd; per-stock severity max tie earliest",
-  "G3 ret252 cross-sec pct>=90; anchor=fwd peak; dd>=60%; per-stock dd max",
-  "G4 vol60 ann. pct<=20 & turn60 pct<=30 run>=504d; launch=first ret20 pct>=85 within 252d; episode needs launch+252",
-  "G5 industry equal-weight (hfq-derived, snapshot caveat); r120 >= own-history 95pct (sampling rule, not realtime); segments merged; member 40-60 pct in segment; ind strength tie earliest"
+  "G1 calendar-month-start rolling window best-gain per stock (375..1250d); recovery<=3 (20% machine); pool 99.5% quantile threshold on filtered set",
+  "G2 T3 frozen events (canonicalized at ingest); <breakout close & no new high vs prior 20d; severity=max dd; per-stock severity max tie earliest",
+  "G3 ret252 cross-sec pct>=90; anchor=fwd 180d peak; dd>=60%; per-stock dd max tie earliest",
+  "G4 vol60 ann. pct<=20 & turn60 pct<=30 run>=504d; launch=first ret20 pct>=85 within 252d; episode needs launch+252; uniqueness by gain_12m desc (G4-E1)",
+  "G5 industry equal-weight (hfq-derived, snapshot caveat, provisional G5-E1); r120 >= own-history 95pct (sampling rule, not realtime); consecutive merge; member 40-60 pct; ind strength tie earliest"
  ],
  "per_group_counts": {
   "G1_complete_bull": {
-   "candidates": 26,
+   "candidates": 21,
    "chosen": 20,
+   "substitutes": 1,
+   "excluded": 0,
    "redrawn": true
   },
   "G2_breakout_fail": {
    "candidates": 804,
    "chosen": 20,
-   "redrawn": true
+   "substitutes": 20,
+   "excluded": 764,
+   "redrawn": false
   },
   "G3_high_collapse": {
    "candidates": 472,
    "chosen": 20,
+   "substitutes": 20,
+   "excluded": 432,
    "redrawn": true
   },
   "G4_quiet_then_go": {
    "candidates": 50,
    "chosen": 20,
-   "redrawn": false
+   "substitutes": 20,
+   "excluded": 10,
+   "redrawn": true
   },
   "G5_sector_follower": {
    "candidates": 993,
    "chosen": 20,
+   "substitutes": 20,
+   "excluded": 953,
    "redrawn": true
   }
  },
  "multi_group_count": 1,
- "code_sha16": "e463e2ac76ac4891"
+ "multi_group_detail": {
+  "sz.002640": [
+   "G2_breakout_fail",
+   "G3_high_collapse"
+  ]
+ },
+ "input_hashes": {
+  "universe_frozen.json": "3ff244d5e0c4bc67843d46950123de1c1407b9206940b1aab83f222be40ae338",
+  "t6_1_per_event.parquet": "de2e1f9c0433c6e2f65e7d0b31bdd95479e935bd745dcf51e48bcbaf8329ffec",
+  "csrc_industry_snapshot.json": "58404540f7e9036feb6c730dcc66f98d75c904bf25e6d6bbb5a491156340c8b2",
+  "per_stock_aggregate": "1d64e4bddf854b1a341df1fc41ea86ffa71984d7bdceb30c9ec439e5c1476473",
+  "csr8_sample.py": "e8af07b93765892e8fc6e25ebad0dc71a1fd56ff096d87cea39a77e7db4ccf5f",
+  "CSR_7_CASE_PROTOCOL.yaml": "04651e04e2b981c396703351f393729f2f074306f927b5d0c611b8de8c39a7ba",
+  "CSR_7_IMPLEMENTATION_ERRATUM.md": "61943e019dffda9ef3e8562d307c21a6f5c386c3b4d8fa3fc510b391d1f732d8"
+ },
+ "output_hashes": {
+  "g1_episodes.csv": "5392830c52380b66f0da4a3cb5be4557203dfe65b8b97f80287becffb1fdd297",
+  "g2_episodes.csv": "b1c66fdc6386ac4bd399da53bc045ef658273d4d4bedee6123d7bdcbab2b1eda",
+  "g2_uniq.csv": "d2592607cd1732f1408cae79b1660549b22f6dbdbbccf5cd2d3e0477867ce028",
+  "g3_episodes.csv": "0cb3c3a8b62921b0b1e08c0e4e742c04fc6528641e14de541012cef6605b3fa9",
+  "g4_episodes.csv": "ad992fd52388efd85cb264a9f0c2cbac9051cea6e7ca0faee5e99fd2e6e27969",
+  "g5_episodes.csv": "e707673b97efb95e76c4a2124e3b7da6157e5057c738e987820dcd559ef0f0e9",
+  "g5_industry_episodes.csv": "a5b35233ccbd31c277d1eba4e21ecffcfe662deeb8fc3cbe911e50eae62c56fa",
+  "sample_selection.json": "f3ac7240acb22b99688272720042805569916e9f82eae1e7c598cf8dbd268cb1"
+ },
+ "versions": {
+  "numpy": "2.4.6",
+  "pandas": "3.0.3"
+ }
 }
