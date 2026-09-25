@@ -1,0 +1,62 @@
+{
+  "episode_master": {
+    "rows": 283088,
+    "by_policy": {
+      "P1_conservative": 86700,
+      "P2_balanced": 86700,
+      "P3_decisive": 86700,
+      "CONTROL": 22988
+    },
+    "by_E_class": {
+      "E3": 138720,
+      "E1": 61812,
+      "E2": 59568
+    },
+    "filled_rate": 0.8230795847750865,
+    "not_filled_no_position": 46017,
+    "censored": 21132
+  },
+  "daily_master": {
+    "rows": 492900,
+    "events": 27422,
+    "median_lifecycle_days": 16.0,
+    "row_present_rate": 1.0,
+    "resolution_state_top": {
+      "RESOLVED_ADD": 206558,
+      "RESOLVED_REDUCE": 108079,
+      "ZERO_BUDGET": 95866,
+      "EPISODE_TERMINAL": 21675,
+      "NO_ACTION_EVIDENCE": 21442,
+      "RESOLVED_HOLD": 19703,
+      "CONFLICT_OPPORTUNITY_RISK": 11450,
+      "POST_EXIT_LOCKED": 4780
+    },
+    "operational_state_top": {
+      "C1": 239435,
+      "C6": 107615,
+      "C0": 86031,
+      "C4": 17504,
+      "C3": 16352,
+      "C2": 14028,
+      "C5": 9913,
+      "STATE_UNAVAILABLE": 2022
+    },
+    "ref_exec_rows": 397034
+  },
+  "join_integrity": {
+    "episode_event_set_equals_daily": true,
+    "E_class_values": [
+      "E0",
+      "E1",
+      "E2",
+      "E3"
+    ],
+    "initial_state_values": [
+      "EPISODE_TERMINAL",
+      "RESOLVED_ADD",
+      "RESOLVED_HOLD",
+      "RESOLVED_REDUCE",
+      "ZERO_BUDGET"
+    ]
+  }
+}

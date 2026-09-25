@@ -1,0 +1,118 @@
+{
+  "stage": "t6_0",
+  "baseline": "80e934c",
+  "inputs": [
+    {
+      "name": "t4_6_assignment",
+      "path": "output/research/t4/entry_policy/t4_6_assignment.parquet",
+      "sha256": "b341e213fc6bd709488a9e63011bb48d869132dcfcd317b445fd5552f75cbb13",
+      "bytes": 1963913
+    },
+    {
+      "name": "t5_daily_state",
+      "path": "output/research/t5/facts/t5_daily_state.parquet",
+      "sha256": "70cb5e19d07b466252f7337ab887617321810abdf2e57acf37cc6d59c0305ff0",
+      "bytes": 91982809
+    },
+    {
+      "name": "t5_candidate_state_daily",
+      "path": "output/research/t5/state/t5_candidate_state_daily.parquet",
+      "sha256": "47b2c3693194fdcc0d1743156b872cc9845d4d652ac7cbe1897f87d8dd22a76f",
+      "bytes": 28375376
+    },
+    {
+      "name": "t5_operational_state_daily_v2",
+      "path": "output/research/t5/transition/t5_operational_state_daily_v2.parquet",
+      "sha256": "55a230e48e1fe79707b7cdc68db774defd6b1d0246c255698ea14c0ed4e6e4d5",
+      "bytes": 7715925
+    },
+    {
+      "name": "t5_7_exposure_trajectory",
+      "path": "output/research/t5/exposure_adjustment/t5_7_exposure_trajectory.parquet",
+      "sha256": "4c9c6f39449ba697779341fec33cbc24af548b55fafacff2b4f8cf617d4d9f02",
+      "bytes": 8496913
+    },
+    {
+      "name": "t5_8_episode_results",
+      "path": "output/research/t5/full_lifecycle/t5_8_episode_results.parquet",
+      "sha256": "23ac9ad29a62bfe5ba632c6eac34d9c777f0fc6deccb22ae6590379204c0543d",
+      "bytes": 4838030
+    },
+    {
+      "name": "t5_8_daily_exposure_pnl",
+      "path": "output/research/t5/full_lifecycle/t5_8_daily_exposure_pnl.parquet",
+      "sha256": "5c64ceb2f68cf9e072b2005fb750c4ce49c46269a6442f0808b68ace057f452c",
+      "bytes": 25654139
+    }
+  ],
+  "upstream_hashes": [
+    {
+      "path": "output/research/t4/entry_policy/t4_6_assignment.parquet",
+      "sha256": "b341e213fc6bd709488a9e63011bb48d869132dcfcd317b445fd5552f75cbb13"
+    },
+    {
+      "path": "output/research/t5/facts/t5_daily_state.parquet",
+      "sha256": "70cb5e19d07b466252f7337ab887617321810abdf2e57acf37cc6d59c0305ff0"
+    },
+    {
+      "path": "output/research/t5/facts/t5_daily_outcome.parquet",
+      "sha256": "0347a51370fdea9fdc3c11f488f5d035e74ade224a10e2b184b384552e163b0e"
+    },
+    {
+      "path": "output/research/t5/state/t5_candidate_state_daily.parquet",
+      "sha256": "47b2c3693194fdcc0d1743156b872cc9845d4d652ac7cbe1897f87d8dd22a76f"
+    },
+    {
+      "path": "output/research/t5/transition/t5_operational_state_daily_v2.parquet",
+      "sha256": "55a230e48e1fe79707b7cdc68db774defd6b1d0246c255698ea14c0ed4e6e4d5"
+    },
+    {
+      "path": "output/research/t5/exposure_adjustment/t5_7_exposure_trajectory.parquet",
+      "sha256": "4c9c6f39449ba697779341fec33cbc24af548b55fafacff2b4f8cf617d4d9f02"
+    },
+    {
+      "path": "output/research/t5/full_lifecycle/t5_8_episode_results.parquet",
+      "sha256": "23ac9ad29a62bfe5ba632c6eac34d9c777f0fc6deccb22ae6590379204c0543d"
+    },
+    {
+      "path": "output/research/t5/full_lifecycle/t5_8_daily_exposure_pnl.parquet",
+      "sha256": "5c64ceb2f68cf9e072b2005fb750c4ce49c46269a6442f0808b68ace057f452c"
+    },
+    {
+      "path": "output/research/t5/full_lifecycle/t5_8_counterfactual_attribution.parquet",
+      "sha256": "809f55a8735157bb77958beae176f4fc26cf76eaa0c23fcba5e358bd312b1113"
+    },
+    {
+      "path": "output/research/t5/full_lifecycle/t5_8_strategy_matrix.parquet",
+      "sha256": "0d4cdc5c5ab674c8bc51ac05ccd364abb9504d1dd5bf0fb7a02912a75c8b10d0"
+    },
+    {
+      "path": "output/research/t5/full_lifecycle/t5_8_manifest.json",
+      "sha256": "6925dc5cf4cb600f9827fa454231c319dc499a20dfce4e29168908046f73284b"
+    }
+  ],
+  "products": [
+    {
+      "file": "t6_0_episode_master.parquet",
+      "sha256": "c8991e9abf4e27c829c3634a29acab68ecaafcacf70424a32ffa1b0a17467339",
+      "bytes": 5611623,
+      "rows": 283088
+    },
+    {
+      "file": "t6_0_daily_master.parquet",
+      "sha256": "905c55c322bbd5731c8fde2938c26f7d085f76fc2e0c259c2966cf42b7d6b2a2",
+      "bytes": 96861919,
+      "rows": 492900
+    },
+    {
+      "file": "t6_0_report_data.json",
+      "sha256": "3b08de245222c21d7925fc2933327bdd7ba8662423c8ad52950cc79aebea58ab",
+      "bytes": 1330
+    },
+    {
+      "file": "t6_0_canonical.json",
+      "sha256": "fd03fd00b122ed0f724f6aa3ddf36b4dfaead0687361cc32325ff93e0733c5f0",
+      "bytes": 176
+    }
+  ]
+}

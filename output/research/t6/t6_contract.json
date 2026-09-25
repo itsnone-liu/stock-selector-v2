@@ -1,0 +1,121 @@
+{
+  "stage": "T6",
+  "role": "VALIDATION_AND_MECHANISM_ONLY",
+  "baseline": "80e934c",
+  "policy_lock": "T6 MUST NOT modify E0-E3 / C-states / ADD / HOLD / REDUCE / EXIT / P1-P3 parameters; no threshold search; no champion ranking; no confirmation-driven rule edits; no subgroup deletion on adverse results. T6 reads T3-T5 frozen products READ-ONLY.",
+
+  "segments": {
+    "primary": ["validation", "confirmation"],
+    "reference_only": ["development"],
+    "rule": "development never enters formal confirmation claims; assignment is the frozen T5 split (never recomputed)"
+  },
+
+  "execution_reference": {
+    "daily_master_cell": "direct_chase | P2_balanced",
+    "rationale": "Daily Master keeps one row per (event, day); the P2-balanced direct_chase execution columns (_ref suffix) serve as the canonical reference path for mechanism studies. Other 11 cells remain available via t5_8_daily_exposure_pnl joins.",
+    "resolution_state_is_policy_invariant": true
+  },
+
+  "pit_rules": {
+    "daily_master_forbidden": "no column derived from t5_daily_outcome (fwd_*) may enter any T6 fact table; cum_ret_from_t0/drawdown_from_peak/max_dd_to_date/days_since_peak/efficiency/dist_ref* are path statistics known AT close of that day (PIT-legal)",
+    "stored_conventions": "cum_ret_from_t0_log = log(close/close_T0); drawdown_from_peak_log and max_dd_to_date_log are stored as POSITIVE depth (post_t0_peak - cum); severe_dd thresholds therefore compare drawdown_from_peak_log >= 0.1053605 (NOT <= -0.105)",
+    "g3_verification": "physical truncation replay: recompute cum_ret/drawdown/max_dd/days_since_peak from ret_1d_log prefix on sampled events; must equal stored values exactly (float tolerance 1e-12)"
+  },
+
+  "preregistered_thresholds": {
+    "_comment": "ALL returns are LOG returns. Price thresholds converted via log().",
+    "large_loss_ret_log": -0.1053605156578263,
+    "large_loss_price": "-10%",
+    "severe_dd_log": -0.1053605156578263,
+    "exit_failure_dd_log": -0.1625189294977749,
+    "exit_failure_price": "-15%",
+    "lose_ref20_today": "dist_to_ref20 < 0",
+    "horizons_H": [5, 10, 20, 40],
+    "false_recovery_window_valid_obs": 5,
+    "false_recovery_trigger": "within 5 valid observations after ADD: lose_ref20_today OR drawdown_from_peak_log <= severe_dd_log",
+    "quick_failure_day_window": 5,
+    "healthy_prefix_days": 10,
+    "gap_rows_min": 2
+  },
+
+  "eclass_metrics_prereg": {
+    "reward": ["median_return", "mean_return", "p_positive", "p05_return", "p25_return"],
+    "risk": ["median_mdd", "p90_abs_mdd", "p95_abs_mdd", "large_loss_probability", "lose_ref20_probability"],
+    "persistence": ["p_new_high", "median_peak_tau", "p_survive_h10", "p_survive_h20", "p_terminal_failure"],
+    "capital_efficiency": {
+      "CE1": "return / capital_days, capital_days = sum(actual_exposure_day)",
+      "CE2": "return / |MDD|",
+      "CE3": "portfolio_contribution / capital_days"
+    },
+    "comparisons": ["E1_vs_E0", "E2_vs_E1", "E3_vs_E2", "spearman_E_rank_metric"],
+    "forbidden": "NO composite E-score may be created in T6"
+  },
+
+  "recycling_prereg": {
+    "cycle_def": "R0 = REDUCE day; A0 = first ADD after R0 in same lifecycle and same strategy branch; cycle = [R0, A0]; if REDUCE->EXIT next: FAILED_EXIT; if lifecycle ends before any ADD: NO_RECOVERY; if right-censored before resolution: CENSORED",
+    "types": ["RECOVERED_ADD", "FAILED_EXIT", "NO_RECOVERY", "CENSORED"],
+    "repeated_reduce_rule": "a second REDUCE before any ADD restarts the cycle clock (R0 moves); first-version taxonomy stays coarse on purpose",
+    "event_window": [-5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 10, 20],
+    "control_groups": ["REDUCE_then_ADD", "REDUCE_then_EXIT", "REDUCE_no_recovery"],
+    "post_exit_lock_note": "POST_EXIT_LOCKED is permanent (T5.8R-2): EXIT can never be followed by re-entry ADD"
+  },
+
+  "failure_anatomy_prereg": {
+    "episode_classes": {
+      "GOOD": "ret > 0 AND mdd > large_loss_ret_log",
+      "PAINFUL_WIN": "ret > 0 AND mdd <= large_loss_ret_log",
+      "CONTROLLED_LOSS": "ret <= 0 AND mdd > large_loss_ret_log",
+      "SEVERE_FAILURE": "ret <= 0 AND mdd <= large_loss_ret_log"
+    },
+    "failure_stages": {
+      "order": ["F1", "F3", "F2", "F4", "F5", "F6"],
+      "F1_initial_misclassification": "first operator in {REDUCE, EXIT} occurs at delta_day <= quick_failure_day_window AND final ret <= 0 AND no healthy prefix (first-op day is the earliest structural signal)",
+      "F3_false_recovery": "exists REDUCE->ADD cycle AND false_recovery_trigger fires within false_recovery_window_valid_obs valid observations after A0",
+      "F2_late_deterioration": "days before first REDUCE >= healthy_prefix_days AND drawdown_from_peak_log at first-REDUCE day <= severe_dd_log AND final ret <= 0",
+      "F4_exit_failure": "max_dd_to_date_log <= exit_failure_dd_log at some day AND no EXIT ever occurs AND final ret <= 0",
+      "F5_fast_failure_gap": "a run of >= gap_rows_min consecutive row_present=False precedes terminal_reason=LIFECYCLE_END, OR single-day ret_1d_log <= severe_dd_log dominates the terminal leg",
+      "F6_censored_unclassifiable": "censored episodes or none of F1-F5 matched"
+    },
+    "rule": "classification code must be deterministic; NO manual judgement; thresholds are frozen BEFORE any T6.3 distribution is inspected"
+  },
+
+  "regime_prereg": {
+    "market_states": {
+      "M_STRONG": "mkt_breadth_5d > 0.55 AND mkt_new_high_20d > 0.10",
+      "M_WEAK": "mkt_breadth_5d < 0.45 OR mkt_new_high_20d < 0.04",
+      "M_NEUTRAL": "otherwise"
+    },
+    "sector_metrics": ["sector_relative_strength", "sector_breadth", "sector_turnover", "stock_vs_sector_relative_strength"],
+    "sector_pit_constraint": "T4 sector membership is a retrospective 2026 snapshot (NON-PIT). Sector analyses are EXPLORATORY ONLY and MUST NOT enter primary T6 conclusions. Gate-enforced.",
+    "interactions": ["E_class x MarketRegime", "REDUCE_to_ADD x MarketRegime", "REDUCE_to_ADD x SectorRegime(exploratory)"]
+  },
+
+  "statistics_prereg": {
+    "bootstrap_B": 2000,
+    "bootstrap_seed": 20260925,
+    "cluster_units": ["stock_code", "T0_date"],
+    "ci_method": "percentile 2.5/97.5",
+    "multiple_comparison": "Holm within each metric family (E-gradient adjacent comparisons)",
+    "primary_tests": "validation + confirmation pooled report; development reference only"
+  },
+
+  "claim_registry_enum": ["SUPPORTED", "PARTIALLY_SUPPORTED", "NOT_SUPPORTED", "INCONCLUSIVE", "EXPLORATORY"],
+  "claim_rules": "every formal report claim must cite a claim_id from t6_claim_registry.json; claims relying on non-PIT sector data are forced EXPLORATORY; tail-risk wording requires quantile/CVaR evidence (mean-only cannot claim tail protection)",
+
+  "gates_framework": {
+    "G1_lineage": "manifest inputs re-hashed vs sha256 (explicit list, no AST guessing)",
+    "G2_upstream_immutability": "T3-T5 frozen product hashes recorded at T6.0 freeze; every later gate re-verifies",
+    "G3_pit_truncation_replay": "physical prefix recompute == stored path stats on sampled events",
+    "G4_outcome_separation": "fact tables contain no fwd_/future_/outcome_ columns AND their build lineage never reads t5_daily_outcome",
+    "G5_segment_isolation": "segment values == frozen T5 assignment (no recompute, no leakage between splits)",
+    "G6_preregistration": "every threshold/window/metric/classification used by run scripts must resolve from this contract file; hard-coded constants in stage code => FAIL",
+    "G7_no_tuning": "source scan: grid/argmax/best/optimize/champion forbidden in T6 code",
+    "G8_conservation": "population decompositions must sum exactly (cycles, failure stages, episode classes)",
+    "G9_statistical_integrity": "cluster unit, seed, B, CI method, correction family verified against contract",
+    "G10_determinism": "two full runs produce identical canonical hashes (sorted-frame, typed) of every parquet/json output",
+    "G11_anti_story": "report claims subset of claim registry; forbidden phrases (tail protection w/o quantile evidence, sector in primary conclusions) machine-checked"
+  },
+
+  "stage_order": ["T6.0 fact layer", "T6.1 eclass validation", "T6.2 recycling", "T6.3 failure anatomy", "T6.4 regime interaction", "T6.5 synthesis"],
+  "stage_rule": "each stage: code -> products -> gates -> report -> independent audit -> freeze commit; next stage may only read frozen prior stage"
+}

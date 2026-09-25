@@ -1,0 +1,91 @@
+{
+  "G10_determinism": {
+    "verdict": "PASS",
+    "reason": "",
+    "parquet_canonical_checked": 2,
+    "note": "sorted+typed canonical frame hash, rebuild == disk"
+  },
+  "G11_anti_story": {
+    "verdict": "PASS",
+    "reason": "",
+    "reasons": []
+  },
+  "G1_lineage": {
+    "verdict": "PASS",
+    "reason": "",
+    "inputs_hash_verified": 7
+  },
+  "G2_upstream_immutability": {
+    "verdict": "PASS",
+    "reason": "",
+    "frozen_products": 11
+  },
+  "G3_pit_truncation_replay": {
+    "verdict": "PASS",
+    "reason": "",
+    "events_checked": 40,
+    "mismatches": 0,
+    "note": "prefix recompute of cum/dd(+depth)/maxdd == stored values"
+  },
+  "G4_outcome_separation": {
+    "verdict": "PASS",
+    "reason": "",
+    "forbidden_columns": [],
+    "outcome_read_lines": []
+  },
+  "G5_segment_isolation": {
+    "verdict": "PASS",
+    "reason": "",
+    "segments": {
+      "episode_master": [
+        "confirmation",
+        "development",
+        "validation"
+      ],
+      "daily_master": [
+        "confirmation",
+        "development",
+        "validation"
+      ]
+    }
+  },
+  "G6_preregistration": {
+    "verdict": "PASS",
+    "reason": "",
+    "unregistered_threshold_literals": [],
+    "note": "numeric comparison constants must appear in t6_contract.json"
+  },
+  "G7_no_tuning": {
+    "verdict": "PASS",
+    "reason": "",
+    "tuning_idioms_found": []
+  },
+  "G8_conservation": {
+    "verdict": "PASS",
+    "reason": "",
+    "decompositions": {
+      "episode_by_policy": {
+        "total": 283088,
+        "parts_sum": 283088,
+        "parts": {
+          "P1_conservative": 86700,
+          "P2_balanced": 86700,
+          "P3_decisive": 86700,
+          "CONTROL": 22988
+        }
+      },
+      "ref_exec_daily_rows": {
+        "total": 397034,
+        "parts_sum": 397034,
+        "parts": {
+          "filled_ref_rows": 397034
+        }
+      }
+    }
+  },
+  "G9_statistical_integrity": {
+    "verdict": "SKIPPED_WITH_REASON",
+    "reason": "T6.0 builds fact tables only; no inference/bootstrap is run at this stage"
+  },
+  "overall": "PASS"
+}
