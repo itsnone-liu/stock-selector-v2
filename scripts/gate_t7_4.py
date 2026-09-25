@@ -123,23 +123,63 @@ def main():
             and not any(c for c in cls.columns if 'policy' in c.lower()))
     log.gate('G33_no_policy_derivation', ok33)
 
-    # G34 component provenance: columns exist for every condition variable
-    # and are populated from frozen sources (spot: dd_ep equals frozen
-    # anatomy column; n_add/n_reduce equal frozen counts)
-    m = cls.set_index('event_id')
-    ok34 = all(c in cls.columns for c in
-               ('span', 'occupancy', 'dd_ep', 'n_add', 'n_reduce',
-                'd4_break_ret', 'd4_pre_break_dd'))
-    spot = cls.sample(60, random_state=3)
-    a2 = an.set_index('event_id')
-    ok34 = ok34 and bool(np.allclose(
-        spot.dd_ep.to_numpy(float),
-        a2.loc[spot.event_id].drawdown_from_peak_log.to_numpy(float),
-        atol=1e-12, equal_nan=True))
-    ok34 = ok34 and bool((spot.n_add.to_numpy(int) ==
-                          a2.loc[spot.event_id].n_add.to_numpy(int)).all())
-    log.gate('G34_component_provenance_replay', ok34,
-             spot_checked=len(spot))
+    # G34 component provenance replay — R1: FULL component set, stratified
+    # per class (15 each for D1/D4/D5/F6'), every variable re-derived from
+    # frozen facts and reconciled against the classification parquet;
+    # plus NEGATIVE WITNESSES proving the D2/D3 structural zeros directly
+    # (not just trusting the runner outcome).
+    comp_cols = ('span', 'occupancy', 'dd_ep', 'n_add', 'n_reduce')
+    d4_cols = ('d4_break_ret', 'd4_pre_break_dd')
+    mism34 = 0
+    n_cmp = 0
+    for cname in ('D1', 'D4', 'D5', "F6'"):
+        grp = cls[cls.f6_class == cname]
+        samp = grp.sample(min(15, len(grp)), random_state=13)
+        for r in samp.itertuples():
+            offs, expo, ret1, close = agg[r.event_id]
+            a = anmap.loc[r.event_id]
+            n = len(offs)
+            checks = {
+                'span': (r.span == n),
+                'occupancy': abs(r.occupancy - float(np.nanmean(expo))) < 1e-12,
+                'dd_ep': (bool(np.isnan(r.dd_ep)
+                              and np.isnan(float(a.drawdown_from_peak_log)))
+                         or abs(r.dd_ep
+                                - float(a.drawdown_from_peak_log)) < 1e-12),
+                'n_add': (int(r.n_add) == int(a.n_add)),
+                'n_reduce': (int(r.n_reduce) == int(a.n_reduce)),
+            }
+            n_cmp += len(checks)
+            if not all(checks.values()):
+                mism34 += 1
+            if cname == 'D4':
+                tail = ret1[max(0, n - 5):]
+                brk = np.where(tail <= -0.07)[0]
+                bi = max(0, n - 5) + int(brk[0])
+                pre = close[:bi + 1]
+                pre_dd = float(np.min(np.log(pre / np.maximum.accumulate(pre))))
+                n_cmp += 2
+                if not (abs(r.d4_break_ret - float(tail[int(brk[0])])) < 1e-12
+                        and abs(r.d4_pre_break_dd - pre_dd) < 1e-12):
+                    mism34 += 1
+    # negative witness A: NO frozen FR cycle has effective failure_offset > 5
+    max_off = -1
+    for q in ct[ct.false_recovery == True].itertuples():
+        if np.isfinite(q.a0_day) and np.isfinite(q.trigger_day) \
+                and q.event_id in agg:
+            o = agg[q.event_id][0]
+            off = int(np.searchsorted(o, q.trigger_day)
+                      - np.searchsorted(o, q.a0_day))
+            max_off = max(max_off, off)
+    # negative witness B: NO episode in the fact layer reaches span >= 60
+    max_span = max(len(agg[e][0]) for e in an.event_id if e in agg)
+    log.gate('G34_component_provenance_replay',
+             mism34 == 0 and max_off <= 5 and max_span < 60,
+             stratified_episodes=sum(min(15, len(cls[cls.f6_class == c]))
+                                     for c in ('D1', 'D4', 'D5', "F6'")),
+             component_comparisons=n_cmp, mismatched_episodes=mism34,
+             d2_witness_max_failure_offset=int(max_off),
+             d3_witness_max_span=int(max_span))
 
     sys.exit(log.finish(OUT/'t7_4_gates.json'))
 

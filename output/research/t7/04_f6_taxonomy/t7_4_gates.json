@@ -32,7 +32,11 @@
   "G34_component_provenance_replay": {
     "verdict": "PASS",
     "reason": "",
-    "spot_checked": 60
+    "stratified_episodes": 60,
+    "component_comparisons": 330,
+    "mismatched_episodes": 0,
+    "d2_witness_max_failure_offset": 5,
+    "d3_witness_max_span": 41
   },
   "G_F6_LOCK_timing": {
     "verdict": "PASS",
