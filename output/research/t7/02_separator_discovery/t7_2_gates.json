@@ -7,7 +7,11 @@
   "G22_dev_only": {
     "verdict": "PASS",
     "reason": "",
-    "dev_anchors": 3764
+    "dev_anchors": 3764,
+    "segment_unique": [
+      "development"
+    ],
+    "code_path_violations": []
   },
   "G23_frozen_space_bins": {
     "verdict": "PASS",
@@ -16,7 +20,11 @@
   "G24_exposure_and_mechanical_rule": {
     "verdict": "PASS",
     "reason": "",
-    "exposure_entries": 6
+    "exposure_entries": 6,
+    "cells_unique": 27,
+    "sum_cell_n": 3764,
+    "fr_denominator_total": 1541,
+    "tr_denominator_total": 3764
   },
   "G2b_t7_0_immutable": {
     "verdict": "PASS",

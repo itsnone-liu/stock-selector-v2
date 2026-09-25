@@ -51,21 +51,35 @@ cluster 单位上同时成立）：**仅 max_bounce_R5 通过**；vol_load 与 t
 2. TR_all 上三特征全显著正向——但 TR 判别不是 C/D policy 的直接目标（False ADD
    cost 挂在 FR 上）；这些只作为路径背景记录。
 
-## 3. 27-cell 描述表
+## 3. 27-cell 描述表（R1：显式分母语义）
 
-27 cell（3×3×3 tertile 交叉）× 2 目标的率 + 双 cluster level CI 已落盘
-（`t7_2_cells.parquet`）。最小 cell n 及空 cell 如实记录；本报告不引用个别 cell
-作任何条件规则表述——cell 层结构若需进入 Amendment Freeze，须整表附上。
+27 cell（3×3×3 tertile 交叉）× 2 目标已落盘（`t7_2_cells.parquet`）。**R1 起
+每 cell 显式携带**：`n`（cell 全体成员数）、`FR_within_recovered_n` /
+`TR_all_n`（**该目标的真实分母**）与 `FR_within_recovered_count` / `TR_all_count`
+（分子），`rate == count / target_n` 由 G24 逐 cell 守恒校验。分母语义：FR rate
+的分母是 cell 内 RECOVERED_ADD 子集（**不是 cell n**）——例：cell n=150 且 FR
+rate=60% 时，若 recovered 子集为 30，则是 18/30 而非 90/150。目标分母总和守恒：
+Σ FR 分母 = 1,541（= DEV RECOVERED_ADD 总数，从冻结事实层独立重算）；Σ TR 分母
+= 3,764。最小 cell 及空 cell（分母 0 → rate=NaN、count=0）如实记录；本报告不引用
+个别 cell 作任何条件规则表述——cell 层结构若需进入 Amendment Freeze，须整表附上。
 
 ## 4. Gate
 
 `t7_2_gates.json` 全 PASS：G1 lineage（3 输入）→ G2b T7.0 产物不可变（5 products）→
-**G22 DEV-only**（硬过滤 + 行数 + n 断言）→ **G23 冻结空间与 bins 重放**（特征集
-== 三元组；DEV tertile 独立重算逐位一致）→ **G24 exposure 完整 + 机械规则重放**
-（6 组对比全落盘；candidates 从 discovery parquet 独立重算一致）。
+**G22 DEV-only**（R1 加固：产物显式 `segment=development` 列 + gate 验证
+unique(segment)；源码剥离注释/docstring/字符串后**禁止 validation/confirmation
+标识符出现在计算路径**——原先的字符串存在性检查无法排除"同时读 VAL 做筛选"的
+污染路径，现为冻结级 blind-validation 边界）→ **G23 冻结空间与 bins 重放** →
+**G24 exposure + 27-cell 结构守恒**（R1 扩：exactly {lo,mid,hi}³ 且 27 cell 唯一；
+Σ cell n=3,764；每 cell 每 target `rate==count/target_n` 逐 cell 校验；目标分母
+总和守恒 1,541/3,764 从冻结事实层独立重算；机械 candidate 重放保留）。
 
-过程修正（诚实）：G24 首版集合断言表达式写错（语义混乱的嵌套推导），简化为
-(target, feature) 对集合直接比较后通过——gate 自身也要被审计的又一例。
+**R1 审计加固**（discovery 12 contrasts、bins、candidate 清单**逐位不变**——
+重跑前后旧列 diff 验证）：①G22 从字符串存在性升级为产物 segment 断言 + 计算路径
+AST/源码扫描；②27-cell 补 target-specific 分母与分子（防 Amendment Freeze 误读
+FR rate 的分母）；③G24 增加 27-cell 完整性与分母守恒。过程修正（诚实）：G24 首版
+集合断言表达式语义混乱（简化后过）；R1 中 gate 源码两处坏味道（heredoc 转义破坏
+正则、`if False else` 残留分支）——写后即读即修，未入提交。
 
 ## 5. 下一步（不属本阶段）
 

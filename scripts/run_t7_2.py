@@ -87,7 +87,8 @@ def main():
                 est, ci, pv, dg = cluster_boot_diff(
                     lbl.astype(float), hi, lo, clusters, 'mean',
                     rng(f, tname, cl_name, 'diff'), B)
-                recs.append({'target': tname, 'feature': f, 'cluster': cl_name,
+                recs.append({'segment': 'development',
+                             'target': tname, 'feature': f, 'cluster': cl_name,
                              'contrast': 'hi_vs_lo_tertile', 'est': float(est),
                              'ci95': [float(ci[0]), float(ci[1])],
                              'p_boot': float(pv),
@@ -116,11 +117,15 @@ def main():
                 m = ((dev[FEATS[0] + '_bin'] == b) & (dev[FEATS[1] + '_bin'] == v)
                      & (dev[FEATS[2] + '_bin'] == t)).to_numpy()
                 n = int(m.sum())
-                row = {'bounce_bin': b, 'vol_bin': v, 'turnover_bin': t, 'n': n}
+                row = {'segment': 'development',
+                       'bounce_bin': b, 'vol_bin': v, 'turnover_bin': t, 'n': n}
                 for tname, (basemask, lbl) in targets.items():
                     mm = m & basemask
-                    ok = mm
-                    rate = float(lbl[mm].mean()) if mm.sum() else np.nan
+                    tden = int(mm.sum())
+                    tcnt = int(lbl[mm].sum()) if tden else 0
+                    rate = float(tcnt / tden) if tden else np.nan
+                    row[f'{tname}_n'] = tden
+                    row[f'{tname}_count'] = tcnt
                     row[f'{tname}_rate'] = rate
                     if mm.sum() >= 10:
                         for cl_name, cl_col in (('stock', 'stock_code'),

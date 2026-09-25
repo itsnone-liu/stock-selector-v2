@@ -4,6 +4,7 @@ completeness, lineage. Discovery is allowed, proof is not: nothing in this
 stage's products may touch VAL/CONF rows."""
 from __future__ import annotations
 import json
+import re
 import sys
 from pathlib import Path
 import numpy as np
@@ -18,6 +19,7 @@ T7 = T6.parent/'t7'
 IN = T7/'00_path_factlayer'
 OUT = T7/'02_separator_discovery'
 FEATS = ('max_bounce_R5', 'vol_load@maxbounce_R5', 'turnover@maxbounce_R5')
+_FR_TOTAL = {}
 
 
 def main():
@@ -40,15 +42,38 @@ def main():
                 ok = False
     log.gate('G2b_t7_0_immutable', ok, products_verified=n_prod)
 
-    # G22 DEV-only identity
+    # G22 DEV-only identity — products carry explicit segment, gate verifies
+    # unique(segment) == development, and no VAL/CONF computation path exists
     src = (ROOT/'scripts/run_t7_2.py').read_text()
-    ok22 = ("dev = df[df.segment == 'development']" in src
+    seg_ok = (set(disc.segment.unique()) == {'development'}
+              and set(cells.segment.unique()) == {'development'})
+    # strip comments/docstrings/strings, then forbid validation/confirmation
+    # identifiers in the remaining code path (prose is exempt)
+    code_only = []
+    for ln in src.splitlines():
+        ln = re.sub(r'#.*$', '', ln)
+        code_only.append(ln)
+    code_txt = '\n'.join(code_only)
+    code_txt = re.sub(r"'''.*?'''", '', code_txt, flags=re.S)
+    code_txt = re.sub(r'""".*?"""', '', code_txt, flags=re.S)
+    code_txt = re.sub(r'"[^"\n]*"', '""', code_txt)
+    code_txt = re.sub(r"'[^'\n]*'", "''", code_txt)
+    viol22 = []
+    for pat in (r'\bvalidation\b', r'\bconfirmation\b', r'\bval\b', r'\bconf\b'):
+        for m in re.finditer(pat, code_txt):
+            ctx = code_txt[max(0, m.start()-30):m.end()+30].replace('\n', ' ')
+            viol22.append(ctx)
+    ok22 = (seg_ok and not viol22
+            and "dev = df[df.segment == 'development']" in src
             and len(disc) == 12 and len(cells) == 27
             and all(r.n_hi + r.n_lo <= rep['n_dev_anchors']
                     for r in disc.itertuples())
             and rep['n_dev_anchors'] == 3764
             and 'DEV-ONLY DISCOVERY' in rep['identity'])
-    log.gate('G22_dev_only', ok22, dev_anchors=rep['n_dev_anchors'])
+    log.gate('G22_dev_only', ok22, dev_anchors=rep['n_dev_anchors'],
+             segment_unique=sorted(set(disc.segment.unique())
+                                   | set(cells.segment.unique())),
+             code_path_violations=viol22[:5])
 
     # G23 frozen candidate space + DEV-tertile bins replay
     feat_cols = set(pd.read_parquet(
@@ -63,17 +88,51 @@ def main():
             ok23 = False
     log.gate('G23_frozen_space_bins', ok23)
 
-    # G24 exposure completeness + mechanical candidate replay
+    # G24 exposure completeness + 27-cell structural conservation + target
+    # denominator conservation + mechanical candidate replay
     pairs = {(e['target'], e['feature']) for e in rep['exposure_log']}
     ok24 = (len(rep['exposure_log']) == 6 and pairs ==
             {(t, f) for t in ('FR_within_recovered', 'TR_all') for f in FEATS})
+    # exactly the 3x3x3 cross, once each; membership partitions DEV anchors
+    cube = {(b, v, t) for b in ('lo', 'mid', 'hi')
+            for v in ('lo', 'mid', 'hi') for t in ('lo', 'mid', 'hi')}
+    got = set(zip(cells.bounce_bin, cells.vol_bin, cells.turnover_bin))
+    ok24 = ok24 and len(cells) == 27 and got == cube and int(cells.n.sum()) == 3764
+    # rate == positive_count / target_n for every cell and both targets
+    for tname in ('FR_within_recovered', 'TR_all'):
+        n = cells[f'{tname}_n'].to_numpy(float)
+        cnt = cells[f'{tname}_count'].to_numpy(float)
+        rate = cells[f'{tname}_rate'].to_numpy(float)
+        okm = n > 0
+        if not np.allclose(cnt[okm] / n[okm], rate[okm], atol=0, rtol=0):
+            ok24 = False
+        if not ((cnt[~okm] == 0) & np.isnan(rate[~okm])).all() and (~okm).any():
+            ok24 = False
+        # target denominators partition their populations (FR: recovered
+        # subset; TR: all DEV anchors)
+        expected_total = 3764 if tname == 'TR_all' else None
+        tot = int(cells[f'{tname}_n'].sum())
+        if expected_total is None:
+            # recovered-subset total: recompute from frozen fact layer
+            if 'dev_recovered' not in _FR_TOTAL:
+                o = pd.read_parquet(
+                    IN/'t7_0_outcomes_outcomes.parquet',
+                    columns=['segment', 'type'])
+                _FR_TOTAL['dev_recovered'] = int(((o.segment == 'development')
+                                                  & (o.type == 'RECOVERED_ADD')).sum())
+            expected_total = _FR_TOTAL['dev_recovered']
+        if tot != expected_total:
+            ok24 = False
     for c in rep['mechanical_candidates']:
         g = disc[(disc.target == 'FR_within_recovered') & (disc.feature == c['feature'])]
         replay = bool(len(g) == 2 and all(g.ci_excludes_zero) and all(g.reject))
         if replay != c['passes_both_clusters']:
             ok24 = False
     log.gate('G24_exposure_and_mechanical_rule', ok24,
-             exposure_entries=len(rep['exposure_log']))
+             exposure_entries=len(rep['exposure_log']),
+             cells_unique=len(got), sum_cell_n=int(cells.n.sum()),
+             fr_denominator_total=int(cells.FR_within_recovered_n.sum()),
+             tr_denominator_total=int(cells.TR_all_n.sum()))
 
     sys.exit(log.finish(OUT/'t7_2_gates.json'))
 

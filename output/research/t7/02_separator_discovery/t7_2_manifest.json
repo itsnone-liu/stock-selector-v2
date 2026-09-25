@@ -25,14 +25,14 @@
   "products": [
     {
       "file": "t7_2_discovery.parquet",
-      "sha256": "8b1ca5c896bbe30839cd80b5048f66b30c1ba1a627b12437d051a4b5d32094c2",
-      "bytes": 7564,
+      "sha256": "d2963a50f732f1b5c017de2f3fd202a5380738e3704f7f22192263a1bb80d630",
+      "bytes": 8097,
       "rows": 12
     },
     {
       "file": "t7_2_cells.parquet",
-      "sha256": "fd386b10a97c3a5a60d5609b19adbe837020c34fab340ba2b5bae5b6fe95943f",
-      "bytes": 9139,
+      "sha256": "e143248c177cacd12a229388df9a5f9fb6409938b31078d31af361e398d2847e",
+      "bytes": 12637,
       "rows": 27
     },
     {
