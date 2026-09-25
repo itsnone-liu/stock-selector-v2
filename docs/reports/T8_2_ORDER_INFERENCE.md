@@ -1,13 +1,17 @@
 # T8.2 报告：Preregistered Order Inference（Estimand B — conditional order contrast）
 
 > **身份**：固定预注册 contrast（边际 k1/k2/k3+ 三对比 + outcome₁ stratum 内
-> k2 vs k3+），无事后新增条件变量（MAE/MFE/DD 分层明确排除）。Primary =
+> k2 vs k3+），无事后新增条件变量（MAE/MFE/DD 分层明确排除；interaction
+> contrast 未预注册、事后不新增）。Primary =
 > **validation+confirmation pooled**（frozen t6 统计契约 primary_tests；
 > 14,105 ADD：k1 9,033 / k2 3,372 / k3+ 1,700）；dev/全段为参考。B=2,000、
 > seed=20260925、双 cluster（stock_code 主表、T0_date 稳健）、Holm 每指标
 > ×cluster×族。**Estimand B 命名纪律：全部结果为 conditional association，
-> 非因果**。outcome₁ 映射：FR > CYCLE_OK > OTHER（frozen ADD₁ 标签；
-> both-true 冲突 1,347 计入 FR，如实报）。
+> 非因果**。outcome₁ 映射：FR > CYCLE_OK > OTHER；**stratum 标签精确语义**：
+> FR = false_add₁；CYCLE_OK = **true_recovery₁ AND NOT false_add₁**（非
+> 单纯 true_recovery——1,347 个 both-true 的 ADD₁ 已按优先级归 FR，量不小，
+> synthesis 不得把 CYCLE_OK 自然语言扩大成"第一次成功恢复"）；OTHER =
+> 两者皆非。
 
 ## 1. 边际层（primary，stock_code，Holm 后）
 
@@ -39,29 +43,33 @@ T0_date 稳健：FR 内 recovery（p<.001）与 contrib（p=.033）显著、CYCL
 
 ## 3. 判读（对照预注册三形态）
 
-**落入第三形态：strata 方向不同（conditional structure）**——order gradient
-的存在性**依赖于前序 outcome**：
+**落入第三形态：strata 模式不同（conditional structure）**——k2→k3+ 的
+association **观测模式随前序 outcome₁ stratum 而异**（注意：这是分层描述，
+不是 interaction 检验——"一个 stratum 显著、另一个不显著"不等于"两个
+stratum 的 effect 显著不同"，effect modification 的正式证明需要预注册
+interaction contrast，未做）：
 
-1. **FR 前序下梯度保留**：ADD₁ 假恢复后，k2→k3+ 的 recovery/ret/contrib
-   下降、dd/mfe 恶化**全部 Holm 后显著**——在"第一次已经错了"的路径上，
-   order 仍携带额外条件信息（后续每次 re-risk 的恢复捕获继续衰减、下行
-   继续）。注意 false_add 在 FR 内也不升——**错的风险仍不升，对的结果
-   在变差**（T8.1 结构在 FR 内的强化版）。
-2. **CYCLE_OK 前序下梯度消失**：ADD₁ 真恢复后，k2vsk3+ 的 recovery
-   （+3.84pp p=.20）/ret/contrib 全不显著且点估计转负；**mfe 甚至反向
-   显著**（k3+ 上行中位更高）——第一次成功后，后续 re-risk 次数与 outcome
-   无系统关联。
-3. **不能压成统一"次数规则"**：同样的 k3+，在 FR 前序下系统性更差、在
-   CYCLE_OK 前序下不差——"第 N 次停止 ADD"类规则没有数据基础（这本身
-   就是预注册三形态里第三形态的定义）。
+1. **FR stratum 内存在多指标一致的梯度**：ADD₁ 假恢复后，k2→k3+ 的
+   recovery/ret/contrib 下降、dd/mfe 恶化**全部 Holm 后显著**。注意
+   false_add 在 FR 内也不升——**错的风险仍不升，对的结果在变差**（T8.1
+   结构在 FR 内的强化版）。
+2. **CYCLE_OK stratum 内未观察到 FR 那样跨指标一致的恶化梯度**：
+   recovery（+3.84pp p=.20）/ret/contrib 不显著且点估计转负；**mfe 反向
+   显著**（k3+ 上行中位更高）。failure-to-reject ≠ equality——不把"不
+   显著"写成"无关联"。
+3. **不能压成统一"次数规则"**：同样的 k3+，在 FR stratum 内多指标一致
+   更差、在 CYCLE_OK stratum 内未出现同样模式——"第 N 次停止 ADD"类
+   统一门没有数据基础（预注册三形态里第三形态的定义本身）。
 
 ## 4. 回答 T8 的原始问题
 
 - RQ1（边际）：order gradient 存在但**结构不对称**——错误率平坦 +
   恢复捕获/终点收益递减 + 中位上行潜力平坦（T8.1 描述被 inference 确认）。
-- RQ2（条件）：**outcome₁ 解释了梯度的 CYCLE_OK 部分、解释不掉 FR 部分**。
-  order 不是纯粹的前序路径质量 proxy（否则条件化后应全部消失）；它只在
-  失败前序下携带额外的条件信息。
+- RQ2（条件）：**粗粒度 outcome₁ conditioning 部分分层了该结构，但未完全
+  吸收**——FR stratum 内的 k2→k3+ association 仍然存在。剩余 association
+  的来源**未决**：可能来自 order，也可能来自 outcome₁ 三分类未捕获的前序
+  路径差异（大量 path selection 未控制）。"order 本身携带额外信息"保留为
+  未决解释，不作为 T8.2 的冻结结论。
 
 ## 5. Gate
 
@@ -75,7 +83,10 @@ G46（primary 样本量与 anatomy VAL+CONF 逐组对账 + strata 划分守恒
 
 - Estimand B 是 conditional association：FR 内梯度保留 ≠ "FR 后的第 3 次
   ADD 导致更差"——risk set 仍在选择路径上；
-- OTHER stratum（n=635 of k1）的三值映射覆盖了 4.4% 的 primary k1 冲突
-  （FR∩CYCLE_OK=1,347 计入 FR）——优先级是预注册的，冲突数如实报；
-- 无 policy：本段不产生任何"停止规则"；若未来要做，须独立 Design →
-  Freeze → VAL 完整管线（Plan §3 条件门）。
+- outcome₁ 三分类是**粗粒度前序状态摘要**：OTHER stratum（n=635 of k1）、
+  FR∩CYCLE_OK both-true 1,347（已按预注册优先级归 FR）——分层不等于
+  控制，剩余 path selection 大量存在；
+- 无 policy：本段不产生任何停止规则。若未来开 policy amendment，候选
+  结构形态是**前序 path state × re-risk order → 是否改变后续 risk
+  budget**（而非 order≥N → stop 的统一次数门）——但当前不制定该规则，
+  须独立 Design → Freeze → VAL 完整管线（Plan §3 条件门）。
