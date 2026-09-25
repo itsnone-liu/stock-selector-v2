@@ -62,6 +62,12 @@
     "exit_failure_dd_depth": 0.1625189294977749,
     "large_loss_ret": -0.1053605156578263
   },
+  "G6b_contract_reference_integrity": {
+    "verdict": "PASS",
+    "reason": "",
+    "dangling_references": [],
+    "references_found": 12
+  },
   "G7_no_tuning": {
     "verdict": "PASS",
     "reason": "",

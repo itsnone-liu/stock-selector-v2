@@ -31,6 +31,8 @@ def main():
 
     run_src = (ROOT/'scripts/run_t6_0.py').read_text()
     gf.contract_symbol_asserts(log, contract)
+    gf.contract_reference_integrity(log, contract,
+                                    legal_identifiers=set(dm.columns) | set(ep.columns))
     gf.g6_preregistration(log, [run_src, build_src], contract)
     gf.g7_no_tuning(log, [run_src, build_src])
 

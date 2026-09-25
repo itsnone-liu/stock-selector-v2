@@ -154,6 +154,28 @@ def contract_symbol_asserts(log: GateLog, contract: dict):
              large_loss_ret=t['large_loss_ret_log'])
 
 
+def contract_reference_integrity(log: GateLog, contract: dict, legal_identifiers: set):
+    """No dangling threshold references: every *_log / *_window / *_days /
+    *_obs / *_min token appearing in contract rule strings must resolve to a
+    contract key or a real fact-layer column name (audit R2, 2026-09-25)."""
+    keys = set(contract['preregistered_thresholds'].keys())
+    keys |= set(contract.get('eclass_metrics_prereg', {}).get('capital_efficiency', {})
+                .get('derived_quantities', []))
+    legal = keys | {str(x) for x in legal_identifiers}
+    refs = set()
+    def walk(o):
+        if isinstance(o, str):
+            refs.update(m.group(0) for m in re.finditer(r'[a-z][a-z0-9_]*_(?:log|window|days|obs|min)\b', o))
+        elif isinstance(o, dict):
+            for v in o.values(): walk(v)
+        elif isinstance(o, list):
+            for v in o: walk(v)
+    walk(contract)
+    dangling = sorted(r for r in refs if r not in legal)
+    log.gate('G6b_contract_reference_integrity', not dangling,
+             dangling_references=dangling, references_found=len(refs))
+
+
 def g6_preregistration(log: GateLog, stage_sources: list, contract: dict):
     src = '\n'.join(stage_sources)
     # numeric literals that smell like thresholds must exist in contract json

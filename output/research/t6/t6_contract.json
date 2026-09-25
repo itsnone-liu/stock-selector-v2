@@ -43,7 +43,9 @@
     "risk": ["median_mdd", "p90_abs_mdd", "p95_abs_mdd", "large_loss_probability", "lose_ref20_probability"],
     "persistence": ["p_new_high", "median_peak_tau", "p_survive_h10", "p_survive_h20", "p_terminal_failure"],
     "capital_efficiency": {
-      "CE1": "return / capital_days, capital_days = sum(actual_exposure_day)",
+      "derived_quantities": ["capital_days"],
+      "capital_days_def": "capital_days = sum over lifecycle of actual_exposure_day (actual = base * x)",
+      "CE1": "return / capital_days",
       "CE2": "return / |MDD|",
       "CE3": "portfolio_contribution / capital_days"
     },
@@ -73,7 +75,7 @@
       "F3_false_recovery": "exists REDUCE->ADD cycle AND false_recovery_trigger fires within false_recovery_window_valid_obs valid observations after A0",
       "F2_late_deterioration": "days before first REDUCE >= healthy_prefix_days AND drawdown_from_peak_log at first-REDUCE day >= severe_dd_depth_log AND final ret <= 0",
       "F4_exit_failure": "max_dd_to_date_log >= exit_failure_dd_depth_log at some day AND no EXIT ever occurs AND final ret <= 0",
-      "F5_fast_failure_gap": "a run of >= gap_rows_min consecutive row_present=False precedes terminal_reason=LIFECYCLE_END, OR single-day ret_1d_log <= severe_dd_log dominates the terminal leg",
+      "F5_fast_failure_gap": "a run of >= gap_rows_min consecutive row_present=False precedes terminal_reason=LIFECYCLE_END, OR single-day ret_1d_log <= large_loss_ret_log dominates the terminal leg",
       "F6_censored_unclassifiable": "censored episodes or none of F1-F5 matched"
     },
     "rule": "classification code must be deterministic; NO manual judgement; thresholds are frozen BEFORE any T6.3 distribution is inspected"
