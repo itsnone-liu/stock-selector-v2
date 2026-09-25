@@ -1,0 +1,43 @@
+{
+  "stage": "t6_4",
+  "claim_rules_ref": "output/research/t6/t6_contract.json#claim_registry_enum",
+  "claims": [
+    {
+      "claim_id": "C401",
+      "statement": "Market regime strongly stratifies recycling outcomes in validation: NO_RECOVERY share is 22.7% (M_STRONG) / 32.8% (M_NEUTRAL) / 67.2% (M_WEAK); the confirmation pattern is flatter (23.1/15.2/23.5%) — regime-conditioned outcome structure is segment-dependent",
+      "evidence": "A1_no_recovery_by_regime (PIT mkt_breadth_5d/mkt_new_high_20d regime at R0)",
+      "status": "PARTIALLY_SUPPORTED"
+    },
+    {
+      "claim_id": "C402",
+      "statement": "Direct answer to the T6.4 core question: WITHIN the hot-REDUCE signature subset (ret_1d>0 AND efficiency>0 at R0, the T6.3 C302 false-recovery signature carriers), market regime does NOT separate true from false recovery — FR rate by regime: val 50.2/49.0/49.0% and conf 54.4/46.1/57.0%, all pairwise CIs cross zero (SvW p=0.717 val, 0.551 conf). The separating condition for same-signature recoveries is NOT the external PIT market state",
+      "evidence": "A2 hot_subset blocks with CIs and SvW contrasts",
+      "status": "NOT_SUPPORTED"
+    },
+    {
+      "claim_id": "C403",
+      "statement": "Across ALL recovered cycles (unrestricted), the false-recovery rate is HIGHER in M_STRONG than M_WEAK in validation (+7.4pp, Holm-significant) but the contrast reverses insignificantly in confirmation (-2.5pp, p=0.215); because the contrast vanishes inside the hot subset, the validation effect is consistent with a composition effect (which cycles enter the recovered pool in strong markets), not with regime adding separating information per cycle",
+      "evidence": "A2 all_recovered vs hot_subset blocks; Holm within family (only val all_recovered SvW survives)",
+      "status": "PARTIALLY_SUPPORTED"
+    },
+    {
+      "claim_id": "C404",
+      "statement": "The T6.1 E-class risk-shaping structure is regime-UNIFORM: E3's abs_mdd advantage and lower terminal-failure rate hold in ALL THREE market regimes in BOTH segments (e.g. val abs_mdd E3 vs E1: 0.047/0.051/0.033 vs 0.066/0.061/0.050; conf p_terminal_failure E3 0.483/0.457/0.580 vs E1 0.614/0.537/0.682) — the E mapping's risk structure is not a market-state artifact",
+      "evidence": "A3_eclass_by_regime, all regime strata, both primary segments",
+      "status": "SUPPORTED"
+    },
+    {
+      "claim_id": "C405",
+      "statement": "The C106 E2 tension concentrates in weak markets: E2 terminal-failure excess over E1 is largest in M_WEAK (val 54.3% vs 49.8%; conf 71.9% vs 68.2%) and smallest in M_STRONG (conf 62.6% vs 61.4%) — the carried-to-the-end drawdown pattern of E2 is regime-amplified",
+      "evidence": "A3 p_terminal_failure by E x regime",
+      "status": "PARTIALLY_SUPPORTED"
+    },
+    {
+      "claim_id": "C406",
+      "statement": "Sector-level interaction (contract regime_prereg sector_metrics) is UNAVAILABLE for analysis: the four preregistered sector metrics are not present in the frozen T6.0 fact layer. This is a data boundary recorded as-is (NOT evidence of absence of sector effects); the preregistration marks sector analyses EXPLORATORY ONLY in any case",
+      "evidence": "t6_0_daily_master schema contains no sector columns; EXPLORATORY_sector blocks report UNAVAILABLE",
+      "status": "SUPPORTED",
+      "note": "scope-of-evidence claim about data availability, not a substantive sector claim"
+    }
+  ]
+}
