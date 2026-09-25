@@ -68,6 +68,11 @@
     "dangling_references": [],
     "references_found": 12
   },
+  "G6c_contract_semantic_types": {
+    "verdict": "PASS",
+    "reason": "",
+    "type_violations": []
+  },
   "G7_no_tuning": {
     "verdict": "PASS",
     "reason": "",

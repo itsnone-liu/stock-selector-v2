@@ -33,6 +33,9 @@ def main():
     gf.contract_symbol_asserts(log, contract)
     gf.contract_reference_integrity(log, contract,
                                     legal_identifiers=set(dm.columns) | set(ep.columns))
+    gf.g6c_contract_semantic_types(log, contract,
+                                   known_vars=set(dm.columns) | set(ep.columns) |
+                                   {'mdd', 'ret', 'drawdown', 'max_dd'})
     gf.g6_preregistration(log, [run_src, build_src], contract)
     gf.g7_no_tuning(log, [run_src, build_src])
 

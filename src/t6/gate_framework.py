@@ -176,6 +176,39 @@ def contract_reference_integrity(log: GateLog, contract: dict, legal_identifiers
              dangling_references=dangling, references_found=len(refs))
 
 
+def g6c_contract_semantic_types(log: GateLog, contract: dict, known_vars: set):
+    """Semantic type consistency (audit R3, 2026-09-25): return thresholds
+    may only compare return variables; drawdown-depth thresholds may only
+    compare drawdown/mdd variables. Only KNOWN variables (fact-layer columns
+    + canonical metric names) are judged; unknown tokens are left to G6b."""
+    t = contract['preregistered_thresholds']
+    ret_th = {k for k in t if k.endswith('_ret_log')}
+    dd_th = {k for k in t if k.endswith('_dd_depth_log')}
+    def is_dd(v):
+        return 'mdd' in v or 'drawdown' in v or 'max_dd' in v
+    dd_vars = {v for v in known_vars if is_dd(v.lower())}
+    ret_vars = {v for v in known_vars
+                if not is_dd(v.lower()) and ('ret' in v.lower() or v.lower() == 'return')}
+    pat = re.compile(r'(?<![A-Za-z0-9_])([A-Za-z_][A-Za-z0-9_]*)\s*(<=|>=|<|>)\s*(' +
+                     '|'.join(sorted(ret_th | dd_th, key=len, reverse=True)) + r')\b')
+    violations = []
+    def walk(o):
+        if isinstance(o, str):
+            for m in pat.finditer(o):
+                var, _, th = m.group(1), m.group(2), m.group(3)
+                if var in dd_vars and th in ret_th:
+                    violations.append(f'{var} {th} (return threshold on drawdown var)')
+                if var in ret_vars and th in dd_th:
+                    violations.append(f'{var} {th} (depth threshold on return var)')
+        elif isinstance(o, dict):
+            for v in o.values(): walk(v)
+        elif isinstance(o, list):
+            for v in o: walk(v)
+    walk(contract)
+    log.gate('G6c_contract_semantic_types', not violations,
+             type_violations=violations)
+
+
 def g6_preregistration(log: GateLog, stage_sources: list, contract: dict):
     src = '\n'.join(stage_sources)
     # numeric literals that smell like thresholds must exist in contract json

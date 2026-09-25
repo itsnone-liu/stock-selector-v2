@@ -64,10 +64,10 @@
 
   "failure_anatomy_prereg": {
     "episode_classes": {
-      "GOOD": "ret > 0 AND mdd > large_loss_ret_log",
-      "PAINFUL_WIN": "ret > 0 AND mdd <= large_loss_ret_log",
-      "CONTROLLED_LOSS": "ret <= 0 AND mdd > large_loss_ret_log",
-      "SEVERE_FAILURE": "ret <= 0 AND mdd <= large_loss_ret_log"
+      "GOOD": "ret > 0 AND mdd < severe_dd_depth_log",
+      "PAINFUL_WIN": "ret > 0 AND mdd >= severe_dd_depth_log",
+      "CONTROLLED_LOSS": "ret <= 0 AND mdd < severe_dd_depth_log",
+      "SEVERE_FAILURE": "ret <= 0 AND mdd >= severe_dd_depth_log"
     },
     "failure_stages": {
       "order": ["F1", "F3", "F2", "F4", "F5", "F6"],
