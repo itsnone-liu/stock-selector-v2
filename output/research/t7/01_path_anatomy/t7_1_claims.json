@@ -1,0 +1,22 @@
+{
+  "claims": [
+    {
+      "id": "C701",
+      "kind": "descriptive",
+      "text": "按 cycle type 分层的 REDUCE 后中位轨迹形态清晰：NO_RECOVERY 组 dd 全程稳于 severe 界下方（VAL 中位 ~0.096）且回升暴露几乎为零（中位 0.062）；RECOVERED_ADD 组 dd 先修复（VAL R+3 中位 0.014）后窗尾再扩大（R+40 0.101）——修复-回吐形态。",
+      "scope": "association-not-prediction; descriptive path record only"
+    },
+    {
+      "id": "C702",
+      "kind": "descriptive",
+      "text": "RECOVERED_ADD 内部 FR 与 clean 的轨迹分岔是路径事实：VAL/DEV 两段一致地 FR 中位换手更高（VAL R+1 1.358 vs 1.186）、R+2 起价格中位分岔、R+40 FR 的 dd 中位越过 severe（VAL 0.117）而 clean 未越过（0.089）。差异仅记录；任何 separator/veto 有效性判断属 T7.2 DEV-only。",
+      "scope": "association-not-prediction; descriptive path record only; no separator inference"
+    },
+    {
+      "id": "C703",
+      "kind": "descriptive",
+      "text": "再暴露行为集中在前窗：clean 组 exposure 中位在 R+5-R+10 达峰（VAL 0.938/0.959，DEV 0.941）后系统性回落至窗尾（R+40 0.623/0.406）；FR 组峰值明显更低（VAL ~0.5，DEV ~0.53）且回落更快。",
+      "scope": "association-not-prediction; descriptive path record only"
+    }
+  ]
+}

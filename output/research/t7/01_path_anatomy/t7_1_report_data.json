@@ -1,0 +1,508 @@
+{
+  "stage": "t7_1",
+  "contract_sha256": "6c003681e41a85952fead9353c7f66d82cfdbfd1f34df4af1abab1f4e0d61119",
+  "identity": "DESCRIPTIVE PATH MAP ONLY — no hypothesis tests, no multiplicity adjustments, no between-group inference; differences are recorded, not evaluated; nothing here may be cited as separator/veto/confirmation",
+  "statistics_used": {
+    "B": 2000,
+    "seed": 20260925,
+    "ci": "percentile 2.5/97.5 (level only)",
+    "clusters": [
+      "stock_code",
+      "T0_date"
+    ],
+    "level_statistic": "median"
+  },
+  "groups": {
+    "by_type": {
+      "RECOVERED_ADD": 15646,
+      "NO_RECOVERY": 11858,
+      "FAILED_EXIT": 3338,
+      "CENSORED": 418
+    },
+    "by_false_recovery": {
+      "FR": 6953,
+      "clean": 8693
+    },
+    "by_true_recovery": {
+      "TR": 9463,
+      "no_TR": 21797
+    }
+  },
+  "variables": [
+    "ret_vs_r0",
+    "drawdown_from_peak_log",
+    "dist_ref20",
+    "volume_load_vs_prebreak",
+    "turnover_load_3d_mean",
+    "efficiency_signed_3",
+    "exposure_after_ref"
+  ],
+  "checkpoints": [
+    "R+1",
+    "R+2",
+    "R+3",
+    "R+5",
+    "R+10",
+    "R+20",
+    "R+40"
+  ],
+  "group_coverage": {
+    "by_type_partitions_anchors": true,
+    "by_fr_within_recovered": true,
+    "by_tr_partitions_anchors": true
+  },
+  "descriptive_headline_counts": {
+    "n_anchors": 31260,
+    "by_type": {
+      "RECOVERED_ADD": 15646,
+      "NO_RECOVERY": 11858,
+      "FAILED_EXIT": 3338,
+      "CENSORED": 418
+    },
+    "false_recovery_within_recovered": 6953,
+    "true_recovery": 9463
+  },
+  "trajectory_extracts": {
+    "validation|ret_vs_r0": {
+      "by_false_recovery|FR": [
+        -0.0164,
+        -0.0102,
+        -0.0035,
+        -0.0203,
+        -0.0387,
+        -0.0496,
+        -0.0538
+      ],
+      "by_false_recovery|clean": [
+        -0.0141,
+        -0.0047,
+        0.0169,
+        0.031,
+        0.0359,
+        0.0301,
+        0.0176
+      ],
+      "by_type|CENSORED": [
+        -0.013,
+        -0.0372,
+        -0.0374,
+        -0.0374,
+        -0.0378,
+        -0.0378,
+        -0.0378
+      ],
+      "by_type|NO_RECOVERY": [
+        -0.0077,
+        -0.0097,
+        -0.0092,
+        -0.0092,
+        -0.0092,
+        -0.0092,
+        -0.0092
+      ],
+      "by_type|RECOVERED_ADD": [
+        -0.015,
+        -0.007,
+        0.0087,
+        0.0103,
+        0.0074,
+        -0.0058,
+        -0.0148
+      ]
+    },
+    "validation|drawdown_from_peak_log": {
+      "by_false_recovery|FR": [
+        0.0395,
+        0.041,
+        0.0322,
+        0.0617,
+        0.0848,
+        0.1058,
+        0.1166
+      ],
+      "by_false_recovery|clean": [
+        0.0377,
+        0.0282,
+        0.0055,
+        0.0097,
+        0.0344,
+        0.0689,
+        0.0888
+      ],
+      "by_type|CENSORED": [
+        0.05,
+        0.0839,
+        0.0856,
+        0.0874,
+        0.0874,
+        0.0874,
+        0.0874
+      ],
+      "by_type|NO_RECOVERY": [
+        0.0833,
+        0.0948,
+        0.0959,
+        0.0962,
+        0.0962,
+        0.0962,
+        0.0962
+      ],
+      "by_type|RECOVERED_ADD": [
+        0.0386,
+        0.0329,
+        0.0145,
+        0.0268,
+        0.05,
+        0.0819,
+        0.1008
+      ]
+    },
+    "validation|turnover_load_3d_mean": {
+      "by_false_recovery|FR": [
+        1.3577,
+        1.3041,
+        1.3356,
+        1.2991,
+        1.1968,
+        1.1296,
+        1.1057
+      ],
+      "by_false_recovery|clean": [
+        1.1861,
+        1.1974,
+        1.3205,
+        1.5475,
+        1.4127,
+        1.3064,
+        1.2534
+      ],
+      "by_type|CENSORED": [
+        1.6616,
+        1.6953,
+        1.5894,
+        1.5375,
+        1.5177,
+        1.5177,
+        1.5177
+      ],
+      "by_type|NO_RECOVERY": [
+        0.9694,
+        0.9693,
+        0.968,
+        0.9634,
+        0.9609,
+        0.9606,
+        0.9606
+      ],
+      "by_type|RECOVERED_ADD": [
+        1.236,
+        1.237,
+        1.3244,
+        1.4442,
+        1.3246,
+        1.2269,
+        1.184
+      ]
+    },
+    "validation|exposure_after_ref": {
+      "by_false_recovery|FR": [
+        0.5,
+        0.5625,
+        0.5,
+        0.3799,
+        0.4688,
+        0.3868,
+        0.3672
+      ],
+      "by_false_recovery|clean": [
+        0.5,
+        0.625,
+        0.7656,
+        0.9376,
+        0.959,
+        0.7499,
+        0.6233
+      ],
+      "by_type|CENSORED": [
+        0.477,
+        0.477,
+        0.477,
+        0.477,
+        0.477,
+        0.477,
+        0.477
+      ],
+      "by_type|NO_RECOVERY": [
+        0.0625,
+        0.0625,
+        0.0625,
+        0.0625,
+        0.0625,
+        0.0625,
+        0.0625
+      ],
+      "by_type|RECOVERED_ADD": [
+        0.5,
+        0.624,
+        0.75,
+        0.75,
+        0.75,
+        0.6191,
+        0.5
+      ]
+    },
+    "development|ret_vs_r0": {
+      "by_false_recovery|FR": [
+        -0.0155,
+        -0.0067,
+        0.0005,
+        -0.0188,
+        -0.0449,
+        -0.0595,
+        -0.0626
+      ],
+      "by_false_recovery|clean": [
+        -0.0166,
+        -0.0044,
+        0.0171,
+        0.0335,
+        0.0321,
+        0.0127,
+        0.0055
+      ],
+      "by_type|CENSORED": [
+        0.0107,
+        0.0075,
+        0.0075,
+        0.0075,
+        0.0075,
+        0.0075,
+        0.0075
+      ],
+      "by_type|FAILED_EXIT": [
+        -0.0072,
+        -0.0045,
+        -0.0067,
+        -0.0096,
+        -0.0096,
+        -0.0176,
+        -0.0176
+      ],
+      "by_type|NO_RECOVERY": [
+        -0.02,
+        -0.0275,
+        -0.0284,
+        -0.0292,
+        -0.0293,
+        -0.0293,
+        -0.0293
+      ],
+      "by_type|RECOVERED_ADD": [
+        -0.0163,
+        -0.005,
+        0.009,
+        0.0124,
+        0.0,
+        -0.0216,
+        -0.029
+      ]
+    },
+    "development|drawdown_from_peak_log": {
+      "by_false_recovery|FR": [
+        0.0413,
+        0.0371,
+        0.0232,
+        0.0542,
+        0.0997,
+        0.12,
+        0.1277
+      ],
+      "by_false_recovery|clean": [
+        0.0437,
+        0.0295,
+        0.0069,
+        0.0116,
+        0.0372,
+        0.0792,
+        0.0932
+      ],
+      "by_type|CENSORED": [
+        0.0124,
+        0.042,
+        0.042,
+        0.042,
+        0.042,
+        0.042,
+        0.042
+      ],
+      "by_type|FAILED_EXIT": [
+        0.1323,
+        0.1075,
+        0.1063,
+        0.1076,
+        0.1415,
+        0.1573,
+        0.1573
+      ],
+      "by_type|NO_RECOVERY": [
+        0.1028,
+        0.1089,
+        0.1114,
+        0.112,
+        0.1124,
+        0.1124,
+        0.1124
+      ],
+      "by_type|RECOVERED_ADD": [
+        0.0429,
+        0.0328,
+        0.0131,
+        0.0282,
+        0.0582,
+        0.0951,
+        0.1068
+      ]
+    },
+    "development|turnover_load_3d_mean": {
+      "by_false_recovery|FR": [
+        1.2641,
+        1.2016,
+        1.2397,
+        1.2446,
+        1.1782,
+        1.1421,
+        1.1312
+      ],
+      "by_false_recovery|clean": [
+        1.1118,
+        1.1233,
+        1.1792,
+        1.3002,
+        1.157,
+        1.068,
+        1.0401
+      ],
+      "by_type|CENSORED": [
+        1.0703,
+        1.0644,
+        1.0262,
+        1.0262,
+        1.0262,
+        1.0262,
+        1.0262
+      ],
+      "by_type|FAILED_EXIT": [
+        1.2292,
+        1.0789,
+        1.0717,
+        1.0472,
+        0.8009,
+        0.76,
+        0.76
+      ],
+      "by_type|NO_RECOVERY": [
+        0.9791,
+        0.9924,
+        0.9924,
+        0.9852,
+        0.9846,
+        0.9846,
+        0.9846
+      ],
+      "by_type|RECOVERED_ADD": [
+        1.1604,
+        1.1632,
+        1.2143,
+        1.276,
+        1.1603,
+        1.0883,
+        1.0637
+      ]
+    },
+    "development|exposure_after_ref": {
+      "by_false_recovery|FR": [
+        0.5,
+        0.5312,
+        0.4062,
+        0.2344,
+        0.1562,
+        0.1094,
+        0.0937
+      ],
+      "by_false_recovery|clean": [
+        0.5,
+        0.625,
+        0.8125,
+        0.9414,
+        0.875,
+        0.4987,
+        0.4062
+      ],
+      "by_type|CENSORED": [
+        0.25,
+        0.25,
+        0.25,
+        0.25,
+        0.25,
+        0.25,
+        0.25
+      ],
+      "by_type|FAILED_EXIT": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "by_type|NO_RECOVERY": [
+        0.0625,
+        0.0625,
+        0.0625,
+        0.0625,
+        0.0625,
+        0.0625,
+        0.0625
+      ],
+      "by_type|RECOVERED_ADD": [
+        0.5,
+        0.625,
+        0.75,
+        0.75,
+        0.4971,
+        0.2499,
+        0.2448
+      ]
+    }
+  },
+  "trajectory_extract_checkpoints": [
+    "R+1",
+    "R+2",
+    "R+3",
+    "R+5",
+    "R+10",
+    "R+20",
+    "R+40"
+  ],
+  "claims": [
+    {
+      "id": "C701",
+      "kind": "descriptive",
+      "text": "按 cycle type 分层的 REDUCE 后中位轨迹形态清晰：NO_RECOVERY 组 dd 全程稳于 severe 界下方（VAL 中位 ~0.096）且回升暴露几乎为零（中位 0.062）；RECOVERED_ADD 组 dd 先修复（VAL R+3 中位 0.014）后窗尾再扩大（R+40 0.101）——修复-回吐形态。",
+      "scope": "association-not-prediction; descriptive path record only"
+    },
+    {
+      "id": "C702",
+      "kind": "descriptive",
+      "text": "RECOVERED_ADD 内部 FR 与 clean 的轨迹分岔是路径事实：VAL/DEV 两段一致地 FR 中位换手更高（VAL R+1 1.358 vs 1.186）、R+2 起价格中位分岔、R+40 FR 的 dd 中位越过 severe（VAL 0.117）而 clean 未越过（0.089）。差异仅记录；任何 separator/veto 有效性判断属 T7.2 DEV-only。",
+      "scope": "association-not-prediction; descriptive path record only; no separator inference"
+    },
+    {
+      "id": "C703",
+      "kind": "descriptive",
+      "text": "再暴露行为集中在前窗：clean 组 exposure 中位在 R+5-R+10 达峰（VAL 0.938/0.959，DEV 0.941）后系统性回落至窗尾（R+40 0.623/0.406）；FR 组峰值明显更低（VAL ~0.5，DEV ~0.53）且回落更快。",
+      "scope": "association-not-prediction; descriptive path record only"
+    }
+  ]
+}

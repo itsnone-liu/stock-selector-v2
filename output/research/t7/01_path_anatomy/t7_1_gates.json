@@ -1,0 +1,40 @@
+{
+  "G1_lineage": {
+    "verdict": "PASS",
+    "reason": "",
+    "inputs_hash_verified": 4
+  },
+  "G20_descriptive_discipline": {
+    "verdict": "PASS",
+    "reason": "",
+    "violations": []
+  },
+  "G21_median_replay": {
+    "verdict": "PASS",
+    "reason": "",
+    "cells": 60,
+    "mismatches": 0,
+    "variables": [
+      "ret_vs_r0",
+      "drawdown_from_peak_log",
+      "dist_ref20",
+      "volume_load_vs_prebreak",
+      "turnover_load_3d_mean",
+      "efficiency_signed_3",
+      "exposure_after_ref"
+    ]
+  },
+  "G2b_t7_0_immutable": {
+    "verdict": "PASS",
+    "reason": "",
+    "products_verified": 5
+  },
+  "G8_group_coverage": {
+    "verdict": "PASS",
+    "reason": "",
+    "anchors": 31260,
+    "traj_rows": 1176,
+    "expected_rows": 1176
+  },
+  "overall": "PASS"
+}

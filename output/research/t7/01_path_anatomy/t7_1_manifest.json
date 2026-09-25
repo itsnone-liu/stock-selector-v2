@@ -1,0 +1,44 @@
+{
+  "stage": "t7_1",
+  "baseline": "80e934c",
+  "inputs": [
+    {
+      "name": "t7_0_path_fact",
+      "path": "output/research/t7/00_path_factlayer/t7_0_features_path_fact.parquet",
+      "sha256": "f3a44614dc7d9e29c0019c142016f164ee50901fe2cbba2c171bbae6e47a01ed",
+      "bytes": 0
+    },
+    {
+      "name": "t7_0_outcomes",
+      "path": "output/research/t7/00_path_factlayer/t7_0_outcomes_outcomes.parquet",
+      "sha256": "4ec468822c7c3c80dc92e41fb59cc87ffe50a62a8d2775297e3de85fc2473582",
+      "bytes": 0
+    },
+    {
+      "name": "daily_master_exposure",
+      "path": "output/research/t6/00_factlayer/t6_0_daily_master.parquet",
+      "sha256": "905c55c322bbd5731c8fde2938c26f7d085f76fc2e0c259c2966cf42b7d6b2a2",
+      "bytes": 0
+    },
+    {
+      "name": "t7_contract",
+      "path": "output/research/t7/t7_contract.json",
+      "sha256": "6c003681e41a85952fead9353c7f66d82cfdbfd1f34df4af1abab1f4e0d61119",
+      "bytes": 0
+    }
+  ],
+  "upstream_hashes": null,
+  "products": [
+    {
+      "file": "t7_1_trajectory_map.parquet",
+      "sha256": "82469b36a04b872b1e5ca4078f180f66402ff6956e386d3265dbb1f63b000b6f",
+      "bytes": 35970,
+      "rows": 1176
+    },
+    {
+      "file": "t7_1_report_data.json",
+      "sha256": "12c3806024b6452d1d4d3953acfe8f2bab378e4a6a3c13e05eb508e759f9d1f1",
+      "bytes": 10022
+    }
+  ]
+}
