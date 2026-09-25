@@ -1,0 +1,19 @@
+{
+  "G1_lineage": {
+    "verdict": "PASS",
+    "reason": "",
+    "inputs_hash_verified": 3
+  },
+  "G40_sequence_conservation": {
+    "verdict": "PASS",
+    "reason": "",
+    "rows": 31260,
+    "keyset_equal": true,
+    "k_no_gaps": true,
+    "a0_field_match": true,
+    "next_r0_replay": true,
+    "horizon_replay": true,
+    "competing_rows": 15614
+  },
+  "overall": "PASS"
+}

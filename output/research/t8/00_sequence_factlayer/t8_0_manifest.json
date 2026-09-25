@@ -1,0 +1,38 @@
+{
+  "stage": "t8_0",
+  "baseline": "80e934c",
+  "inputs": [
+    {
+      "name": "t6_2_cycle_master",
+      "path": "output/research/t6/02_recycling/t6_2_cycle_master.parquet",
+      "sha256": "11938ab8cd4239665109f5eb097440b6f46262867f55d855a807b8d397f1bf7d",
+      "bytes": 0
+    },
+    {
+      "name": "t6_0_daily_master",
+      "path": "output/research/t6/00_factlayer/t6_0_daily_master.parquet",
+      "sha256": "905c55c322bbd5731c8fde2938c26f7d085f76fc2e0c259c2966cf42b7d6b2a2",
+      "bytes": 0
+    },
+    {
+      "name": "t8_plan_v2",
+      "path": "docs/plans/T8_RERISK_MARGINAL_VALUE_PLAN.md",
+      "sha256": "b7c16ca9f12b2c50ea60b71cb69f2e1b2ea88966dea8ba89ad7d0bd305802079",
+      "bytes": 0
+    }
+  ],
+  "upstream_hashes": null,
+  "products": [
+    {
+      "file": "t8_0_cycle_attempt.parquet",
+      "sha256": "e58628e53d180f36b1a3b42e2ab759f4c2e495a6aebae4721f92e055b8f2bbf3",
+      "bytes": 306750,
+      "rows": 31260
+    },
+    {
+      "file": "t8_0_report_data.json",
+      "sha256": "898a9763c1f8f210ad5dc97153042ff0dff7aa9b2a38a0f3f81e2897b29b0105",
+      "bytes": 1311
+    }
+  ]
+}
