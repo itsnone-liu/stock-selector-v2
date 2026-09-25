@@ -22,7 +22,7 @@
   turnover_load_3d_mean / efficiency_signed_3 / exposure_after_ref（后者自 T6.0 冻结
   daily master，PIT 列）。
 
-## 2. 路径地图（VAL 与 DEV 一致方向；节选自 report_data.trajectory_extracts）
+## 2. 跨段路径地图（VAL/DEV；节选自 report_data.trajectory_extracts，段间方向差异如实记录）
 
 **按 type 的分层形态**（C701，R1 措辞修正）：
 - **NO_RECOVERY**（"冷处理"）：**稳定深 DD** 形态——VAL 中位 ~0.096 略低于 severe
