@@ -27,7 +27,12 @@ states:
   - id: D3
     name: Probe / Activation
     name_cn: 试盘/启动
-    meaning: 主导资金测试卖压与跟风结构；短促量价脉冲但无持续位移
+    status: ONTOLOGY_ONLY / UNMODELED_STATE
+    meaning: |
+      预想中的主导资金测试卖压与跟风结构；短促量价脉冲但无持续位移。
+      当前没有对应的独立机制假说（H01-H06 均不覆盖 D3），且"测试卖压"
+      是强意图性解释——CSR-8 案例研究前禁止单独识别 D3、禁止构造
+      "试盘指标"。保留在 ontology 中仅作为案例回溯时的标注位。
   - id: D4
     name: Markup
     name_cn: 突破/主升
@@ -55,9 +60,11 @@ states:
       （H06；T8 的 MFE flat+Recovery↓ 结构仅为研究动机，不构成证明）
 
 transitions:
-  # 声明式允许转移（allow-list）；未列出的转移不预设禁止，但任何
-  # transition 判定本身属于后续 Case Study 的研究对象，第一轮不判定。
-  allowed:
+  # registered_candidate_transitions（已知合理转移的登记表）：
+  # 登记的是"机制上可讲通、案例中出现过"的转移；未登记的转移既不
+  # 预设允许也不预设禁止——转移是否实际发生属于 CSR-8 案例研究的
+  # 判定对象，本表不是运行时校验的 allow-list。
+  registered_candidate_transitions:
     - [D0, D1]        # 首次出现吸筹一致证据
     - [D1, D2]        # 吸筹→集中（自然演进）
     - [D1, D0]        # 吸筹证据消失（假吸筹/证据不足）
@@ -77,7 +84,7 @@ transitions:
     - [D8, D0]        # 证据窗口过期，回到无证据状态
   forbidden_presets:
     - "D6 必然进入 D7"   # 源方案明确禁止的预设
-    - "线性单向 D1→D8"   # 允许的所有回退路径即否定单向必然性
+    - "线性单向 D1→D8"   # 登记的全部回退路径即否定单向必然性
   open_questions:
     - D8 后是否存在"再度吸筹"（D8→D1）：允许作为 case study 问题，不预设
     - A6 主导的标的是否经历压缩版 D5→D6→D8：待 CSR-8 案例检验
@@ -85,8 +92,18 @@ transitions:
 state_assignment_rules:
   principle: 状态是 latent state 的假说载体——状态判定=证据登记+置信度，
     不是分类器输出
-  minimum_evidence: 进入 D1-D8 任一状态需要 B 级证据或两个独立 C 级证据
-    （G-H-2 evidence independence）；单独 C 级只能停留在"与某状态一致的
-    观测"，不得登记状态
+  two_tier_confirmation:
+    candidate_state: |
+      C 级证据（无论多少个、是否独立）最高只能登记为
+      candidate_state / evidence-consistent state——表述形态永远是
+      "当前观测与 Hxx/Dx 假说一致"。两个独立 C 级可以提升 hypothesis
+      support，不能升级主体事实（与 CSR-0 C2/C3 一致）。
+    actor_confirmed_state: |
+      带主体行为含义的状态（D1/D2/D7/D8 尤甚）正式登记为
+      actor-confirmed 需要 A 级或 B 级证据（真实持仓/席位/户数类
+      ownership 证据）。C-only 永不得输出"A5 正在吸筹/派发"级表述。
+  minimum_evidence: D1-D8 的 candidate 级=该状态假说的预期观测出现
+    （C 级即可登记 candidate）；actor-confirmed 级=A/B 级直接或筹码
+    所有权证据（G-H-2 evidence independence 约束证据组合）。
   multiple_actors: 同一标的同时存在多个 actor 时，lifecycle 状态只对 A5
     声明；A2/A3/A6/A7 的活动记入 evidence 层，不驱动状态机

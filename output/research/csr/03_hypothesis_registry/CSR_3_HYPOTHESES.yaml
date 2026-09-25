@@ -20,7 +20,7 @@ hypotheses:
     expected_observations:
       - 累计成交显著（长时段换手积分高）而区间价格位移/波动有限
       - 回调时承接出现（下方限价痕迹）：下跌日量能相对萎缩快、收复快
-      - 筹码成本分布（B级代理）逐步向窄区间集中
+      - 筹码成本分布迁移（C级构造代理——见 E-STK-10：行情+换手派生，永远 C 级）逐步向窄区间集中
     direct_evidence:
       - 十大流通股东新进/增持且后续季度持续（A级，延迟披露）
       - 大宗交易溢价/平价承接方为机构席位（A/B级）
@@ -146,7 +146,7 @@ hypotheses:
       之一，但本身不能等同于派发（源方案原句）。
     expected_observations:
       - 高位巨量换手+价格效率衰减（位移/回撤比恶化）
-      - 筹码成本分布从低位集中区向高位扩散（B级代理的迁移）
+      - 筹码成本分布从低位集中区向高位扩散（C级构造代理，同 E-STK-10 限制）
       - 回调深度增加且反弹量能递减（供给持续存在的痕迹）
     direct_evidence:
       - 股东户数显著上升+户均持股下降（B级，分散化直接证据）
@@ -203,10 +203,11 @@ hypotheses:
       计算；与 MARKET/SECTOR 层状态同步基准化后方可归因个股层。
 
 gate_self_check:
-  G-H-1 mechanism: 六条均有显式机制链（actor→constraint→behavior→observable）✓
-  G-H-2 evidence_independence: 每条 direct+proxy 至少跨 A/B 与 C 两级两类来源 ✓
-  G-H-3 alternative_explanations: 每条登记 3 个竞争解释 ✓
-  G-H-4 counterexample: 每条登记反证与主动搜索方案（historical_test 对照组）✓
-  G-H-5 pit: 每条 PIT requirements 显式（披露延迟/预披露/滚动窗/幸存者）✓
-  G-H-6 generalization: historical_test 均含跨组对照（年份/行业/市值待
-    CSR-8 案例抽样覆盖；本轮声明为待验证项，不冒充已满足）✓
+  # 三态：DESIGN_PASS（设计完成）/ AUDIT_PENDING（待 CSR-5..9 审计或案例验证）
+  # / PASS（验证通过——本轮没有任何 gate 达到 PASS）
+  G-H-1 mechanism: DESIGN_PASS   # 六条均有显式机制链
+  G-H-2 evidence_independence: DESIGN_PASS   # 每条 direct+proxy 跨级跨源设计完成
+  G-H-3 alternative_explanations: DESIGN_PASS   # 每条登记 3 个竞争解释
+  G-H-4 counterexample: AUDIT_PENDING   # 对照组搜索方案已设计；执行待 CSR-8
+  G-H-5 pit: AUDIT_PENDING   # 每条已写 PIT requirements；执行与通过待 CSR-6
+  G-H-6 generalization: AUDIT_PENDING   # 跨年份/行业/市值覆盖待 CSR-8 案例抽样
