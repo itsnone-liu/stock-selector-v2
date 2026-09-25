@@ -183,5 +183,46 @@
     "policy_specific_outcome_clock_audit": "False-ADD W10 runs from each policy's own add day; Missed Recovery runs from the cycle/opportunity clock; mixing them is a gate failure"
   },
   "t6_contract_sha256": "b307c430edfeafd0ff6cbccb58f0bbc60e04c45ea9e5871b1b15264ad2c98add",
-  "definition_registry_sha256": "a3d71cdb352ac9164fbdf7981e46b7b21ff7ebd788d9b4fffb146d4d3051d7a8"
+  "definition_registry_sha256": "a3d71cdb352ac9164fbdf7981e46b7b21ff7ebd788d9b4fffb146d4d3051d7a8",
+  "policy_amendments": {
+    "freeze_kind": "policy_amendment_freeze",
+    "reference_policy": {
+      "name": "A",
+      "role": "frozen reference (current policy); NOT replaced by any DEV-discovered rule"
+    },
+    "primary_amendment_candidate": {
+      "name": "C1",
+      "feature": "max_bounce_R5",
+      "threshold": -0.018751312624643024,
+      "threshold_source": "DEV tertile q1 (t7_2_bins.json, frozen at c2795d7)",
+      "decision_clock": "R+5 (max_bounce_R5 fully observable only at R+5)",
+      "rule": "After R0, no immediate re-ADD. Observe through R+5. If max_bounce_R5 > threshold -> ADD eligible. If max_bounce_R5 <= threshold -> no further ADD this cycle.",
+      "interpretation": "risk-reduction amendment candidate; NOT an expected-return enhancement, NOT a new primary winner"
+    },
+    "secondary_sensitivity": {
+      "name": "C2",
+      "feature": "max_bounce_R5",
+      "threshold": 0.01801067333046413,
+      "threshold_source": "DEV tertile q2 (same frozen bins)",
+      "decision_clock": "R+5",
+      "rule": "same semantics as C1 with threshold q2",
+      "constraint": "C2 may NEVER be promoted to primary after seeing VAL/CONF results; sensitivity reporting only"
+    },
+    "d_family": {
+      "name": "D",
+      "status": "EMPTY",
+      "reason": "DEV discovery shows higher bounce -> LOWER FR rate (hi tertile FR 32.3% vs lo 62.1%): the original hot-bounce veto direction is unsupported. Registering an evidence-free rule is forbidden; an empty family is itself a research result."
+    },
+    "utility": {
+      "scalar_weighting_frozen": false,
+      "evaluation": "2D frontier: x = false-ADD risk reduction, y = recovery upside captured/missed; secondary panels: capital efficiency / drawdown / exposure. The A-vs-C1 trade-off is reported, not forced into a single winner."
+    },
+    "provenance": {
+      "t7_2_bins_sha256": "81b1d8e91bdadf324fbba2a6186f02a70aba54144de4b8a1d6380e179c4f688d",
+      "design_doc_sha256": "c379d34d276f8fff86064bcb1b9ccfecb23586ebfd46bed4231e6280b8aae466",
+      "t7_2_frozen_commit": "c2795d7621271a5f5076b98354efa9557d979180",
+      "design_doc_commit": "1212c65",
+      "ancestry_assertion": "this Freeze precedes any VAL/CONF policy evaluation artifact; verified by git history order"
+    }
+  }
 }
