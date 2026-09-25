@@ -1,0 +1,212 @@
+# CSR-3 HYPOTHESIS REGISTRY — H01..H06 (v1.0)
+# 每条假说八要素（源方案 §6）：Economic Mechanism / Expected Observations /
+# Direct Evidence / Proxy Evidence / Counter Evidence / Alternative Explanation /
+# Historical Test / PIT Requirements。六 gate（G-H-1..6）逐条自检。
+meta:
+  stage: csr_3
+  source_of_truth: docs/plans/CAPITAL_STATE_RESEARCH_V1_SOURCE.md §6
+  status: preregistered_hypotheses   # NOT validated claims
+  t8_note: T8 的 MFE flat + Recovery↓ + Return↓ + DD↑ 仅作为研究动机，不构成任何 H 的证明
+
+hypotheses:
+  - id: H01
+    name: Accumulation（吸筹）
+    actor_refs: [A5]
+    lifecycle_states: [D1]
+    economic_mechanism: |
+      大资金在市场冲击约束下持续建立库存：快速买入会立刻抬价抬高自身
+      成本，因此必须分散、限价、跨周期完成。净效果=成交持续放大而价格
+      位移相对被抑制，成本区逐步形成。
+    expected_observations:
+      - 累计成交显著（长时段换手积分高）而区间价格位移/波动有限
+      - 回调时承接出现（下方限价痕迹）：下跌日量能相对萎缩快、收复快
+      - 筹码成本分布（B级代理）逐步向窄区间集中
+    direct_evidence:
+      - 十大流通股东新进/增持且后续季度持续（A级，延迟披露）
+      - 大宗交易溢价/平价承接方为机构席位（A/B级）
+      - 股东户数趋势下降+户均持股上升（B级）
+    proxy_evidence:
+      - 累计换手/价格位移比（C级，吸筹效率）长期高于同类
+      - Amihud 类价格冲击系数异常低（同等量能推动更少价格）
+    counter_evidence:
+      - 股东户数持续上升（分散化=A7 接筹，与吸筹相反）
+      - 席位证据显示机构持续减仓（直接否定）
+      - 后续长期无任何 B 级集中证据出现（纯 C 级形态是弱支持）
+    alternative_explanations:
+      - 横盘高换手=基本面分歧（多空双方均无主导，非单边吸筹）
+      - 高频/量化做市造成的高量低位移（机制完全不同）
+      - 指数纳入前的被动配置买入（A2/A4 而非 A5）
+    historical_test: 在 20 个完整大牛股案例（CSR-8）的事后全知视角下，
+      D1 期的 B 级证据（户数/席位/大宗）是否事后验证吸筹；同时检验
+      20 个长期横盘未启动股（对照组）同形态的 B 级证据缺失率。
+    pit_requirements: 实时使用时只能依赖 available_date<=decision_date 的
+      披露（季报持仓滞后 1-3 月）；C 级吸筹效率形态本身 PIT 无虞但需
+      复权/停牌处理一致。
+
+  - id: H02
+    name: Locking（锁筹）
+    actor_refs: [A5]
+    lifecycle_states: [D2]
+    economic_mechanism: |
+      稳定持有者控制更多筹码后，有效流通供给下降：同等边际需求所需的
+      新增成交减少——缩量上涨与效率提升是供给收缩的自然结果。
+    expected_observations:
+      - 上涨所需量能趋势性下降（量价弹性变化）
+      - 价格效率提升（同向位移/回撤比改善）
+      - 换手率中枢下移而价格中枢上移（供给收缩的联合信号）
+    direct_evidence:
+      - 股东户数持续下降+户均持股上升（B级，锁定最直接代理）
+      - 十大流通股东持股比例上升+稳定（A/B级）
+      - 融券余量下降/流通盘实际可交易比例下降的间接推算（B级）
+    proxy_evidence:
+      - 缩量上涨形态（C级——源方案明确：仅为 C 级证据）
+      - 换手率分位长期低于价格趋势分位（C级）
+    counter_evidence:
+      - 户数上升/分散化进行中（锁定否定）
+      - 缩量上涨同时伴随 B 级证据显示机构减仓（则是"无卖盘"而非"锁定"）
+    alternative_explanations:
+      - 缩量上涨=单纯惜售情绪（A7 处置效应），无任何大资金控制
+      - 流通盘结构性收缩（回购注销、大股东增持锁定）与 A5 行为无关
+      - 市场整体缩量环境（系统性 beta，须 MARKET_RELATIVE 剥离）
+    historical_test: 大牛股 D2 期的户数趋势事后验证率；对照组（横盘股）
+      同形态下户数不变或上升的比例。
+    pit_requirements: 股东户数披露为季度+延迟（B级 DIRECT_DELAYED）；
+      C 级量能形态 PIT 无虞但须与市场总量同步基准化。
+
+  - id: H03
+    name: Markup（主升）
+    actor_refs: [A5, A3]
+    lifecycle_states: [D4]
+    economic_mechanism: |
+      筹码锁定+新增边际需求+有限供给三者叠加形成高价格效率：少量成交
+      即推动大幅位移。健康回调的特征是卖压弱于上涨阶段的推动力
+      （供给仍被锁定，回调由需求暂停而非供给释放驱动）。
+    expected_observations:
+      - 价格效率显著高于前期与同类（位移/回撤比、趋势 R²）
+      - 回调日量能萎缩明显（卖压轻）；突破后回踩不破关键供给区
+      - 上涨节奏与基本面/事件催化存在可识别关联（非纯资金推动）
+    direct_evidence:
+      - 季报持仓显示 A3 类机构同步增仓（A/B级，滞后）
+      - 龙虎榜/大宗显示增量买方席位结构（A/B级，覆盖窄）
+    proxy_evidence:
+      - 突破形态+缩量回踩的组合（C级）
+      - 行业相对强弱同步走强（SECTOR 层 C 级背景证据）
+    counter_evidence:
+      - 放量滞涨与效率衰减并存（转入 D6 特征而非健康 D4）
+      - 涨幅集中于尾盘/集合竞价的脉冲结构（操纵痕迹而非供需 Markup）
+    alternative_explanations:
+      - 指数级行情的 beta（MARKET 层驱动，个股无特异资金）
+      - 基本面突变的定价（一次性重估，非趋势资金结构）
+      - A6 游资连续攻击的短线结构（无 D2 锁定前提，持续力弱）
+    historical_test: 20 大牛股 D4 期效率指标分布 vs 突破失败组同指标；
+      回调卖压（回调日量比）在两组间的分离度与 B 级证据的联合验证。
+    pit_requirements: 全部 C 级形态 PIT 无虞；效率指标须用滚动窗避免
+      未来数据；SECTOR 背景须用当时行业成分（避免幸存者行业指数）。
+
+  - id: H04
+    name: External Participation（外部参与）
+    actor_refs: [A3, A6, A7, A2]
+    lifecycle_states: [D5]
+    economic_mechanism: |
+      主升赚钱效应吸引机构、趋势、游资和散户进入。核心分辨问题：外部
+      资金是"健康接力"（新的长期持有者入场，供给结构不变）还是"为原
+      主导资金退出提供流动性"（筹码从集中向分散转移的开端）。
+    expected_observations:
+      - 成交额与换手率台阶式上升（参与度扩张的直接体现）
+      - 健康接力：户数缓升+机构席位仍在+价格效率维持
+      - 退出流动性：户数急升+分散化+高位震荡+效率衰减（D6 前兆）
+    direct_evidence:
+      - 股东户数变化率（B级，分散化速度的核心直接代理）
+      - 融资余额散户端口径变化（B级，杠杆参与）
+      - 龙虎榜席位结构：机构 vs 游资 vs 营业部分散度（A/B级）
+    proxy_evidence:
+      - 成交额/流通市值比的台阶（C级）
+      - 小单净买入占比上升（C级，若数据可得）
+    counter_evidence:
+      - 户数急升+价格滞涨同时出现（更接近 D6/D7 而非健康 D5）
+      - 参与度上升但价格立即回落（外部资金被套=接力失败）
+    alternative_explanations:
+      - 指数纳入/ETF 申购带来的被动参与（A2/A4 机制，非赚钱效应）
+      - 板块行情的普遍性参与（SECTOR 层驱动，个股无特异结构）
+      - 可转债/衍生品市场分流后的现货异动
+    historical_test: 大牛股 D5 期户数变化率的路径分类（缓升 vs 急升）
+      与后续 6-12 月结局（延续 vs 崩塌）的关联——注意这是描述性
+      预注册关联，不是预测模型。
+    pit_requirements: 户数/融资披露延迟进契约；席位数据 T+1 可得
+      （near-PIT，需登记 latency）。
+
+  - id: H05
+    name: Distribution（派发）
+    actor_refs: [A5]
+    lifecycle_states: [D6, D7]
+    economic_mechanism: |
+      外部需求增加的同时原主导库存供给增加：可能出现巨大换手但价格
+      效率下降（供给逐渐吸收推动力）。派发的完成需要对手方流动性，
+      因此主导资金必须维持价格热度和叙事——放量滞涨是交接的特征
+      之一，但本身不能等同于派发（源方案原句）。
+    expected_observations:
+      - 高位巨量换手+价格效率衰减（位移/回撤比恶化）
+      - 筹码成本分布从低位集中区向高位扩散（B级代理的迁移）
+      - 回调深度增加且反弹量能递减（供给持续存在的痕迹）
+    direct_evidence:
+      - 股东户数显著上升+户均持股下降（B级，分散化直接证据）
+      - 十大流通股东减持/退出（A级，滞后确认）
+      - 大宗交易折价率上升+量放大（B级，急于出清的价格证据）
+      - 龙虎榜卖方为早期买入席位（A/B级）
+    proxy_evidence:
+      - 放量滞涨/高位宽幅震荡形态（C级）
+      - 上涨日与下跌日的量能对称性消失（下跌也放量）（C级）
+    counter_evidence:
+      - 巨量换手后价格再创新高且效率恢复（D6→D4 回退路径成立）
+      - 户数稳定而量能放大（机构间换手，非对散户派发）
+    alternative_explanations:
+      - 高位多空分歧（双向机构博弈，无单边派发）
+      - 指数调仓/产品清盘的技术性巨量（一次性，非趋势）
+      - A6 游资对倒制造的虚假参与度（席位证据可分辨）
+    historical_test: 20 个高位崩塌案例的 D6 期 B 级证据（户数/大宗折价/
+      席位卖出）事后验证率 vs 20 个换手后再创新高案例的同位置证据
+      缺失率——直接检验"放量滞涨≠派发"的边界。
+    pit_requirements: 减持公告（A级）披露即时但有预披露规则（提前 15
+      交易日），预披露本身是可用 PIT 信号；户数季度延迟。
+
+  - id: H06
+    name: Loss of Control（主导退出后）
+    actor_refs: [A5]
+    lifecycle_states: [D8]
+    economic_mechanism: |
+      主导资金退出后，价格可仍由 A6/A7 驱动出现强反弹（甚至创新高），
+      但趋势的持续能力结构性下降：没有库存约束者的持续供给意愿、
+      没有成本区锚定的回补行为。T8 的边际结构（MFE flat + Recovery↓ +
+      Return↓ + DD↑）与此机制相符，但仅是研究动机。
+    expected_observations:
+      - 反弹仍有幅度（MFE 中位保留）但兑现率与持续性下降
+      - 回撤深度增加（无锁定的供给随时释放）
+      - 事件/催化驱动的脉冲行情占比上升（A6 结构特征）
+    direct_evidence:
+      - 十大流通股东中原主导席位已消失（A级，滞后终验）
+      - 户数处于历史高位且不再集中（B级）
+      - 大宗/龙虎榜显示原席位最后清仓痕迹（A/B级）
+    proxy_evidence:
+      - 高位宽幅震荡+趋势 R² 衰减（C级）
+      - 反弹的量价效率低于历史同等涨幅期（C级）
+    counter_evidence:
+      - 新主导资金进入（D8→D1 再吸筹的可能路径，open question）
+      - 基本面第二成长曲线驱动的新趋势（非资金结构现象）
+    alternative_explanations:
+      - 市场系统性收缩期（MARKET 层驱动，个股资金结构未变）
+      - 行业景气反转（SECTOR 层驱动）
+      - 单纯的高位波动（无结构含义）
+    historical_test: 高位崩塌组与再创新高组的 D8 特征分离度；
+      崩塌后反弹的 MFE/兑现结构（连到 T8 的 cycle 级证据，作为
+      动机的回顾性验证，不进实时结论）。
+    pit_requirements: 席位/持仓证据滞后 1-3 月；C 级效率衰减须滚动
+      计算；与 MARKET/SECTOR 层状态同步基准化后方可归因个股层。
+
+gate_self_check:
+  G-H-1 mechanism: 六条均有显式机制链（actor→constraint→behavior→observable）✓
+  G-H-2 evidence_independence: 每条 direct+proxy 至少跨 A/B 与 C 两级两类来源 ✓
+  G-H-3 alternative_explanations: 每条登记 3 个竞争解释 ✓
+  G-H-4 counterexample: 每条登记反证与主动搜索方案（historical_test 对照组）✓
+  G-H-5 pit: 每条 PIT requirements 显式（披露延迟/预披露/滚动窗/幸存者）✓
+  G-H-6 generalization: historical_test 均含跨组对照（年份/行业/市值待
+    CSR-8 案例抽样覆盖；本轮声明为待验证项，不冒充已满足）✓
