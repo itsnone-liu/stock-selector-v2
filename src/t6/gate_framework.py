@@ -135,6 +135,25 @@ def g5_segment_isolation(log: GateLog, frames_with_segment: dict):
 
 
 # G6 — pre-registration: contract carries every threshold the code uses
+def contract_symbol_asserts(log: GateLog, contract: dict):
+    """Sign-convention gate (audit R1, 2026-09-25): returns are signed log,
+    drawdown depths are POSITIVE. Prevents sign drift forever."""
+    t = contract['preregistered_thresholds']
+    try:
+        assert t['severe_dd_depth_log'] > 0, 'severe_dd_depth_log must be positive'
+        assert t['exit_failure_dd_depth_log'] > 0, 'exit_failure_dd_depth_log must be positive'
+        assert t['large_loss_ret_log'] < 0, 'large_loss_ret_log must be negative'
+        assert abs(t['severe_dd_depth_log'] + t['large_loss_ret_log']) < 1e-12, \
+            'severe_dd_depth_log must equal -large_loss_ret_log (both 10%)'
+        ok, why = True, ''
+    except AssertionError as e:
+        ok, why = False, str(e)
+    log.gate('G6a_contract_sign_conventions', ok, reason=why,
+             severe_dd_depth=t['severe_dd_depth_log'],
+             exit_failure_dd_depth=t['exit_failure_dd_depth_log'],
+             large_loss_ret=t['large_loss_ret_log'])
+
+
 def g6_preregistration(log: GateLog, stage_sources: list, contract: dict):
     src = '\n'.join(stage_sources)
     # numeric literals that smell like thresholds must exist in contract json

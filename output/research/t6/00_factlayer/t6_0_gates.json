@@ -55,6 +55,13 @@
     "unregistered_threshold_literals": [],
     "note": "numeric comparison constants must appear in t6_contract.json"
   },
+  "G6a_contract_sign_conventions": {
+    "verdict": "PASS",
+    "reason": "",
+    "severe_dd_depth": 0.1053605156578263,
+    "exit_failure_dd_depth": 0.1625189294977749,
+    "large_loss_ret": -0.1053605156578263
+  },
   "G7_no_tuning": {
     "verdict": "PASS",
     "reason": "",

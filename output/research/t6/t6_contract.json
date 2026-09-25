@@ -23,16 +23,16 @@
   },
 
   "preregistered_thresholds": {
-    "_comment": "ALL returns are LOG returns. Price thresholds converted via log().",
+    "_comment": "ALL returns are LOG returns (signed). ALL drawdown depths are POSITIVE depth (post_t0_peak - cum; see pit_rules.stored_conventions). Comparison directions: ret <= large_loss_ret_log; drawdown_from_peak_log >= severe_dd_depth_log.",
     "large_loss_ret_log": -0.1053605156578263,
     "large_loss_price": "-10%",
-    "severe_dd_log": -0.1053605156578263,
-    "exit_failure_dd_log": -0.1625189294977749,
+    "severe_dd_depth_log": 0.1053605156578263,
+    "exit_failure_dd_depth_log": 0.1625189294977749,
     "exit_failure_price": "-15%",
     "lose_ref20_today": "dist_to_ref20 < 0",
     "horizons_H": [5, 10, 20, 40],
     "false_recovery_window_valid_obs": 5,
-    "false_recovery_trigger": "within 5 valid observations after ADD: lose_ref20_today OR drawdown_from_peak_log <= severe_dd_log",
+    "false_recovery_trigger": "within 5 valid observations after ADD: lose_ref20_today OR drawdown_from_peak_log >= severe_dd_depth_log",
     "quick_failure_day_window": 5,
     "healthy_prefix_days": 10,
     "gap_rows_min": 2
@@ -71,8 +71,8 @@
       "order": ["F1", "F3", "F2", "F4", "F5", "F6"],
       "F1_initial_misclassification": "first operator in {REDUCE, EXIT} occurs at delta_day <= quick_failure_day_window AND final ret <= 0 AND no healthy prefix (first-op day is the earliest structural signal)",
       "F3_false_recovery": "exists REDUCE->ADD cycle AND false_recovery_trigger fires within false_recovery_window_valid_obs valid observations after A0",
-      "F2_late_deterioration": "days before first REDUCE >= healthy_prefix_days AND drawdown_from_peak_log at first-REDUCE day <= severe_dd_log AND final ret <= 0",
-      "F4_exit_failure": "max_dd_to_date_log <= exit_failure_dd_log at some day AND no EXIT ever occurs AND final ret <= 0",
+      "F2_late_deterioration": "days before first REDUCE >= healthy_prefix_days AND drawdown_from_peak_log at first-REDUCE day >= severe_dd_depth_log AND final ret <= 0",
+      "F4_exit_failure": "max_dd_to_date_log >= exit_failure_dd_depth_log at some day AND no EXIT ever occurs AND final ret <= 0",
       "F5_fast_failure_gap": "a run of >= gap_rows_min consecutive row_present=False precedes terminal_reason=LIFECYCLE_END, OR single-day ret_1d_log <= severe_dd_log dominates the terminal leg",
       "F6_censored_unclassifiable": "censored episodes or none of F1-F5 matched"
     },
