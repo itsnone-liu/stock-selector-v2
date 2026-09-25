@@ -10,9 +10,12 @@ meta:
   two_scales_declaration: |
     两套字母必须严格区分，禁止混用：
     - evidence_level（CSR-4，A/B/C）= 证据离资金主体的距离（直接/筹码/量价代理）
-    - availability_rating（本轮，A-E）= 数据可得性与时效（DIRECT_PIT/DIRECT_DELAYED/
-      RELIABLE_PROXY/WEAK_PROXY/UNAVAILABLE）
-    例：E-STK-10 筹码构造 evidence_level=C（代理）但 availability=A（本地实时可算）；
+    - availability_rating（本轮，A-E）= 数据性质与可得性（A=DIRECT_PIT 直接披露/
+      B=DIRECT_DELAYED 直接披露但延迟/C=RELIABLE_PROXY 可靠代理/D=WEAK_PROXY/
+      E=UNAVAILABLE）——评级反映数据性质，"快不快"由 realtime 单独表达；
+      本地构造类无论多快都只是代理，不得因实时性升入 A/B
+    例：E-STK-10 筹码构造 evidence_level=C（代理）且 availability=C_RELIABLE_PROXY
+    （本地构造=代理性质），但 realtime=REALTIME_T1（快）；
     E-STK-02 十大股东 evidence_level=A（直接）但 availability=B（季频+延迟）。
   calendar_conventions:
     observation_date: 观测基准日（数据所描述的事实发生/存在的时点，如季末持仓基准日）
@@ -22,9 +25,9 @@ meta:
     disclosure_windows: '定期报告法定披露窗：季报报告期结束后 1 个月内、半年报 2 个月内、
       年报 4 个月内——available_date 以实际披露公告日为准，窗口仅是上界'
   rating_scale:
-    A_DIRECT_PIT: 直接披露或本地构造，决策时点（T 或 T+1 内）可用
-    B_DIRECT_DELAYED: 直接披露但延迟到达（季频 1-3 月为主）——实时不可用，事后验证可用
-    C_RELIABLE_PROXY: 本地构造代理，实时可用但 evidence_level 已限定为 C（不因此升证据级）
+    A_DIRECT_PIT: 直接披露（官方一手），决策时点（T 日盘后~T+1）可用
+    B_DIRECT_DELAYED: 直接披露但延迟到达（工作日至数月不等）——实时不可用，事后验证可用
+    C_RELIABLE_PROXY: 本地构造代理（数据性质=代理）——时效由 realtime 表达，不因此升入 A/B
     D_WEAK_PROXY: 现行制度下时效或覆盖严重受限，仅辅助/历史段
     E_UNAVAILABLE: 现实不可可靠获取
   realtime_identification_scale:
@@ -76,21 +79,26 @@ verdicts:
     availability_rating: D_WEAK_PROXY   # 对实时识别而言；历史段另记
     realtime: BACKTEST_ONLY
     observation_date_rule: 分段——2014-11-17~2016-12-02 沪股通-only；2016-12-05~2024-08-16 双市场日频；2024-08-19 后仅成交总额+季度持股
-    publication_date_rule: 旧制度 T+1 盘后；新制度收市后披露成交总额（日频净买入序列终止）
-    available_date_rule: 历史段可用=publication+0；现行段个股层不可日频归因
-    latency: 旧段 T+1；现行段日频个股层=N/A
+    publication_date_rule: 分段——旧制度部分 aggregate flow（买入/卖出金额、成交总额）
+      T 日盘中实时可得+盘后统计 T 日收市后可得（非统一 T+1）；2024-08-19 起不再披露
+      盘中实时数据，当日成交总额 T 日收市后公布，单证券持股按季度第 5 个沪深股通交易日
+      披露上季末持有量
+    available_date_rule: 历史段=披露时点即可用；现行段日频=成交总额（收市后）、个股=季度滞后
+    latency: 旧段盘中实时~收市后；现行段当日总额收市后、个股季度+5 交易日
     revision_risk: 低（交易所口径）
     selection_coverage_note: 三段互不可拼接（CSR-5 已裁决）；series_start=2014-11-17、breaks=2016-12-05/2024-08-19 进数据契约
     backtest_segment_note: 2016-12-05~2024-08-16 段可作为历史假说检验素材，禁止外推现行可用性
   - evidence_id: E-MKT-06
     availability_rating: A_DIRECT_PIT
-    realtime: EVENT_ADVANCE
-    observation_date_rule: 公告日
+    realtime: REALTIME_T1
+    observation_date_rule: 增持行为发生日（公告披露的多为已发生行为）
     publication_date_rule: 当日公告（官方渠道）
     available_date_rule: publication +0
-    latency: 事件即时
+    latency: 事件即时（行为发生与公告之间的公司自报间隔如实登记）
     revision_risk: 低（公告事实；后续实施进度另有公告）
-    selection_coverage_note: 事件稀疏——只作背景/案例证据，不进统计检验主列
+    selection_coverage_note: 事件稀疏——只作背景/案例证据，不进统计检验主列；
+      公告中若含"未来继续增持计划"字段则该字段单独属 EVENT_ADVANCE（lead-forward），
+      与已发生行为披露分开登记
   # ---------- SECTOR ----------
   - evidence_id: E-SEC-01
     availability_rating: A_DIRECT_PIT
@@ -151,9 +159,10 @@ verdicts:
     availability_rating: B_DIRECT_DELAYED
     realtime: LAGGED_VERIFICATION
     observation_date_rule: 报告期末持仓基准
-    publication_date_rule: 基金季报 15 个工作日内/半年报/年报法定窗
-    available_date_rule: 披露日 +0
-    latency: 约 1~2 个月（季报口径）
+    publication_date_rule: 分层法定窗——季报（前十大重仓）季度结束后 15 个工作日内；
+      半年报（全部持仓）上半年结束后 2 个月内；年报（全部持仓）年度结束后 3 个月内
+    available_date_rule: 各自披露日 +0
+    latency: 季报 top10 ≤15 个工作日；半年/年报全量 ≤2/3 个月
     revision_risk: 中（口径两档：季报仅前十大重仓 vs 半年报全部持仓——统计须按口径分层，禁跨口径拼接）
     selection_coverage_note: 仅公募——私募/保险/资管持仓不可见（覆盖断层如实登记）
   - evidence_id: E-STK-04
@@ -169,9 +178,11 @@ verdicts:
     availability_rating: A_DIRECT_PIT
     realtime: REALTIME_T1
     observation_date_rule: T 日上榜事实
-    publication_date_rule: 交易所 T+1 盘后披露（smoke 实测次日可得）
-    available_date_rule: 披露日 +0
-    latency: T+1
+    publication_date_rule: 官方口径=T 日收盘后公布当日公开信息（交易所交易公开信息数据库
+      披露时间与交易日期同日）；第三方聚合渠道可能 T 日盘后至 T+1 才可见（smoke 附录实测
+      属第三方口径，不得反向当成官方时点）
+    available_date_rule: 按实际 source 的 timestamp 判定——官方源 T 日盘后即可用
+    latency: 官方 T 日盘后；第三方 T 日盘后~T+1
     revision_risk: 低
     selection_coverage_note: 选择机制=上榜规则（涨跌幅/换手/振幅阈值，规则多次调整）——样本有偏禁外推全市场；规则变更序列须进数据契约
   - evidence_id: E-STK-06
@@ -244,19 +255,25 @@ headline_findings:
     选择机制（上榜规则/标的池）。ownership 类直接证据（户数/十大股东/
     基金持仓）全部 LAGGED_VERIFICATION（滞后 1~4 月）。
   2: |
-    由此得出 CSR 的核心结构性结论：实时层最高只能支撑 candidate_state
-    （证据一致状态）；actor_confirmed_state 的 ownership 证据全部滞后
-    1~4 个月到达——"实时确认主体"在本数据制度下不可达，确认永远是
-    事后回溯。这不是数据建设可消除的缺口，是披露制度本身的节律。
-    任何宣称实时识别"主力状态"的方案，都必然退化为 C 级代理堆叠
-    （G-VAR 防数字迷宫四问的第二问直接命中）。
+    由此得出 CSR 的核心结构性结论：实时层可以确认离散资金行为、交易
+    参与或未来供给事件（大宗一笔成交/龙虎榜上榜席位/减持预披露/ETF
+    申赎/两融余额），但无法仅凭现有公开制度实时确认 A5 的持续
+    lifecycle/ownership state——D1/D2 以及需要持仓路径支持的 D7/D8 的
+    actor-confirmation，主要依赖 ownership 披露（滞后到达），因而只能
+    事后验证。ownership/holding verification 的披露延迟约从 15 个工作日
+    （公募季报前十大）至 4 个月（上市公司年报口径股东结构）不等，均非
+    T/T+1 信息。"实时确认一笔资金行为"≠"实时确认主导资金状态"——
+    这不是数据建设可消除的缺口，是披露制度本身的节律；宣称实时识别
+    "主力状态"的方案，必然退化为 C 级代理堆叠（G-VAR 第二问直接命中）。
   3: |
-    事前已知类（解禁日程/减持预披露/回购公告）构成 EVENT_ADVANCE 层
-    ——它们不识别主体，但管理"未来供给压力窗口"，是唯一真正
-    lead-forward 的信息。
+    事前已知类（解禁日程/减持预披露、回购方案公告、E-MKT-06 中的
+    未来增持计划字段）构成 EVENT_ADVANCE 层——它们不识别主体，但管理
+    "未来供给压力窗口"，是真正 lead-forward 的信息；注意其中混合着
+    "已发生行为披露"（REALTIME_T1），逐字段区分不得整类混同。
   4: |
-    BACKTEST_ONLY 三条：北向日频段（制度终止）、E-MKT-04/E-SEC-04
-    （市值 reference 未补——补齐后重评级，不冒充当前可用）。
+    BACKTEST_ONLY 四条：E-MKT-05 北向日频段（制度终止）、E-MKT-04/
+    E-SEC-04（市值 reference 未补——补齐后重评级，不冒充当前可用）、
+    E-MRG-05（冻结产物只读，不进任何实时管道）。
   5: |
     修订风险主源已定位：股本变更史（市值类）、定期报告更正（持仓类）、
     规则变更序列（龙虎榜/两融池）——三者全部进 CSR-6 契约项清单，

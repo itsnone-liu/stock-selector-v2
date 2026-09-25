@@ -209,9 +209,17 @@ if f6p.exists():
     from collections import Counter as _C
     arc = _C(x['availability_rating'] for x in v6)
     rtc = _C(x['realtime'] for x in v6)
-    n_lag = sum(1 for x in v6 if x['realtime'] == 'LAGGED_VERIFICATION')
-    if n_lag == 0:
-        errs.append('LAGGED_VERIFICATION layer vanished — structural conclusion lost')
+    if arc != _C({'A_DIRECT_PIT': 10, 'B_DIRECT_DELAYED': 3,
+                  'C_RELIABLE_PROXY': 11, 'D_WEAK_PROXY': 1}):
+        errs.append(f'CSR-6 rating counts drifted: {dict(arc)}')
+    if rtc != _C({'REALTIME_T1': 15, 'EVENT_ADVANCE': 3,
+                  'LAGGED_VERIFICATION': 3, 'BACKTEST_ONLY': 4}):
+        errs.append(f'CSR-6 realtime counts drifted: {dict(rtc)}')
+    stk10_6 = r6['E-STK-10']
+    if stk10_6['availability_rating'] != 'C_RELIABLE_PROXY' or stk10_6['realtime'] != 'REALTIME_T1':
+        errs.append('E-STK-10 must be C_RELIABLE_PROXY + REALTIME_T1 (proxy stays C however fast)')
+    if '本地构造=代理性质' not in str(f6.get('meta', {}).get('two_scales_declaration', '')):
+        errs.append('two-scales declaration must forbid proxy promoting to A/B by speed')
 
 if errs:
     print('FAIL'); [print(' -', e) for e in errs]; sys.exit(1)
