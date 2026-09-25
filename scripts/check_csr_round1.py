@@ -223,8 +223,9 @@ if f7p.exists():
         errs.append('CSR-7 rt view must forbid LAGGED_VERIFICATION evidence')
     if '倒灌' not in str(dvd.get('ex_post_view', {}).get('forbidden', '')):
         errs.append('CSR-7 xp view must declare no-reverse-contamination')
-    if '先完成案例 real_time_view 再打开 ex_post_view' not in str(dvd.get('annotation_order', '')):
-        errs.append('CSR-7 annotation order (rt before xp) must be enforced')
+    ao = str(dvd.get('annotation_order', ''))
+    if '不同 primary annotator' not in ao and '独立 session' not in ao:
+        errs.append('CSR-7 annotation order must be rt-before-xp (independent annotators or sessions)')
     bp = str(dvd.get('rt_blind_packet', ''))
     for kw in ('group', 'window_end', 'opaque_case_id', 'hidden_block', 'as-of-T'):
         if kw not in bp: errs.append(f'CSR-7 rt_blind_packet missing {kw}')
@@ -241,13 +242,30 @@ if f7p.exists():
     if 'sealed_at(T) < revealed_at(T+1)' not in g3:
         errs.append('G-CS-3 must check per-T sealing total order')
     hb2 = f7.get('case_sheet_schema', {}).get('hypothesis_block', {})
-    if 'rt_observability' not in str(hb2.get('fields', '')) or 'xp_observability' not in str(hb2.get('fields', '')):
-        errs.append('CSR-7 needs orthogonal observability fields (rt_/xp_)')
+    flds = str(hb2.get('fields', ''))
+    if 'rt_observability_H01..H06' not in flds or 'xp_observability_H01..H06' not in flds:
+        errs.append('CSR-7 observability must be per-H six columns (rt_/xp_)')
+    if '案例级单一 observability' not in str(hb2.get('observability', '')):
+        errs.append('per-H rationale (case-level single observability misleads) must be stated')
+    if 'rt_observability_Hx' not in str(f7.get('analysis_plan', {}).get('primary_question', '')):
+        errs.append('confusion matrix must reference per-H observability (Hx)')
+    ab = str(dvd.get('annotation_blindness', ''))
+    for kw in ('XP primary annotator', '不可见任何 rt_', '独立标注者', '比较只发生在分析层'):
+        if kw not in ab and kw not in str(f7.get('gates', {}).get('G-CS-1_dual_view_separation', '')):
+            errs.append(f'CSR-7 annotation_blindness missing {kw}')
+    la2 = f7.get('case_sheet_schema', {}).get('lifecycle_annotation', {})
+    rtl = str(la2.get('rt_layer', ''))
+    if 'D0/D1/D2/D4/D5/D6/D7/D8' not in rtl or 'D3 不在 RT candidate' not in rtl:
+        errs.append('RT candidate set must exclude D3 (no real-time D3 classifier)')
+    xp3 = str(la2.get('xp_layer_descriptive', ''))
+    for kw in ('ONTOLOGY_ONLY', '不进入 RT↔XP concordance'):
+        if kw not in xp3:
+            errs.append(f'D3 descriptive layer missing {kw}')
     if 'NOT_OBSERVED 档' not in str(hb2.get('scale', '')) and '≠ UNOBSERVABLE' not in str(hb2.get('scale', '')):
         errs.append('NOT_OBSERVED must be distinguished from UNOBSERVABLE in scale')
     pq2 = str(f7.get('analysis_plan', {}).get('primary_question', ''))
-    if 'rt_observability = UNOBSERVABLE' not in pq2:
-        errs.append('confusion matrix rt_unobservable must come from observability field')
+    if 'rt_observability_Hx = UNOBSERVABLE' not in pq2 and 'rt_observability_Hx = UNOBSERVABLE（' not in pq2 and 'rt_observability_Hx' not in pq2:
+        errs.append('confusion matrix rt_unobservable must come from per-H observability field')
     if 'agreement_mapping' not in pq2 or 'excluded_from_binary_agreement' not in pq2:
         errs.append('agreement mapping must be frozen inline (no deferred mapping)')
     ag = f7.get('case_selection', {}).get('anchor_generation', '')
@@ -277,7 +295,7 @@ if f7p.exists():
     la = str(f7.get('case_sheet_schema', {}).get('lifecycle_annotation', {}))
     if 'candidate_state' not in la or 'ONTOLOGY_ONLY' not in la:
         errs.append('CSR-7 lifecycle annotation must keep two-tier + D3 ONTOLOGY_ONLY')
-    if '不进入 H 支持度' not in la:
+    if 'concordance' not in la:
         errs.append('D3 must be excluded from H-support and concordance stats')
     gates7 = set(f7.get('gates', {}))
     for g in ('G-CS-1_dual_view_separation', 'G-CS-2_selection_replayable',

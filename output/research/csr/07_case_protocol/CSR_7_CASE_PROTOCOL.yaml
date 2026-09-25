@@ -28,7 +28,17 @@ dual_view_discipline:
       （CSR-8 的任务之一就是发现 ontology 不完整处。）
     forbidden: '不得倒灌（reverse contamination）：ex_post 结论不得用于改写任何 T 时点的 real_time_view 记录'
   legal_direction: 'ex_post → real_time 的唯一合法用法=验证：统计 real-time 判定与事后确认的一致/不一致率（这是 CSR-7 的核心检验目标）'
-  annotation_order: 标注者必须先完成案例 real_time_view 再打开 ex_post_view——操作顺序本身是防 hindsight 纪律，记录标注时间戳
+  annotation_order: RT 与 XP 由不同 primary annotator 独立完成（见 annotation_blindness）；
+    若条件所限同人执行，必须分独立 session 且 XP session 不可见 rt_* 标注记录——记录两 session 时间戳
+  annotation_blindness: |
+    主 endpoint 是 RT prediction vs XP reference——reference side 必须独立生成，否则同一
+    标注者刚判完 rt_H01=SUPPORTED_PARTIAL 再开 XP，即使看不到字段也会 anchoring/confirmation。
+    RT primary annotator：只做 RT（as-of-T blind packet + progressive sealing）。
+    XP primary annotator：独立标注者（≥10% 案例另有第二 XP 标注者做 inter-rater audit）；
+      可见完整原始证据（含历史行情——full-evidence reconstruction 需要它）；
+      不可见任何 rt_* annotation / rt candidate_state / rt H-support——禁止的是看 RT 标注
+      结果，不是禁止看原始数据。
+    两标签独立生成后仅在分析层比较（RT↓ →比较← XP↑）。
   progressive_sealing: |
     整案例 rt 序列一次性锁定不足以防 hindsight——标注者可以看遍 T+1..T+60 后回改 T 再锁定，
     全程未触 xp 却已不是 real-time reconstruction。冻结为逐 T 锁定：
@@ -88,11 +98,13 @@ case_sheet_schema:
   stock_block:   {fields: [rt_stock_observables_daily], evidence_refs: [E-STK-10, E-MRG-01..04]}
   direct_block:  {fields: [rt_direct_events, xp_ownership_trajectory], evidence_refs: [E-STK-01..09]}
   hypothesis_block:
-    fields: [rt_observability, xp_observability, rt_h_support_H01..H06, xp_h_support_H01..H06]   # 物理分列，无覆盖性 h_support 字段
+    fields: [rt_observability_H01..H06, xp_observability_H01..H06, rt_h_support_H01..H06, xp_h_support_H01..H06]   # 物理分列，无覆盖性 h_support 字段
     observability: |
-      正交字段（先判）：OBSERVABLE | UNOBSERVABLE。
-      OBSERVABLE=该时点/该证据维度的数据制度能给答案；仅 OBSERVABLE 才填写五档 support。
-      UNOBSERVABLE=数据制度无法给答案（数据缺席≠反证，CSR 一贯原则）——support 字段留空。
+      正交字段（先判，按 H 逐列）：OBSERVABLE | UNOBSERVABLE。
+      一个案例不同 H 的可得性完全不同（CSR-6 已证明各 H 依赖的 ownership evidence
+      可得性各异——案例级单一 observability 会错误屏蔽/放行其他 H）。
+      OBSERVABLE_Hx=该时点/该 H 依赖证据维度的数据制度能给答案；仅 OBSERVABLE 才填写该列五档 support。
+      UNOBSERVABLE_Hx=数据制度无法给该 H 答案（数据缺席≠反证，CSR 一贯原则）——该列 support 留空。
     scale: 5 档预注册（仅 OBSERVABLE 时填写）——
       SUPPORTED_STRONG（机制+≥2 独立证据层一致且无反证）
       SUPPORTED_PARTIAL（机制+≥1 证据层一致，反证弱）
@@ -104,8 +116,13 @@ case_sheet_schema:
       UNOBSERVABLE 是 CSR-9 合法结论的直接入口
   counter_evidence_block: [registered_alternatives, searched_counterexamples]
   lifecycle_annotation:
-    rt_layer: 日级 candidate_state 序列（D0-D8 候选；D3=ONTOLOGY_ONLY retrospective marker——
-      只作回溯现象记录，无独立机制假说，不进入 H 支持度与一致率统计）
+    rt_layer: |
+      日级 candidate_state 序列（D0/D1/D2/D4/D5/D6/D7/D8）——D3 不在 RT candidate 分类器
+      输出集合内（D3 无 H01-H06 独立机制假说，CSR-2 冻结 CSR-8 前不得建立 D3 识别器；
+      "retrospective marker"不能同时是 real-time candidate state）
+    xp_layer_descriptive: |
+      XP/描述层允许记录 D3-like 回溯现象标记：必须标 ONTOLOGY_ONLY；不进入 H 支持
+      度、不进入 RT↔XP concordance、不作为 actor-confirmation
     xp_layer: |
       actor-confirmed 事件与转移；CSR-2 registered_candidate_transitions 仅作参考——
       未登记路径登记 novel_transition（不拒绝、不改写），带 supporting evidence 进 CSR-9
@@ -117,10 +134,10 @@ analysis_plan:
     rt_candidate_positive   = rt_h_support ∈ {SUPPORTED_STRONG, SUPPORTED_PARTIAL}
     rt_candidate_negative   = rt_h_support = CONTRADICTED
     rt_mixed                = rt_h_support = MIXED
-    rt_unobservable         = rt_observability = UNOBSERVABLE（≠ NOT_OBSERVED 档）
+    rt_unobservable(Hx)     = rt_observability_Hx = UNOBSERVABLE（≠ NOT_OBSERVED 档；逐 H 列判定）
     xp_confirmed_positive   = xp actor-confirmed 事件存在 且 xp_h_support ∈ {SUPPORTED_STRONG, SUPPORTED_PARTIAL}
     xp_not_confirmed        = xp_h_support = CONTRADICTED 或证据明确不支持（≠数据缺失）
-    xp_unobservable         = xp_observability = UNOBSERVABLE（ownership 证据缺失/不可判；数据缺席≠证伪）
+    xp_unobservable(Hx)     = xp_observability_Hx = UNOBSERVABLE（ownership 证据缺失/不可判；数据缺席≠证伪）
     agreement_mapping: |
       二元 agreement（冻结，不再"若报告则按预注册映射"——映射即本块）：
         agreement格:     rt_candidate_positive × xp_confirmed_positive；
@@ -143,7 +160,10 @@ analysis_plan:
   forbidden: [ML, feature_selection, return_optimization, threshold_search, policy_backtest, '把案例评分当策略参数']
 
 gates:
-  G-CS-1_dual_view_separation: 'case sheet 两视角物理分列；rt_* 字段不得出现在 xp 计算依赖里（结构检查）'
+  G-CS-1_dual_view_separation: |
+    case sheet 两视角物理分列；rt_* 字段不得出现在 xp 计算依赖里（结构检查）。
+    annotation blindness contract：XP primary 不可见任何 rt_* 标注结果
+    （独立标注者或独立 session+时间戳）；比较只发生在分析层
   G-CS-2_selection_replayable: '抽样规则+种子冻结，重放得同一样本集'
   G-CS-3_no_reverse_contamination: |
     hindsight 禁令：任何 rt_ 判定引用 xp_ 信息即 FAIL；标注顺序时间戳可审计。
