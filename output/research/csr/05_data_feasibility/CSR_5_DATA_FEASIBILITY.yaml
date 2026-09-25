@@ -12,94 +12,112 @@ meta:
     UNAVAILABLE: 现实不可可靠获取
   channel_trust:
     official: 交易所/巨潮/法定公告等一手披露（首选，本地存档原则）
-    thirdparty_free: akshare 类免费聚合（未装、稳定性第三方）
-    thirdparty_paid: tushare 积分档/Wind（成本项，门槛以官方为准）
+    thirdparty_free: akshare 类免费聚合（已装 1.18.97，稳定性第三方——见 smoke 附录）
+    thirdparty_paid: tushare 积分档/Wind（成本项，门槛以官方为准；当前 token 积分 0）
     constructed: 由现有行情数据本地构造（无新外部依赖）
+    frozen_product: 已冻结研究产物只读引用（T6/T8，C5 防火墙——不可重算不可改写）
+  build_class:
+    EXISTING_ASSET_CONSTRUCTIBLE: 当前本地资产即可计算（已核字段，非"理论上可构造"）
+    NEW_EXTERNAL_CHANNEL: 需新增数据通道（含仅需补 reference data 的子类）
+    BROKEN_OR_STRUCTURAL_LIMIT: 数据存在但披露制度变更/结构断点限制使用
 
 environment_finding:
   existing_stack: |
-    现有研究栈（T3-T8）数据面=baostock 日 K 三源复权（5,241 股）+
-    csrc 行业快照——100% 覆盖 MARGINAL 层（E-MRG-01..04 可直接构造，
-    E-MRG-05 已冻结）。资金面证据（MARKET/SECTOR/STOCK 三层 20 条）
-    全部缺位，需新建数据通道——这是 CSR 与 T3-T8 数据面的根本差异。
+    现有研究栈（T3-T8）数据面=baostock 日 K 三源复权（5,241 股，逐股
+    9 字段：date/OHLC/volume/amount/turn/pctChg——无市值字段）+
+    csrc 行业快照。按 build_class 精确统计：MARGINAL 层 5 条中 4 条
+    现有资产直接可构造、1 条已冻结；非 MARGINAL 20 条中 4 条现有资产
+    可构造（E-MKT-03/E-SEC-02/E-SEC-03/E-STK-10）、15 条需新通道
+    （含 E-MKT-04/E-SEC-04 两条"仅缺历史市值 reference"子类——行情
+    已在但市值序列缺失，baostock 抓取未含 totalValue/floatValue，
+    已实测确认）、1 条制度断裂。
   installed_state: 'akshare 未安装；tushare 未安装（无 key）；baostock 0.9.40 在用'
 
 verdicts:
   # ---- MARKET ----
-  - {evidence_id: E-MKT-01, rating: OBTAINABLE, channel: 上交所/深交所官网 ETF 每日份额数据（official）,
+  - {evidence_id: E-MKT-01, build_class: NEW_EXTERNAL_CHANNEL, rating: OBTAINABLE, channel: 上交所/深交所官网 ETF 每日份额数据（official）,
      channel_2: thirdparty_free 聚合可选, historical_depth: '主要宽基 2012+；品种数随年份增长（早期覆盖稀疏）',
      coverage: 宽基齐全, cost: 免费, trust: official, latency_note: 日频披露——三日期口径留 CSR-6}
-  - {evidence_id: E-MKT-02, rating: OBTAINABLE, channel: 交易所融资融券日报（official）,
+  - {evidence_id: E-MKT-02, build_class: NEW_EXTERNAL_CHANNEL, rating: OBTAINABLE, channel: 交易所融资融券日报（official）,
      historical_depth: '2010-03 两融启动至今，完整', coverage: 全市场汇总+分标的, cost: 免费,
      trust: official, latency_note: 日频盘后——留 CSR-6}
-  - {evidence_id: E-MKT-03, rating: OBTAINABLE, channel: constructed（现有 baostock 日 K 直接计算新高新低/涨跌家数）,
+  - {evidence_id: E-MKT-03, build_class: EXISTING_ASSET_CONSTRUCTIBLE, rating: OBTAINABLE, channel: constructed（现有 baostock 日 K 直接计算新高新低/涨跌家数）,
      historical_depth: 与日 K 同（全历史）, coverage: 全市场, cost: 零（现有资产）, trust: constructed}
-  - {evidence_id: E-MKT-04, rating: OBTAINABLE, channel: constructed（大小盘指数/成交额比，指数行情另需引入或以全市场分组构造）,
+  - {evidence_id: E-MKT-04, build_class: NEW_EXTERNAL_CHANNEL, rating: OBTAINABLE, channel: constructed（大小盘指数/成交额比，指数行情另需引入或以全市场分组构造）,
      historical_depth: 构造法全历史；指数口径依赖所选序列, coverage: 全市场, cost: 零-低, trust: constructed,
-     note: 分组构造（按市值分位）可完全本地化，避免引入外部指数}
-  - {evidence_id: E-MKT-05, rating: BROKEN_SERIES,
-     channel: '沪深港通披露（2024-08-19 机制调整：盘中实时取消；日频净买入序列中断，改为盘后成交总额；个股持股转季度披露）',
-     historical_depth: '2014-11 至 2024-08 日频净买入段完整可用；其后仅成交总额+季度持股',
-     coverage: 断裂后个股层不可日频归因, cost: 免费, trust: official,
-     implication: '任何使用北向的假说检验必须按断点分段或仅用 2024-08 前历史段；CSR-6 须登记制度变更日，防止跨断点拼接'}
-  - {evidence_id: E-MKT-06, rating: OBTAINABLE, channel: 汇金/证金公告与持牌披露（official，事件驱动）,
+     note: '按市值分位分组理论上可本地化，但当前 baostock 抓取无 totalValue/floatValue 字段（已实测）——须补历史市值/股本 reference data 后才可构造，故归 NEW_EXTERNAL_CHANNEL（仅缺 reference 子类，行情已在）'}
+  - evidence_id: E-MKT-05
+    rating: BROKEN_SERIES
+    build_class: BROKEN_OR_STRUCTURAL_LIMIT
+    channel: 沪深港通官方披露（两段结构断点，缺一不可）
+    regime_breaks:
+      - '2014-11-17 沪港通启动（沪股通-only 起点）'
+      - '2016-12-05 深港通启动——此后才是完整意义的北向双市场结构；2014-11~2016-12 的沪股通-only 总量不得与后续双市场总量做长期水平比较'
+      - '2024-08-19 披露机制调整：盘中实时取消，日频净买入序列中断改盘后成交总额，单证券持股转季度披露'
+    historical_depth: '2014-11-17~2016-12-02 沪股通-only；2016-12-05~2024-08-16 双市场日频完整段；2024-08-19 后仅成交总额+季度持股'
+    coverage: 三段互不可跨段拼接做水平比较
+    cost: 免费
+    trust: official
+    implication: '任何使用北向的假说检验必须按断点分段；CSR-6 须登记两个制度断点日（2016-12-05 与 2024-08-19），防止跨段拼接'
+  - {evidence_id: E-MKT-06, build_class: NEW_EXTERNAL_CHANNEL, rating: OBTAINABLE, channel: 汇金/证金公告与持牌披露（official，事件驱动）,
      historical_depth: '2008 汇金增持史（事件稀疏，逐事件整理）', coverage: 事件样本少——只能作背景/案例证据,
      cost: 免费, trust: official}
   # ---- SECTOR ----
-  - {evidence_id: E-SEC-01, rating: OBTAINABLE, channel: 交易所 ETF 每日份额（official，行业 ETF 子集）,
+  - {evidence_id: E-SEC-01, build_class: NEW_EXTERNAL_CHANNEL, rating: OBTAINABLE, channel: 交易所 ETF 每日份额（official，行业 ETF 子集）,
      historical_depth: '行业 ETF 大发展 2019+；早期（<2015）行业 ETF 稀疏——行业层时间深度显著浅于宽基',
      coverage: 现存行业基本覆盖, cost: 免费, trust: official,
      note: 行业层早期深度不足本身是审计发现——行业 ETF 份额不可用于 2018 前的行业层检验}
-  - {evidence_id: E-SEC-02, rating: OBTAINABLE, channel: constructed（行业成交额占比，csrc 行业映射已有）,
+  - {evidence_id: E-SEC-02, build_class: EXISTING_ASSET_CONSTRUCTIBLE, rating: OBTAINABLE, channel: constructed（行业成交额占比，csrc 行业映射已有）,
      historical_depth: 全历史, coverage: 全市场, cost: 零, trust: constructed}
-  - {evidence_id: E-SEC-03, rating: OBTAINABLE, channel: constructed（行业相对强弱+breadth）,
+  - {evidence_id: E-SEC-03, build_class: EXISTING_ASSET_CONSTRUCTIBLE, rating: OBTAINABLE, channel: constructed（行业相对强弱+breadth）,
      historical_depth: 全历史（行业映射快照的时点一致性留 CSR-6 修订风险项）, coverage: 全市场, cost: 零, trust: constructed}
-  - {evidence_id: E-SEC-04, rating: OBTAINABLE, channel: constructed（指数贡献度=个股权重×涨幅分解）,
-     historical_depth: 全历史, coverage: 全市场, cost: 零, trust: constructed}
+  - {evidence_id: E-SEC-04, build_class: NEW_EXTERNAL_CHANNEL, rating: OBTAINABLE, channel: constructed（指数贡献度=个股权重×涨幅分解）,
+     historical_depth: 全历史, coverage: 全市场, cost: 零, trust: constructed,
+     note: '同 E-MKT-04：权重=市值序列当前缺失，补 reference 后才可构造（"理论上可构造"≠"当前已可构造"）'}
   # ---- STOCK ----
-  - {evidence_id: E-STK-01, rating: OBTAINABLE, channel: 定期报告披露股东户数（巨潮 official；thirdparty_paid 聚合可选）,
+  - {evidence_id: E-STK-01, build_class: NEW_EXTERNAL_CHANNEL, rating: OBTAINABLE, channel: 定期报告披露股东户数（巨潮 official；thirdparty_paid 聚合可选）,
      historical_depth: '2007+ 季频（披露延迟 1-3 月——available_date 终裁留 CSR-6）', coverage: 全 A 股,
      cost: 免费整理成本高/积分档低, trust: official}
-  - {evidence_id: E-STK-02, rating: OBTAINABLE, channel: 定期报告十大流通股东（巨潮 official）,
+  - {evidence_id: E-STK-02, build_class: NEW_EXTERNAL_CHANNEL, rating: OBTAINABLE, channel: 定期报告十大流通股东（巨潮 official）,
      historical_depth: '2007+ 季频，完整', coverage: 全 A 股, cost: 免费, trust: official}
-  - {evidence_id: E-STK-03, rating: OBTAINABLE, channel: 基金定期报告（季报前十大重仓+半年报全部持仓，巨潮/官方）,
+  - {evidence_id: E-STK-03, build_class: NEW_EXTERNAL_CHANNEL, rating: OBTAINABLE, channel: 基金定期报告（季报前十大重仓+半年报全部持仓，巨潮/官方）,
      historical_depth: '1998+；全持仓口径仅半年频', coverage: 公募全样本但口径两档（季 top10/半年全量）,
      cost: 免费, trust: official, note: 口径两档本身须进 CSR-6 的口径一致性审计}
-  - {evidence_id: E-STK-04, rating: OBTAINABLE, channel: 交易所大宗交易每日盘后披露（official）,
+  - {evidence_id: E-STK-04, build_class: NEW_EXTERNAL_CHANNEL, rating: OBTAINABLE, channel: 交易所大宗交易每日盘后披露（official）,
      historical_depth: '2013+ 完整（更早制度不同）', coverage: 全 A 股, cost: 免费, trust: official}
-  - {evidence_id: E-STK-05, rating: OBTAINABLE, channel: 交易所龙虎榜 T+1 盘后披露（official）,
+  - {evidence_id: E-STK-05, build_class: NEW_EXTERNAL_CHANNEL, rating: OBTAINABLE, channel: 交易所龙虎榜 T+1 盘后披露（official）,
      historical_depth: '2005+ 制度多次调整（上榜条件变更=结构断点，留 CSR-6 登记）', coverage: 仅异常波动标的（天然有偏样本——上榜规则本身是选择机制）,
      cost: 免费, trust: official}
-  - {evidence_id: E-STK-06, rating: OBTAINABLE, channel: 减持预披露与实施公告（法定披露 official）,
+  - {evidence_id: E-STK-06, build_class: NEW_EXTERNAL_CHANNEL, rating: OBTAINABLE, channel: 减持预披露与实施公告（法定披露 official）,
      historical_depth: '2017 减持新规后预披露制度稳定', coverage: 全 A 股, cost: 免费, trust: official}
-  - {evidence_id: E-STK-07, rating: OBTAINABLE, channel: 回购公告（official）,
+  - {evidence_id: E-STK-07, build_class: NEW_EXTERNAL_CHANNEL, rating: OBTAINABLE, channel: 回购公告（official）,
      historical_depth: '2018 修订后回购行为常态化', coverage: 全 A 股, cost: 免费, trust: official}
-  - {evidence_id: E-STK-08, rating: OBTAINABLE, channel: 交易所每日个股两融明细（official）,
+  - {evidence_id: E-STK-08, build_class: NEW_EXTERNAL_CHANNEL, rating: OBTAINABLE, channel: 交易所每日个股两融明细（official）,
      historical_depth: '2010-03+（标的池逐步扩容=覆盖断点，留 CSR-6）', coverage: 两融标的池（非全 A 股）, cost: 免费, trust: official}
-  - {evidence_id: E-STK-09, rating: OBTAINABLE, channel: 解禁日程（事前可知；thirdparty_paid 整理成熟/官方公告可溯源）,
+  - {evidence_id: E-STK-09, build_class: NEW_EXTERNAL_CHANNEL, rating: OBTAINABLE, channel: 解禁日程（事前可知；thirdparty_paid 整理成熟/官方公告可溯源）,
      historical_depth: 股改后全历史, coverage: 全 A 股, cost: 低,
      trust: thirdparty_paid, note: '整理口径溯源到 official 公告——渠道为第三方整理但可回溯官方原始披露'}
-  - {evidence_id: E-STK-10, rating: OBTAINABLE, channel: constructed（本地行情+换手构造；C 级永久限制不变）,
+  - {evidence_id: E-STK-10, build_class: EXISTING_ASSET_CONSTRUCTIBLE, rating: OBTAINABLE, channel: constructed（本地行情+换手构造；C 级永久限制不变）,
      historical_depth: 全历史, coverage: 全 A 股, cost: 零, trust: constructed}
   # ---- MARGINAL ----
-  - {evidence_id: E-MRG-01, rating: OBTAINABLE, channel: constructed（现有 baostock 日 K）,
+  - {evidence_id: E-MRG-01, build_class: EXISTING_ASSET_CONSTRUCTIBLE, rating: OBTAINABLE, channel: constructed（现有 baostock 日 K）,
      historical_depth: 全历史, coverage: 5,241 股现有资产, cost: 零, trust: constructed}
-  - {evidence_id: E-MRG-02, rating: OBTAINABLE, channel: constructed, historical_depth: 全历史,
+  - {evidence_id: E-MRG-02, build_class: EXISTING_ASSET_CONSTRUCTIBLE, rating: OBTAINABLE, channel: constructed, historical_depth: 全历史,
      coverage: 5,241 股, cost: 零, trust: constructed}
-  - {evidence_id: E-MRG-03, rating: OBTAINABLE, channel: constructed, historical_depth: 全历史,
+  - {evidence_id: E-MRG-03, build_class: EXISTING_ASSET_CONSTRUCTIBLE, rating: OBTAINABLE, channel: constructed, historical_depth: 全历史,
      coverage: 5,241 股, cost: 零, trust: constructed}
-  - {evidence_id: E-MRG-04, rating: OBTAINABLE, channel: constructed, historical_depth: 全历史,
+  - {evidence_id: E-MRG-04, build_class: EXISTING_ASSET_CONSTRUCTIBLE, rating: OBTAINABLE, channel: constructed, historical_depth: 全历史,
      coverage: 5,241 股, cost: 零, trust: constructed}
-  - {evidence_id: E-MRG-05, rating: OBTAINABLE, channel: 已冻结产物（T6/T8 parquet 只读引用，C5 防火墙）,
+  - {evidence_id: E-MRG-05, build_class: EXISTING_ASSET_CONSTRUCTIBLE, rating: OBTAINABLE, channel: 已冻结产物（T6/T8 parquet 只读引用，C5 防火墙）,
      historical_depth: 冻结区间, coverage: 冻结样本, cost: 零, trust: frozen_product}
 
 headline_findings:
-  1: '现有研究栈只覆盖 MARGINAL 层：20/25 证据需新建数据通道（其中 15 条官方披露类+4 条构造类+1 条断裂）——CSR 数据面建设量是真实约束'
-  2: '唯一 BROKEN_SERIES：北向日频净买入 2024-08 断裂（制度变更）——跨断点拼接是 CSR-6 必须显式登记的泄漏/口径风险'
+  1: 'build_class 三分：EXISTING_ASSET_CONSTRUCTIBLE 9 条（E-MRG-01..04+E-MKT-03/E-SEC-02/E-SEC-03/E-STK-10 共 8 条可计算——本地字段已实测核过；E-MRG-05 冻结只读不计工程量）；NEW_EXTERNAL_CHANNEL 15 条（13 官方披露+1 第三方整理[E-STK-09]+2 条仅缺历史市值 reference 子类[E-MKT-04/E-SEC-04]——市值缺口已实测确认：baostock 逐股 9 字段无 totalValue/floatValue）；BROKEN_OR_STRUCTURAL_LIMIT 1 条（E-MKT-05）'
+  2: 'E-MKT-05 北向两处结构断点：2016-12-05 深港通启动（此前沪股通-only，总量不可与双市场段做水平比较）+ 2024-08-19 披露机制调整（日频净买入中断）——CSR-6 须登记两个断点日，三段互不可拼接'
   3: '日频资金证据只有四类：两融/大宗/龙虎榜/ETF 份额——披露型 STOCK 证据主体是季频+延迟（户数/十大股东/基金持仓），CSR-6 的三日期口径审计将决定这些证据能否用于任何近实时解释'
   4: '行业 ETF 份额的深度不足（2019 前稀疏）限制行业层检验的时间窗口'
   5: '龙虎榜样本天然有偏（上榜规则=选择机制）——任何使用它的统计必须声明选择偏倚，不得外推全市场'
-  6: '本轮为渠道级桌面审计（未写任何抓取器/未落任何数据，符合先审后抓）；接口级实测（含 thirdparty 渠道稳定性）建议作为 CSR-6 前的 smoke 项，不改变本轮评级'
+  6: '本轮为渠道级桌面审计（未写任何抓取器/未落任何数据，符合先审后抓）；接口级 smoke（tushare/akshare）见 CSR_5_SMOKE_ADDENDUM.md——不改变评级，只补充通道实测证据'
 
 audit_order_note: |
   本文件不填 CSR-4 的 publication_delay/point_in_time/revision_risk/

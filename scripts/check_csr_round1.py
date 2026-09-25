@@ -118,6 +118,49 @@ all_text = (R/'01_actor_ontology/CAPITAL_ACTOR_ONTOLOGY.yaml').read_text() \
 if '散户端口径' in all_text:
     errs.append('residual 融资余额散户端口径 wording (margin attribution regression)')
 
+# --- CSR-5 data feasibility (optional stage: present once directory exists) ---
+f5p = R/'05_data_feasibility/CSR_5_DATA_FEASIBILITY.yaml'
+if f5p.exists():
+    f5 = yaml.safe_load(f5p.read_text())
+    v = f5['verdicts']
+    ids5 = [x['evidence_id'] for x in v]
+    if len(ids5) != len(set(ids5)): errs.append('CSR-5 duplicate evidence_id')
+    if set(ids5) != set(ids): errs.append('CSR-5 ids != CSR-4 candidate ids')
+    RATING = {'OBTAINABLE', 'BROKEN_SERIES', 'UNAVAILABLE'}
+    TRUST = {'official', 'thirdparty_free', 'thirdparty_paid', 'constructed', 'frozen_product'}
+    for x in v:
+        for f in ('rating', 'channel', 'historical_depth', 'coverage', 'cost', 'trust'):
+            if not x.get(f): errs.append(f'CSR-5 {x["evidence_id"]} missing {f}')
+        if x['rating'] not in RATING: errs.append(f'CSR-5 {x["evidence_id"]} bad rating')
+        if x['trust'] not in TRUST: errs.append(f'CSR-5 {x["evidence_id"]} bad trust')
+        for g in ('publication_delay', 'point_in_time', 'revision_risk', 'confidence'):
+            if x.get(g) not in (None, ''):
+                errs.append(f'CSR-5 {x["evidence_id"]} pre-fills CSR-6/9 field {g}')
+    mkt05 = [x for x in v if x['evidence_id'] == 'E-MKT-05'][0]
+    if mkt05['rating'] != 'BROKEN_SERIES':
+        errs.append('E-MKT-05 must be BROKEN_SERIES (2024-08 disclosure regime break)')
+    BCLS = {'EXISTING_ASSET_CONSTRUCTIBLE', 'NEW_EXTERNAL_CHANNEL', 'BROKEN_OR_STRUCTURAL_LIMIT'}
+    bc = {}
+    for x in v:
+        if x.get('build_class') not in BCLS:
+            errs.append(f'CSR-5 {x["evidence_id"]} bad build_class')
+        else:
+            bc[x['build_class']] = bc.get(x['build_class'], 0) + 1
+    if bc != {'EXISTING_ASSET_CONSTRUCTIBLE': 9, 'NEW_EXTERNAL_CHANNEL': 15,
+              'BROKEN_OR_STRUCTURAL_LIMIT': 1}:
+        errs.append(f'CSR-5 build_class counts {bc} != 9/15/1')
+    rb = ' '.join(mkt05.get('regime_breaks', []))
+    for d_ in ('2016-12-05', '2024-08-19', '2014-11-17'):
+        if d_ not in rb:
+            errs.append(f'E-MKT-05 regime_breaks missing {d_}')
+    for e in ('E-MKT-04', 'E-SEC-04'):
+        x = [y for y in v if y['evidence_id'] == e][0]
+        if x['build_class'] != 'NEW_EXTERNAL_CHANNEL' or 'reference' not in str(x.get('note', '')):
+            errs.append(f'{e} must be NEW_EXTERNAL_CHANNEL with market-cap reference note')
+    import re as _re
+    if 'H0' in ''.join(f5.get('headline_findings', {}).values()) and '支持' in ''.join(f5.get('headline_findings', {}).values()):
+        errs.append('CSR-5 must not judge hypotheses')
+
 if errs:
     print('FAIL'); [print(' -', e) for e in errs]; sys.exit(1)
 print(f'PASS v2: 7 actors(6 fields) / 9 states+17 registered transitions+two-tier'
