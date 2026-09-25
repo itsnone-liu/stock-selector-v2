@@ -181,4 +181,4 @@ print(f'PASS v2.3: 7 actors(6 fields) / 9 states+17 registered transitions+two-t
       f' / {len(cands)} evidence({LAYERS}) unique ids, 20-col coverage,'
       f' audit-order clean, E-STK-10=C'
       + ('' if not f5p.exists() else
-         f' / CSR-5: 25 ids reconciled, build_class 9/15/1, regime_breaks 3d, trust+rating enums'))
+         f' / CSR-5: 25 ids reconciled, build_class 9/15/1, series_start+2 breaks, official==12, trust+rating enums'))
