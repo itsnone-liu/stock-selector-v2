@@ -1,0 +1,50 @@
+{
+ "stage": "csr_8_phase_a_sample_selection",
+ "protocol": "CSR-7 FROZEN @ 8f4b1f2",
+ "seed": 20260925,
+ "month_granularity_trading_days": 21,
+ "data_window": {
+  "first": "2021-01-04",
+  "last": "2026-09-18",
+  "n_days": 1386,
+  "n_stocks": 5240,
+  "caveat": "研究窗 2021 起（本地资产边界）；G1 窗口 18-60 月可行；G3/G4 右删失排除如实登记；G2 事件表覆盖 2024-01..2026-09"
+ },
+ "g1_threshold_995": 26.171336174011216,
+ "rules_implemented": [
+  "G1 monthly-start rolling window best-gain per stock; pool 99.5% quantile threshold",
+  "G2 T3 frozen events; <breakout close & no new high vs prior 20d; severity=max dd; per-stock severity max tie earliest",
+  "G3 ret252 cross-sec pct>=90; anchor=fwd peak; dd>=60%; per-stock dd max",
+  "G4 vol60 ann. pct<=20 & turn60 pct<=30 run>=504d; launch=first ret20 pct>=85 within 252d; episode needs launch+252",
+  "G5 industry equal-weight (hfq-derived, snapshot caveat); r120 >= own-history 95pct (sampling rule, not realtime); segments merged; member 40-60 pct in segment; ind strength tie earliest"
+ ],
+ "per_group_counts": {
+  "G1_complete_bull": {
+   "candidates": 26,
+   "chosen": 20,
+   "redrawn": true
+  },
+  "G2_breakout_fail": {
+   "candidates": 804,
+   "chosen": 20,
+   "redrawn": true
+  },
+  "G3_high_collapse": {
+   "candidates": 472,
+   "chosen": 20,
+   "redrawn": true
+  },
+  "G4_quiet_then_go": {
+   "candidates": 50,
+   "chosen": 20,
+   "redrawn": false
+  },
+  "G5_sector_follower": {
+   "candidates": 993,
+   "chosen": 20,
+   "redrawn": true
+  }
+ },
+ "multi_group_count": 1,
+ "code_sha16": "e463e2ac76ac4891"
+}
