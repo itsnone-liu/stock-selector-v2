@@ -208,6 +208,50 @@ if f6p.exists():
         errs.append('CSR-6 contract items missing')
     from collections import Counter as _C
     arc = _C(x['availability_rating'] for x in v6)
+
+# --- CSR-7 case protocol (optional stage) ---
+f7p = R/'07_case_protocol/CSR_7_CASE_PROTOCOL.yaml'
+if f7p.exists():
+    f7 = yaml.safe_load(f7p.read_text())
+    dvd = f7.get('dual_view_discipline', {})
+    for k in ('real_time_view', 'ex_post_view', 'legal_direction',
+              'annotation_order', 'physical_separation'):
+        if not dvd.get(k): errs.append(f'CSR-7 dual_view_discipline missing {k}')
+    if 'rt_' not in str(dvd.get('physical_separation', '')) or 'xp_' not in str(dvd.get('physical_separation', '')):
+        errs.append('CSR-7 physical_separation must declare rt_/xp_ prefixes')
+    if 'LAGGED_VERIFICATION' not in str(dvd.get('real_time_view', {}).get('forbidden', '')):
+        errs.append('CSR-7 rt view must forbid LAGGED_VERIFICATION evidence')
+    if '倒灌' not in str(dvd.get('ex_post_view', {}).get('forbidden', '')):
+        errs.append('CSR-7 xp view must declare no-reverse-contamination')
+    if '先完成案例 real_time_view 再打开 ex_post_view' not in str(dvd.get('annotation_order', '')):
+        errs.append('CSR-7 annotation order (rt before xp) must be enforced')
+    groups = f7.get('case_selection', {}).get('groups', [])
+    if len(groups) != 5 or not all(g.get('n') == 20 for g in groups):
+        errs.append('CSR-7 must have 5 groups x 20 cases')
+    gnames = [g['group'] for g in groups]
+    if len(set(gnames)) != 5: errs.append('CSR-7 duplicate group names')
+    if not all(g.get('rule') for g in groups):
+        errs.append('CSR-7 every group needs a preregistered formula rule')
+    tb = str(f7.get('case_selection', {}).get('tie_break', ''))
+    if '20260925' not in tb:
+        errs.append('CSR-7 tie_break seed must be preregistered')
+    scale = str(f7.get('case_sheet_schema', {}).get('hypothesis_block', {}))
+    for need in ('SUPPORTED_STRONG', 'SUPPORTED_PARTIAL', 'MIXED', 'NOT_OBSERVED', 'CONTRADICTED'):
+        if need not in scale: errs.append(f'CSR-7 h-support scale missing {need}')
+    if 'rt_support' not in scale or 'xp_support' not in scale:
+        errs.append('CSR-7 hypothesis scoring must be rt/xp dual-pass')
+    la = str(f7.get('case_sheet_schema', {}).get('lifecycle_annotation', {}))
+    if 'candidate_state' not in la or 'unmodeled' not in la:
+        errs.append('CSR-7 lifecycle annotation must keep two-tier + D3 unmodeled mark')
+    gates7 = set(f7.get('gates', {}))
+    for g in ('G-CS-1_dual_view_separation', 'G-CS-2_selection_replayable',
+              'G-CS-3_no_reverse_contamination', 'G-CS-4_group_balance',
+              'G-CS-5_annotation_consistency'):
+        if g not in gates7: errs.append(f'CSR-7 gate missing: {g}')
+    ap = f7.get('analysis_plan', {})
+    forb = str(ap.get('forbidden', ''))
+    for kw in ('ML', 'return_optimization', 'threshold_search', 'policy_backtest'):
+        if kw not in forb: errs.append(f'CSR-7 forbidden list missing {kw}')
     rtc = _C(x['realtime'] for x in v6)
     if arc != _C({'A_DIRECT_PIT': 10, 'B_DIRECT_DELAYED': 3,
                   'C_RELIABLE_PROXY': 11, 'D_WEAK_PROXY': 1}):
@@ -242,11 +286,13 @@ if f6p.exists():
 
 if errs:
     print('FAIL'); [print(' -', e) for e in errs]; sys.exit(1)
-print(f'PASS v2.4: 7 actors(6 fields) / 9 states+17 registered transitions+two-tier'
+print(f'PASS v2.5: 7 actors(6 fields) / 9 states+17 registered transitions+two-tier'
       f'+D3 ONTOLOGY_ONLY / 6 hypotheses(8 fields,gates 3-state no-checkmark)'
       f' / {len(cands)} evidence({LAYERS}) unique ids, 20-col coverage,'
       f' audit-order clean, E-STK-10=C'
       + ('' if not f5p.exists() else
          f' / CSR-5: 25 ids reconciled, build_class 9/15/1, series_start+2 breaks, official==12, trust+rating enums'
          + ('' if not f6p.exists() else
-            f' / CSR-6: 25 ids, ratings ' + str(dict(arc)) + ', realtime ' + str(dict(rtc)))))
+            f' / CSR-6: 25 ids, ratings ' + str(dict(arc)) + ', realtime ' + str(dict(rtc))
+            + ('' if not f7p.exists() else
+               ' / CSR-7: dual-view discipline, 5x20 cases, gates G-CS-1..5'))))

@@ -1,0 +1,78 @@
+# CSR-7 CASE STUDY PROTOCOL (v1.0)
+# 最高约束（用户 CSR-6 冻结时定稿）：案例研究可以检验"哪些实时 proxy
+# 与后来 ownership confirmation 一致"，但不能因为事后确认成功，就把
+# 当时不可见的信息倒灌回历史时点——每案例必须同时保留 real-time view
+# 与 ex-post verification view 两套视角。
+meta:
+  stage: csr_7
+  frozen_inputs:
+    - 'CSR-0..4 FROZEN @ 956d679'
+    - 'CSR-5 FROZEN @ 4a2da12（build_class/北向三段/smoke 附录）'
+    - 'CSR-6 FROZEN @ b848ed0（三日期终裁/realtime 四档/mixed-event components）'
+  audit_type: protocol_only   # 本段只立协议：不选案例、不标注、不落数据
+  first_round_goal: 源方案 §12——检验资金理论能否解释完整生命周期，不是训练模型
+
+dual_view_discipline:
+  principle: '实时确认一笔资金行为 ≠ 实时确认主导资金状态（CSR-6 headline 2）'
+  real_time_view:
+    evidence_pool: 'CSR-6 realtime ∈ {REALTIME_T1, EVENT_ADVANCE} 的 evidence（available_date <= T）'
+    output: 日级 candidate_state 判定（"与 Hxx/Dx 假说一致"表述，CSR-2 两层制下最高只到此层）
+    forbidden: 引用任何 LAGGED_VERIFICATION/事后信息；引用 available_date > T 的任何字段
+  ex_post_view:
+    evidence_pool: 全量证据（ownership 披露到达后：户数/十大股东/基金持仓/减持实施/龙虎榜历史）
+    output: actor-confirmed 事件与 lifecycle 重建（D 状态转移的最终判定层）
+    forbidden: '不得倒灌（reverse contamination）：ex_post 结论不得用于改写任何 T 时点的 real_time_view 记录'
+  legal_direction: 'ex_post → real_time 的唯一合法用法=验证：统计 real-time 判定与事后确认的一致/不一致率（这是 CSR-7 的核心检验目标）'
+  annotation_order: 标注者必须先完成案例 real_time_view 再打开 ex_post_view——操作顺序本身是防 hindsight 纪律，记录标注时间戳
+  physical_separation: case sheet 中两视角字段物理分列（rt_*/xp_* 前缀），共享字段仅 stock_code/案例窗口
+
+case_selection:
+  sampling_frame: '冻结股票池（研究 universe 5,241 股）× 冻结研究窗（与 T3-T8 资产一致的全历史）'
+  rule_style: 公式化分位数规则（预注册，避免绝对阈值与"挑好解释的案例"）；outcome-conditioned sampling 本身合法（案例研究即检验理论能否解释已知结局），但规则一旦冻结不得再调
+  groups:
+    - {group: G1_complete_bull, n: 20, rule: '区间最大涨幅在全池分位 ≥99.5% 且区间长度 ≥18 个月且回撤修复 ≤3 次'}
+    - {group: G2_breakout_fail, n: 20, rule: '突破日（T3 冻结定义的 breakout 事件）后 120 日内回撤至突破位下方且未创新高'}
+    - {group: G3_high_collapse, n: 20, rule: '区间高点后 180 日内回撤 ≥60%（高点前 12 个月涨幅分位 ≥90%）'}
+    - {group: G4_quiet_then_go, n: 20, rule: '启动前 ≥24 个月年化波动分位 ≤20% 且换手分位 ≤30%，随后 12 个月涨幅分位 ≥85%'}
+    - {group: G5_sector_follower, n: 20, rule: '板块行情（行业指数区间涨幅分位 ≥95%）中，个股涨幅位于行业 40-60 分位的普通跟随股'}
+  tie_break: '候选 > n 时随机抽样（seed=20260925 预注册，与 t6 契约种子同源）；每组替补序列同种子生成，记录落选者'
+  stratification_note: '跨年份/行业/市值覆盖（G-H-6）在五组内自然分散——抽样后登记分布，若单一年份占比 >50% 则分层重抽一次（规则预注册）'
+
+case_sheet_schema:
+  identity: [case_id, group, stock_code, window_start, window_end, selector_rule_version]
+  market_block:  {fields: [rt_market_state_daily, xp_market_narrative], evidence_refs: [E-MKT-01..06]}
+  sector_block:  {fields: [rt_sector_state_daily, xp_sector_narrative], evidence_refs: [E-SEC-01..04]}
+  stock_block:   {fields: [rt_stock_observables_daily], evidence_refs: [E-STK-10, E-MRG-01..04]}
+  direct_block:  {fields: [rt_direct_events, xp_ownership_trajectory], evidence_refs: [E-STK-01..09]}
+  hypothesis_block:
+    fields: [h_support_H01..H06]
+    scale: 5 档预注册——
+      SUPPORTED_STRONG（机制+≥2 独立证据层一致且无反证）
+      SUPPORTED_PARTIAL（机制+≥1 证据层一致，反证弱）
+      MIXED（证据层冲突）
+      NOT_OBSERVED（预期观测未出现）
+      CONTRADICTED（反证占优）
+    rule: 评分必须先 rt 后 xp 两遍独立给出（rt_support / xp_support），最终 h_support=xp 层但 rt 层单独保留统计
+  counter_evidence_block: [registered_alternatives, searched_counterexamples]
+  lifecycle_annotation:
+    rt_layer: 日级 candidate_state 序列（D0-D8 候选；D3 允许标注但必须带 unmodeled 标记）
+    xp_layer: actor-confirmed 事件与转移（CSR-2 registered transitions 内）
+  gates_on_sheet: [G-H-1..6 的案例级勾稽]
+
+analysis_plan:
+  primary_question: 'real-time 证据组合与 ex-post ownership confirmation 的一致率（按 H×组分格）'
+  secondary: ['五组 lifecycle 路径分布差异（转移序列的描述性对比）', '每 H 的 SUPPORTED/CONTRADICTED 计数（CSR-9 输入）', 'G5 跟随股作为"无 A5 主导"参照组的 D0 占比']
+  allowed_methods: [descriptive_statistics, cross_tab, sequence_description, case_narrative]
+  forbidden: [ML, feature_selection, return_optimization, threshold_search, policy_backtest, '把案例评分当策略参数']
+
+gates:
+  G-CS-1_dual_view_separation: 'case sheet 两视角物理分列；rt_* 字段不得出现在 xp 计算依赖里（结构检查）'
+  G-CS-2_selection_replayable: '抽样规则+种子冻结，重放得同一样本集'
+  G-CS-3_no_reverse_contamination: 'hindsight 禁令：任何 rt_ 判定引用 xp_ 信息即 FAIL；标注顺序时间戳可审计'
+  G-CS-4_group_balance: '五组各 20、替补与落选记录完整、分层重抽规则被执行情况登记'
+  G-CS-5_annotation_consistency: '抽 ≥10% 案例双标注（第二标注者盲标 rt 层），分歧率报告不强制一致'
+  G-H_gates_apply: 'CSR-3 的 G-H-1..6 在每案例勾稽；G-H-4（反例主动搜索）与 G-H-6（跨年份/行业/市值）在案例层落地'
+
+stopping_and_handoff:
+  after_csr_7: 'CSR-8 Pilot Cases 按 20×5 执行（100 案例）；CSR-9 Hypothesis Review 汇总五档计数——UNOBSERVABLE 为合法结论'
+  no_policy: 'CSR-9 之前禁止产生交易策略（源方案 §13/§17）'
