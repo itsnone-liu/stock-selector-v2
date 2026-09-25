@@ -109,6 +109,14 @@ for e in cands:
 stk10 = [e for e in cands if e['evidence_id'] == 'E-STK-10'][0]
 if stk10['evidence_level'] != 'C':
     errs.append('E-STK-10 not C (constructed proxy must stay C)')
+stk05 = [e for e in cands if e['evidence_id'] == 'E-STK-05'][0]
+if stk05['actor_id'] != 'MULTI':
+    errs.append('E-STK-05 actor_id must be MULTI (seat identity is evidence, not actor)')
+all_text = (R/'01_actor_ontology/CAPITAL_ACTOR_ONTOLOGY.yaml').read_text() \
+    + (R/'03_hypothesis_registry/CSR_3_HYPOTHESES.yaml').read_text() \
+    + (R/'04_evidence_map/CSR_4_EVIDENCE_MAP.yaml').read_text()
+if '散户端口径' in all_text:
+    errs.append('residual 融资余额散户端口径 wording (margin attribution regression)')
 
 if errs:
     print('FAIL'); [print(' -', e) for e in errs]; sys.exit(1)

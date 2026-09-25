@@ -105,7 +105,7 @@ candidates:
      data_source: 交易所大宗披露, expected_direction: 高位+折价扩大+量增=急于出清,
      counter_evidence: 平价/溢价大宗+机构买方=承接, alternative_explanations: 大股东过桥减持的技术安排,
      status: CANDIDATE}
-  - {evidence_id: E-STK-05, evidence_name: 龙虎榜席位, actor_id: A6,
+  - {evidence_id: E-STK-05, evidence_name: 龙虎榜席位, actor_id: MULTI,
      hypothesis_id: H04, capital_layer: STOCK, economic_mechanism: '席位是交易所对异常成交参与方的直接披露，席位结构区分参与主体的类型', frequency: '日（T+1 见榜）', evidence_level: A,
      data_source: 交易所龙虎榜,
      expected_direction: '特定席位结构（历史高频出现于短线脉冲的营业部/机构专用）与 A6-like tactical participation 或 A3-like 配置行为一致——但席位身份只是 evidence，不等于行为类型',
