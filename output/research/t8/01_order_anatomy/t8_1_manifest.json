@@ -1,0 +1,38 @@
+{
+  "stage": "t8_1",
+  "baseline": "80e934c",
+  "inputs": [
+    {
+      "name": "t8_0_cycle_attempt",
+      "path": "output/research/t8/00_sequence_factlayer/t8_0_cycle_attempt.parquet",
+      "sha256": "e58628e53d180f36b1a3b42e2ab759f4c2e495a6aebae4721f92e055b8f2bbf3",
+      "bytes": 0
+    },
+    {
+      "name": "t7_0_outcomes",
+      "path": "output/research/t7/00_path_factlayer/t7_0_outcomes_outcomes.parquet",
+      "sha256": "4ec468822c7c3c80dc92e41fb59cc87ffe50a62a8d2775297e3de85fc2473582",
+      "bytes": 0
+    },
+    {
+      "name": "t6_0_daily_master",
+      "path": "output/research/t6/00_factlayer/t6_0_daily_master.parquet",
+      "sha256": "905c55c322bbd5731c8fde2938c26f7d085f76fc2e0c259c2966cf42b7d6b2a2",
+      "bytes": 0
+    }
+  ],
+  "upstream_hashes": null,
+  "products": [
+    {
+      "file": "t8_1_order_anatomy.parquet",
+      "sha256": "de58d2a5b6785b41de0d55957ad28e583066e51ccd775f7cf698d6f7fb75c5d2",
+      "bytes": 872828,
+      "rows": 15646
+    },
+    {
+      "file": "t8_1_report_data.json",
+      "sha256": "cd0bfbe6f219555931c726bbbf6d3e75e9e7afa057e3f370eaf33283bc1d91d4",
+      "bytes": 9171
+    }
+  ]
+}

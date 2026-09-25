@@ -1,0 +1,28 @@
+{
+  "G1_lineage": {
+    "verdict": "PASS",
+    "reason": "",
+    "inputs_hash_verified": 3
+  },
+  "G41_segmentation_fixed_grouping": {
+    "verdict": "PASS",
+    "reason": "",
+    "rows": 15646
+  },
+  "G42_dual_clock_replay": {
+    "verdict": "PASS",
+    "reason": "",
+    "sampled": 150,
+    "mismatches": 0
+  },
+  "G43_descriptive_only": {
+    "verdict": "PASS",
+    "reason": ""
+  },
+  "G44_estimand_naming": {
+    "verdict": "PASS",
+    "reason": "",
+    "estimand": "A_observed_order_profile (risk-set conditional on reaching ADD_k; NOT causal marginal value)"
+  },
+  "overall": "PASS"
+}
