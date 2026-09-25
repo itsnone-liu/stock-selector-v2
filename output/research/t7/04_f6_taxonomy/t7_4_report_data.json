@@ -1,0 +1,95 @@
+{
+  "stage": "t7_4",
+  "identity": "F6 taxonomy decomposition, all segments, first-hit ORDER D4->D1->D2->D3->D5->F6-prime (frozen t7_4_f6_taxonomy.json); no policy derivation; F6-prime large is NOT failure",
+  "order": [
+    "D4",
+    "D1",
+    "D2",
+    "D3",
+    "D5",
+    "F6'"
+  ],
+  "n_f6_total": 10277,
+  "class_counts": {
+    "F6'": 8135,
+    "D1": 1289,
+    "D4": 497,
+    "D5": 356
+  },
+  "by_segment": {
+    "confirmation": {
+      "D1": 387,
+      "D4": 190,
+      "D5": 110,
+      "F6'": 2596
+    },
+    "development": {
+      "D1": 133,
+      "D4": 92,
+      "D5": 56,
+      "F6'": 933
+    },
+    "validation": {
+      "D1": 769,
+      "D4": 215,
+      "D5": 190,
+      "F6'": 4606
+    }
+  },
+  "by_endpoint_status": {
+    "censored": {
+      "D1": 39,
+      "D4": 45,
+      "D5": 0,
+      "F6'": 1677
+    },
+    "terminal": {
+      "D1": 1250,
+      "D4": 452,
+      "D5": 356,
+      "F6'": 6458
+    }
+  },
+  "by_episode_class": {
+    "CONTROLLED_LOSS": {
+      "D1": 1176,
+      "D4": 36,
+      "D5": 354,
+      "F6'": 33
+    },
+    "GOOD": {
+      "D1": 0,
+      "D4": 399,
+      "D5": 0,
+      "F6'": 6941
+    },
+    "PAINFUL_WIN": {
+      "D1": 0,
+      "D4": 57,
+      "D5": 0,
+      "F6'": 1161
+    },
+    "SEVERE_FAILURE": {
+      "D1": 113,
+      "D4": 5,
+      "D5": 2,
+      "F6'": 0
+    }
+  },
+  "taxonomy_sha256": "5eabaf24aa9592d7151d052201266b7866e3769e5c4f634fa71cf959d446445f",
+  "taxonomy_freeze_commit": "3067d22",
+  "inputs": [
+    {
+      "name": "t6_3_failure_anatomy",
+      "sha256": "36c79258e4797e826f705f3649fb3372009da94c32b10b208f024b6cd0c1f40c"
+    },
+    {
+      "name": "t6_3_cycle_trigger",
+      "sha256": "09be944e2479278afcbec77c6a6a7dd7d7d7570e39bdb169f0397cffdb9065f8"
+    },
+    {
+      "name": "t6_0_daily_master",
+      "sha256": "905c55c322bbd5731c8fde2938c26f7d085f76fc2e0c259c2966cf42b7d6b2a2"
+    }
+  ]
+}

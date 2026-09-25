@@ -1,0 +1,44 @@
+{
+  "G1_lineage": {
+    "verdict": "PASS",
+    "reason": "",
+    "inputs_hash_verified": 4
+  },
+  "G30_taxonomy_immutable": {
+    "verdict": "PASS",
+    "reason": "",
+    "classes_seen": [
+      "D1",
+      "D4",
+      "D5",
+      "F6'"
+    ]
+  },
+  "G31_first_hit_replay": {
+    "verdict": "PASS",
+    "reason": "",
+    "sampled": 120,
+    "mismatches": 0
+  },
+  "G32_coverage_conservation": {
+    "verdict": "PASS",
+    "reason": "",
+    "f6_total": 10277
+  },
+  "G33_no_policy_derivation": {
+    "verdict": "PASS",
+    "reason": ""
+  },
+  "G34_component_provenance_replay": {
+    "verdict": "PASS",
+    "reason": "",
+    "spot_checked": 60
+  },
+  "G_F6_LOCK_timing": {
+    "verdict": "PASS",
+    "reason": "",
+    "taxonomy_in_contract": true,
+    "product_commits_before_freeze": 0
+  },
+  "overall": "PASS"
+}
