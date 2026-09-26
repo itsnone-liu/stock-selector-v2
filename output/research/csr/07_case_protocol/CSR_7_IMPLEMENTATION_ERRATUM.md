@@ -85,3 +85,37 @@ replay_manifest.json 必须包含：
 G5 当前基于现时行业 snapshot（caveat 已登记）→ 本轮结果标记 provisional；
 Phase B 的 PIT 行业时点表落地后必须做 G5 membership revalidation，
 若样本变化按同一冻结规则整体重放，不得人工保留原样本。
+
+
+---
+
+# ERRATUM v2（Phase A 第二轮审计裁决，406bccb 复审后；本文件先于重跑单独 commit）
+
+## G1-P1 分位阈值参考总体（裁决：严格方案）
+
+CSR-7 冻结规则的 AND 条件顺序为：
+  1) 区间最大涨幅 ≥ **全池**（recovery 过滤前的完整 episode 总体）99.5% 分位；
+  2) 且回撤修复 ≤3 次。
+即分位阈值在过滤前总体上一次性计算（当前研究窗 = 26.171336×），随后应用 recovery
+过滤。406bccb 实现的"先 recovery 过滤→qualified pool 内重算 99.5%"废止——它把参考
+总体从全池换成 qualified pool，实质改变了样本定义，属于执行阶段看过数据后的口径漂移。
+后果（如实接受，不凑数）：G1 合格候选 = 3（sh.601869 / sh.688498 / sz.300489），
+登记 **INSUFFICIENT_CANDIDATES**；首轮 G1 实际样本 3 例（不足 20 不补、不降阈值、
+不改分位口径），首轮总样本 = 83。这是预注册机制应当发现的真实结果：当前研究窗内
+极端涨幅股大多携带多次深回撤修复，"99.5 分位涨幅 ∧ 修复≤3"近乎空集。
+敏感性登记同步按**固定全池阈值 26.171336×** 重算（不随 recovery 阈值重算分位）：
+  recovery 15% → 1 例；20% → 3 例；25% → 7 例。
+
+## G2-P1 reference_high 边界（裁决：维持首次登记口径）
+
+"未创新高"的 reference_high = **突破前 20 个交易日最高收盘（不含 T0 当日）**。
+406bccb 代码 `c[max(0, i-20):i+1]` 误含 T0 收盘（即实际执行 max(pre20, T0_close)），
+与 manifest 宣称口径不一致——修正代码为 `c[max(0, i-20):i]`，G2 全量重跑。
+单一事实源=本 erratum + 代码 + manifest 三者一致（pre20_high, exclusive of T0）。
+
+## FLOW-P1 先注册后执行的可审计拆分
+
+本 erratum v2 单独 commit（commit A，不含任何重跑产物）；随后代码修改与重跑
+产物作为 commit B。Git 历史即可证明规则冻结先于结果生成。
+（注：G1 候选数从 21 变 3 会改变单一 rng 流的消耗，G2/G3/G4/G5 的 chosen 将随流
+变化——这是流一致性的正常结果，manifest 记录新流即为可重放。）
