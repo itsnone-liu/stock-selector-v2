@@ -55,10 +55,11 @@ fields:
     nullable: YES（NULL = source does not expose a distinct record date，合法语义）
     source: 数据源自带行内日期字段的原样拷贝。
     derivation: payload 原生 copy，不做任何换算。
-    forbidden_default: 禁止用 observation_date 顶替（源记录日≠观测日是两种语义）；
-                       如需标记缺失原因放 payload 字段
-                       source_record_date_status: NOT_PROVIDED——
-                       availability_basis 职责是可得性证明，不承担源日期缺失解释。
+    forbidden_default: >
+      禁止用 observation_date 顶替（源记录日≠观测日是两种语义）；
+      如需标记缺失原因放 payload 字段 source_record_date_status
+      （值 NOT_PROVIDED）——availability_basis 职责是可得性证明，
+      不承担源日期缺失解释。
 
   publication_date:
     nullable: YES（NULL=UNKNOWN，合法且预期常见）
