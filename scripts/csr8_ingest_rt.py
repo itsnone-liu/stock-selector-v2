@@ -331,7 +331,7 @@ def normalize(start, end):
             meta = json.loads((fp.parent / (fp.stem + '.meta.json')).read_text())
             rec = json.loads(fp.read_bytes())
             src = f"AGGREGATOR|research-node|{meta['collector_version']}|{meta['endpoint']}"
-            for row in rec.get('data', []):
+            for raw_row_index, row in enumerate(rec.get('data', [])):
                 raw_total += 1
                 code = str(row.get(CODE_COLS[ep], '')).zfill(6).split('.')[0]
                 if ep == 'margin_sse':
@@ -361,6 +361,8 @@ def normalize(start, end):
                                            f'no next trading day: {e}'))
                     continue
                 in_case = case_win[code][0] <= obs <= case_win[code][1]
+                record_id = hashlib.sha256(
+                    f"{meta['sha256']}|{raw_row_index}".encode()).hexdigest()
                 out_rows.append({
                     'observation_date': obs, 'source': src,
                     'source_record_date': obs if ep != 'margin_szse' else None,
@@ -369,7 +371,12 @@ def normalize(start, end):
                     'available_date': avail,
                     'availability_basis': 'CONSERVATIVE_T1',
                     'endpoint': ep, 'stock_code': code,
-                    'in_case_window': in_case})
+                    'in_case_window': in_case,
+                    'record_id': record_id,
+                    'raw_ref': f'{ep}/{fp.name}',
+                    'raw_sha256': meta['sha256'],
+                    'raw_row_index': raw_row_index,
+                    '_payload': row})
                 norm += 1
                 case_n += in_case
                 outside_case += not in_case
@@ -396,7 +403,8 @@ def _write_outputs(start, end, rows, rejects, ledger):
     import csv
     fields = ['observation_date', 'source', 'source_record_date', 'publication_date',
               'retrieved_at', 'available_date', 'availability_basis', 'endpoint',
-              'stock_code', 'in_case_window']
+              'stock_code', 'in_case_window',
+              'record_id', 'raw_ref', 'raw_sha256', 'raw_row_index']
     for layer, sel in (('universe84', lambda r: True),
                        ('case84', lambda r: r['in_case_window'])):
         with open(OUT / f'normalized_{layer}_{start}_{end}.csv', 'w', newline='') as f:
@@ -405,13 +413,15 @@ def _write_outputs(start, end, rows, rejects, ledger):
             for r in rows:
                 if sel(r):
                     w.writerow({k: r[k] for k in fields})
-    with open(OUT / f'payloads_{start}_{end}.jsonl', 'w') as f:
+    # payload sidecar: case84 only (Phase C consumes record_id -> frozen payload)
+    with open(OUT / f'payload_case84_{start}_{end}.jsonl', 'w') as f:
         for r in rows:
-            f.write(json.dumps({'stock_code': r['stock_code'],
-                                'observation_date': r['observation_date'],
-                                'endpoint': r['endpoint'],
-                                'in_case_window': r['in_case_window']},
-                               ensure_ascii=False) + '\n')
+            if r['in_case_window']:
+                f.write(json.dumps({'record_id': r['record_id'],
+                                    'endpoint': r['endpoint'],
+                                    'stock_code': r['stock_code'],
+                                    'observation_date': r['observation_date'],
+                                    'payload': r['_payload']}, ensure_ascii=False) + '\n')
     with open(OUT / f'rejects_{start}_{end}.jsonl', 'w') as f:
         for r in rejects:
             f.write(json.dumps(r, ensure_ascii=False) + '\n')

@@ -1,0 +1,39 @@
+# RT record grain contract (machine-consumable; formalizes grain erratum 6cffa81)
+version: 1.0
+frozen_after: RT-RECORD-GRAIN-PAYLOAD-FIX
+applies_to: output/research/csr/08_pilot_cases/phase_b/ingest_rt/normalized_case84_*.csv
+
+record_identity:
+  record_id: SHA256(raw_sha256 | raw_row_index)   # stable, re-verifiable per row
+  raw_ref: "<endpoint>/<file>.json"               # location of the raw response
+  raw_row_index: 0-based index of the row inside the raw response 'data' array
+  verification: raw_sha256 recomputable from raw file; record_id recomputable
+    from meta sha256 + row index; payload sidecar keyed by record_id.
+
+grains:
+  margin_sse:
+    grain: stock_day
+    stock_day_unique: true
+    unique_key: [endpoint, stock_code, observation_date]
+  margin_szse:
+    grain: stock_day
+    stock_day_unique: true
+    unique_key: [endpoint, stock_code, observation_date]
+  lhb:
+    grain: leaderboard_entry
+    stock_day_unique: false
+    record_identity: raw_sha256 + raw_row_index
+    note: same stock-day may appear on multiple boards (e.g. 300209 2021-10-11
+      daily-gain board AND 3-day-deviation board); payload carries 上榜原因.
+  dzjy:
+    grain: block_trade_transaction
+    stock_day_unique: false
+    record_identity: raw_sha256 + raw_row_index
+    note: same stock-day may have multiple block trades (different buyer/seller
+      branches, prices); payload carries 成交价/成交额/营业部.
+
+phase_c_consumption:
+  rule: >
+    blind packet consumes the case84 record index plus frozen RT payloads
+    resolved via record_id from payload_case84 sidecar — never a bare
+    stock-day join that would collapse legitimate multi-row evidence.
