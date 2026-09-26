@@ -111,11 +111,21 @@ class SealingLog:
 
     # ---- append: verified-predecessor + structural gate + exact bytes ----
     def append(self, etype, payload, content_bytes):
+        """Verify persisted predecessor and validate bytes before any write."""
+        log_exists, head_exists = self.path.exists(), self.head_path.exists()
+        if log_exists != head_exists:
+            fail('persisted state incomplete: log/head must both exist or both '
+                 'be absent before append')
         self.load()
-        if self.events:
-            # FIX1-5: any state transition builds on a VERIFIED prior state
+        if log_exists and head_exists:
+            # FIX1-5 + FIX2-F1: even an empty/truncated existing log is not
+            # genesis; its trusted head must be replay-verified first.
             self.verify()
         self._gate(etype, payload)
+        hash_key = 'packet_sha256' if etype == REVEAL else 'receipt_sha256'
+        declared = payload.get(hash_key)
+        if not declared or sha(content_bytes) != declared:
+            fail(f'pre-write exact-byte binding failed for {etype}')
         seq = len(self.events)
         prev = self.head()
         bref = f'bytes/{etype.lower()}/{seq}.bin'
@@ -411,12 +421,75 @@ def cmd_dryrun():
         return 'verify'
 
     def out_of_order(td, log, head):
+        # Keep packet_id, packet bytes and packet hash mutually valid so only
+        # the per-case T-order gate can reject this mutation.
         evs = read_events(log)
-        evs[4]['payload']['T'] = '2098-01-01'
+        evs[4]['payload']['T'] = '2099-01-01'  # earlier than A's sealed T
+        evs[4]['payload']['packet_id'] = synth_packet_id(
+            'C2_SYNTH_A', '2099-01-01')
+        pkt = synth_packet_bytes('C2_SYNTH_A', '2099-01-01')
+        evs[4]['payload']['packet_sha256'] = sha(pkt)
+        (td / evs[4]['payload']['bytes_ref']).write_bytes(pkt)
         cascade_rehash(evs, 4)
         write_events(log, evs)
         sync_head(head, evs)
         return 'verify'
+
+    def append_must_fail(td, log, head, etype, payload, content, label,
+                         truncate=False):
+        """F2 negative: failed append must have zero persistent side effects."""
+        log_before = log.read_bytes()
+        head_before = head.read_bytes()
+        bytes_before = sorted((p.relative_to(td), p.read_bytes())
+                              for p in (td / 'bytes').rglob('*') if p.is_file())
+        if truncate:
+            log.write_bytes(b'')  # old trusted head remains
+        try:
+            SealingLog(log, head).append(etype, payload, content)
+        except SystemExit:
+            pass
+        else:
+            fail(f'injection {label} was NOT rejected')
+        if log.read_bytes() != (b'' if truncate else log_before):
+            fail(f'injection {label} mutated log despite rejection')
+        if head.read_bytes() != head_before:
+            fail(f'injection {label} mutated head despite rejection')
+        bytes_after = sorted((p.relative_to(td), p.read_bytes())
+                             for p in (td / 'bytes').rglob('*') if p.is_file())
+        if bytes_after != bytes_before:
+            fail(f'injection {label} mutated bytes archive despite rejection')
+        return 'rejected'
+
+    def append_old_head_empty(td, log, head):
+        return append_must_fail(
+            td, log, head, REVEAL,
+            {'opaque_case_id': synth_ocid('C2_SYNTH_A'), 'T': '2099-04-01',
+             'packet_id': synth_packet_id('C2_SYNTH_A', '2099-04-01'),
+             'packet_sha256': sha(b'valid')}, b'valid',
+            'old head + empty log', truncate=True)
+
+    def append_wrong_packet_bytes(td, log, head):
+        return append_must_fail(
+            td, log, head, REVEAL,
+            {'opaque_case_id': synth_ocid('C2_SYNTH_A'), 'T': '2099-04-01',
+             'packet_id': synth_packet_id('C2_SYNTH_A', '2099-04-01'),
+             'packet_sha256': sha(b'declared-A')}, b'actual-B',
+            'wrong packet content/hash')
+
+    def append_wrong_receipt_bytes(td, log, head):
+        # Open a valid next REVEAL first; then the SEAL reaches the pre-write
+        # byte-binding check instead of failing at the structural gate.
+        pkt = synth_packet_bytes('C2_SYNTH_A', '2099-04-01')
+        SealingLog(log, head).append(
+            REVEAL, {'opaque_case_id': synth_ocid('C2_SYNTH_A'),
+                     'T': '2099-04-01',
+                     'packet_id': synth_packet_id('C2_SYNTH_A', '2099-04-01'),
+                     'packet_sha256': sha(pkt)}, pkt)
+        return append_must_fail(
+            td, log, head, SEAL,
+            {'opaque_case_id': synth_ocid('C2_SYNTH_A'), 'T': '2099-04-01',
+             'receipt_sha256': sha(b'declared-receipt')}, b'actual-receipt',
+            'wrong receipt content/hash')
 
     def truncation(td, log, head):
         evs = read_events(log)
@@ -487,6 +560,9 @@ def cmd_dryrun():
         ('chain truncation (head anchor)', truncation),
         ('head anchor missing (mandatory)', missing_head),
         ('fork: same parent, distinct seqs (parent continuity)', fork),
+        ('append old head + empty log (genesis bypass)', append_old_head_empty),
+        ('append wrong packet content/hash (pre-write gate)', append_wrong_packet_bytes),
+        ('append wrong receipt content/hash (pre-write gate)', append_wrong_receipt_bytes),
     ]
     results = []
     for label, mut in injections:
