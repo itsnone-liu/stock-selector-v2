@@ -137,10 +137,37 @@ c4-prod-0002/authorization/first_reveal.approval.json
 - closed-world 五字段 schema（extra/missing FAIL-CLOSED）；
 - `O_CREAT|O_EXCL` 唯一路径创建，`0600`；
 - 创建即 fsync file + fsync parent directory；
-- 语义：外部 operator/user 明确批准的是**这个 exact authorization
-  hash**。不声称密码学用户签名；它是系统内的 operator authorization
-  authority。explicit approval = 允许创建 production authorization
-  authority，而非允许 REVEAL。
+- **授权语义（C4-C-DESIGN-FIX4 措辞冻结）**：operator 对 exact
+  `proposal_sha256` 的明确批准**就是本次唯一的人工 FIRST_REVEAL_ONLY
+  authorization**。不声称密码学用户签名；它是该人工授权事实在系统内的
+  persisted machine representation。该批准允许：
+
+  ```text
+  O_EXCL 创建对应 persisted approval authority
+  exact-copy materialize 对应 permit
+  在全部 C4-C gates PASS 后执行 exactly one REVEAL_PACKET
+  ```
+
+  它本身不写 REVEAL，也不绕过任何 gate。它不授权：
+
+  ```text
+  第二 REVEAL
+  SEAL
+  annotation
+  outcome
+  G5 / XP 解冻
+  其他 session / packet
+  ```
+
+  三个概念由此完全分开：
+
+  ```text
+  proposal                    = 待批准的 exact bytes
+  human exact-hash approval   = 人工授权事实
+  approval authority + permit = 人工授权事实的 persisted machine
+                                representation
+  REVEAL event                = 对该一次性授权的不可逆消费
+  ```
 
 #### 2.2.3 Permit 必须 exact-copy 外部 proposal
 
@@ -541,13 +568,15 @@ synthetic/staging implementation 并通过审计；真实 `c4-prod-0002` 保持
 2.  synthetic audit PASS
 3.  生成 selector-only exact proposal（production session 零触碰）
 4.  向用户仅展示 proposal_sha256
-5.  用户明确批准该 exact hash
+5.  用户明确批准 exact proposal_sha256；
+    该批准即此次唯一人工 FIRST_REVEAL_ONLY authorization
 6.  O_EXCL 创建 persisted approval authority（首次进入 c4-prod-0002）
 7.  exact-copy 外部 proposal bytes → O_EXCL production permit
 8.  验证三重 hash equality：
       SHA256(proposal) == approval.approved_authorization_sha256
                         == SHA256(permit)
-9.  执行一次 C4-C transaction（§4）
+9.  执行一次 C4-C transaction（§4）——在全部 gate PASS 后消费这次
+    授权，执行 exactly one REVEAL
 10. semantic replay + final invariant（§6/§6.1）
 11. experiment started
 12. publish external anchor（§6.2，post-commit）
@@ -557,7 +586,8 @@ synthetic/staging implementation 并通过审计；真实 `c4-prod-0002` 保持
 边界分层：
 
 ```text
-proposal preparation = reversible / pre-production
-explicit approval    = permission to create production authorization authority
-REVEAL commit        = irreversible experiment start
+proposal preparation = reversible / pre-production（待批准 exact bytes）
+explicit approval    = 唯一人工 FIRST_REVEAL_ONLY authorization 事实；
+                       6–8 步 = 将该授权机器化并证明 exact-byte equality
+REVEAL commit        = 对该一次性授权的不可逆消费 = 实验开始
 ```
