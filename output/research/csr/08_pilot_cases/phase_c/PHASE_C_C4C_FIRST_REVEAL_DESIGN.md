@@ -90,26 +90,37 @@ created_at: <canonical UTC timestamp %Y-%m-%dT%H:%M:%SZ>
 approved hash 本身必须是 persisted machine authority**（C4-C-DESIGN-FIX2）。
 授权拆为三个阶段，九字段 permit schema 不变：
 
-#### 2.2.1 Proposal（不是 permit）
+#### 2.2.1 Proposal（不是 permit；位于 production session 之外）
 
-先构造 selector-only proposal，包含最终将写入 permit 的 **exact 九字段
-canonical bytes**：
+先在 **pre-authorization selector-only domain** 构造 proposal，包含最终将
+写入 permit 的 **exact 九字段 canonical bytes**（C4-C-DESIGN-FIX3：
 
 ```text
-data/csr8_phase_c/production/c4-prod-0002/authorization/
-  first_reveal.proposal.json
+data/csr8_phase_c/c4c_proposals/c4-prod-0002/first_reveal.proposal.json
 ```
+
+该目录：
+
+- `!= production session`（`c4-prod-0002` 保持完全不触碰）；
+- `!= production sealing domain`；
+- proposal 只能在 synthetic implementation 审计通过后生成：
+  frozen C4-A/B state → 构造 exact 九字段 bytes → 持久化 → fsync
+  proposal + proposal parent dir → 计算 hash → 只暴露 hash；
+
+约束：
 
 - `proposal_sha256 = SHA256(canonical(proposal))`；
 - proposal 只向用户暴露该 hash（如 "FIRST_REVEAL proposal hash =
   abc123..."），不暴露 packet identity；
-- **proposal exists ≠ authorization granted**；
+- **proposal exists ≠ authorization granted**；proposal preparation =
+  reversible / pre-production；
 - authorization_id / created_at 在 proposal 构造时即确定——之后任何
   "现场重新生成 id/时间戳再自行算 hash"的实现都违反本节。
 
-#### 2.2.2 Approval authority（operator 明确批准 exact hash）
+#### 2.2.2 Approval authority（operator 明确批准 exact hash；首次进入 production session）
 
-用户/operator 明确批准 `proposal_sha256` 后，写入独立 immutable object：
+用户/operator 明确批准 `proposal_sha256` 后，才第一次写入 production
+session，创建独立 immutable object：
 
 ```yaml
 approval_version: c4c-approval-v1
@@ -120,7 +131,7 @@ approved: true
 ```
 
 ```text
-authorization/first_reveal.approval.json
+c4-prod-0002/authorization/first_reveal.approval.json
 ```
 
 - closed-world 五字段 schema（extra/missing FAIL-CLOSED）；
@@ -128,17 +139,18 @@ authorization/first_reveal.approval.json
 - 创建即 fsync file + fsync parent directory；
 - 语义：外部 operator/user 明确批准的是**这个 exact authorization
   hash**。不声称密码学用户签名；它是系统内的 operator authorization
-  authority。
+  authority。explicit approval = 允许创建 production authorization
+  authority，而非允许 REVEAL。
 
-#### 2.2.3 Permit 必须 exact-copy proposal
+#### 2.2.3 Permit 必须 exact-copy 外部 proposal
 
 批准之后才允许创建正式 permit：
 
 ```text
 proposal_sha256 == approval.approved_authorization_sha256
         ↓（先验证）
-用 exact proposal bytes 以 create-exclusive 写入
-authorization/first_reveal.json
+用 external proposal 的 exact bytes 以 create-exclusive 写入
+c4-prod-0002/authorization/first_reveal.json
 ```
 
 - **禁止重新构造**：即使重新构造出的对象语义字段相同，字节不同即
@@ -522,11 +534,30 @@ synthetic/staging implementation 并通过审计；真实 `c4-prod-0002` 保持
 
 ---
 
-## 9. 实现顺序（设计冻结后）
+## 9. 实现顺序（设计冻结后；三段式执行顺序）
 
-1. synthetic implementation：temp domain 全链路（含全部 §7 fixtures）；
-2. 审计 synthetic 结果；
-3. 用户单独签发真实 authorization（c4c-auth-v1 immutable 文件）；
-4. 执行一次 §4 事务于 `c4-prod-0002`；
-5. §6 invariant + public boolean summary；
-6. HARD STOP。
+```text
+1.  synthetic implementation：temp domain 全链路（含全部 25 条 fixtures）
+2.  synthetic audit PASS
+3.  生成 selector-only exact proposal（production session 零触碰）
+4.  向用户仅展示 proposal_sha256
+5.  用户明确批准该 exact hash
+6.  O_EXCL 创建 persisted approval authority（首次进入 c4-prod-0002）
+7.  exact-copy 外部 proposal bytes → O_EXCL production permit
+8.  验证三重 hash equality：
+      SHA256(proposal) == approval.approved_authorization_sha256
+                        == SHA256(permit)
+9.  执行一次 C4-C transaction（§4）
+10. semantic replay + final invariant（§6/§6.1）
+11. experiment started
+12. publish external anchor（§6.2，post-commit）
+13. HARD STOP
+```
+
+边界分层：
+
+```text
+proposal preparation = reversible / pre-production
+explicit approval    = permission to create production authorization authority
+REVEAL commit        = irreversible experiment start
+```
