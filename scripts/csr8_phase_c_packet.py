@@ -137,14 +137,24 @@ def load_calendar():
 def cmd_salt():
     SECRET.mkdir(parents=True, exist_ok=True)
     ART.mkdir(parents=True, exist_ok=True)
+    sc_path = ART / 'salt_commitment.json'
+    # FIX2-A lifecycle gate: the frozen commitment can never be redefined
+    if sc_path.exists():
+        if SALT_FILE.exists():
+            verify_salt_binding()   # mismatch -> FAIL
+            print('salt already frozen; binding verified (no-op)')
+            return
+        fail('salt_commitment exists but secret_salt is MISSING — salt cannot '
+             'be recovered from a hash; regeneration is FORBIDDEN (it would '
+             'redefine the frozen identity space)')
     if SALT_FILE.exists():
-        fail('secret_salt already exists — refusing to regenerate '
-             '(regeneration would invalidate all opaque ids)')
+        fail('secret_salt exists without a frozen commitment — refusing to '
+             'establish a frozen fact from an unknown-origin secret')
     salt = pysecrets.token_hex(32)  # 256-bit
     SALT_FILE.write_text(salt)
     os.chmod(SALT_FILE, 0o600)
     commitment = sha256_bytes(salt.encode())
-    (ART / 'salt_commitment.json').write_text(canon({
+    sc_path.write_text(canon({
         'salt_commitment': commitment, 'bits': 256, 'created_by': 'C1 salt',
         'scheme': 'opaque_case_id=HMAC-SHA256(secret_salt,canonical_case_key); '
                   'packet_id=SHA256(opaque_case_id|T)'}))
@@ -171,29 +181,45 @@ def cmd_plan():
                 'entries': plan_entries}
     blob = canon(plan_doc).encode()
     commitment = sha256_bytes(blob)
-    # F4: an existing frozen plan is never silently overwritten; recompute
-    # must match the frozen commitment (idempotent no-op) or FAIL.
-    if PLAN_FILE.exists():
-        frozen = json.loads((ART / 'plan_commitment.json').read_text())
-        if sha256_bytes(PLAN_FILE.read_bytes()) != frozen['plan_commitment']:
-            fail('existing secret plan does not match frozen commitment — '
-                 'refusing to continue; investigate before any rebuild')
+    pc_path = ART / 'plan_commitment.json'
+    # FIX2-B lifecycle gate: commitment is authoritative once frozen
+    if pc_path.exists():
+        frozen = json.loads(pc_path.read_text())
+        if PLAN_FILE.exists():
+            verify_plan_binding()
+            if commitment != frozen['plan_commitment']:
+                fail('recomputed plan differs from frozen commitment — plan '
+                     'inputs changed; refusing to overwrite frozen plan')
+            print('plan already frozen; recomputation matches commitment (no-op)')
+            return
+        # secret plan lost, commitment frozen: deterministic recovery ONLY
         if commitment != frozen['plan_commitment']:
-            fail('recomputed plan differs from frozen commitment — plan '
-                 'inputs changed; refusing to overwrite frozen plan')
-        print('plan already frozen; recomputation matches commitment (no-op)')
+            fail('secret plan MISSING and recomputed plan != frozen '
+                 'commitment — inputs changed under a frozen commitment; '
+                 'recovery impossible, FAIL-CLOSED (commitment never updated)')
+        PLAN_FILE.write_bytes(blob)
+        os.chmod(PLAN_FILE, 0o600)
+        print('secret plan recovered deterministically; commitment unchanged')
         return
+    if PLAN_FILE.exists():
+        fail('secret plan exists without a frozen commitment — refusing to '
+             'establish a frozen fact from an unknown-origin plan')
     PLAN_FILE.write_bytes(blob)
     os.chmod(PLAN_FILE, 0o600)
     # F5: public artifact carries commitment + version ONLY — no packet
     # counts, no per-group aggregates (they are hidden-plan derivatives).
-    (ART / 'plan_commitment.json').write_text(canon({
+    pc_path.write_text(canon({
         'plan_commitment': commitment, 'version': 'c1'}))
     print('hidden plan written to secret domain (contents never printed)')
 
 
-def _project_core(salt, out_path):
-    """Closed-world projection. Returns summary dict. FAIL-CLOSED on schema drift."""
+def _project_core(salt, out_path, expected_rows=None):
+    """Closed-world projection. Returns summary dict. FAIL-CLOSED on schema drift.
+    expected_rows: production is fixed 24,802; negative-test fixtures pass the
+    row count they actually inject so a fixture CANNOT pass via the collateral
+    row-count gate when the schema gate itself is broken (FIX2-1)."""
+    if expected_rows is None:
+        expected_rows = TOTAL_INPUT_ROWS
     cases = load_cases()
     eligibility = {code: ('PROVISIONAL_BLOCKED_FOR_CASE_VALIDITY'
                           if c['group'] == 'G5_sector_follower'
@@ -244,8 +270,8 @@ def _project_core(salt, out_path):
                    'payload': proj}
             fout.write(canon(out) + '\n')
             stats['projected'] += 1
-    if stats['input'] != TOTAL_INPUT_ROWS:
-        fail(f'input rows {stats["input"]} != {TOTAL_INPUT_ROWS}')
+    if stats['input'] != expected_rows:
+        fail(f'input rows {stats["input"]} != {expected_rows}')
     if stats['projected'] + stats['blocked'] + stats['invalid'] != stats['input']:
         fail('row conservation violated')
     for ep, schema in schema_seen.items():
@@ -488,6 +514,10 @@ def g9():
 
 def g10():
     # negative injections — F1: expect_fail asserts OUTSIDE the except block
+    # FIX2-1: fixtures pass expected_rows=1 so they can ONLY fail via the
+    # schema/closed-world gate, never via the collateral row-count gate.
+    # FIX2-2: every mutation of REAL frozen state is wrapped in try/finally
+    # so a broken gate cannot leave the frozen state polluted.
     import tempfile
     global SIDECAR
     orig = SIDECAR
@@ -496,45 +526,84 @@ def g10():
         tmp_path = Path(f.name)
 
     def core():
-        _project_core(load_salt(), SECRET / '_g10.jsonl')
+        _project_core(load_salt(), SECRET / '_g10.jsonl', expected_rows=1)
 
-    # 1: extra future column appears
-    rows[0]['payload']['未来10日最高涨幅'] = 0.5
-    tmp_path.write_text('\n'.join(canon(r) for r in rows[:1]))
-    SIDECAR = tmp_path
-    expect_fail(core, 'extra future column')
-    # 2: missing allowlist column (schema drift)
-    rows2 = [json.loads(l) for l in open(orig)]
-    del rows2[0]['payload']['融资余额']
-    tmp_path.write_text(canon(rows2[0]))
-    expect_fail(core, 'missing allowlist column')
-    tmp_path.unlink()
-    (SECRET / '_g10.jsonl').unlink(missing_ok=True)
-    SIDECAR = orig
-    # 3: salt sensitivity is necessary but NOT sufficient — binding gates
-    # below prove the RUNNING salt/plan equal the frozen commitments.
-    s1 = opaque_case_id('a' * 64, 'k')
-    s2 = opaque_case_id('b' * 64, 'k')
-    if s1 == s2:
-        fail('G10: salt has no effect on opaque ids')
-    # 4 (mutation): flip one bit of secret_salt -> salt binding MUST fail
-    orig_salt = SALT_FILE.read_bytes()
-    bad = bytearray(orig_salt)
-    bad[0] ^= 1
-    SALT_FILE.write_bytes(bytes(bad))
-    expect_fail(verify_salt_binding, 'tampered secret_salt (1-bit flip)')
-    SALT_FILE.write_bytes(orig_salt)
-    verify_salt_binding()  # restored -> must pass again
-    # 5 (mutation): change one T in hidden plan -> plan binding MUST fail
-    orig_blob = PLAN_FILE.read_bytes()
-    doc = json.loads(orig_blob)
-    doc['entries'][0]['T'] = '1999-01-01'
-    PLAN_FILE.write_bytes(canon(doc).encode())
-    expect_fail(verify_plan_binding, 'tampered packet_plan (one T)')
-    PLAN_FILE.write_bytes(orig_blob)
-    verify_plan_binding()
-    print('G10 PASS: extra/missing column, 1-bit salt flip, one-T plan edit '
-          '— all five negative paths genuinely fail closed (verified round-trip)')
+    try:
+        # 1: extra future column appears
+        rows[0]['payload']['未来10日最高涨幅'] = 0.5
+        tmp_path.write_text('\n'.join(canon(r) for r in rows[:1]))
+        SIDECAR = tmp_path
+        expect_fail(core, 'extra future column')
+        # 2: missing allowlist column (schema drift)
+        rows2 = [json.loads(l) for l in open(orig)]
+        del rows2[0]['payload']['融资余额']
+        tmp_path.write_text(canon(rows2[0]))
+        expect_fail(core, 'missing allowlist column')
+        # 3: salt sensitivity is necessary but NOT sufficient — binding gates
+        # prove the RUNNING salt/plan equal the frozen commitments.
+        s1 = opaque_case_id('a' * 64, 'k')
+        s2 = opaque_case_id('b' * 64, 'k')
+        if s1 == s2:
+            fail('G10: salt has no effect on opaque ids')
+        # 4 (mutation): flip one bit of secret_salt -> salt binding MUST fail
+        orig_salt = SALT_FILE.read_bytes()
+        bad = bytearray(orig_salt)
+        bad[0] ^= 1
+        SALT_FILE.write_bytes(bytes(bad))
+        expect_fail(verify_salt_binding, 'tampered secret_salt (1-bit flip)')
+        SALT_FILE.write_bytes(orig_salt)
+        verify_salt_binding()  # restored -> must pass again
+        # 5 (mutation): change one T in hidden plan -> plan binding MUST fail
+        orig_blob = PLAN_FILE.read_bytes()
+        doc = json.loads(orig_blob)
+        doc['entries'][0]['T'] = '1999-01-01'
+        PLAN_FILE.write_bytes(canon(doc).encode())
+        expect_fail(verify_plan_binding, 'tampered packet_plan (one T)')
+        PLAN_FILE.write_bytes(orig_blob)
+        verify_plan_binding()
+        # 6 (lifecycle): plan file LOST + one plan input changed ->
+        # cmd_plan MUST FAIL, never rewrite the frozen commitment
+        plan_bak = SECRET / '_g10_plan.bak'
+        plan_bak.write_bytes(PLAN_FILE.read_bytes())
+        PLAN_FILE.unlink()
+        ipj = PLAN_JSON.read_text()
+        ip = json.loads(ipj)
+        # perturb to a VALID calendar date so the failure must come from the
+        # recompute != commitment branch, not a collateral calendar check
+        cal = load_calendar()
+        new_end = next(d for d in cal if d != ip['spans'][0][1]
+                       and d > ip['spans'][0][0])
+        ip['spans'][0][1] = new_end
+        PLAN_JSON.write_text(json.dumps(ip, ensure_ascii=False))
+        try:
+            expect_fail(cmd_plan, 'plan-lost + changed inputs (must not '
+                                  'redefine commitment)')
+        finally:
+            PLAN_JSON.write_text(ipj)
+        # restore plan via the legitimate deterministic-recovery branch
+        cmd_plan()
+        verify_plan_binding()
+        plan_bak.unlink()
+        # 7 (lifecycle): salt file LOST, commitment still present ->
+        # cmd_salt MUST FAIL (salt is unrecoverable from a hash)
+        salt_bak = SECRET / '_g10_salt.bak'
+        salt_bak.write_bytes(SALT_FILE.read_bytes())
+        SALT_FILE.unlink()
+        try:
+            expect_fail(cmd_salt, 'salt-lost + frozen commitment '
+                                  '(regeneration forbidden)')
+        finally:
+            SALT_FILE.write_bytes(salt_bak.read_bytes())
+            os.chmod(SALT_FILE, 0o600)
+            salt_bak.unlink()
+        cmd_salt()   # restored -> no-op verified
+        print('G10 PASS: seven negative paths — schema x2, salt 1-bit flip, '
+              'plan one-T edit, plan-lost+input-change, salt-lost — all '
+              'genuinely fail closed; frozen state round-trip verified')
+    finally:
+        SIDECAR = orig
+        tmp_path.unlink(missing_ok=True)
+        (SECRET / '_g10.jsonl').unlink(missing_ok=True)
 
 
 GATES = {'G1': g1, 'G2': g2, 'G3': g3, 'G4': g4, 'G5': g5, 'G6': g6,
