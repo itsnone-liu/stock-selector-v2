@@ -1,7 +1,7 @@
 # CSR-8 Phase C3 — Real Packet Integration & Preflight
 
-- 状态：**DESIGN v1.0 FROZEN**（C3-DESIGN-FIX1 六项 A-F 已并入，待编码）
-- 冻结依据：9840d6a 草案 + 用户 C3-DESIGN-FIX1 裁决；不再重议 A-F
+- 状态：**DESIGN v1.0 FROZEN**（C3-DESIGN-FIX1 A-F + C3-DESIGN-FIX2 chart/window blindness 已并入，待编码）
+- 冻结依据：9840d6a 草案 + e9b6d62 C3-DESIGN-FIX1 + 用户 C3-DESIGN-FIX2 裁决；不再重议 A-F/FIX2
 - 上游冻结：Packet Design v1.0 @ 9474de8；C1 FINAL FROZEN @ 9292d0d；
   C2 FINAL FROZEN @ 9d19be7
 - 本阶段目标：把真实 C1 投影与 C2 sealing engine 接通，完成全量 preflight；
@@ -90,9 +90,9 @@ evidence:
     available_date: <date <= T>
     payload: <endpoint allowlist projection only>
 price_panel:
-  start_date: <case window_start>
+  start_date: <deterministic global lookback start(T)>
   end_date: <T>
-  dates: [<exact frozen TDX rows in window_start..T>]
+  dates: [<exact frozen TDX rows in global lookback(T)>]
   values: <unadjusted TDX close series>
 ```
 
@@ -111,6 +111,10 @@ LHB evidence mapping 是硬约束：当前 LHB 只能声明进榜事实、上榜
 记录内容，不等同于 LHB 席位证据。
 
 ## 5. 六类 C3 gate（C3 必须逐 packet 执行）
+
+固定 gate ID（报告不得改名或合并）：
+`G-C3-SCHEMA`、`G-C3-COVERAGE`、`G-C3-EVIDENCE`、`G-C3-DATE`、
+`G-C3-CHART`、`G-C3-CONGRUENCE`（§6）。
 
 ### G-C3-SCHEMA：closed-world packet schema
 
@@ -169,19 +173,25 @@ registry 中的每个日期值必须 `<= T`。未来收益字段已经被 C1 投
 但 C3 仍按 registry 二次硬检；endpoint schema 新增日期字段时，先触发
 closed-world schema drift FAIL，不能静默进入 packet 或日期扫描。
 
-### G-C3-CHART：价格图 exact slice
+### G-C3-CHART：价格图 exact slice（C3-DESIGN-FIX2）
 
-价格图不是“任意取一段且 max(date)<=T”。冻结选择函数为：
+价格图不得依赖隐藏的 case window identity。冻结公开常量：
 
 ```text
-chart(case,T) = frozen TDX unadjusted rows
-                where window_start(case) <= date <= T
+CHART_LOOKBACK_TRADING_DAYS = 120
+start(T) = frozen calendar 上 T 向前最多 119 个交易日
+           （不足 120 日则从冻结价格数据可用起点开始）
+chart(T) = frozen TDX unadjusted rows where start(T) <= date <= T
 ```
 
-其 `start_date=case window_start`、`end_date=T`、日期严格递增，且 packet
-中的完整 `dates/values` 必须与该函数输出 **exact equality**；数据源必须是
-冻结 TDX 未复权面板。空面板、日期不单调、窗口起点不一致或数据源身份不符
-均 FAIL-CLOSED。
+packet 中完整 `dates/values` 必须与 `chart(T)` **exact equality**；
+`start_date` 只能是公开可由 T+冻结日历重算的 `start(T)`，不得写 case
+window_start。数据源必须是冻结 TDX 未复权面板；空面板、日期不单调、lookback
+数量不符或数据源身份不符均 FAIL-CLOSED。
+
+Blindness fixture（必须机器验证）：同一 T、两个不同的隐藏 `window_start`
+输入，生成的 `price_panel` canonical bytes 必须完全相同；证明 chart 不携带
+selector metadata。
 
 ## 6. Schema congruence（C3 新硬门）
 
@@ -248,10 +258,12 @@ selector-only：完整 packet manifest、packet count、per-packet hash、endpoi
 6. G5 只进入 selector-only eligibility 轴，不进入 primary/statistical 轴；
 7. C1 salt/plan/source commitment 未变化；
 8. 两次相同输入运行 canonical packet bytes/hash 完全一致；
-9. 仅允许在 `c3_preflight/` ephemeral 状态域写 isolated preflight
+9. 同一 T 的不同隐藏 window_start blindness fixture 生成完全相同的
+   `price_panel` canonical bytes；
+10. 仅允许在 `c3_preflight/` ephemeral 状态域写 isolated preflight
    `REVEAL_PACKET`/`SEAL_ANNOTATION`；production sealing log/head、标注 session、
    真实 annotation 均不存在；isolated replay 顺序不构成 production reveal schedule；
-10. 公开 audit-domain 只有 commitment + boolean summary，不能由公开文件
+11. 公开 audit-domain 只有 commitment + boolean summary，不能由公开文件
     反推出 hidden-plan packet cardinality/distribution。
 
 ## 9. C3 明确禁止与后继边界
@@ -269,8 +281,12 @@ C3 preflight PASS 后，另立 C4 或用户明确裁决，才允许第一个真�
 2. selector-only case/T map 与 packet plan 读取；
 3. allowlist projection consumption（禁止原始 sidecar 旁路）；
 4. packet construction + canonical serialization；
-5. G-C3-SCHEMA/COVERAGE/EVIDENCE/DATE/CHART 五类 gate；
-6. schema congruence fixture（packet/receipt/event）；
+5. G-C3-SCHEMA；
+6. G-C3-COVERAGE；
+7. G-C3-EVIDENCE；
+8. G-C3-DATE；
+9. G-C3-CHART；
+10. G-C3-CONGRUENCE（packet/receipt/event schema congruence）；
 7. C2 isolated append/replay preflight（事件可写，但不构成 production schedule）；
 8. determinism、G5/XP boundary、NO_PRODUCTION_REVEAL/SEAL/REAL_ANNOTATION 审计；
 9. 公开 audit artifacts 与 C3 report；
