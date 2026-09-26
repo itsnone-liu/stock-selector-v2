@@ -141,6 +141,18 @@ def run():
         results.append(row)
     fams = {r['channel_family'] for r in results}
     evids = {r['evidence_ref'] for r in results}
+    # dynamic next-action derivation: status machine, not per-round hand-writing
+    NEXT_ACTION_BY_STATUS = {
+        'CONTENT_OK_PIT_PENDING': None,                # no action (fields ok, PIT join later)
+        'SMOKE_OK_OPTIONAL_REFERENCE': None,           # reference only, no pipeline role
+        'PENDING_RETRY': 'retry (network/limit failure this round)',
+        'FIELD_SCHEMA_MISMATCH': 'schema remap (column names) then re-probe',
+        'OPTIONAL_ENDPOINT_FAILING': 'optional reference failing: retry or drop',
+        'SMOKE_OK_AT_PROBE_TIME_NOW_FAILING': 're-probe to confirm status',
+        'INTERFACE_GAP': 'alternate-source research required',
+        'SOURCE_DESIGN_REQUIRED': 'standalone design item (official archives)',
+    }
+    next_actions = {r['name']: NEXT_ACTION_BY_STATUS[r['status']] for r in results}
     doc = {
         'stage': 'csr_8_phase_b_channel_probe',
         'generated_by': 'scripts/csr8_phaseb_probe.py (single source of truth; audit-fix v2)',
@@ -164,22 +176,20 @@ def run():
             'evidence_id_count': len(evids),
             'by_status': {},
         },
-        'next': [
-            'rt 三通道(margin/lhb/dzjy)按 84 案例窗口正式拉取——ingestion 契约先行: '
-            'observation_date/source/source_record_date/publication_date/retrieved_at/'
-            'available_date/availability_basis 七字段必留(observation_date 为 CSR-6 '
-            '核心时间链主键,通道事件时间留 payload)',
-            'holder_count_detail / insider_trades -> 东财域冷却 retry；'
-            'holder_count_list -> 非网络问题而是 5231 行返回但字段 schema 不匹配,'
-            '需 schema remap(东财改版列名确认)后 re-probe',
-            '深交所域重试 margin_detail_szse(曾验证 1981 行,历史事实登记,当前轮如实 PENDING)',
-            'PIT 行业表 SOURCE_DESIGN 单独立项(官方历史快照+变更公告)',
-            'XP 通道的 publication_date 链：巨潮公告 join 方案设计',
-            'ETF 份额替代源调研',
-        ],
+        'next': (
+            ['rt 三通道(margin/lhb/dzjy)按 84 案例窗口正式拉取——ingestion 契约先行: '
+             'observation_date/source/source_record_date/publication_date/retrieved_at/'
+             'available_date/availability_basis 七字段必留(observation_date 为 CSR-6 '
+             '核心时间链主键,通道事件时间留 payload)',
+             'XP 通道的 publication_date 链：巨潮公告 join 方案设计']
+            + [f'{name} -> {act}' for name, act in sorted(next_actions.items()) if act]
+        ),
     }
+
     from collections import Counter
     doc['counts']['by_status'] = dict(Counter(r['status'] for r in results))
+    doc['next_action_rule'] = ('derived per-round from status via NEXT_ACTION_BY_STATUS; '
+                               'probe result -> status -> next action (machine loop)')
     y = yaml.safe_dump(doc, allow_unicode=True, sort_keys=False, width=100)
     (OUT / 'CHANNEL_PROBE.yaml').write_text(y, encoding='utf-8')
     print('CHANNEL_PROBE.yaml written')

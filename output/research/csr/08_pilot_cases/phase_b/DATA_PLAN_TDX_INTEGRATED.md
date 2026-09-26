@@ -27,9 +27,9 @@ publication_date/available_date 一律由主仓侧公告索引补齐。
 | 龙虎榜（历史） | akshare lhb_detail_em | research | CONTENT_OK_PIT_PENDING（probe 已确认 430 行/字段齐） | 聚合源无 timestamp 保守 T+1+availability_basis |
 | 龙虎榜（forward） | TDX watchlist 每日归档（archivist LHB×20） | tdx | FORWARD_ARCHIVE_RUNNING | 归档起点 2026-09-26；只供未来事件，不回填历史 |
 | 限售解禁（forward） | TDX unlock×20 每日归档 | tdx | FORWARD_ARCHIVE_RUNNING | 同上 |
-| 个股两融明细（E-STK-08） | akshare margin_detail_sse/szse | research | CONTENT_OK_PIT_PENDING（SSE 1,906 行确认；SZSE 间歇限流 PENDING_RETRY，endpoint 已验证） | 交易所官方 T 日盘后；聚合源按 source timestamp 登记。**TDX GP03 系免费路线止损**（付费墙仅 TDX 侧，AKShare 通道不受影响） |
+| 个股两融明细（E-STK-08） | akshare margin_detail_sse/szse | research | 两所 endpoints 均已至少一次成功验证（SSE 1,906 行 / SZSE 1,981 行）；**当前运行健康状态以 CHANNEL_PROBE.yaml 为唯一事实源**（DATA_PLAN 不记录瞬时 health） | 交易所官方 T 日盘后；聚合源按 source timestamp 登记。**TDX GP03 系免费路线止损**（付费墙仅 TDX 侧，AKShare 通道不受影响） |
 | 两融标的池历史 membership | akshare underlying 快照（每日存档从现在积累）+ TDX 分类 56/57（标签待确认） | research / tdx | SNAPSHOT_ACCUMULATING | 不能回溯——只能 forward 积累（两边口径并采，以交易所为准） |
-| 增减持/户数/基金持仓（xp） | akshare（东财域） | research | PENDING_RETRY→见 probe | 公告日链=巨潮 join（主仓侧统一做） |
+| 增减持/户数/基金持仓（xp） | akshare（东财域） | research | 结构性判断见 probe 历史（各 endpoint 均曾成功验证或确认存在）；当前健康以 CHANNEL_PROBE.yaml 为唯一事实源 | 公告日链=巨潮 join（主仓侧统一做） |
 | **ETF 历史份额** | 无（GP52 付费墙；get_gb_info=红线） | — | **INTERFACE_GAP_CONFIRMED**（TDX 侧二次确认 akshare 侧缺口） | 三选一路径已登记：升级权限复测 / 独立点时源 / PCF 每日归档不补历史（archivist 已在做 PCF×8） |
 | ETF 列表/跟踪关系 | TDX 当前快照（1729/30 只） | tdx | SMOKE_OK_OPTIONAL_REFERENCE | 幸存者偏差——不回溯历史池 |
 | PIT 行业时点表（G5 revalidation 依赖） | 官方历史分类快照+变更公告 | research | SOURCE_DESIGN_REQUIRED | 独立项；与 TDX 无关，不用现时表冒充 |
@@ -43,6 +43,11 @@ publication_date/available_date 一律由主仓侧公告索引补齐。
 4. TDX 股本变化日是生效日不是公告日——任何"当时可知"判断不得引用。
 
 ## 4. 数据流契约（两节点统一字段）
+
+- **瞬时 endpoint health 声明**：本方案只记录结构性事实（接口存在性/字段语义/覆盖
+  范围/红线）；任何"当前 OK/当前 PENDING"以每次重跑的 CHANNEL_PROBE.yaml 为唯一
+  事实源，其 next action 由 status 机器派生（probe result→status→next action），
+  不在本文档手工维护；
 
 - 主仓 ingestion 七字段：**observation_date** / source / source_record_date /
   publication_date / retrieved_at / available_date / availability_basis。
