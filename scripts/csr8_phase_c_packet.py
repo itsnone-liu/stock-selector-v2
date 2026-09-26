@@ -157,7 +157,7 @@ def cmd_plan():
     cal = load_calendar()
     idx = {d: i for i, d in enumerate(cal)}
     cases = load_cases()
-    plan_entries, per_group = [], {}
+    plan_entries = []
     for code, c in cases.items():
         i0, i1 = idx.get(c['w_start']), idx.get(c['w_end'])
         if i0 is None or i1 is None:
@@ -167,22 +167,29 @@ def cmd_plan():
             Ts.add(c['anchor'])
         for T in sorted(Ts):
             plan_entries.append({'case_key': c['key'], 'T': T})
-        g = c['group']
-        per_group[g] = per_group.get(g, 0) + len(Ts)
     plan_doc = {'version': 'c1', 'grid_step': GRID_STEP,
                 'entries': plan_entries}
     blob = canon(plan_doc).encode()
-    (PLAN_FILE).write_bytes(blob)
-    os.chmod(PLAN_FILE, 0o600)
     commitment = sha256_bytes(blob)
-    # public manifest: aggregate metadata ONLY (no T list, no per-case detail)
+    # F4: an existing frozen plan is never silently overwritten; recompute
+    # must match the frozen commitment (idempotent no-op) or FAIL.
+    if PLAN_FILE.exists():
+        frozen = json.loads((ART / 'plan_commitment.json').read_text())
+        if sha256_bytes(PLAN_FILE.read_bytes()) != frozen['plan_commitment']:
+            fail('existing secret plan does not match frozen commitment — '
+                 'refusing to continue; investigate before any rebuild')
+        if commitment != frozen['plan_commitment']:
+            fail('recomputed plan differs from frozen commitment — plan '
+                 'inputs changed; refusing to overwrite frozen plan')
+        print('plan already frozen; recomputation matches commitment (no-op)')
+        return
+    PLAN_FILE.write_bytes(blob)
+    os.chmod(PLAN_FILE, 0o600)
+    # F5: public artifact carries commitment + version ONLY — no packet
+    # counts, no per-group aggregates (they are hidden-plan derivatives).
     (ART / 'plan_commitment.json').write_text(canon({
-        'plan_commitment': commitment, 'n_cases': 84,
-        'n_packets': len(plan_entries), 'per_group_packet_count': per_group,
-        'grid': f'every {GRID_STEP} frozen trading days from w_start '
-                f'+ G2 T0/G3 anchor/G4 launch (dedup, ascending)'}))
-    print(f'hidden plan written to secret domain; n_packets={len(plan_entries)} '
-          f'(aggregate only; plan contents never printed)')
+        'plan_commitment': commitment, 'version': 'c1'}))
+    print('hidden plan written to secret domain (contents never printed)')
 
 
 def _project_core(salt, out_path):
@@ -288,6 +295,32 @@ def cmd_project():
 
 
 # ---------------- C1 gates ----------------
+def verify_salt_binding():
+    """F2: current secret_salt must hash to the frozen public commitment."""
+    sc = json.loads((ART / 'salt_commitment.json').read_text())
+    if sha256_bytes(load_salt().encode()) != sc['salt_commitment']:
+        fail('salt binding: current secret_salt != frozen commitment')
+
+
+def verify_plan_binding():
+    """F3: current secret plan bytes must hash to the frozen commitment."""
+    pc = json.loads((ART / 'plan_commitment.json').read_text())
+    if not PLAN_FILE.exists():
+        fail('plan binding: secret plan missing')
+    if sha256_bytes(PLAN_FILE.read_bytes()) != pc['plan_commitment']:
+        fail('plan binding: current packet_plan != frozen commitment')
+
+
+def expect_fail(fn, label):
+    """F1: assertion lives OUTSIDE the except block — a code path that
+    wrongly succeeds now fails the gate instead of self-swallowing."""
+    rejected = False
+    try:
+        fn()
+    except SystemExit:
+        rejected = True
+    if not rejected:
+        fail(f'G10: {label} was NOT rejected')
 def g1():
     salt = load_salt()
     cases = load_cases()
@@ -368,13 +401,15 @@ def g4():
         text = f.read_text()
         hits_t = sum(1 for T in tset if T in text)
         hits_k = sum(1 for k in keys if k in text)
-        # window endpoints are public by design; a T-grid pattern = >=3 distinct
-        # plan-only dates in one artifact is leakage
         if hits_t >= 3 or hits_k >= 1:
             leaks.append(f.name)
+        # F5 semantics: hidden-plan DERIVED aggregates are also leakage
+        for banned_key in ('n_packets', 'per_group_packet_count'):
+            if banned_key in text:
+                leaks.append(f'{f.name}::{banned_key}')
     if leaks:
-        fail(f'G4: hidden-plan plaintext in public artifacts: {leaks}')
-    print('G4 PASS: no hidden-plan plaintext in public artifacts')
+        fail(f'G4: hidden-plan plaintext/derived-aggregate leak: {leaks}')
+    print('G4 PASS: no hidden-plan plaintext or derived aggregates in public')
 
 
 def g5():
@@ -452,41 +487,54 @@ def g9():
 
 
 def g10():
-    # synthetic failure injections against closed-world core
+    # negative injections — F1: expect_fail asserts OUTSIDE the except block
     import tempfile
     global SIDECAR
     orig = SIDECAR
     rows = [json.loads(l) for l in open(orig)]
     with tempfile.NamedTemporaryFile('w', suffix='.jsonl', delete=False) as f:
         tmp_path = Path(f.name)
-    # case 1: extra future column appears
+
+    def core():
+        _project_core(load_salt(), SECRET / '_g10.jsonl')
+
+    # 1: extra future column appears
     rows[0]['payload']['未来10日最高涨幅'] = 0.5
     tmp_path.write_text('\n'.join(canon(r) for r in rows[:1]))
     SIDECAR = tmp_path
-    try:
-        _project_core(load_salt(), SECRET / '_g10.jsonl')
-        fail('G10: extra column was NOT rejected')
-    except SystemExit:
-        pass
-    # case 2: missing allowlist column
+    expect_fail(core, 'extra future column')
+    # 2: missing allowlist column (schema drift)
     rows2 = [json.loads(l) for l in open(orig)]
     del rows2[0]['payload']['融资余额']
     tmp_path.write_text(canon(rows2[0]))
-    try:
-        _project_core(load_salt(), SECRET / '_g10.jsonl')
-        fail('G10: missing allowlist column was NOT classified invalid/failed')
-    except SystemExit:
-        pass
+    expect_fail(core, 'missing allowlist column')
     tmp_path.unlink()
     (SECRET / '_g10.jsonl').unlink(missing_ok=True)
     SIDECAR = orig
-    # case 3: wrong salt must change every opaque id (no silent reuse)
+    # 3: salt sensitivity is necessary but NOT sufficient — binding gates
+    # below prove the RUNNING salt/plan equal the frozen commitments.
     s1 = opaque_case_id('a' * 64, 'k')
     s2 = opaque_case_id('b' * 64, 'k')
     if s1 == s2:
         fail('G10: salt has no effect on opaque ids')
-    print('G10 PASS: extra column / missing column / salt mismatch all '
-          'fail closed')
+    # 4 (mutation): flip one bit of secret_salt -> salt binding MUST fail
+    orig_salt = SALT_FILE.read_bytes()
+    bad = bytearray(orig_salt)
+    bad[0] ^= 1
+    SALT_FILE.write_bytes(bytes(bad))
+    expect_fail(verify_salt_binding, 'tampered secret_salt (1-bit flip)')
+    SALT_FILE.write_bytes(orig_salt)
+    verify_salt_binding()  # restored -> must pass again
+    # 5 (mutation): change one T in hidden plan -> plan binding MUST fail
+    orig_blob = PLAN_FILE.read_bytes()
+    doc = json.loads(orig_blob)
+    doc['entries'][0]['T'] = '1999-01-01'
+    PLAN_FILE.write_bytes(canon(doc).encode())
+    expect_fail(verify_plan_binding, 'tampered packet_plan (one T)')
+    PLAN_FILE.write_bytes(orig_blob)
+    verify_plan_binding()
+    print('G10 PASS: extra/missing column, 1-bit salt flip, one-T plan edit '
+          '— all five negative paths genuinely fail closed (verified round-trip)')
 
 
 GATES = {'G1': g1, 'G2': g2, 'G3': g3, 'G4': g4, 'G5': g5, 'G6': g6,
@@ -512,6 +560,11 @@ def main():
     elif cmd == 'project':
         cmd_project()
     elif cmd == 'verify':
+        # F2/F3: commitment binding FIRST — every later gate runs only on
+        # state proven equal to the frozen commitments
+        verify_salt_binding()
+        verify_plan_binding()
+        print('BINDING PASS: running salt & plan == frozen commitments')
         gates = [sys.argv[2]] if len(sys.argv) > 2 else list(GATES)
         for g in gates:
             GATES[g]()
