@@ -145,6 +145,9 @@ def load_plan_case_windows():
 
 # ---------------- H1: valid-raw predicate ----------------
 def _valid_raw(ep, stem):
+    """Data integrity AND provenance integrity are the SAME skip gate (R2):
+    raw+meta exist, outcome in SUCCESS_*, SHA verifies, retrieved_at /
+    collector_version / request present, endpoint matches expected."""
     fp = RAW / ep / f'{stem}.json'
     mp = RAW / ep / f'{stem}.meta.json'
     if not (fp.exists() and mp.exists()):
@@ -152,6 +155,11 @@ def _valid_raw(ep, stem):
     try:
         meta = json.loads(mp.read_text())
         if meta.get('outcome') not in SUCCESS_OUTCOMES:
+            return False
+        if not (meta.get('retrieved_at') and meta.get('collector_version')
+                and meta.get('request')):
+            return False
+        if meta.get('endpoint') != ENDPOINTS[ep]:
             return False
         return sha256_bytes(fp.read_bytes()) == meta['sha256']
     except Exception:
@@ -295,7 +303,12 @@ def manifest(start, end):
     return all_complete
 
 def normalize(start, end):
-    """H3/H4 hardened normalizer. source from raw meta; two conservation ledgers."""
+    """H3/H4 hardened normalizer. source from raw meta; two conservation ledgers.
+    R1: normalize enforces the completeness gate itself — a PARTIAL batch
+    raises before any output is written (never relies on the operator
+    remembering to run manifest first)."""
+    if not manifest(start, end):
+        raise RuntimeError(f'batch PARTIAL for {start}..{end}; normalization forbidden')
     cal = load_calendar()
     universe = {bare(c) for c in load_universe84()}
     case_win = load_plan_case_windows()
