@@ -1,0 +1,38 @@
+{
+ "window": [
+  "2026-06-01",
+  "2026-06-30"
+ ],
+ "ledger": {
+  "margin_sse": {
+   "raw_total": 41593,
+   "normalized84": 651,
+   "rejected": 0,
+   "filtered_non84": 40942
+  },
+  "margin_szse": {
+   "raw_total": 43528,
+   "normalized84": 672,
+   "rejected": 0,
+   "filtered_non84": 42856
+  },
+  "lhb": {
+   "raw_total": 2223,
+   "normalized84": 41,
+   "rejected": 0,
+   "filtered_non84": 2182
+  },
+  "dzjy": {
+   "raw_total": 3356,
+   "normalized84": 110,
+   "rejected": 0,
+   "filtered_non84": 3246
+  }
+ },
+ "n_normalized": 1474,
+ "n_rejects": 0,
+ "conservation": "raw_total = normalized84 + rejected + filtered_non84 (asserted per endpoint)",
+ "rg3_binding": "available_date non-null <=> basis=CONSERVATIVE_T1 (constructed)",
+ "rg4": "source LEVEL=AGGREGATOR, basis=CONSERVATIVE_T1 (never OFFICIAL_RULE)",
+ "record_pit_usable": "YES (gates passed) but NOT counted in channel numerator (CONSERVATIVE_T1)"
+}

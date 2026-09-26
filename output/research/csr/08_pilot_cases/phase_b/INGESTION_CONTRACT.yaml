@@ -1,5 +1,7 @@
 stage: csr_8_phase_b_ingestion_contract
-version: v1.0-draft（待用户审计冻结）
+version: v1.0
+status: FROZEN
+frozen_from: c22797ff1ffef91c7c3776cae6b582ea2d65a36c
 baseline:
   data_plan_frozen: fab6f5c
   protocol_frozen: CSR-7 @ 8f4b1f2 (+erratum 406bccb/52014ef/1f19119)

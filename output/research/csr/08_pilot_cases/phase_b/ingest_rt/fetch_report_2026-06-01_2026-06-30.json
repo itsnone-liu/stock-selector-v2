@@ -1,0 +1,26 @@
+{
+ "margin_sse": {
+  "days": 21,
+  "ok": 21,
+  "empty": 0,
+  "failed": 0
+ },
+ "margin_szse": {
+  "days": 21,
+  "ok": 21,
+  "empty": 0,
+  "failed": 0
+ },
+ "lhb": {
+  "chunks": 1,
+  "ok": 1,
+  "empty": 0,
+  "failed": 0
+ },
+ "dzjy": {
+  "chunks": 1,
+  "ok": 1,
+  "empty": 0,
+  "failed": 0
+ }
+}
