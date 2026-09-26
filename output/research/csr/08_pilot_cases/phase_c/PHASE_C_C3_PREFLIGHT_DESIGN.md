@@ -1,12 +1,16 @@
 # CSR-8 Phase C3 — Real Packet Integration & Preflight
 
-- 状态：DESIGN DRAFT，待用户审计后编码
+- 状态：**DESIGN v1.0 FROZEN**（C3-DESIGN-FIX1 六项 A-F 已并入，待编码）
+- 冻结依据：9840d6a 草案 + 用户 C3-DESIGN-FIX1 裁决；不再重议 A-F
 - 上游冻结：Packet Design v1.0 @ 9474de8；C1 FINAL FROZEN @ 9292d0d；
   C2 FINAL FROZEN @ 9d19be7
 - 本阶段目标：把真实 C1 投影与 C2 sealing engine 接通，完成全量 preflight；
-  **不向标注者展示，不写真实 REVEAL，不生成真实 annotation**。
+  **不向标注者展示，不写 production REVEAL，不生成真实 annotation**。
 - 不允许：修改 C1 secret/plan/commitment、修改 C2 state-machine semantics、
   读取 XP、开放 G5 primary annotation、产生 Phase-C outcome 统计。
+- C3 isolated preflight 可以写隔离域中的 synthetic/preflight
+  `REVEAL_PACKET`/`SEAL_ANNOTATION` 事件；这些事件不是 production event，
+  不构成 C4 的真实 reveal schedule。
 
 ## 1. C3 交付边界
 
@@ -70,7 +74,8 @@ C3 产物只能是 preflight packet 与审计结果。`REVEAL_PACKET`、
 
 ## 4. 真实 packet 结构（preflight 版）
 
-每个 `(case,T)` 生成一个 canonical JSON packet。其公开/标注侧结构只允许：
+每个 `(case,T)` 生成一个 canonical JSON packet。**标注可见 packet** 只允许
+证据、图表、opaque identity 和 T；控制面字段不进入标注面：
 
 ```yaml
 packet_id: <sha256 opaque_case_id|T>
@@ -85,11 +90,16 @@ evidence:
     available_date: <date <= T>
     payload: <endpoint allowlist projection only>
 price_panel:
-  dates: [<dates <= T>]
+  start_date: <case window_start>
+  end_date: <T>
+  dates: [<exact frozen TDX rows in window_start..T>]
   values: <unadjusted TDX close series>
-status_axis: <PRODUCTION_RT | PROVISIONAL_BLOCKED_FOR_CASE_VALIDITY>
-source_group_axis: PACKET_GENERATION_ALLOWED
 ```
+
+selector-only envelope（不进入 packet/标注面）：`case_key`、G1-G5 group、
+`status_axis`、`source_group_axis`、eligibility、window_start/window_end 的
+完整身份映射。G5 的 `PROVISIONAL_BLOCKED_FOR_CASE_VALIDITY` 只存在于此控制面，
+不能通过 packet 暴露给标注者。
 
 字段禁止：`stock_code`、`name`、`code`、`group`、`industry`、`window_end`、
 `selector_*`、`xp_*`、`outcome`、`future_*`、`上榜后*`、原始 payload 未经
@@ -100,7 +110,7 @@ LHB evidence mapping 是硬约束：当前 LHB 只能声明进榜事实、上榜
 返回 `NOT_OBSERVABLE_BY_CURRENT_SOURCE`。DZJY 的买卖营业部字段是其交易
 记录内容，不等同于 LHB 席位证据。
 
-## 5. 四类 leak gate（C3 必须逐 packet 执行）
+## 5. 六类 C3 gate（C3 必须逐 packet 执行）
 
 ### G-C3-SCHEMA：closed-world packet schema
 
@@ -121,17 +131,57 @@ record_id 属于 C1 projected case records
 `available_date` 为 NULL、不可解析或 evidence 超过 T 均 FAIL；不以
 `observation_date` 替代 `available_date`。
 
-### G-C3-DATE：日期字段上界
+### G-C3-COVERAGE：evidence conservation / completeness equality
 
-packet 内所有可识别日期字段（包括 payload 内日期字段）必须 `<= T`；
-未来收益字段已经被 C1 投影拒绝，但 C3 仍二次硬检，防止 generator/schema
-漂移绕过投影。
+对每个 `(case,T)`，定义并严格相等：
 
-### G-C3-CHART：价格图截断
+```text
+EXPECTED(case,T) = 全部属于该 case 的 C1 projected records
+                  且 available_date <= T
+ACTUAL(case,T)   = packet.evidence.record_id 集合
 
-价格面板最大日期必须 `<= T`，且价格来源必须是冻结 TDX 未复权面板；
-不得读取会因未来公司行动回写历史的调整序列。空面板、日期不单调或数据源
-身份不符均 FAIL-CLOSED。
+ACTUAL == EXPECTED
+```
+
+这是 equality，不是 subset。任何缺失历史证据、额外 record、重复 record_id、
+或将 LHB/DZJY 以裸股日折叠，均 FAIL-CLOSED。每个 record_id 必须 1:1 join
+到 C1 projected/index，并逐字段证明：
+
+```text
+projected.endpoint == index.endpoint
+projected.observation_date == index.observation_date
+index.available_date 可解析且唯一
+```
+
+### G-C3-DATE：冻结日期字段 registry
+
+禁止启发式“可识别日期”扫描；日期字段 registry 在设计中显式冻结：
+
+```yaml
+packet: [as_of.T, evidence[].observation_date, evidence[].available_date]
+margin_sse: [信用交易日期]
+margin_szse: []
+lhb: [上榜日]
+dzjy: [交易日期]
+```
+
+registry 中的每个日期值必须 `<= T`。未来收益字段已经被 C1 投影拒绝，
+但 C3 仍按 registry 二次硬检；endpoint schema 新增日期字段时，先触发
+closed-world schema drift FAIL，不能静默进入 packet 或日期扫描。
+
+### G-C3-CHART：价格图 exact slice
+
+价格图不是“任意取一段且 max(date)<=T”。冻结选择函数为：
+
+```text
+chart(case,T) = frozen TDX unadjusted rows
+                where window_start(case) <= date <= T
+```
+
+其 `start_date=case window_start`、`end_date=T`、日期严格递增，且 packet
+中的完整 `dates/values` 必须与该函数输出 **exact equality**；数据源必须是
+冻结 TDX 未复权面板。空面板、日期不单调、窗口起点不一致或数据源身份不符
+均 FAIL-CLOSED。
 
 ## 6. Schema congruence（C3 新硬门）
 
@@ -171,33 +221,38 @@ C3 可以为 G5 生成并验证 preflight packet，但不能将其视为正式�
 
 ## 8. Preflight 产物与可审计不变量
 
-公开 audit-domain（不含 salt、hidden plan 明文、真实 case identity）：
+公开 audit-domain（不含 salt、hidden plan 明文、真实 case identity，且不含
+任何 hidden-plan 派生 cardinality/distribution/per-packet listing）：
 
-- `c3_preflight_manifest.json`：源 commitment、packet schema hash、packet 数
-  的聚合统计、端点分布、G5 eligibility 计数、每 packet hash（不含 T 列表
-  或 case-level plan 明文）；
-- `c3_projection_audit.json`：C1 projection artifact hash、allowlist hash、
-  dropped-column proof；
-- `c3_leak_audit.json`：四类 gate 的通过/失败计数、失败原因枚举、无失败断言；
-- `c3_congruence_audit.json`：packet/event/receipt congruence 结果；
-- `c3_replay_audit.json`：C2-compatible isolated append/replay 结果；
-- `C3_PREFLIGHT_REPORT.md`：明确写 `NO_REAL_REVEAL`、`NO_REAL_ANNOTATION`、
-  `G5_BLOCKED`、`XP_BLOCKED_FOR_PIT`。
+- `c3_manifest_commitment.json`：仅 packet-manifest commitment、packet schema
+  hash、C1 source/projection commitments；不含 packet 数、per-packet hash、
+  endpoint/G5 分布；
+- `c3_boolean_summary.json`：仅布尔证明：`ALL_GATES_PASS=true`、
+  `NO_PRODUCTION_REVEAL=true`、`NO_PRODUCTION_SEAL=true`、
+  `NO_REAL_ANNOTATION=true`、`G5_BLOCKED=true`、`XP_BLOCKED_FOR_PIT=true`；
+- `c3_boundary_audit.md`：上述边界和来源 commitment 的文字说明，不列 hidden
+  plan 明文或其可计数派生物。
 
-selector-only：完整 packet_plan、case/T 明文映射、salt、真实 case 解映射、
-preflight packet 本体（如需保留）只进入 secret-domain，不进入公开 Git。
+selector-only：完整 packet manifest、packet count、per-packet hash、endpoint
+分布、eligibility 分布、每 packet gate 结果、完整 packet_plan、case/T 明文
+映射、salt、真实 case 解映射、preflight packet 本体只进入 secret-domain，
+不进入公开 Git。
 
 机器必须证明：
 
 1. 每个计划 `(case,T)` 恰有一个 packet，packet_id 可重算且唯一；
 2. 每个 packet 的 record_id 全来自 C1 projection，292 条合法多行不折叠；
-3. 四类 leak gate 全通过；
+3. G-C3-SCHEMA/COVERAGE/EVIDENCE/DATE/CHART 全通过；
 4. schema congruence 全通过；
 5. C2 isolated append/replay 全通过；
-6. G5 只进入 eligibility 轴，不进入 primary/statistical 轴；
+6. G5 只进入 selector-only eligibility 轴，不进入 primary/statistical 轴；
 7. C1 salt/plan/source commitment 未变化；
 8. 两次相同输入运行 canonical packet bytes/hash 完全一致；
-9. 过程中不存在 `REVEAL_PACKET`、`SEAL_ANNOTATION`、真实 annotation。
+9. 仅允许在 `c3_preflight/` ephemeral 状态域写 isolated preflight
+   `REVEAL_PACKET`/`SEAL_ANNOTATION`；production sealing log/head、标注 session、
+   真实 annotation 均不存在；isolated replay 顺序不构成 production reveal schedule；
+10. 公开 audit-domain 只有 commitment + boolean summary，不能由公开文件
+    反推出 hidden-plan packet cardinality/distribution。
 
 ## 9. C3 明确禁止与后继边界
 
@@ -214,9 +269,9 @@ C3 preflight PASS 后，另立 C4 或用户明确裁决，才允许第一个真�
 2. selector-only case/T map 与 packet plan 读取；
 3. allowlist projection consumption（禁止原始 sidecar 旁路）；
 4. packet construction + canonical serialization；
-5. 四类 leak gate；
+5. G-C3-SCHEMA/COVERAGE/EVIDENCE/DATE/CHART 五类 gate；
 6. schema congruence fixture（packet/receipt/event）；
-7. C2 isolated append/replay preflight；
-8. determinism、G5/XP boundary、NO_REAL_REVEAL/ANNOTATION 审计；
+7. C2 isolated append/replay preflight（事件可写，但不构成 production schedule）；
+8. determinism、G5/XP boundary、NO_PRODUCTION_REVEAL/SEAL/REAL_ANNOTATION 审计；
 9. 公开 audit artifacts 与 C3 report；
 10. 独立命令和退出码复核后 commit。
