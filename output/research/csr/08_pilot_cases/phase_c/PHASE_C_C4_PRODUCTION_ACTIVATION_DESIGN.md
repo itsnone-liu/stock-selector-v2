@@ -1,4 +1,4 @@
-# CSR-8 Phase C4 — Production Reveal Activation Design v0.1
+# CSR-8 Phase C4 — Production Reveal Activation Design v1.0
 
 - 状态：DESIGN v1.0 FROZEN（C4-DESIGN-FIX1 四项 + C4-DESIGN-FIX2 四项已并入；只实现 C4-A/B）
 - 冻结依据：79f3de8 草案 + 用户 C4-DESIGN-FIX1 与 C4-DESIGN-FIX2 裁决
@@ -76,11 +76,12 @@ data/csr8_phase_c/production/<session_id>/
 selector-only session manifest（不得进入 public/audit 面）至少包含：
 
 ```yaml
-session_version: c4-v0.1
+session_version: c4-v1.0
 session_id: <opaque unique session id>
 c1_plan_commitment: <hash>
 c3_packet_manifest_commitment: 883c9869...
 c3_packet_schema_sha256: <hash>
+first_candidate_commitment: <hash>
 price_source_commitments:
   source_id: baostock_unadjusted_v1
   fetch_manifest_sha256: <hash>
@@ -89,13 +90,13 @@ phase_b_input_commitments:
   case_index_blob: <hash>
   calendar_blob: <hash>
   calendar_embedded_sha256: <hash>
-state: INITIALIZED_NO_REVEAL
+initial_state: INITIALIZED_NO_REVEAL
 created_at: <timestamp>
 ```
 
-session manifest 是 immutable 记录；其中 state 字段一律写为
-`initial_state: INITIALIZED_NO_REVEAL`（C4-DESIGN-FIX2-D）。运行时状态
-**只从 production chain 派生**，不引入 mutable session state：
+session manifest 是 immutable 记录（C4-DESIGN-FIX2-D/FIX3）：字段名统一为
+`initial_state`，本示例即唯一机器 schema。运行时状态**只从 production chain
+派生**，不引入 mutable session state：
 
 ```text
 0 event        → INITIALIZED_NO_REVEAL
@@ -428,7 +429,7 @@ schedule 或 candidate 的可逆 identity 映射。
 
 只有用户/授权方明确批准并提供匹配的 `FIRST_REVEAL_ONLY` authorization，才可
 进入 C4-C。C4-C 完成第一个 REVEAL 后立即停止；任何后续 SEAL/REVEAL 必须另立
-后续阶段/权限，不由 C4 v0.1 自动执行。
+后续阶段/权限，不由 C4 v1.0 自动执行。
 
 ## 9. Implementation boundary
 
