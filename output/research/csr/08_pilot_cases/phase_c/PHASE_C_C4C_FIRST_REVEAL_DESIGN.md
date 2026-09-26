@@ -36,11 +36,13 @@ C4-C 是整个 CSR-8 实验的唯一不可逆事务：第一条 production
 > - authorization 是否已消费；
 > - 二者永远一致，不存在中间态。
 
-三份冻结对象构成事务：
+四份冻结对象构成事务：
 
-1. immutable `FIRST_REVEAL_ONLY` authorization（§2）；
+1. operator approval authority + exact-byte `FIRST_REVEAL_ONLY`
+   authorization（§2，三段式 proposal → approval → permit）；
 2. production REVEAL event payload extension（§3）；
-3. crash-safe publication transaction（§4）+ recovery matrix（§5）。
+3. crash-safe publication transaction（§4）+ recovery matrix（§5）；
+4. persisted-state semantic replay（§6.1）。
 
 ---
 
@@ -82,23 +84,93 @@ created_at: <canonical UTC timestamp %Y-%m-%dT%H:%M:%SZ>
 - authorization 的 `candidate_packet_id` / `candidate_packet_sha256` 必须
   与 C4-A frozen `first_candidate_record` exact 相等（§3 绑定链）。
 
-### 2.2 Authorization authority（exact-hash）
+### 2.2 Authorization authority（三段式：proposal → approval → exact-byte permit）
 
-`0600` 与路径唯一性只约束存放方式；**授权身份必须由内容哈希钉死**：
+`0600` 与路径唯一性只约束存放方式；**授权身份必须由内容哈希钉死，且
+approved hash 本身必须是 persisted machine authority**（C4-C-DESIGN-FIX2）。
+授权拆为三个阶段，九字段 permit schema 不变：
+
+#### 2.2.1 Proposal（不是 permit）
+
+先构造 selector-only proposal，包含最终将写入 permit 的 **exact 九字段
+canonical bytes**：
 
 ```text
-authorization_sha256 = SHA256(canonical(authorization))
+data/csr8_phase_c/production/c4-prod-0002/authorization/
+  first_reveal.proposal.json
 ```
 
-冻结：
+- `proposal_sha256 = SHA256(canonical(proposal))`；
+- proposal 只向用户暴露该 hash（如 "FIRST_REVEAL proposal hash =
+  abc123..."），不暴露 packet identity；
+- **proposal exists ≠ authorization granted**；
+- authorization_id / created_at 在 proposal 构造时即确定——之后任何
+  "现场重新生成 id/时间戳再自行算 hash"的实现都违反本节。
 
-- 用户的 `FIRST_REVEAL` 明确授权必须针对 **exact
-  `authorization_sha256`**（授权声明中写明该哈希）；
-- production REVEAL payload 必须 hash-bind `authorization_sha256`
-  （§3.1）——链上可证明的因此是"用户批准的 exact authorization bytes
-  → SHA256 → event hash"，而不是仅一个可被替换的 `authorization_id`；
-- 事务开始前 authorization 文件必须已 durable（§4 fsync 前置）；
-- authorization_sha256 ≠ 授权声明中的值 ⇒ FAIL-CLOSED。
+#### 2.2.2 Approval authority（operator 明确批准 exact hash）
+
+用户/operator 明确批准 `proposal_sha256` 后，写入独立 immutable object：
+
+```yaml
+approval_version: c4c-approval-v1
+scope: FIRST_REVEAL_ONLY
+session_id: c4-prod-0002
+approved_authorization_sha256: <exact proposal_sha256>
+approved: true
+```
+
+```text
+authorization/first_reveal.approval.json
+```
+
+- closed-world 五字段 schema（extra/missing FAIL-CLOSED）；
+- `O_CREAT|O_EXCL` 唯一路径创建，`0600`；
+- 创建即 fsync file + fsync parent directory；
+- 语义：外部 operator/user 明确批准的是**这个 exact authorization
+  hash**。不声称密码学用户签名；它是系统内的 operator authorization
+  authority。
+
+#### 2.2.3 Permit 必须 exact-copy proposal
+
+批准之后才允许创建正式 permit：
+
+```text
+proposal_sha256 == approval.approved_authorization_sha256
+        ↓（先验证）
+用 exact proposal bytes 以 create-exclusive 写入
+authorization/first_reveal.json
+```
+
+- **禁止重新构造**：即使重新构造出的对象语义字段相同，字节不同即
+  违反本节（延续 C3 以来"不重新生成等价物，只消费已批准的 exact
+  bytes"原则）；
+- 必须证明：
+
+```text
+SHA256(proposal bytes)
+    == SHA256(permit bytes)
+    == approval.approved_authorization_sha256
+```
+
+- 之后事务（§4）才能开始。
+
+完整 authority 链：
+
+```text
+exact proposal bytes
+        ↓ SHA256
+operator approval authority（persisted）
+        ↓ exact equality
+immutable production permit（exact-copy bytes）
+        ↓ SHA256
+REVEAL payload.authorization_sha256
+        ↓
+event_hash
+```
+
+`authorization_sha256 = SHA256(canonical(authorization))` 由此始终可由
+persisted state（approval + permit bytes）独立复核；授权时序循环（先有
+bytes 才有 hash，先批 hash 才准 permit）由三段式解除。
 
 ### 2.3 授权语义
 
@@ -186,7 +258,12 @@ canonical packet 文件，不得由输入重算。
 (0a) prove authorization durable:
        fsync(authorization/first_reveal.json)
        fsync(authorization parent directory)
-(0b) verify authorization_sha256 == user-approved exact hash
+(0b) verify approval authority:
+       approval closed-world (c4c-approval-v1, 唯一路径)
+       approval.approved_authorization_sha256
+         == SHA256(proposal bytes)
+         == SHA256(permit bytes)
+       （permit 必须 exact-copy proposal bytes；重新构造即 FAIL-CLOSED）
 (1)  reverify C4-A/B frozen session
        (c4-prod-0002 manifest closed-world + permissions + candidate record)
 (2)  reverify all frozen authorities
@@ -299,9 +376,12 @@ C2 replay PASS 是必要条件，但不是 C4-C semantic replay 的全部。最�
 Gate 必须**只依赖 persisted state** 重新证明整条链：
 
 ```text
-approved authorization_sha256
-        ↓
-authorization closed-world bytes（唯一路径，重读重哈希）
+approval authority
+  approved_authorization_sha256（persisted, c4c-approval-v1）
+        ↓ exact equality
+immutable permit bytes
+        ↓ SHA256 exact equality
+authorization closed-world
         ↓
 first_candidate_record（closed-world + commitment）
         ↓
@@ -316,15 +396,17 @@ event.payload.candidate_packet_sha256
                                 == first_candidate_record.candidate_packet_sha256
 event.payload.authorization_id == authorization.authorization_id
 event.payload.authorization_sha256 == SHA256(canonical(authorization))
+                                == approval.approved_authorization_sha256
 event.payload.session_id       == authorization.session_id == c4-prod-0002
 event.payload.c3_manifest_commitment == 883c9869...
         ↓
 C2 event_hash / mandatory head（fresh-load）
 ```
 
-任何一环失败 ⇒ 事务进入不可解释状态：HALT、禁止 retry、forensic audit。
-事务前检查（append 之前）不能替代本 Gate——crash recovery 的原则是只依赖
-persisted state 重新证明完整事实。
+恢复时不需要依赖聊天上下文、CLI 参数或进程内存——approved hash 本身
+就是 persisted machine authority。任何一环失败 ⇒ 事务进入不可解释状态：
+HALT、禁止 retry、forensic audit。事务前检查（append 之前）不能替代本
+Gate——crash recovery 的原则是只依赖 persisted state 重新证明完整事实。
 
 public boolean summary 只允许：
 
@@ -356,6 +438,22 @@ Git 历史因此成为 production chain 的外部 anchor：任何对 production
 log/head 或 authorization 的事后整体重写，都无法同时匹配已发布的
 `production_head_hash`。本项为采纳的推荐增强，不是回溯性 C2 语义变更。
 
+anchor 发布的时序语义（FIX2 冻结）：
+
+```text
+REVEAL transaction success
+→ production semantic invariant 已成立
+→ experiment started
+→ publish external anchor
+```
+
+- anchor 发布**不是** commit REVEAL 的前置条件；
+- 若 external-anchor publication 失败：
+  - 不得重试 REVEAL；
+  - 不得否认已经发生的 first reveal；
+  - HALT until anchor publication/reconciliation；
+- 属于 post-commit audit durability，不是 transaction rollback。
+
 ---
 
 ## 7. Synthetic / negative design gates
@@ -374,6 +472,9 @@ log/head 或 authorization 的事后整体重写，都无法同时匹配已发�
 | 6 | wrong candidate_packet_sha256 | G-C4C-AUTHZ |
 | 6b | authorization 文件整体替换（合法 schema、不同 authorization_id/created_at）| G-C4C-AUTHZ（exact-hash authority） |
 | 6c | duplicate permit path（第二份 FIRST_REVEAL_ONLY 文件） | G-C4C-AUTHZ（唯一路径 create-exclusive） |
+| 6d | proposal bytes 改写后 approved hash mismatch | G-C4C-AUTHZ（exact-hash approval） |
+| 6e | approval.approved_authorization_sha256 != SHA256(permit bytes) | G-C4C-AUTHZ |
+| 6f | permit bytes != proposal bytes（重新构造、语义字段相同） | G-C4C-AUTHZ（exact-copy 禁止重新构造） |
 | 7 | authorization_sha256 reuse（chain 已存在绑定 REVEAL） | G-C4C-AUTHZ（chain-derived consumption） |
 | 8 | candidate record tamper | G-C4-NEXT |
 | 9 | packet bytes tamper | G-C4C-BYTES |
