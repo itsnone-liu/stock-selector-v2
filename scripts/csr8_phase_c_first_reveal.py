@@ -27,6 +27,16 @@ C4-C DESIGN FINAL FROZEN @ 4d9d29c; C4-C-SYNTH-AUDIT-FIX1 (user audit):
      CONTENT fingerprint (per-file SHA256) + explicit read-only state
      assertions before and after the run.
 
+C4-C-SYNTH-AUDIT-FIX2 (user audit):
+  F6 permit-materialization ordering — materialize_permit() takes NO
+     caller-supplied authority bytes; it reads ONLY the persisted approval
+     and proposal files, verifies (closed-world + session binding +
+     9-field canonical proposal + approved hash == SHA256(persisted
+     proposal bytes)) BEFORE the O_EXCL creation, so a wrong approval chain
+     can never leave a permit on disk (fixtures 06g/06h/06i prove the
+     permit stays ABSENT). Report annotates fixture 09's gate as a
+     delegated C4-B proof.
+
 HARD BOUNDARY (design §8): never touches the real production session, never
 creates a real proposal/approval/permit, never appends outside a temp
 sandbox. Real frozen artifacts (C1/C3 authorities, C3 manifest + packet
@@ -236,17 +246,45 @@ def approve(sb, sid, proposal_sha):
     return apath
 
 
-def materialize_permit(sb, sid, proposal_bytes, proposal_sha):
-    """Stage 3: exact-copy permit — reconstruction is forbidden."""
-    verify_approval(read_json(sb / 'production' / sid / 'authorization' /
-                              'first_reveal.approval.json'))
-    if sha(proposal_bytes) != proposal_sha:
-        fail('G-C4C-AUTHZ: proposal bytes do not hash to proposal_sha')
-    permit_path = (sb / 'production' / sid / 'authorization' /
-                   'first_reveal.json')
-    excl_write(permit_path, proposal_bytes)   # exact bytes, O_EXCL
-    if sha(permit_path.read_bytes()) != proposal_sha:
-        fail('G-C4C-AUTHZ: permit bytes != approved hash')
+def materialize_permit(sb, sid):
+    """Stage 3 (C4-C-SYNTH-AUDIT-FIX2): exact-copy permit.
+
+    Authority comes ONLY from persisted state — the approval file and the
+    proposal file on disk. Caller-supplied bytes/hashes are NOT accepted
+    (stale in-memory state must never be able to create a permit).
+
+    Frozen order: read approval -> closed-world verify + session binding ->
+    read persisted proposal bytes -> 9-field closed-world/canonical verify ->
+    approved hash == SHA256(persisted proposal bytes) -> ONLY THEN O_EXCL
+    permit from the exact persisted bytes -> re-read and re-prove.
+    A wrong approval chain has no standing to create a permit, so any
+    failure here leaves first_reveal.json ABSENT.
+    """
+    adir = sb / 'production' / sid / 'authorization'
+    apath = adir / 'first_reveal.approval.json'
+    if not apath.exists():
+        fail('G-C4C-AUTHZ: approval authority missing — no basis to '
+             'materialize a permit')
+    approval = read_json(apath)
+    verify_approval(approval, sid)
+    ppath = sb / 'c4c_proposals' / sid / 'first_reveal.proposal.json'
+    if not ppath.exists():
+        fail('G-C4C-AUTHZ: persisted proposal missing')
+    proposal_bytes = ppath.read_bytes()
+    proposal = json.loads(proposal_bytes)
+    verify_permit(proposal, sid)   # same 9-field closed-world + canonical
+    proposal_sha = sha(proposal_bytes)
+    if approval['approved_authorization_sha256'] != proposal_sha:
+        fail('G-C4C-AUTHZ: approved_authorization_sha256 != SHA256(persisted '
+             'proposal bytes) — wrong approval chain has no standing to '
+             'create a permit')
+    permit_path = adir / 'first_reveal.json'
+    excl_write(permit_path, proposal_bytes)      # exact persisted bytes
+    permit_bytes = permit_path.read_bytes()
+    if permit_bytes != proposal_bytes:
+        fail('G-C4C-AUTHZ: permit bytes != persisted proposal bytes')
+    if sha(permit_bytes) != approval['approved_authorization_sha256']:
+        fail('G-C4C-AUTHZ: SHA256(permit bytes) != approved hash')
     return permit_path
 
 
@@ -636,7 +674,29 @@ def build_sandbox(td, sid='synthetic-01', proposal_overrides=None):
     ppath, pbytes = make_proposal(sb, sid, entry,
                                   overrides=proposal_overrides)
     approve(sb, sid, sha(pbytes))
-    materialize_permit(sb, sid, pbytes, sha(pbytes))
+    materialize_permit(sb, sid)     # authority from persisted state only
+    return sb, sid, entry
+
+
+def build_sandbox_pre_permit(td, sid='synthetic-01', approval_overrides=None,
+                             proposal_mutate=None):
+    """Sandbox stopped AFTER approval but BEFORE permit materialization —
+    for fixtures proving a wrong approval chain cannot create a permit."""
+    sb = Path(td)
+    c4ab.c4a_init(sid, sb / 'production')
+    cand = c4ab.first_candidate(c1)
+    entry = c4ab.candidate_packet(c1, cand)
+    ppath, pbytes = make_proposal(sb, sid, entry)
+    approve(sb, sid, sha(pbytes))
+    if approval_overrides:
+        apath = (sb / 'production' / sid / 'authorization' /
+                 'first_reveal.approval.json')
+        approval = read_json(apath)
+        approval.update(approval_overrides)
+        apath.write_text(canon(approval))
+        os.chmod(apath, 0o600)
+    if proposal_mutate:
+        proposal_mutate(ppath)
     return sb, sid, entry
 
 
@@ -688,11 +748,34 @@ def fixtures():
                           'permit closed-world violation')
     add('02-permit-schema', 'G-C4C-AUTHZ', f02)
 
-    # 3-6: hash-consistent re-signed authority, WRONG field value -> the
-    # field binding gate itself must reject (not the hash gate).
+    # 3-6: TEST-SIDE re-signed authority (proposal+approval+permit all
+    # hash-consistent) with one WRONG field — simulates a corrupt process
+    # having persisted a legally-signed wrong chain. Since FIX2 the
+    # production materialize path refuses such proposals outright; the
+    # transaction PREFLIGHT must reject the on-disk chain at the FIELD gate.
+    def rewrite_authority(sb, sid, overrides):
+        ppath = sb / 'c4c_proposals' / sid / 'first_reveal.proposal.json'
+        proposal = read_json(ppath)
+        proposal.update(overrides)
+        pbytes = canon(proposal).encode()
+        ppath.write_bytes(pbytes)
+        adir = sb / 'production' / sid / 'authorization'
+        approval = {
+            'approval_version': APPROVAL_VERSION,
+            'scope': 'FIRST_REVEAL_ONLY',
+            'session_id': sid,
+            'approved_authorization_sha256': sha(pbytes),
+            'approved': True,
+        }
+        (adir / 'first_reveal.approval.json').write_text(canon(approval))
+        (adir / 'first_reveal.json').write_bytes(pbytes)
+        for name in ('first_reveal.approval.json', 'first_reveal.json'):
+            os.chmod(adir / name, 0o600)
+
     def wrong_field_fixture(name, overrides, expected):
         def fn(td):
-            sb, sid, entry = build_sandbox(td, proposal_overrides=overrides)
+            sb, sid, entry = build_sandbox(td)
+            rewrite_authority(sb, sid, overrides)
             expect_exact_gate(lambda: run_transaction(sb, sid), expected)
         add(name, 'G-C4C-AUTHZ', fn)
 
@@ -771,6 +854,38 @@ def fixtures():
                           'permit bytes != proposal bytes')
     add('06f-permit-reconstructed', 'G-C4C-AUTHZ', f06f)
 
+    # FIX2 layer: a wrong approval chain has NO STANDING to create a permit.
+    # These prove failure happens BEFORE permit creation (permit ABSENT).
+
+    def no_permit_fixture(name, gate_msg, approval_overrides=None,
+                          proposal_mutate=None, gate='G-C4C-AUTHZ'):
+        def fn(td):
+            sb, sid, entry = build_sandbox_pre_permit(
+                td, approval_overrides=approval_overrides,
+                proposal_mutate=proposal_mutate)
+            expect_exact_gate(lambda: materialize_permit(sb, sid), gate_msg)
+            permit_path = (sb / 'production' / sid / 'authorization' /
+                           'first_reveal.json')
+            if permit_path.exists():
+                raise RuntimeError(f'{name}: permit was created despite '
+                                   'invalid approval chain')
+            print(f'NO-PERMIT PROOF: {name} -> first_reveal.json absent')
+        add(name, gate, fn)
+
+    no_permit_fixture(
+        '06g-wrong-approval-no-permit',
+        'approved_authorization_sha256 != SHA256(persisted proposal bytes)',
+        approval_overrides={'approved_authorization_sha256': '9' * 64})
+    no_permit_fixture(
+        '06h-proposal-drift-no-permit',
+        'approved_authorization_sha256 != SHA256(persisted proposal bytes)',
+        proposal_mutate=lambda ppath: ppath.write_text(canon(
+            dict(read_json(ppath), created_at='2033-01-01T00:00:00Z'))))
+    no_permit_fixture(
+        '06i-approval-session-no-permit',
+        'approval session binding violation',
+        approval_overrides={'session_id': 'other-session'})
+
     # 7 authorization reuse after success — CHAIN-DERIVED consumption
     def f07(td):
         sb, sid, entry = build_sandbox(td)
@@ -807,7 +922,9 @@ def fixtures():
         expect_exact_gate(lambda: c4ab.verify_candidate_bytes(
             entry, state_dir=tmpc3),
             'G-C4-BYTES: frozen packet bytes hash mismatch')
-    add('09-c3-packet-bytes-tamper', 'G-C4C-BYTES', f09)
+    add('09-c3-packet-bytes-tamper',
+        'G-C4C-BYTES delegated -> C4-B verify_candidate_bytes '
+        '(G-C4-BYTES)', f09)
 
     # 9b staged archive bytes tamper -> staged replay exact-byte binding
     def f09b(td):
@@ -1090,7 +1207,7 @@ def cmd_synthetic():
     runtime_events = assert_real_production_pristine()  # F5 post-run
     report = {
         'construction_mode': 'synthetic/staging only; real session untouched',
-        'audit_fix': 'C4-C-SYNTH-AUDIT-FIX1 (F1-F5)',
+        'audit_fix': 'C4-C-SYNTH-AUDIT-FIX2 (F1-F6)',
         'transaction_gates': ['G-C4C-AUTHZ', 'G-C4-NEXT', 'G-C4C-BYTES',
                               'G-C4C-STAGED-REPLAY', 'G-C4C-PUBLISH',
                               'G-C4C-PROD-REPLAY', 'G-C4C-BOUNDARY'],
@@ -1105,7 +1222,7 @@ def cmd_synthetic():
     }
     SYNTH_DIR.mkdir(parents=True, exist_ok=True)
     (SYNTH_DIR / 'c4c_synthetic_report.json').write_text(canon(report))
-    print(f'C4-C SYNTHETIC PASS (AUDIT-FIX1): {len(fixture_results)} '
+    print(f'C4-C SYNTHETIC PASS (AUDIT-FIX2): {len(fixture_results)} '
           f'target-isolated fixtures + {len(crash_results)} recovery '
           f'scenarios; real production content-fingerprint unchanged, '
           f'runtime-asserted {runtime_events} production events')
