@@ -150,8 +150,10 @@ def run():
                     '本报告只覆盖前两层。'),
         'akshare_version': akshare.__version__,
         'status_ladder': ['SMOKE_OK', 'CONTENT_OK_PIT_PENDING', 'PIT_READY',
-                          'SMOKE_OK_OPTIONAL_REFERENCE', 'PENDING_RETRY',
-                          'INTERFACE_GAP', 'SOURCE_DESIGN_REQUIRED'],
+                          'SMOKE_OK_OPTIONAL_REFERENCE', 'OPTIONAL_ENDPOINT_FAILING',
+                          'SMOKE_OK_AT_PROBE_TIME_NOW_FAILING', 'PENDING_RETRY',
+                          'FIELD_SCHEMA_MISMATCH', 'INTERFACE_GAP',
+                          'SOURCE_DESIGN_REQUIRED'],
         'pit_rule': ('report_period_end != available_date；任何 xp 证据在 publication_date '
                      '链建立前不得进入盲标注/回测可用集；rt 聚合源无可验证 timestamp 时按 T+1 '
                      '保守处理并登记 availability_basis'),
@@ -164,9 +166,13 @@ def run():
         },
         'next': [
             'rt 三通道(margin/lhb/dzjy)按 84 案例窗口正式拉取——ingestion 契约先行: '
-            'trade_date/source/source_record_date/publication_date/retrieved_at/'
-            'available_date/availability_basis 七字段必留',
-            '东财域冷却重试 holder_count/insider_trades；深交所域重试 margin_detail_szse',
+            'observation_date/source/source_record_date/publication_date/retrieved_at/'
+            'available_date/availability_basis 七字段必留(observation_date 为 CSR-6 '
+            '核心时间链主键,通道事件时间留 payload)',
+            'holder_count_detail / insider_trades -> 东财域冷却 retry；'
+            'holder_count_list -> 非网络问题而是 5231 行返回但字段 schema 不匹配,'
+            '需 schema remap(东财改版列名确认)后 re-probe',
+            '深交所域重试 margin_detail_szse(曾验证 1981 行,历史事实登记,当前轮如实 PENDING)',
             'PIT 行业表 SOURCE_DESIGN 单独立项(官方历史快照+变更公告)',
             'XP 通道的 publication_date 链：巨潮公告 join 方案设计',
             'ETF 份额替代源调研',

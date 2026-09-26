@@ -8,7 +8,10 @@ status_ladder:
 - CONTENT_OK_PIT_PENDING
 - PIT_READY
 - SMOKE_OK_OPTIONAL_REFERENCE
+- OPTIONAL_ENDPOINT_FAILING
+- SMOKE_OK_AT_PROBE_TIME_NOW_FAILING
 - PENDING_RETRY
+- FIELD_SCHEMA_MISMATCH
 - INTERFACE_GAP
 - SOURCE_DESIGN_REQUIRED
 pit_rule: report_period_end != available_date；任何 xp 证据在 publication_date 链建立前不得进入盲标注/回测可用集；rt 聚合源无可验证
@@ -51,12 +54,12 @@ channels:
   layer: rt
   channel_family: margin
   evidence_ref: E-STK-08 (per-stock)
-  status: PENDING_RETRY
+  status: CONTENT_OK_PIT_PENDING
   fields: null
   note: 2026-09-26 首探连接重置（深交所域）；重跑成功即升级
   success_status: CONTENT_OK_PIT_PENDING
-  probe_result: 'FAIL ConnectionError: (''Connection aborted.'', ConnectionResetError(104, ''Connection
-    reset by peer''))'
+  rows_probed: 1981
+  probe_result: OK
 - name: rt_margin_underlying_pool_szse
   layer: rt
   channel_family: margin
@@ -117,17 +120,13 @@ channels:
   layer: xp
   channel_family: holder_count
   evidence_ref: CSR-6 户数 verdict
-  status: FIELD_SCHEMA_MISMATCH
+  status: PENDING_RETRY
   fields:
   - 股票代码
   - 股东户数
   note: 东财域间歇限流；成功且必需字段齐才升级(FIELD_SCHEMA_MISMATCH gate)
   success_status: CONTENT_OK_PIT_PENDING
-  rows_probed: 5231
-  fields_missing_from_response:
-  - 股票代码
-  - 股东户数
-  probe_result: OK_BUT_FIELDS_MISSING
+  probe_result: 'FAIL ChunkedEncodingError: Response ended prematurely'
 - name: xp_holder_count_detail
   layer: xp
   channel_family: holder_count
@@ -220,17 +219,18 @@ counts:
   endpoint_count: 15
   evidence_id_count: 13
   by_status:
-    CONTENT_OK_PIT_PENDING: 7
-    PENDING_RETRY: 3
+    CONTENT_OK_PIT_PENDING: 8
     SMOKE_OK_OPTIONAL_REFERENCE: 1
     INTERFACE_GAP: 1
-    FIELD_SCHEMA_MISMATCH: 1
+    PENDING_RETRY: 3
     OPTIONAL_ENDPOINT_FAILING: 1
     SOURCE_DESIGN_REQUIRED: 1
 next:
-- 'rt 三通道(margin/lhb/dzjy)按 84 案例窗口正式拉取——ingestion 契约先行: trade_date/source/source_record_date/publication_date/retrieved_at/available_date/availability_basis
-  七字段必留'
-- 东财域冷却重试 holder_count/insider_trades；深交所域重试 margin_detail_szse
+- 'rt 三通道(margin/lhb/dzjy)按 84 案例窗口正式拉取——ingestion 契约先行: observation_date/source/source_record_date/publication_date/retrieved_at/available_date/availability_basis
+  七字段必留(observation_date 为 CSR-6 核心时间链主键,通道事件时间留 payload)'
+- holder_count_detail / insider_trades -> 东财域冷却 retry；holder_count_list -> 非网络问题而是 5231 行返回但字段 schema
+  不匹配,需 schema remap(东财改版列名确认)后 re-probe
+- 深交所域重试 margin_detail_szse(曾验证 1981 行,历史事实登记,当前轮如实 PENDING)
 - PIT 行业表 SOURCE_DESIGN 单独立项(官方历史快照+变更公告)
 - XP 通道的 publication_date 链：巨潮公告 join 方案设计
 - ETF 份额替代源调研
