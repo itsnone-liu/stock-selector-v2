@@ -114,14 +114,25 @@ record_gates:
       available_date 与 publication_date 均非空时，available_date >=
       publication_date，违反即拒绝（时间倒流）。
   RG-2 xp_pit: >
-      layer=xp 且 publication_date=NULL → 记录入库但不进入
-      标注/回测可用集（is_pit_usable=false 标记）。
+      action=ACCEPT_BUT_NOT_PIT_USABLE（非 rejection gate）：
+      layer=xp 且 publication_date=NULL → 记录仍然入库（is_pit_usable=false
+      标记，进普通 ingestion audit 字段）；**不得进入 ingestion_rejects**——
+      "被拒绝"与"已入库但暂不可用"是两种审计事实，禁止混同。
   RG-3 basis_match: >
-      available_date 非 NULL 时 availability_basis ∈ {OFFICIAL_RULE,
-      SOURCE_TIMESTAMP, CONSERVATIVE_T1}；=UNPROVEN 时 available_date 必为 NULL。
+      available_date 与 availability_basis **双向绑定**：
+      available_date IS NULL ⇔ availability_basis = UNPROVEN；
+      available_date IS NOT NULL ⇔ availability_basis ∈ {OFFICIAL_RULE,
+      SOURCE_TIMESTAMP, CONSERVATIVE_T1}。
+      任一方向违反即拒绝（杜绝 available_date=NULL + SOURCE_TIMESTAMP
+      之类自相矛盾记录通过 gate）。
   RG-4 source_level: >
-      source 字段必含层级声明；AGGREGATOR 层级不得声明 OFFICIAL_RULE basis
-      （除非附官方文件证据引用）。
+      source 字段必含层级声明且符合 canonical grammar；
+      **AGGREGATOR 永久禁止 OFFICIAL_RULE basis（无例外）**：官方规则能
+      证明交易所何时公布，不能证明聚合 endpoint 当时已拿到数据。
+      source LEVEL=AGGREGATOR → availability_basis ∈ {SOURCE_TIMESTAMP
+      （有可验证聚合源 timestamp）, CONSERVATIVE_T1（无 timestamp）}；
+      即使官方披露规则已知，也只能留 payload 作参考，不得升级聚合渠道
+      自身的 available basis。
 
 # ============ 消费规则（下游引用统一走这里）============
 consumption:
@@ -134,12 +145,23 @@ consumption:
     消费层只读不推）。此条为 hard_gate_1 在消费侧的镜像。
   pit_ready_definition: >
     两级拆分（不得混同）：
-    record_pit_usable = 单条记录七字段完备 + basis 可证明
-      （record 级，本契约即可机器判定）；
-    channel_pit_ready = 通道级评级，需 OQ-3 覆盖率阈值冻结后才可
-      自动升级——**在 OQ-3 冻结前 channel-level PIT_READY promotion
-      保持禁用**。CONTENT_OK_PIT_PENDING → channel PIT_READY 的
-      机器判据 = record_pit_usable 比例 ≥ OQ-3 阈值（待定）。
+    record_pit_usable（record 级，本契约机器判定）——共同必需：
+      observation_date != NULL；source != NULL；retrieved_at != NULL；
+      available_date != NULL；availability_basis != UNPROVEN；
+      全部 record gates PASS。
+    分层附加：
+      RT 层——publication_date 可 NULL；basis ∈ {OFFICIAL_RULE,
+      SOURCE_TIMESTAMP, CONSERVATIVE_T1}；
+      XP 层——publication_date 必须非 NULL；basis ∈ {OFFICIAL_RULE,
+      SOURCE_TIMESTAMP}；CONSERVATIVE_T1 禁止。
+    CONSERVATIVE_T1 语义（安全可用 ≠ 高质量）：basis=CONSERVATIVE_T1
+      的记录可以安全参与 as-of-T 分析（保守下一交易日），但**不计入
+      RT channel_pit_ready 的 numerator**。
+    channel_pit_ready（通道级，OQ-3 冻结前 promotion 禁用）——
+      numerator 口径：RT=basis ∈ {OFFICIAL_RULE, SOURCE_TIMESTAMP} 的
+      record_pit_usable 记录（不含 CONSERVATIVE_T1）；XP=publication_date
+      非空且 basis ∈ {OFFICIAL_RULE, SOURCE_TIMESTAMP}；
+      机器判据 = numerator/总量 ≥ OQ-3 阈值（待冻结）。
 
 # ============ 与 tdx-node 归档四件套的对接 ============
 tdx_bridge:
@@ -156,7 +178,10 @@ reject_log_schema:
   required_fields:
     ingest_run_id: 入库批次标识（同一批次拒绝可聚合审计）
     rejected_at: timezone-aware UTC ISO-8601（同 retrieved_at 口径）
-    gate_id: 触发拒绝的 gate（hard_gate_1 / RG-1 / RG-2 / RG-3 / RG-4）
+    gate_id: >
+      触发拒绝的 gate（枚举：hard_gate_1 / RG-1 / RG-3 / RG-4）。
+      RG-2 不在此列——其 action=ACCEPT_BUT_NOT_PIT_USABLE（入库+审计标记，
+      非 rejection）。
     source: canonical grammar 字符串（同 source 字段格式）
     record_identity: 记录业务标识（如 code+observation_date）
     raw_ref: 被拒记录在原始采集文件中的定位引用
