@@ -121,8 +121,9 @@ def g1():
         if first + 126 > n:
             continue
         # monthly starts across the stock's life
-        starts = [i for i in range(first + 126, n - G1_WIN_MIN) if i == first + 126 or
-                  (i > 0 and DATES[i][5:7] != DATES[i-1][5:7])]
+        # erratum G1-E2: calendar-month FIRST trading day only (no ad-hoc 126th-day start)
+        starts = [i for i in range(first + 126, n - G1_WIN_MIN)
+                  if i > 0 and DATES[i][5:7] != DATES[i-1][5:7]]
         best_gain, best_win = -1.0, None
         for i in starts:
             seg = c[i:]
@@ -167,6 +168,11 @@ def g1():
     if len(cand) < N_PER_GROUP:
         log(f'G1 INSUFFICIENT_CANDIDATES: {len(cand)} < {N_PER_GROUP} '
             f'(registered, no backfill/threshold-lowering)')
+    # regression gate (AUDIT-FIX2): every episode w_start = first market day of its month
+    for _, r in df.iterrows():
+        i = DIDX[r['w_start']]
+        assert i > 0 and DATES[i][5:7] != DATES[i-1][5:7], \
+            f'G1 gate: {r["code"]} w_start {r["w_start"]} not month-first trading day'
     df.to_csv(OUT/'g1_episodes.csv', index=False)
     return cand, thr, sens
 

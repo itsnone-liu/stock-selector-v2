@@ -8,29 +8,29 @@
  "g1_window_max_days": 1250,
  "g1_recovery_definition": "erratum G1-E1: 20% drawdown from running peak; recovery=close returns to dd-start peak; <=3",
  "g1_quantile_order": "erratum v2 G1-P1: pool-level 99.5% quantile computed ONCE on FULL episode population (pre-filter), then recovery filter; INSUFFICIENT_CANDIDATES registered when <20, no backfill",
- "g1_threshold_995": 26.171336174011216,
+ "g1_threshold_995": 26.172192859649662,
  "g1_threshold_sensitivity": {
   "15%": {
-   "n_episodes": 5061,
-   "thr995_fixed": 26.171336174011216,
+   "n_episodes": 5059,
+   "thr995_fixed": 26.172192859649662,
    "n_above_thr": 26,
    "n_candidates": 1
   },
   "20%": {
-   "n_episodes": 5061,
-   "thr995_fixed": 26.171336174011216,
+   "n_episodes": 5059,
+   "thr995_fixed": 26.172192859649662,
    "n_above_thr": 26,
-   "n_candidates": 3
+   "n_candidates": 4
   },
   "25%": {
-   "n_episodes": 5061,
-   "thr995_fixed": 26.171336174011216,
+   "n_episodes": 5059,
+   "thr995_fixed": 26.172192859649662,
    "n_above_thr": 26,
    "n_candidates": 7
   }
  },
  "g1_insufficient": true,
- "g1_n_candidates_final": 3,
+ "g1_n_candidates_final": 4,
  "g2_reference_high": "erratum v2 G2-P1+P1b: reference = pre-20d max close EXCLUDING T0; check window = T0+1..T0+120 (excl. T0); no-new-high = max(close[T0+1..T0+120]) <= pre20 high",
  "g4_authoritative_rule": "erratum G4-E1: anchor_generation detailed rule; group-rule phrase is shorthand; gain_12m only for uniqueness",
  "universe": {
@@ -59,8 +59,8 @@
  ],
  "per_group_counts": {
   "G1_complete_bull": {
-   "candidates": 3,
-   "chosen": 3,
+   "candidates": 4,
+   "chosen": 4,
    "substitutes": 0,
    "excluded": 0,
    "redrawn": false
@@ -101,19 +101,19 @@
   "t6_1_per_event.parquet": "de2e1f9c0433c6e2f65e7d0b31bdd95479e935bd745dcf51e48bcbaf8329ffec",
   "csrc_industry_snapshot.json": "58404540f7e9036feb6c730dcc66f98d75c904bf25e6d6bbb5a491156340c8b2",
   "per_stock_aggregate": "1d64e4bddf854b1a341df1fc41ea86ffa71984d7bdceb30c9ec439e5c1476473",
-  "csr8_sample.py": "c6ce5b4d54d5b6e5e3052d5c26da028bac69f47348fd0075b2bdf21e189a68a3",
+  "csr8_sample.py": "43e4e50fb7da5a1faa25d4a7c495fbc3cfe73435d324f1b1962e65f12e444b37",
   "CSR_7_CASE_PROTOCOL.yaml": "04651e04e2b981c396703351f393729f2f074306f927b5d0c611b8de8c39a7ba",
   "CSR_7_IMPLEMENTATION_ERRATUM.md": "f0679d2c94869146826adf503c88cfc6bd6f35a82dcf012164a38d3ceade3748"
  },
  "output_hashes": {
-  "g1_episodes.csv": "5392830c52380b66f0da4a3cb5be4557203dfe65b8b97f80287becffb1fdd297",
+  "g1_episodes.csv": "efdade4770f7bc7de3744379078cd0c2ee6a60246ab4ec39683d873124c3d971",
   "g2_episodes.csv": "527e64c37b8ae5c4b8127cd1c0cbca2150f87c0d3d00e54747d0912dc80d1087",
   "g2_uniq.csv": "3ace6ca9240bbe5de90efbe3647fd8e346bdefce122a9371be12c1d33f35fed7",
   "g3_episodes.csv": "0cb3c3a8b62921b0b1e08c0e4e742c04fc6528641e14de541012cef6605b3fa9",
   "g4_episodes.csv": "ad992fd52388efd85cb264a9f0c2cbac9051cea6e7ca0faee5e99fd2e6e27969",
   "g5_episodes.csv": "e707673b97efb95e76c4a2124e3b7da6157e5057c738e987820dcd559ef0f0e9",
   "g5_industry_episodes.csv": "a5b35233ccbd31c277d1eba4e21ecffcfe662deeb8fc3cbe911e50eae62c56fa",
-  "sample_selection.json": "d9ebc5c47e1540b077789e803e954e60e4fc6762acc5b071361829a76c30da69"
+  "sample_selection.json": "8c9cd6240f7714e4130e0003a107d9fd1663de49fb221325170a51563e7eb2f2"
  },
  "versions": {
   "numpy": "2.4.6",
