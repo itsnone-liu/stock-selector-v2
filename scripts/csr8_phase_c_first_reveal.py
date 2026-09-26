@@ -37,6 +37,18 @@ C4-C-SYNTH-AUDIT-FIX2 (user audit):
      permit stays ABSENT). Report annotates fixture 09's gate as a
      delegated C4-B proof.
 
+C4-C-SYNTH-AUDIT-FIX3 (user audit):
+  F7 permit pre-materialization legality — BEFORE the O_EXCL creation the
+     materializer additionally proves: (A) proposal bytes ARE the exact
+     canonical serialization (proposal_bytes == canon(json).encode()), so
+     authorization_sha256 can only ever be SHA256(canonical bytes); and
+     (B) the proposal exact-binds the FROZEN first candidate (session
+     manifest reverified, candidate recomputed, record verified, packet
+     bytes verified; proposal.candidate_packet_id == record == recomputed
+     entry, same for sha256). Fixtures 06j/06k/06l prove illegal
+     proposals leave the permit ABSENT. Real-domain isolation now also
+     asserts the real c4c_proposals domain does not exist (pre/post).
+
 HARD BOUNDARY (design §8): never touches the real production session, never
 creates a real proposal/approval/permit, never appends outside a temp
 sandbox. Real frozen artifacts (C1/C3 authorities, C3 manifest + packet
@@ -63,6 +75,7 @@ import csr8_phase_c_activate as c4ab      # frozen C4-A/B helpers
 
 C3_STATE = c4ab.C3_STATE
 REAL_PRODUCTION = ROOT / 'data/csr8_phase_c/production'
+REAL_PROPOSALS = ROOT / 'data/csr8_phase_c/c4c_proposals'
 SYNTH_DIR = ROOT / 'output/research/csr/08_pilot_cases/phase_c/c4c_synthetic'
 
 AUTHZ_VERSION = 'c4c-auth-v1'
@@ -186,7 +199,12 @@ def tree_fingerprint(path):
 
 
 def assert_real_production_pristine():
-    """F5: runtime read-only proof that the real experiment has NOT started."""
+    """F5/FIX3: runtime read-only proof that the real experiment has NOT
+    started — including that the real pre-authorization proposal domain
+    does not exist."""
+    if REAL_PROPOSALS.exists():
+        fail('real c4c_proposals domain exists — real proposal must NOT '
+             'exist before the human FIRST_REVEAL_ONLY authorization')
     s1, s2 = REAL_PRODUCTION / 'c4-prod-0001', REAL_PRODUCTION / 'c4-prod-0002'
     if not (s1 / 'SUPERSEDED.json').exists():
         fail('real c4-prod-0001 SUPERSEDED marker missing')
@@ -273,6 +291,28 @@ def materialize_permit(sb, sid):
     proposal_bytes = ppath.read_bytes()
     proposal = json.loads(proposal_bytes)
     verify_permit(proposal, sid)   # same 9-field closed-world + canonical
+    # FIX3-A: the bytes themselves must be the exact canonical serialization
+    if proposal_bytes != canon(proposal).encode():
+        fail('G-C4C-AUTHZ: proposal bytes are not the canonical 9-field '
+             'serialization (exact canonical bytes required)')
+    # FIX3-B: the proposal must bind the FROZEN first candidate (design
+    # §2.1) — a legal-looking proposal for any other packet has no
+    # standing to become a formal permit.
+    prod = sb / 'production' / sid
+    manifest = c4ab.verify_session_manifest(sid, prod)
+    c4ab.verify_session_permissions(prod)
+    cand = c4ab.first_candidate(c1)
+    entry = c4ab.candidate_packet(c1, cand)
+    record = c4ab.verify_first_candidate_record(sid, prod, manifest, entry)
+    c4ab.verify_candidate_bytes(entry)
+    if proposal['candidate_packet_id'] != record['candidate_packet_id'] or \
+            record['candidate_packet_id'] != entry['packet_id']:
+        fail('G-C4C-AUTHZ: proposal candidate_packet_id != frozen first '
+             'candidate — no standing to create a permit')
+    if proposal['candidate_packet_sha256'] != record['candidate_packet_sha256'] \
+            or record['candidate_packet_sha256'] != entry['sha256']:
+        fail('G-C4C-AUTHZ: proposal candidate_packet_sha256 != frozen first '
+             'candidate — no standing to create a permit')
     proposal_sha = sha(proposal_bytes)
     if approval['approved_authorization_sha256'] != proposal_sha:
         fail('G-C4C-AUTHZ: approved_authorization_sha256 != SHA256(persisted '
@@ -678,25 +718,16 @@ def build_sandbox(td, sid='synthetic-01', proposal_overrides=None):
     return sb, sid, entry
 
 
-def build_sandbox_pre_permit(td, sid='synthetic-01', approval_overrides=None,
-                             proposal_mutate=None):
+def build_sandbox_pre_permit(td, sid='synthetic-01'):
     """Sandbox stopped AFTER approval but BEFORE permit materialization —
-    for fixtures proving a wrong approval chain cannot create a permit."""
+    for fixtures proving a wrong approval chain / illegal proposal cannot
+    create a permit."""
     sb = Path(td)
     c4ab.c4a_init(sid, sb / 'production')
     cand = c4ab.first_candidate(c1)
     entry = c4ab.candidate_packet(c1, cand)
     ppath, pbytes = make_proposal(sb, sid, entry)
     approve(sb, sid, sha(pbytes))
-    if approval_overrides:
-        apath = (sb / 'production' / sid / 'authorization' /
-                 'first_reveal.approval.json')
-        approval = read_json(apath)
-        approval.update(approval_overrides)
-        apath.write_text(canon(approval))
-        os.chmod(apath, 0o600)
-    if proposal_mutate:
-        proposal_mutate(ppath)
     return sb, sid, entry
 
 
@@ -854,37 +885,95 @@ def fixtures():
                           'permit bytes != proposal bytes')
     add('06f-permit-reconstructed', 'G-C4C-AUTHZ', f06f)
 
-    # FIX2 layer: a wrong approval chain has NO STANDING to create a permit.
-    # These prove failure happens BEFORE permit creation (permit ABSENT).
+    # FIX2/FIX3 layer: a wrong approval chain or an illegal proposal has NO
+    # STANDING to create a permit. These prove failure happens BEFORE permit
+    # creation (permit ABSENT).
 
-    def no_permit_fixture(name, gate_msg, approval_overrides=None,
-                          proposal_mutate=None, gate='G-C4C-AUTHZ'):
+    def no_permit_fixture(name, gate_msg, forge=None, gate='G-C4C-AUTHZ'):
         def fn(td):
-            sb, sid, entry = build_sandbox_pre_permit(
-                td, approval_overrides=approval_overrides,
-                proposal_mutate=proposal_mutate)
+            sb, sid, entry = build_sandbox_pre_permit(td)
+            if forge:
+                forge(sb, sid)
             expect_exact_gate(lambda: materialize_permit(sb, sid), gate_msg)
             permit_path = (sb / 'production' / sid / 'authorization' /
                            'first_reveal.json')
             if permit_path.exists():
                 raise RuntimeError(f'{name}: permit was created despite '
-                                   'invalid approval chain')
+                                   'invalid approval chain / illegal proposal')
             print(f'NO-PERMIT PROOF: {name} -> first_reveal.json absent')
         add(name, gate, fn)
+
+    def reapprove(sb, sid, proposal_bytes):
+        apath = (sb / 'production' / sid / 'authorization' /
+                 'first_reveal.approval.json')
+        approval = read_json(apath)
+        approval['approved_authorization_sha256'] = sha(proposal_bytes)
+        apath.write_text(canon(approval))
+        os.chmod(apath, 0o600)
+
+    def rewrite_proposal(sb, sid, proposal):
+        ppath = sb / 'c4c_proposals' / sid / 'first_reveal.proposal.json'
+        pbytes = canon(proposal).encode()
+        ppath.write_bytes(pbytes)
+        reapprove(sb, sid, pbytes)
+        return pbytes
+
+    def forge_wrong_approval(sb, sid):
+        apath = (sb / 'production' / sid / 'authorization' /
+                 'first_reveal.approval.json')
+        approval = read_json(apath)
+        approval['approved_authorization_sha256'] = '9' * 64
+        apath.write_text(canon(approval))
+        os.chmod(apath, 0o600)
+
+    def forge_session_mismatch(sb, sid):
+        apath = (sb / 'production' / sid / 'authorization' /
+                 'first_reveal.approval.json')
+        approval = read_json(apath)
+        approval['session_id'] = 'other-session'
+        apath.write_text(canon(approval))
+        os.chmod(apath, 0o600)
 
     no_permit_fixture(
         '06g-wrong-approval-no-permit',
         'approved_authorization_sha256 != SHA256(persisted proposal bytes)',
-        approval_overrides={'approved_authorization_sha256': '9' * 64})
+        forge=forge_wrong_approval)
     no_permit_fixture(
         '06h-proposal-drift-no-permit',
         'approved_authorization_sha256 != SHA256(persisted proposal bytes)',
-        proposal_mutate=lambda ppath: ppath.write_text(canon(
-            dict(read_json(ppath), created_at='2033-01-01T00:00:00Z'))))
+        forge=lambda sb, sid: (
+            sb / 'c4c_proposals' / sid / 'first_reveal.proposal.json'
+        ).write_text(canon(dict(
+            read_json(sb / 'c4c_proposals' / sid /
+                      'first_reveal.proposal.json'),
+            created_at='2033-01-01T00:00:00Z'))))  # approval left stale
     no_permit_fixture(
         '06i-approval-session-no-permit',
         'approval session binding violation',
-        approval_overrides={'session_id': 'other-session'})
+        forge=forge_session_mismatch)
+    no_permit_fixture(
+        '06j-noncanonical-proposal-bytes-no-permit',
+        'not the canonical 9-field serialization',
+        forge=lambda sb, sid: (lambda ppath: (
+            ppath.write_bytes(json.dumps(
+                read_json(ppath), ensure_ascii=False, sort_keys=True,
+                indent=1).encode()),
+            reapprove(sb, sid, ppath.read_bytes()),
+        ))(sb / 'c4c_proposals' / sid / 'first_reveal.proposal.json'))
+    no_permit_fixture(
+        '06k-wrong-candidate-id-no-permit',
+        'proposal candidate_packet_id != frozen first candidate',
+        forge=lambda sb, sid: rewrite_proposal(
+            sb, sid, dict(read_json(
+                sb / 'c4c_proposals' / sid / 'first_reveal.proposal.json'),
+                candidate_packet_id='d' * 64)))
+    no_permit_fixture(
+        '06l-wrong-candidate-sha-no-permit',
+        'proposal candidate_packet_sha256 != frozen first candidate',
+        forge=lambda sb, sid: rewrite_proposal(
+            sb, sid, dict(read_json(
+                sb / 'c4c_proposals' / sid / 'first_reveal.proposal.json'),
+                candidate_packet_sha256='e' * 64)))
 
     # 7 authorization reuse after success — CHAIN-DERIVED consumption
     def f07(td):
@@ -895,9 +984,12 @@ def fixtures():
     add('07-authz-reuse', 'G-C4C-AUTHZ', f07)
 
     # 8 record tamper with SELF-CONSISTENT session manifest -> G-C4-NEXT
+    # (wrong-sha authority chain is written TEST-SIDE since FIX3: the
+    # production materializer refuses it outright)
     def f08(td):
-        sb, sid, entry = build_sandbox(td, proposal_overrides={
-            'candidate_packet_sha256': '2' * 64})
+        sb, sid, entry = build_sandbox(td)
+        rewrite_authority(sb, sid,
+                          {'candidate_packet_sha256': '2' * 64})
         prod = sb / 'production' / sid
         rec = read_json(prod / 'first_candidate_record.json')
         rec['candidate_packet_sha256'] = '2' * 64
@@ -1194,6 +1286,7 @@ def crash_matrix():
 def cmd_synthetic():
     assert_real_production_pristine()               # F5 pre-run assertion
     before = tree_fingerprint(REAL_PRODUCTION)
+    before_proposals = tree_fingerprint(REAL_PROPOSALS)
     with tempfile.TemporaryDirectory(prefix='c4c-synthetic-') as td:
         sb, sid, entry = build_sandbox(td)
         summary = run_transaction(sb, sid)
@@ -1204,10 +1297,13 @@ def cmd_synthetic():
     after = tree_fingerprint(REAL_PRODUCTION)
     if before != after:
         fail('REAL PRODUCTION DOMAIN WAS MUTATED — fail-closed')
+    if tree_fingerprint(REAL_PROPOSALS) != before_proposals:
+        fail('REAL PROPOSAL DOMAIN WAS MUTATED — fail-closed')
     runtime_events = assert_real_production_pristine()  # F5 post-run
     report = {
         'construction_mode': 'synthetic/staging only; real session untouched',
-        'audit_fix': 'C4-C-SYNTH-AUDIT-FIX2 (F1-F6)',
+        'audit_fix': 'C4-C-SYNTH-AUDIT-FIX3 (F1-F7)',
+        'real_proposal_domain_absent': True,
         'transaction_gates': ['G-C4C-AUTHZ', 'G-C4-NEXT', 'G-C4C-BYTES',
                               'G-C4C-STAGED-REPLAY', 'G-C4C-PUBLISH',
                               'G-C4C-PROD-REPLAY', 'G-C4C-BOUNDARY'],
@@ -1222,10 +1318,10 @@ def cmd_synthetic():
     }
     SYNTH_DIR.mkdir(parents=True, exist_ok=True)
     (SYNTH_DIR / 'c4c_synthetic_report.json').write_text(canon(report))
-    print(f'C4-C SYNTHETIC PASS (AUDIT-FIX2): {len(fixture_results)} '
+    print(f'C4-C SYNTHETIC PASS (AUDIT-FIX3): {len(fixture_results)} '
           f'target-isolated fixtures + {len(crash_results)} recovery '
-          f'scenarios; real production content-fingerprint unchanged, '
-          f'runtime-asserted {runtime_events} production events')
+          f'scenarios; real production + proposal domain content-fingerprint '
+          f'unchanged, runtime-asserted {runtime_events} production events')
 
 
 def main():
