@@ -1,0 +1,46 @@
+{
+ "window": [
+  "2021-03-08",
+  "2026-09-17"
+ ],
+ "batch_status": "COMPLETE",
+ "completeness_rule": "expected = SUCCESS_NONEMPTY+SUCCESS_EMPTY+FAILED; COMPLETE iff FAILED=0, MISSING=0, SHA all verified",
+ "per_endpoint": {
+  "margin_sse": {
+   "expected_requests": 1345,
+   "SUCCESS_NONEMPTY": 1345,
+   "SUCCESS_EMPTY": 0,
+   "FAILED": 0,
+   "MISSING": 0,
+   "SHA_BAD": 0,
+   "batch_status": "COMPLETE"
+  },
+  "margin_szse": {
+   "expected_requests": 1345,
+   "SUCCESS_NONEMPTY": 1345,
+   "SUCCESS_EMPTY": 0,
+   "FAILED": 0,
+   "MISSING": 0,
+   "SHA_BAD": 0,
+   "batch_status": "COMPLETE"
+  },
+  "lhb": {
+   "expected_requests": 67,
+   "SUCCESS_NONEMPTY": 67,
+   "SUCCESS_EMPTY": 0,
+   "FAILED": 0,
+   "MISSING": 0,
+   "SHA_BAD": 0,
+   "batch_status": "COMPLETE"
+  },
+  "dzjy": {
+   "expected_requests": 67,
+   "SUCCESS_NONEMPTY": 67,
+   "SUCCESS_EMPTY": 0,
+   "FAILED": 0,
+   "MISSING": 0,
+   "SHA_BAD": 0,
+   "batch_status": "COMPLETE"
+  }
+ }
+}
