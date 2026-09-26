@@ -66,16 +66,41 @@ created_at: <canonical UTC timestamp %Y-%m-%dT%H:%M:%SZ>
   任何 extra/missing 字段 FAIL-CLOSED（与 C4-A/B FIX2 同构的 schema gate，
   独立于任何 hash 门）；
 - `scope` 严格等于 `FIRST_REVEAL_ONLY`；
-- selector-only 文件权限 `0600`，位于 production session 目录内；
-- **创建后 immutable**：任何改写、重写、追加即 FAIL-CLOSED；
-  authorization 没有 `consumed` 字段——consumption 只能从 production
-  chain 派生（§2.3）；
+- **唯一路径 + create-exclusive**：authorization 文件只能位于
+
+  ```text
+  data/csr8_phase_c/production/c4-prod-0002/authorization/first_reveal.json
+  ```
+
+  以 no-overwrite（O_CREAT|O_EXCL）语义创建；一个 session 不允许存在
+  第二份 `FIRST_REVEAL_ONLY` permit。路径已存在时再次"授权"FAIL-CLOSED；
+- selector-only 文件权限 `0600`；**创建后 immutable**：任何改写、重写、
+  追加即 FAIL-CLOSED；authorization 没有 `consumed` 字段——consumption
+  只能从 production chain 派生（§2.4）；
 - `created_at` 为 canonical round-trip UTC 时间戳
   （`strftime(strptime(v)) == v`）；
 - authorization 的 `candidate_packet_id` / `candidate_packet_sha256` 必须
   与 C4-A frozen `first_candidate_record` exact 相等（§3 绑定链）。
 
-### 2.2 授权语义
+### 2.2 Authorization authority（exact-hash）
+
+`0600` 与路径唯一性只约束存放方式；**授权身份必须由内容哈希钉死**：
+
+```text
+authorization_sha256 = SHA256(canonical(authorization))
+```
+
+冻结：
+
+- 用户的 `FIRST_REVEAL` 明确授权必须针对 **exact
+  `authorization_sha256`**（授权声明中写明该哈希）；
+- production REVEAL payload 必须 hash-bind `authorization_sha256`
+  （§3.1）——链上可证明的因此是"用户批准的 exact authorization bytes
+  → SHA256 → event hash"，而不是仅一个可被替换的 `authorization_id`；
+- 事务开始前 authorization 文件必须已 durable（§4 fsync 前置）；
+- authorization_sha256 ≠ 授权声明中的值 ⇒ FAIL-CLOSED。
+
+### 2.3 授权语义
 
 authorization 的含义严格为：
 
@@ -89,7 +114,7 @@ authorization 的含义严格为：
 - 不授权修改 C1/C2/C3/C4-A/B 任何冻结事实；
 - authorization 的存在本身不消费授权；只有 §4 事务完整成功才消费。
 
-### 2.3 Chain-derived consumption
+### 2.4 Chain-derived consumption
 
 ```text
 authorization(authorization_id) 已消费
@@ -117,29 +142,34 @@ production sealing log 中存在一条合法 REVEAL_PACKET event，
 ```yaml
 session_id: c4-prod-0002
 authorization_id: <exact authorization id>
+authorization_sha256: SHA256(canonical(authorization))
 c3_manifest_commitment: 883c9869...
 candidate_packet_sha256: <exact frozen candidate hash>
 ```
 
 C2 verifier 对额外 payload 字段兼容（C2 @ `9d19be7` 冻结语义），无需修改
-C2；event_hash = H(seq|prev|type|payload) 会把授权身份锁进 production
-chain，使 §2.3 的 consumption 派生成为链上事实。
+C2；event_hash = SHA256(seq|prev|type|canonical(payload)) 会把**整份授权
+对象的哈希**与候选身份一起锁进 production chain，使 §2.4 的 consumption
+派生成为链上事实。
 
-### 3.2 Exact binding 链（四层）
+### 3.2 Exact binding 链
 
 ```text
-authorization (c4c-auth-v1)
-        ↕ exact equality
+approved authorization bytes (exact, user-approved hash)
+        ↓ SHA256
+authorization_sha256 ── also in payload
+        ↓ exact equality
 C4-A first_candidate_record
   (candidate_packet_id, candidate_packet_sha256, session_id, C3 commitment)
-        ↕ exact equality (closed-world schema gate + commitment)
+        ↓ exact equality (closed-world schema gate + commitment)
 C3 frozen packet bytes
   (SHA256(bytes) == manifest entry sha256 ∈ manifest with canonical
    hash == 883c9869...)
-        ↕ payload hash binding
+        ↓ payload hash binding
 production REVEAL event
-  (session_id, authorization_id, c3_manifest_commitment,
-   candidate_packet_sha256 全部进入 event_hash preimage)
+  (session_id, authorization_id, authorization_sha256,
+   c3_manifest_commitment, candidate_packet_sha256,
+   packet_id, packet_sha256 全部进入 event_hash preimage)
 ```
 
 每条边都是 exact equality / exact hash，不得存在"重新生成等价物"的第二
@@ -153,6 +183,10 @@ canonical packet 文件，不得由输入重算。
 ### 4.1 冻结执行顺序
 
 ```text
+(0a) prove authorization durable:
+       fsync(authorization/first_reveal.json)
+       fsync(authorization parent directory)
+(0b) verify authorization_sha256 == user-approved exact hash
 (1)  reverify C4-A/B frozen session
        (c4-prod-0002 manifest closed-world + permissions + candidate record)
 (2)  reverify all frozen authorities
@@ -161,25 +195,28 @@ canonical packet 文件，不得由输入重算。
 (3)  independently recompute first candidate
        (FIRST-CANDIDATE SELECTOR total order)
 (4)  verify immutable authorization exact binding
-       (§2.1 schema + §3.2 四层绑定)
+       (§2.1 schema + §3.2 绑定链 + 唯一路径 create-exclusive)
 (5)  prove authorization unused from production chain
-       (production replay: 不存在绑定该 authorization_id 的 REVEAL)
+       (production replay: 不存在绑定该 authorization_sha256 的 REVEAL)
 (6)  prove production sealing target absent
 (7)  create same-filesystem staging sealing domain
        data/csr8_phase_c/production/c4-prod-0002/sealing.staging/
 (8)  frozen C2 append(REVEAL_PACKET)   # 真实 append()，非 batch writer
+       (staging 内写 bytes/reveal_packet/<seq>.bin + log.jsonl + head.json)
 (9)  fresh-load staged replay + mandatory head
 (10) assert exactly 1 REVEAL / 0 SEAL
 (11) fsync(packet bytes file)
-(12) fsync(staged log)
-(13) fsync(staged head)
-(14) fsync(staging directory)
-(15) atomic no-replace rename staging → sealing
-(16) fsync(production parent session directory)
-(17) fresh-load production replay
-(18) assert exact final invariant (§6)
-(19) authorization now chain-derived consumed
-(20) HARD STOP
+(12) fsync(bytes/reveal_packet directory)
+(13) fsync(bytes directory)
+(14) fsync(staged log)
+(15) fsync(staged head)
+(16) fsync(staging root directory)
+(17) atomic no-replace rename staging → sealing
+(18) fsync(production parent session directory)
+(19) fresh-load production replay + C4-C semantic replay（§6.1）
+(20) assert exact final invariant (§6)
+(21) authorization now chain-derived consumed
+(22) HARD STOP
 ```
 
 ### 4.2 Publication 硬约束
@@ -188,8 +225,15 @@ canonical packet 文件，不得由输入重算。
 - staging 与 production 必须同一 filesystem（`st_dev` 相等）；
 - rename 必须 no-replace 语义：目标存在即失败；平台不支持原子
   no-replace 时 FAIL-CLOSED，**不得退化为 copy/delete**；
-- 步骤 (11)–(14) 的 fsync 缺一不可；rename 返回 ≠ durable，必须补
-  production parent session directory fsync；
+- durability 序列逐项闭合：
+  - authorization 文件与其父目录在事务前 fsync（步骤 0a）——否则可能
+    出现 "REVEAL durable 但原始授权对象因掉电丢失"的不可复核状态；
+  - packet bytes 文件之外，`bytes/reveal_packet/` 与 `bytes/` 两个**嵌套
+    目录项**也必须分别 fsync——C2 append 动态创建这些目录，文件 durable
+    ≠ 新建目录项 durable，`fsync(staging root)` 不能替代嵌套目录 fsync；
+  - log、head、staging root 逐项 fsync；
+  - rename 返回 ≠ durable，必须补 production parent session directory
+    fsync；
 - 全程不允许 annotation session 创建、SEAL、outcome、第二 REVEAL。
 
 ---
@@ -202,20 +246,21 @@ replay 结果**；authorization 状态永远由它派生。
 
 | 崩溃点 | authoritative production state | auth consumed? | retry? | 恢复动作 | FAIL-CLOSED 条件 |
 |---|---|---|---|---|---|
-| (a) before C2 append (步 1–7) | sealing 不存在 → 0 event | 否 | 允许 | 清除 staging（若已建），重新执行事务 | authorities/session/authorization 任一验证失败 |
+| (a) before C2 append (步 0a–7) | sealing 不存在 → 0 event | 否 | 允许 | 清除 staging（若已建），重新执行事务 | authorities/session/authorization_sha256 任一验证失败 |
 | (b) during staged append (步 8 中途) | sealing 不存在 → 0 event；staging 内容不完整 | 否 | 允许 | 删除整个 staging domain，重新执行事务 | staging 损坏且无法删除；或 staging 与 production 不同 filesystem |
 | (c) after staged append, before staged replay (步 8–9 间) | sealing 不存在 → 0 event；staging 有 1 event 未验证 | 否 | 允许 | 删除整个 staging domain，重新执行事务 | staging replay 无法 fresh-load |
 | (d) after staged replay, before fsync (步 9–11 间) | sealing 不存在 → 0 event | 否 | 允许 | 删除 staging，重新执行 | staged replay/assert 失败（1 REVEAL/0 SEAL 不成立） |
-| (e) after fsync, before rename (步 14–15 间) | sealing 不存在 → 0 event；staging 已 durable | 否 | 允许 | 删除 staging，重新执行（或审计后重新走事务） | fsync 任一失败 |
-| (f) after rename, before parent fsync (步 15–16 间) | sealing 存在但目录项可能未 durable → 掉电后可能回退到 (e) 或前进到 (g)；重启发按落盘事实判定 | 由落盘 replay 派生 | 视落盘结果 | 重启后先 fresh-load production replay 判定状态 | rename 与 parent fsync 之间不允许人工假设状态；必须以 replay 为准 |
-| (g) after parent fsync, before production replay (步 16–17 间) | sealing durable，1 event（尚未断言 invariant） | 是（链上已存在绑定 REVEAL） | 禁止 retry | 补跑 production replay + invariant assert，完成事务报告 | replay 失败或 invariant 不成立 ⇒ 事务进入不可解释状态，HALT 并人工审计 |
-| (h) after production replay (步 17–20) | final invariant 成立 | 是 | 禁止 | 无（HARD STOP；输出 public boolean summary） | 任何再次 reveal/seal/annotation 尝试 |
+| (e) after fsync, before rename (步 11–17 间) | sealing 不存在 → 0 event；staging 已 durable（含嵌套目录） | 否 | 允许 | 删除 staging，重新执行（或审计后重新走事务） | 任一 fsync（packet/嵌套目录/log/head/staging root）失败 |
+| (f) after rename, before parent fsync (步 17–18 间) | sealing 存在但目录项可能未 durable → 掉电后可能回退到 (e) 或前进到 (g)；重启发按落盘事实判定 | 由落盘 replay 派生 | 视落盘结果 | 重启后先 fresh-load production replay 判定状态 | rename 与 parent fsync 之间不允许人工假设状态；必须以 replay 为准 |
+| (g) after parent fsync, before production replay (步 18–19 间) | sealing durable，1 event（尚未 replay 证明） | **UNKNOWN_PENDING_REPLAY**（在 replay 证明前不得宣称 consumed=true） | **禁止** | fresh production replay + C4-C semantic replay；PASS → consumed=true；FAIL → consumed 不得宣称 true、不得 retry | replay 失败或 semantic invariant 不成立 ⇒ 不可解释状态，HALT / forensic audit（不得 retry） |
+| (h) after production replay (步 19–22) | final invariant 成立（§6/§6.1 全部 PASS） | 是 | 禁止 | 无（HARD STOP；输出 public boolean summary + 外部 anchor） | 任何再次 reveal/seal/annotation 尝试 |
 
 矩阵必须满足的全局不变量：
 
 1. **不存在** "authorization logically consumed 但 production event 不可
-   证明"：consumption 的唯一定义就是链上存在合法 REVEAL（§2.3），该状态
-   无法构造；
+   证明"：consumption 的唯一定义就是链上存在合法 REVEAL 且已通过
+   production replay + C4-C semantic replay（§2.4）；(g) 点在 replay 完成
+   前只能持有 UNKNOWN_PENDING_REPLAY，不得宣称 true；
 2. **不存在** "production event 已 durable 但 authorization 被允许再次
    使用"：步骤 (5) 在每次事务开始时从 production chain 派生 consumption，
    durable event ⇒ retry 入口 FAIL-CLOSED；
@@ -232,9 +277,11 @@ replay 结果**；authorization 状态永远由它派生。
 production event count = 1
 event[0].event_type = REVEAL_PACKET
 event[0] payload binds exact authorization_id
+event[0] payload binds exact authorization_sha256
 event[0] payload binds session_id = c4-prod-0002
 event[0] payload binds c3_manifest_commitment = 883c9869...
-event[0] payload binds candidate_packet_sha256 = <frozen candidate hash>
+event[0] payload binds exact packet_id
+event[0] payload binds exact candidate_packet_sha256
 open_reveal_count = 1
 sealed_count = 0
 
@@ -245,6 +292,39 @@ outcome            = absent
 G5                 = BLOCKED
 XP                 = BLOCKED_FOR_PIT
 ```
+
+### 6.1 Post-crash semantic replay（G-C4C-PROD-REPLAY）
+
+C2 replay PASS 是必要条件，但不是 C4-C semantic replay 的全部。最终
+Gate 必须**只依赖 persisted state** 重新证明整条链：
+
+```text
+approved authorization_sha256
+        ↓
+authorization closed-world bytes（唯一路径，重读重哈希）
+        ↓
+first_candidate_record（closed-world + commitment）
+        ↓
+C3 manifest entry（canonical hash == 883c9869...）
+        ↓
+C3 packet bytes（SHA256(bytes) == manifest entry sha256）
+        ↓
+event.payload.packet_id        == authorization.candidate_packet_id
+                                == first_candidate_record.candidate_packet_id
+event.payload.candidate_packet_sha256
+                               == authorization.candidate_packet_sha256
+                                == first_candidate_record.candidate_packet_sha256
+event.payload.authorization_id == authorization.authorization_id
+event.payload.authorization_sha256 == SHA256(canonical(authorization))
+event.payload.session_id       == authorization.session_id == c4-prod-0002
+event.payload.c3_manifest_commitment == 883c9869...
+        ↓
+C2 event_hash / mandatory head（fresh-load）
+```
+
+任何一环失败 ⇒ 事务进入不可解释状态：HALT、禁止 retry、forensic audit。
+事务前检查（append 之前）不能替代本 Gate——crash recovery 的原则是只依赖
+persisted state 重新证明完整事实。
 
 public boolean summary 只允许：
 
@@ -259,6 +339,22 @@ HARD_STOP_AFTER_FIRST_REVEAL: true
 ```
 
 不得包含 packet identity、code/name、T、case/group、future schedule。
+
+### 6.2 Public external anchor（推荐增强，采纳）
+
+C2 冻结语义自认：head anchor 只能防止相对于 trusted head 的 truncation；
+log+head 被一起重写时它不是 self-certifying。为使 production audit 强于
+synthetic C2，第一次 reveal 完成后 public artifacts 额外发布两个纯
+commitment（不暴露 packet identity）：
+
+```yaml
+production_head_hash: <event[0].event_hash>
+authorization_sha256: <SHA256(canonical(authorization))>
+```
+
+Git 历史因此成为 production chain 的外部 anchor：任何对 production
+log/head 或 authorization 的事后整体重写，都无法同时匹配已发布的
+`production_head_hash`。本项为采纳的推荐增强，不是回溯性 C2 语义变更。
 
 ---
 
@@ -276,7 +372,9 @@ HARD_STOP_AFTER_FIRST_REVEAL: true
 | 4 | wrong c3_manifest_commitment | G-C4C-AUTHZ |
 | 5 | wrong candidate_packet_id | G-C4C-AUTHZ |
 | 6 | wrong candidate_packet_sha256 | G-C4C-AUTHZ |
-| 7 | authorization_id reuse（chain 已存在绑定 REVEAL） | G-C4C-AUTHZ（chain-derived consumption） |
+| 6b | authorization 文件整体替换（合法 schema、不同 authorization_id/created_at）| G-C4C-AUTHZ（exact-hash authority） |
+| 6c | duplicate permit path（第二份 FIRST_REVEAL_ONLY 文件） | G-C4C-AUTHZ（唯一路径 create-exclusive） |
+| 7 | authorization_sha256 reuse（chain 已存在绑定 REVEAL） | G-C4C-AUTHZ（chain-derived consumption） |
 | 8 | candidate record tamper | G-C4-NEXT |
 | 9 | packet bytes tamper | G-C4C-BYTES |
 | 10 | existing production sealing target | G-C4C-PUBLISH |
@@ -285,6 +383,7 @@ HARD_STOP_AFTER_FIRST_REVEAL: true
 | 13 | staged log tamper | G-C4C-STAGED-REPLAY |
 | 14 | staged head missing | G-C4C-STAGED-REPLAY |
 | 15 | published log tamper | G-C4C-PROD-REPLAY |
+| 15b | published event payload 与 authorization/candidate 不一致（合法 C2 链但 semantic binding 破坏） | G-C4C-PROD-REPLAY（§6.1 semantic replay） |
 | 16 | attempt second REVEAL after success | final invariant gate |
 | 17 | attempt SEAL | final invariant gate（sealed_count 必须 0） |
 | 18 | attempt annotation creation | C4 边界 gate（annotation absent） |
@@ -298,7 +397,8 @@ G-C4C-AUTHZ          immutable authorization closed-world + exact binding
 G-C4C-BYTES          frozen packet bytes exact hash（复用 C4-B 语义）
 G-C4C-STAGED-REPLAY  staged fresh-load replay + mandatory head + 1/0 assert
 G-C4C-PUBLISH        same-fs + no-replace rename + fsync 序列 + target absent
-G-C4C-PROD-REPLAY    published fresh-load replay + final invariant
+G-C4C-PROD-REPLAY    published fresh-load replay + §6.1 semantic replay
+                     （persisted-state 全链重证）+ final invariant
 G-C4C-BOUNDARY       无 annotation / 无 outcome / 无第二 reveal / G5 / XP
 ```
 
