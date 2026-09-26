@@ -1,7 +1,7 @@
 # CSR-8 Phase C4 — Production Reveal Activation Design v0.1
 
-- 状态：DESIGN v1.0 FROZEN（C4-DESIGN-FIX1 四项已并入，待实现 C4-A/B）
-- 冻结依据：79f3de8 草案 + 用户 C4-DESIGN-FIX1 裁决；不再重议 FIX1 四项
+- 状态：DESIGN v1.0 FROZEN（C4-DESIGN-FIX1 四项 + C4-DESIGN-FIX2 四项已并入；只实现 C4-A/B）
+- 冻结依据：79f3de8 草案 + 用户 C4-DESIGN-FIX1 与 C4-DESIGN-FIX2 裁决
 - 上游冻结：C1 FINAL FROZEN @ `9292d0d`；C2 FINAL FROZEN @ `9d19be7`；
   C3 DESIGN FINAL FROZEN @ `3308de9`；price-source erratum EFFECTIVE @ `d1eb677`；
   C3 FINAL FROZEN @ `04f54e1`（provenance anchor）
@@ -93,19 +93,27 @@ state: INITIALIZED_NO_REVEAL
 created_at: <timestamp>
 ```
 
+session manifest 是 immutable 记录；其中 state 字段一律写为
+`initial_state: INITIALIZED_NO_REVEAL`（C4-DESIGN-FIX2-D）。运行时状态
+**只从 production chain 派生**，不引入 mutable session state：
+
+```text
+0 event        → INITIALIZED_NO_REVEAL
+1 valid REVEAL → FIRST_REVEAL_OPEN
+```
+
 public/audit summary 只能暴露 commitment 与布尔状态；禁止：packet count、
 future T list、case/group identity、next-N schedule、真实 code/name。
 
 ## 3. C4-B First-Reveal Readiness
 
-C4-B 读取 selector-only frozen plan，确定唯一合法 next packet，但输出仍不得
-暴露真实 identity 或未来计划：
+C4-B 读取 selector-only frozen plan，确定唯一合法 next packet；public 输出
+不得暴露真实 identity 或未来计划（candidate 详情仅 selector-only）：
 
 ```yaml
 READY_FOR_FIRST_REVEAL: true
 session_id: <session id>
 c3_manifest_commitment: 883c9869...
-candidate_packet_hash_commitment: <opaque hash/commitment>
 ```
 
 ### 3.0 FIRST-CANDIDATE SELECTOR（C4-DESIGN-FIX1-A）
@@ -123,8 +131,15 @@ eligible cases
 每个 eligible case:
 candidate = 该 case 的 earliest T（hidden plan 升序第一个 T）
 
-first case = argmin over eligible cases of
-    HMAC-SHA256(secret_salt, "C4-FIRST-v1|" + opaque_case_id)
+selector_key(case) =
+(
+  HMAC-SHA256(secret_salt, "C4-FIRST-v1|" + opaque_case_id),
+  opaque_case_id
+)
+
+first case = min(selector_key)      # (digest, opaque_case_id) 全序，
+                                    # digest 碰撞由 opaque_case_id 确定性裁决，
+                                    # 不依赖"概率上几乎不会发生"
 
 first packet = (first case, 其 earliest T)
 ```
@@ -134,9 +149,46 @@ first packet = (first case, 其 earliest T)
 - 完全由 reveal 前已冻结信息（salt、hidden plan、group axis）决定；
 - 与 annotation/outcome/C3 replay order 无关；
 - 不泄露 group/T 列表；
-- selector-only 记录 `first_candidate_commitment`；
-- C4-B 必须重算并证明结果唯一且 commitment 一致；
 - 该规则不定义第二个及以后的 production reveal 顺序。
+
+### 3.0.1 Candidate commitment authority（C4-DESIGN-FIX2-A）
+
+`first_candidate_commitment` 的 authority 是 **C4-A 一次性写入的 immutable
+record**；C4-B 只能重算验证，不能重新签名：
+
+```text
+first_candidate_record = canonical({
+    version: "C4-FIRST-v1",
+    session_id,
+    c3_manifest_commitment,
+    candidate_packet_id,
+    candidate_packet_sha256
+})
+
+first_candidate_commitment = SHA256(first_candidate_record)
+```
+
+C4-A 职责：
+
+```text
+compute selector（含 total ordering）
+→ verify candidate ∈ frozen C3 manifest（packet_id + sha256 exact）
+→ write immutable first_candidate_record（selector-only，0600）
+→ write first_candidate_commitment into session manifest
+→ 此后任何改写均 FAIL-CLOSED
+```
+
+C4-B 职责：
+
+```text
+read frozen first_candidate_record
+→ independently recompute selector
+→ exact candidate equality（packet_id/sha256）
+→ recompute SHA256(record)
+→ exact commitment equality
+```
+
+G-C4-NEXT 因此是跨阶段 binding，不是同一函数内的自洽证明。
 
 ### 3.1 不重新生成 packet
 
@@ -190,7 +242,7 @@ created_at: <timestamp>
   mismatch、部分写入或状态不明均 FAIL-CLOSED；
 - 一次 authorization 只允许一个 event，不能授权第二个 reveal。
 
-### 4.2 Crash-safe first reveal（C4-DESIGN-FIX1-C）
+### 4.2 Crash-safe first reveal（C4-DESIGN-FIX1-C + FIX2-C）
 
 REVEAL event payload 必须额外绑定授权身份（C2 verifier 对额外 payload 字段
 兼容，无需修改 C2；event hash 将授权身份锁进 production chain）：
@@ -202,7 +254,8 @@ c3_manifest_commitment
 candidate_packet_sha256
 ```
 
-发布方式为 staging + atomic publication：
+发布方式为 staging + **durable atomic publication**。durability sequence
+逐项冻结（缺任何一步即 FAIL-CLOSED）：
 
 ```text
 authorization immutable + unused
@@ -217,18 +270,34 @@ fresh-load persisted verify
         ↓
 assert exactly 1 REVEAL / 0 SEAL
         ↓
-fsync
+fsync(packet bytes file)
+fsync(log)
+fsync(head)
+fsync(staging directory)
         ↓
-atomic rename temp sealing domain → production sealing domain
+atomic rename(staging → production sealing domain)   # no-replace 语义
         ↓
-再次 fresh production replay
+fsync(production parent session directory)
+        ↓
+fresh production replay
+        ↓
+authorization 逻辑上已 consumed
 ```
+
+约束：
+
+- production sealing target 必须此前不存在；
+- staging 与 production 必须同一 filesystem（rename 原子性前提）；
+- rename 必须是 no-replace 语义；平台不支持原子 no-replace 时 FAIL-CLOSED，
+  不得退化为 copy/delete；
+- rename 返回 ≠ durable：必须补 production parent directory fsync，
+  否则掉电/文件系统崩溃语义下"crash after rename ⇒ event durable"不成立。
 
 崩溃语义：
 
 - crash before rename → production 仍 0 event，authorization 未消费，可安全重试；
-- crash after rename → production event 已存在，authorization 逻辑上已消费，
-  绝不能再次使用。
+- crash after rename+fsync → production event 已 durable，authorization 逻辑上
+  已消费，绝不能再次使用。
 
 C4-A/B 与 authorization 的生成/存在不消费授权；只有显式 `reveal-first`
 的 staging→verify→publish 链完成才消费。
@@ -290,7 +359,8 @@ production log/head 是唯一实际 event state；第一条 event 写入后必�
 2. **G-C4-AUTHORITY**：C1/C3/price/index/calendar 全部 frozen authority 重验
    （`04f54e1` 为 provenance anchor，不要求当前 HEAD 等于它）；
 3. **G-C4-MANIFEST**：canonical C3 secret manifest hash 与 `883c9869...` 一致；
-4. **G-C4-NEXT**：FIRST-CANDIDATE SELECTOR 重算唯一、commitment 一致；
+4. **G-C4-NEXT**：FIRST-CANDIDATE SELECTOR（含 total ordering）重算唯一、
+   与 C4-A immutable `first_candidate_record`/commitment 一致；
    G5/XP 不可作为 candidate；
 5. **G-C4-BYTES**：production packet bytes 与 C3 frozen packet exact hash 一致；
 6. **G-C4-AUTHZ**：`FIRST_REVEAL_ONLY` authorization 存在、immutable、绑定
@@ -338,13 +408,22 @@ C4-A/B public summary 只能包含：
 
 ```yaml
 session_id: <opaque>
-C3 authority commitment: 883c9869...
+c3_manifest_commitment: 883c9869...
 READY_FOR_FIRST_REVEAL: <boolean>
 PRODUCTION_EVENT_COUNT: 0
 HARD_STOP_BEFORE_FIRST_REVEAL: true
 ```
 
-不得包含 packet count、T 列表、case/group identity、真实 code/name、future
+selector-only readiness 面保存：
+
+```yaml
+first_candidate_commitment
+candidate_packet_id
+candidate_packet_sha256
+```
+
+public 面不包含 candidate commitment/packet identity（C4-DESIGN-FIX2-D），
+也不包含 packet count、T 列表、case/group identity、真实 code/name、future
 schedule 或 candidate 的可逆 identity 映射。
 
 只有用户/授权方明确批准并提供匹配的 `FIRST_REVEAL_ONLY` authorization，才可
