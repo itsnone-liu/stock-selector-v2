@@ -5,6 +5,8 @@
   "2026-09-17"
  ],
  "n_target_days": 1345,
+ "sample_selection_sha256": "8c9cd6240f7714e4130e0003a107d9fd1663de49fb221325170a51563e7eb2f2",
+ "sample_selection_frozen_commit": "1cabde8 (Phase A FROZEN)",
  "calendar_sha_in_meta": true,
  "spans": [
   [

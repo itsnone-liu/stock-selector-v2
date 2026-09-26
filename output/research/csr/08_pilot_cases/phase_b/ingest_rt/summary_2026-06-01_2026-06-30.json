@@ -6,33 +6,45 @@
  "ledger": {
   "margin_sse": {
    "raw_total": 41593,
-   "normalized84": 651,
+   "filtered_outside_request_window": 0,
+   "filtered_non84": 40942,
    "rejected": 0,
-   "filtered_non84": 40942
+   "normalized_universe84": 651,
+   "normalized_case84": 143,
+   "filtered_outside_case_window": 508
   },
   "margin_szse": {
    "raw_total": 43528,
-   "normalized84": 672,
+   "filtered_outside_request_window": 0,
+   "filtered_non84": 42856,
    "rejected": 0,
-   "filtered_non84": 42856
+   "normalized_universe84": 672,
+   "normalized_case84": 97,
+   "filtered_outside_case_window": 575
   },
   "lhb": {
    "raw_total": 2223,
-   "normalized84": 41,
+   "filtered_outside_request_window": 0,
+   "filtered_non84": 2182,
    "rejected": 0,
-   "filtered_non84": 2182
+   "normalized_universe84": 41,
+   "normalized_case84": 6,
+   "filtered_outside_case_window": 35
   },
   "dzjy": {
    "raw_total": 3356,
-   "normalized84": 110,
+   "filtered_outside_request_window": 0,
+   "filtered_non84": 3246,
    "rejected": 0,
-   "filtered_non84": 3246
+   "normalized_universe84": 110,
+   "normalized_case84": 7,
+   "filtered_outside_case_window": 103
   }
  },
- "n_normalized": 1474,
- "n_rejects": 0,
- "conservation": "raw_total = normalized84 + rejected + filtered_non84 (asserted per endpoint)",
- "rg3_binding": "available_date non-null <=> basis=CONSERVATIVE_T1 (constructed)",
- "rg4": "source LEVEL=AGGREGATOR, basis=CONSERVATIVE_T1 (never OFFICIAL_RULE)",
- "record_pit_usable": "YES (gates passed) but NOT counted in channel numerator (CONSERVATIVE_T1)"
+ "conservation_L1": "raw_total = outside_request + non84 + rejected + universe84 (asserted)",
+ "conservation_L2": "universe84 = case_window + outside_case_window (asserted)",
+ "n_universe84": 1474,
+ "n_case84": 253,
+ "provenance": "source built from raw meta collector_version+endpoint (H3)",
+ "blind_packet_consumes": "normalized_case84 only"
 }
