@@ -1,0 +1,1 @@
+{"bits":256,"created_by":"C1 salt","salt_commitment":"d1df23bd0c33298d34274ac9ca8a1063defe42567c9a22b2c4b8e52baf9e5ee4","scheme":"opaque_case_id=HMAC-SHA256(secret_salt,canonical_case_key); packet_id=SHA256(opaque_case_id|T)"}

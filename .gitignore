@@ -12,3 +12,4 @@ output/research/
 state/*
 !output/.gitkeep
 !state/.gitkeep
+data/csr8_phase_c/secret/

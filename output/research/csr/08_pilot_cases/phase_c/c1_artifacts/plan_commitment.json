@@ -1,0 +1,1 @@
+{"grid":"every 20 frozen trading days from w_start + G2 T0/G3 anchor/G4 launch (dedup, ascending)","n_cases":84,"n_packets":1755,"per_group_packet_count":{"G1_complete_bull":219,"G2_breakout_fail":140,"G3_high_collapse":460,"G4_quiet_then_go":898,"G5_sector_follower":38},"plan_commitment":"6a3051cb26cea71849838a42a17a76836a431e841a6f146a8f4a214bb1278a34"}
