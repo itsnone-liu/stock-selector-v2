@@ -1,0 +1,50 @@
+{
+ "window": [
+  "2021-07-01",
+  "2021-12-31"
+ ],
+ "ledger": {
+  "margin_sse": {
+   "raw_total": 156054,
+   "filtered_outside_request_window": 0,
+   "filtered_non84": 152679,
+   "rejected": 0,
+   "normalized_universe84": 3375,
+   "normalized_case84": 1149,
+   "filtered_outside_case_window": 2226
+  },
+  "margin_szse": {
+   "raw_total": 131359,
+   "filtered_outside_request_window": 0,
+   "filtered_non84": 128484,
+   "rejected": 0,
+   "normalized_universe84": 2875,
+   "normalized_case84": 468,
+   "filtered_outside_case_window": 2407
+  },
+  "lhb": {
+   "raw_total": 8310,
+   "filtered_outside_request_window": 0,
+   "filtered_non84": 8233,
+   "rejected": 0,
+   "normalized_universe84": 77,
+   "normalized_case84": 10,
+   "filtered_outside_case_window": 67
+  },
+  "dzjy": {
+   "raw_total": 20717,
+   "filtered_outside_request_window": 0,
+   "filtered_non84": 20420,
+   "rejected": 0,
+   "normalized_universe84": 297,
+   "normalized_case84": 107,
+   "filtered_outside_case_window": 190
+  }
+ },
+ "conservation_L1": "raw_total = outside_request + non84 + rejected + universe84 (asserted)",
+ "conservation_L2": "universe84 = case_window + outside_case_window (asserted)",
+ "n_universe84": 6624,
+ "n_case84": 1734,
+ "provenance": "source built from raw meta collector_version+endpoint (H3)",
+ "blind_packet_consumes": "normalized_case84 only"
+}
