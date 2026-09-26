@@ -144,6 +144,8 @@ def run():
     # dynamic next-action derivation: status machine, not per-round hand-writing
     NEXT_ACTION_BY_STATUS = {
         'CONTENT_OK_PIT_PENDING': None,                # no action (fields ok, PIT join later)
+        'SMOKE_OK': None,                              # defensive: ladder-only states
+        'PIT_READY': None,                             # defensive: ladder-only states
         'SMOKE_OK_OPTIONAL_REFERENCE': None,           # reference only, no pipeline role
         'PENDING_RETRY': 'retry (network/limit failure this round)',
         'FIELD_SCHEMA_MISMATCH': 'schema remap (column names) then re-probe',
