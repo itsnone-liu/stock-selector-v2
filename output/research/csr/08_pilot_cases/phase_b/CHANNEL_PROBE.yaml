@@ -1,0 +1,91 @@
+stage: csr_8_phase_b_channel_probe
+purpose: >
+  Phase B 外部数据通道可用性勘察（probe only，不落正式数据）。
+  按实验室惯例：接口确认存在+字段+覆盖范围先于通道建设；
+  失败如实登记，不假装覆盖。
+akshare_version: '1.18.97'
+probe_date: '2026-09-26'
+layer_mapping: >
+  rt 层 = 标注时可实时获得（T 日盘后/次日）；xp 层 = 事后验证
+  （公告日对齐，CSR-6 contract_items_for_ingestion 六项口径）。
+channels:
+  rt_margin_market_total:
+    api: macro_china_market_margin_sh
+    status: OK
+    rows_probed: 4003
+    coverage: 全市场日度两融汇总（截至 2026-09-24，最新可用）
+    fields: [日期, 融资买入额, 融资余额, 融券卖出量, 融券余量, 融券余额, 融资融券余额]
+    caveat: 汇总口径；per-stock 两融明细需上交所/深交所明细接口（stock_margin_detail_sse 等，Phase B 建设时补探）
+    layer: rt
+  rt_block_trade:
+    api: stock_dzjy_mrmx(symbol='A股', start_date, end_date)
+    status: OK
+    rows_probed: 794   # 2024-01-02..2024-01-10 明细
+    coverage: 全市场每日大宗交易明细（按日区间拉取）
+    fields: [交易日期, 证券代码, 证券简称, 涨跌幅, 收盘价, 成盘价, 折溢率, 成交量, 成交额]
+    note: symbol 参数为证券类别('A股')而非个股代码——首探 KeyError('000001') 已纠正并登记
+    layer: rt
+  rt_dragon_tiger:
+    api: stock_lhb_detail_em(start_date, end_date)
+    status: OK
+    rows_probed: 430   # 2025-01-06..2025-01-10
+    fields: [代码, 名称, 上榜日, 解读, 收盘价, 涨跌幅, 龙虎榜净买额, 龙虎榜买入额, 龙虎榜卖出额]
+    layer: rt
+  rt_etf_share:
+    status: INTERFACE_GAP
+    detail: >
+      akshare 1.18.97 无 ETF 历史份额专用接口（fund_etf_* 仅净值/行情/实时）。
+      登记为接口缺口：需替代源（东财基金份额页/交易所 ETF 申赎清单）或人工通道；
+      不假装覆盖。Phase B 优先级降低（rt 证据的辅助通道）。
+    layer: rt
+  xp_holder_count:
+    api: [stock_zh_a_gdhs(symbol=报告期), stock_zh_a_gdhs_detail_em(symbol=个股)]
+    status: PENDING_RETRY
+    detail: >
+      列表接口 ChunkedEncodingError（Response ended prematurely）；
+      详情接口返回结构异常（result None）。与其他东财数据中心接口
+      （高管增减持/行业表）同批失败——疑似 datacenter-web 域临时限流。
+      与历史遗留"akshare 未确认 3 项（户数/基金持仓/增减持）接口名"对上：
+      户数与增减持确在此批；基金持仓本轮已另行确认可用。
+    layer: xp
+  xp_top10_float_holders:
+    api: stock_gdfx_free_top_10_em(symbol, date=报告期)
+    status: OK
+    rows_probed: 10
+    fields: [名次, 股东名称, 股东性质, 股份类型, 持股数, 占总流通股本持股比例, 增减, 变动比率]
+    layer: xp
+  xp_top10_holders:
+    api: stock_gdfx_top_10_em(symbol, date=报告期)
+    status: OK
+    rows_probed: 10
+    fields: [名次, 股东名称, 股份类型, 持股数, 占总股本持股比例, 增减, 变动比率]
+    layer: xp
+  xp_fund_holdings:
+    api: fund_portfolio_hold_em(symbol=基金代码, date=年份)
+    status: OK
+    rows_probed: 220
+    fields: [股票代码, 股票名称, 占净值比例, 持股数, 持仓市值, 季度]
+    caveat: 按基金拉取；反向（按股票聚合全部基金持仓）需基金池全量遍历——Phase B 建设成本登记
+    layer: xp
+  xp_insider_trades:
+    api: stock_ggcg_em(symbol='全部')
+    status: PENDING_RETRY
+    detail: 同东财数据中心限流批（ChunkedEncodingError）；非接口不存在
+    layer: xp
+  pit_industry_table:
+    api: stock_board_industry_name_em()
+    status: PENDING_RETRY
+    detail: >
+      同批连接失败。注意：该接口为东财行业（现时口径），PIT 历史行业表
+      需申万/中证历史成分变更文件（CSRC 时点表是 CSR-6 契约项）；
+      Phase B 将以官方行业分类历史快照 + 变更公告构建，不用现时表冒充。
+    layer: reference
+summary:
+  confirmed_ok: 5      # margin_total, block_trade, dragon_tiger, top10×2, fund_holdings
+  interface_gap: 1     # etf_share
+  pending_retry: 3     # holder_count, insider_trades, pit_industry (同一东财域限流)
+next:
+  - Phase B 通道建设顺序：先 rt 层四通道中的三个已确认者（margin/lhb/dzjy），按 84 案例窗口拉取
+  - 东财数据中心域冷却后重试三接口；仍失败则登记替代源需求
+  - PIT 行业表构建（G5 revalidation 依赖）单独立项：官方历史分类快照+变更对齐
+  - 全通道落地均按 CSR-6 契约：公告日/交易日对齐字段（announcement_date vs trade_date）必须保留
