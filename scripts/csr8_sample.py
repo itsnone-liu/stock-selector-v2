@@ -151,18 +151,22 @@ def g1():
                   'rec25': count_recoveries(w, 0.25)[0]}
             episodes.append(ep)
     df = pd.DataFrame(episodes)
-    df3 = df[df['recoveries'] <= 3]
-    thr = float(np.quantile(df3['max_gain'].values, 0.995))
-    cand = df3[df3['max_gain'] >= thr].copy()
-    # threshold sensitivity (audit transparency; NOT selection criteria)
+    # erratum v2 G1-P1: pool-level 99.5% quantile computed ONCE on the FULL episode
+    # population (before any recovery filter), then recovery filter applied.
+    thr = float(np.quantile(df['max_gain'].values, 0.995))
+    dfq = df[df['max_gain'] >= thr]
+    cand = dfq[dfq['recoveries'] <= 3].copy()
+    # sensitivity at FIXED pool threshold (does NOT re-quantify per recovery tier)
     sens = {}
     for lbl, col in (('15%', 'rec15'), ('20%', 'recoveries'), ('25%', 'rec25')):
-        ddx = df[df[col] <= 3]
-        t2 = float(np.quantile(ddx['max_gain'].values, 0.995))
-        sens[lbl] = {'n_episodes': int(len(ddx)), 'thr995': t2,
-                     'n_candidates': int((ddx['max_gain'] >= t2).sum())}
-    log(f'G1 episodes={len(df)} after-recovery<=3={len(df3)} thr(99.5%)={thr:.3f} '
-        f'candidates={len(cand)} sens={sens}')
+        sens[lbl] = {'n_episodes': int(len(df)), 'thr995_fixed': thr,
+                     'n_above_thr': int(len(dfq)),
+                     'n_candidates': int((dfq[col] <= 3).sum())}
+    log(f'G1 episodes={len(df)} pool-thr(99.5%)={thr:.6f} above={len(dfq)} '
+        f'recovery<=3 -> candidates={len(cand)} sens={sens}')
+    if len(cand) < N_PER_GROUP:
+        log(f'G1 INSUFFICIENT_CANDIDATES: {len(cand)} < {N_PER_GROUP} '
+            f'(registered, no backfill/threshold-lowering)')
     df.to_csv(OUT/'g1_episodes.csv', index=False)
     return cand, thr, sens
 
@@ -190,14 +194,14 @@ def g2():
         fwd = fwd[np.isfinite(fwd)]
         if len(fwd) < 121:      # right-censored: need full 120d path
             continue
-        back = c[max(0, i-20):i+1]
+        back = c[max(0, i-20):i]                   # pre-20 high EXCLUDES T0 (erratum v2 G2-P1)
         back = back[np.isfinite(back)]
         if len(back) < 10:
             continue
         t0_close, prior_high = float(fwd[0]), float(np.nanmax(back))
         if not (np.nanmin(fwd) < t0_close):          # must fall back below breakout level
             continue
-        if np.nanmax(fwd[1:]) > prior_high:          # must NOT make a new high
+        if np.nanmax(fwd[1:]) > prior_high:          # erratum v2 G2-P1b: check T0+1..T0+120 only
             continue
         severity = (t0_close - float(np.nanmin(fwd))) / t0_close
         rows.append({'code': r['stock_code'], 'T0': t0s, 'severity': severity,
@@ -436,7 +440,8 @@ def pick(name, cand_df, metric_col, year_col):
     chosen = order[:N_PER_GROUP]
     years = Counter(str(r[year_col])[:4] for r in chosen)
     redrawn = False
-    if years and max(years.values()) / N_PER_GROUP > 0.5 and len(recs) > N_PER_GROUP:
+    _denom = max(len(chosen), 1)
+    if years and max(years.values()) / _denom > 0.5 and len(recs) > len(chosen) and len(chosen) == N_PER_GROUP:
         chosen = stratified_redraw_random(recs, metric_col,
                                           lambda r: str(r[year_col])[:4], FLOW)
         redrawn = True
@@ -496,10 +501,17 @@ manifest = {
     'g1_start_grid': 'calendar_month_first_trading_day',
     'g1_window_min_days': G1_WIN_MIN, 'g1_window_max_days': G1_WIN_MAX,
     'g1_recovery_definition': 'erratum G1-E1: 20% drawdown from running peak; '
-                              'recovery=close returns to dd-start peak; <=3; '
-                              'sensitivity 15/20/25 registered (main=20%)',
+                              'recovery=close returns to dd-start peak; <=3',
+    'g1_quantile_order': 'erratum v2 G1-P1: pool-level 99.5% quantile computed ONCE on '
+                         'FULL episode population (pre-filter), then recovery filter; '
+                         'INSUFFICIENT_CANDIDATES registered when <20, no backfill',
     'g1_threshold_995': G1THR,
     'g1_threshold_sensitivity': G1SENS,
+    'g1_insufficient': bool(len(G1C) < N_PER_GROUP),
+    'g1_n_candidates_final': int(len(G1C)),
+    'g2_reference_high': 'erratum v2 G2-P1+P1b: reference = pre-20d max close EXCLUDING '
+                         'T0; check window = T0+1..T0+120 (excl. T0); '
+                         'no-new-high = max(close[T0+1..T0+120]) <= pre20 high',
     'g4_authoritative_rule': 'erratum G4-E1: anchor_generation detailed rule; '
                              'group-rule phrase is shorthand; gain_12m only for uniqueness',
     'universe': {'authoritative': 'config/universe_frozen.json',
