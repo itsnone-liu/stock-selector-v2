@@ -547,43 +547,49 @@ def g10():
             fail('G10: salt has no effect on opaque ids')
         # 4 (mutation): flip one bit of secret_salt -> salt binding MUST fail
         orig_salt = SALT_FILE.read_bytes()
-        bad = bytearray(orig_salt)
-        bad[0] ^= 1
-        SALT_FILE.write_bytes(bytes(bad))
-        expect_fail(verify_salt_binding, 'tampered secret_salt (1-bit flip)')
-        SALT_FILE.write_bytes(orig_salt)
+        try:
+            bad = bytearray(orig_salt)
+            bad[0] ^= 1
+            SALT_FILE.write_bytes(bytes(bad))
+            expect_fail(verify_salt_binding, 'tampered secret_salt (1-bit flip)')
+        finally:
+            SALT_FILE.write_bytes(orig_salt)
+            os.chmod(SALT_FILE, 0o600)
         verify_salt_binding()  # restored -> must pass again
         # 5 (mutation): change one T in hidden plan -> plan binding MUST fail
         orig_blob = PLAN_FILE.read_bytes()
-        doc = json.loads(orig_blob)
-        doc['entries'][0]['T'] = '1999-01-01'
-        PLAN_FILE.write_bytes(canon(doc).encode())
-        expect_fail(verify_plan_binding, 'tampered packet_plan (one T)')
-        PLAN_FILE.write_bytes(orig_blob)
+        try:
+            doc = json.loads(orig_blob)
+            doc['entries'][0]['T'] = '1999-01-01'
+            PLAN_FILE.write_bytes(canon(doc).encode())
+            expect_fail(verify_plan_binding, 'tampered packet_plan (one T)')
+        finally:
+            PLAN_FILE.write_bytes(orig_blob)
+            os.chmod(PLAN_FILE, 0o600)
         verify_plan_binding()
         # 6 (lifecycle): plan file LOST + one plan input changed ->
         # cmd_plan MUST FAIL, never rewrite the frozen commitment
-        plan_bak = SECRET / '_g10_plan.bak'
-        plan_bak.write_bytes(PLAN_FILE.read_bytes())
-        PLAN_FILE.unlink()
+        plan_bak = PLAN_FILE.read_bytes()
+        pc_bak = (ART / 'plan_commitment.json').read_bytes()
         ipj = PLAN_JSON.read_text()
-        ip = json.loads(ipj)
-        # perturb to a VALID calendar date so the failure must come from the
-        # recompute != commitment branch, not a collateral calendar check
-        cal = load_calendar()
-        new_end = next(d for d in cal if d != ip['spans'][0][1]
-                       and d > ip['spans'][0][0])
-        ip['spans'][0][1] = new_end
-        PLAN_JSON.write_text(json.dumps(ip, ensure_ascii=False))
         try:
+            PLAN_FILE.unlink()
+            ip = json.loads(ipj)
+            # perturb to a VALID calendar date so the failure must come from
+            # the recompute != commitment branch, not a collateral check
+            cal = load_calendar()
+            new_end = next(d for d in cal if d != ip['spans'][0][1]
+                           and d > ip['spans'][0][0])
+            ip['spans'][0][1] = new_end
+            PLAN_JSON.write_text(json.dumps(ip, ensure_ascii=False))
             expect_fail(cmd_plan, 'plan-lost + changed inputs (must not '
                                   'redefine commitment)')
         finally:
+            PLAN_FILE.write_bytes(plan_bak)
+            os.chmod(PLAN_FILE, 0o600)
             PLAN_JSON.write_text(ipj)
-        # restore plan via the legitimate deterministic-recovery branch
-        cmd_plan()
+            (ART / 'plan_commitment.json').write_bytes(pc_bak)
         verify_plan_binding()
-        plan_bak.unlink()
         # 7 (lifecycle): salt file LOST, commitment still present ->
         # cmd_salt MUST FAIL (salt is unrecoverable from a hash)
         salt_bak = SECRET / '_g10_salt.bak'
@@ -597,9 +603,11 @@ def g10():
             os.chmod(SALT_FILE, 0o600)
             salt_bak.unlink()
         cmd_salt()   # restored -> no-op verified
-        print('G10 PASS: seven negative paths — schema x2, salt 1-bit flip, '
-              'plan one-T edit, plan-lost+input-change, salt-lost — all '
-              'genuinely fail closed; frozen state round-trip verified')
+        print('G10 PASS: six genuine negative paths (schema x2, salt 1-bit '
+              'flip, plan one-T edit, plan-lost+input-change, salt-lost) '
+              'fail closed + one salt-sensitivity invariant; every real-state '
+              'mutation restores byte-for-byte in finally even if the gate '
+              'under test is broken')
     finally:
         SIDECAR = orig
         tmp_path.unlink(missing_ok=True)
