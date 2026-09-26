@@ -1,9 +1,10 @@
 # CSR-8 Phase C4 — Production Reveal Activation Design v0.1
 
-- 状态：DESIGN DRAFT，待用户审计；本文件不授权、不实现 production reveal
+- 状态：DESIGN v1.0 FROZEN（C4-DESIGN-FIX1 四项已并入，待实现 C4-A/B）
+- 冻结依据：79f3de8 草案 + 用户 C4-DESIGN-FIX1 裁决；不再重议 FIX1 四项
 - 上游冻结：C1 FINAL FROZEN @ `9292d0d`；C2 FINAL FROZEN @ `9d19be7`；
   C3 DESIGN FINAL FROZEN @ `3308de9`；price-source erratum EFFECTIVE @ `d1eb677`；
-  C3 FINAL FROZEN @ `04f54e1`
+  C3 FINAL FROZEN @ `04f54e1`（provenance anchor）
 - C3 authority：packet manifest commitment
   `883c9869f29d0f17316edea86e5b5e996dc11e1fca19db631cb12cd0a4cc2d0b`
 - C4 性质：第一次 production `REVEAL_PACKET` 是实验真正开始的不可逆边界。
@@ -107,6 +108,36 @@ c3_manifest_commitment: 883c9869...
 candidate_packet_hash_commitment: <opaque hash/commitment>
 ```
 
+### 3.0 FIRST-CANDIDATE SELECTOR（C4-DESIGN-FIX1-A）
+
+C1 hidden plan 只是 (case,T) 集合，production 0-event 时存在多个合法候选；
+C3 isolated replay ordering 不构成 production schedule。C4 只冻结第一次
+reveal 的候选选择规则，不替后续阶段冻结完整顺序：
+
+```text
+eligible cases
+= G1-G4 only
+  ∩ PACKET_GENERATION_ALLOWED
+  ∩ non-XP
+
+每个 eligible case:
+candidate = 该 case 的 earliest T（hidden plan 升序第一个 T）
+
+first case = argmin over eligible cases of
+    HMAC-SHA256(secret_salt, "C4-FIRST-v1|" + opaque_case_id)
+
+first packet = (first case, 其 earliest T)
+```
+
+性质：
+
+- 完全由 reveal 前已冻结信息（salt、hidden plan、group axis）决定；
+- 与 annotation/outcome/C3 replay order 无关；
+- 不泄露 group/T 列表；
+- selector-only 记录 `first_candidate_commitment`；
+- C4-B 必须重算并证明结果唯一且 commitment 一致；
+- 该规则不定义第二个及以后的 production reveal 顺序。
+
 ### 3.1 不重新生成 packet
 
 C4 不重新生成 production packet。它必须消费 C3 FINAL FROZEN selector-only
@@ -123,7 +154,8 @@ C4 只复制/引用已经验证的 canonical packet bytes 到 production reveal 
 ### 3.2 C4-B readiness gates
 
 - C3 manifest commitment 完整匹配；
-- hidden plan 中 exactly one legal next packet；
+- FIRST-CANDIDATE SELECTOR 重算结果唯一且与 `first_candidate_commitment`
+  一致（G-C4-NEXT）；
 - candidate packet 仍通过 G5/XP boundary；
 - candidate packet bytes exact hash 匹配；
 - 当前 production predecessor state 为 zero events；
@@ -132,55 +164,103 @@ C4 只复制/引用已经验证的 canonical packet bytes 到 production reveal 
 
 ## 4. First-Reveal authorization
 
-authorization 是独立的一次性对象，不是 session-wide permission：
+authorization 是独立的一次性 **immutable permit**，不是 session-wide permission，
+也不是 mutable `consumed` 状态（C4-DESIGN-FIX1-B/C）：
 
 ```yaml
 scope: FIRST_REVEAL_ONLY
 session_id: <exact session>
 c3_manifest_commitment: 883c9869...
-authorized: true
+candidate_packet_id: <exact packet id>
+candidate_packet_sha256: <exact packet hash>
 authorization_id: <unique id>
-consumed: false
+authorized: true
 created_at: <timestamp>
 ```
 
 ### 4.1 Authorization gates
 
 - scope 必须严格为 `FIRST_REVEAL_ONLY`；
-- session_id、C3 commitment、candidate packet commitment 全部匹配；
-- `authorized=true` 且 `consumed=false`；
-- authorization 文件只允许 selector-only 权限；
-- 成功消费后原子更新为 `consumed=true`；
-- 任何重复消费、session/authority mismatch、部分写入或状态不明均 FAIL-CLOSED；
+- session_id、C3 commitment、candidate packet_id/sha256 全部 exact 匹配；
+- `authorized=true`；
+- authorization 文件 immutable：创建后不得改写；selector-only 权限；
+- **consumption 由 production chain 派生**：authorization 视为 consumed 当且仅当
+  production log 中存在以该 `authorization_id` 绑定的合法 `REVEAL_PACKET` event；
+- 不存在可变 `consumed` 权威字段；重复消费尝试、session/authority/candidate
+  mismatch、部分写入或状态不明均 FAIL-CLOSED；
 - 一次 authorization 只允许一个 event，不能授权第二个 reveal。
 
-C4-A/B 与 authorization 的生成/存在不应自动消费授权；只有明确的
-`reveal-first` 执行才可消费。
+### 4.2 Crash-safe first reveal（C4-DESIGN-FIX1-C）
+
+REVEAL event payload 必须额外绑定授权身份（C2 verifier 对额外 payload 字段
+兼容，无需修改 C2；event hash 将授权身份锁进 production chain）：
+
+```yaml
+session_id
+authorization_id
+c3_manifest_commitment
+candidate_packet_sha256
+```
+
+发布方式为 staging + atomic publication：
+
+```text
+authorization immutable + unused
+        ↓
+verify no production sealing domain exists
+        ↓
+同文件系统 temporary sealing domain
+        ↓
+frozen C2 append(REVEAL_PACKET)   # 真实 append()，含 payload 绑定
+        ↓
+fresh-load persisted verify
+        ↓
+assert exactly 1 REVEAL / 0 SEAL
+        ↓
+fsync
+        ↓
+atomic rename temp sealing domain → production sealing domain
+        ↓
+再次 fresh production replay
+```
+
+崩溃语义：
+
+- crash before rename → production 仍 0 event，authorization 未消费，可安全重试；
+- crash after rename → production event 已存在，authorization 逻辑上已消费，
+  绝不能再次使用。
+
+C4-A/B 与 authorization 的生成/存在不消费授权；只有显式 `reveal-first`
+的 staging→verify→publish 链完成才消费。
 
 ## 5. C4-C exactly one production REVEAL_PACKET
 
-`reveal-first` 的冻结执行顺序：
+`reveal-first` 的冻结执行顺序（C4-DESIGN-FIX1-C）：
 
 ```text
-verify complete production predecessor state
+verify session + frozen authorities
         ↓
-verify C3 manifest commitment
+recompute frozen first candidate (FIRST-CANDIDATE SELECTOR)
         ↓
-resolve exactly one next packet
+verify authorization binds exact candidate (packet_id/sha256)
         ↓
-verify exact C3 packet bytes/hash
+verify no production sealing domain exists
         ↓
-verify G5/XP eligibility
+stage in temporary sealing domain (same filesystem)
         ↓
-consume FIRST_REVEAL authorization
+frozen C2 append(REVEAL_PACKET)   # frozen append(), not batch writer
         ↓
-C2 production append(REVEAL_PACKET)   # frozen append(), not batch writer
+event payload binds authorization_id / session / C3 / candidate
         ↓
-fresh-load persisted production JSONL
+fresh persisted replay (staged)
         ↓
-verify() + mandatory head
+assert 1 REVEAL / 0 SEAL
         ↓
-assert exactly one open REVEAL, zero SEAL
+atomic publish (rename) sealing domain → production
+        ↓
+fresh production replay
+        ↓
+authorization now logically consumed
         ↓
 HARD STOP
 ```
@@ -204,17 +284,33 @@ next reveal = forbidden
 production log/head 是唯一实际 event state；第一条 event 写入后必须从落盘
 重新 load/replay，不能依赖 append 返回值或内存状态。
 
-## 6. C4 v0.1 fixed gates
+## 6. C4 fixed gates
 
 1. **G-C4-SESSION**：fresh production domain、唯一 session identity、权限正确；
-2. **G-C4-AUTHORITY**：C1/C3/price/index/calendar 全部 frozen authority 重验；
+2. **G-C4-AUTHORITY**：C1/C3/price/index/calendar 全部 frozen authority 重验
+   （`04f54e1` 为 provenance anchor，不要求当前 HEAD 等于它）；
 3. **G-C4-MANIFEST**：canonical C3 secret manifest hash 与 `883c9869...` 一致；
-4. **G-C4-NEXT**：hidden plan 中 exactly one legal next packet；G5/XP 不可作为 next；
+4. **G-C4-NEXT**：FIRST-CANDIDATE SELECTOR 重算唯一、commitment 一致；
+   G5/XP 不可作为 candidate；
 5. **G-C4-BYTES**：production packet bytes 与 C3 frozen packet exact hash 一致；
-6. **G-C4-AUTHZ**：`FIRST_REVEAL_ONLY` authorization 存在、匹配且未消费；
-7. **G-C4-APPEND**：使用冻结 C2 production `append()`，禁止 batch writer；
-8. **G-C4-REPLAY**：fresh-load persisted replay + mandatory head；最终恰为一个
-   open REVEAL、零 production SEAL。
+6. **G-C4-AUTHZ**：`FIRST_REVEAL_ONLY` authorization 存在、immutable、绑定
+   exact session/C3/candidate 且未 consumed；
+7. **G-C4-APPEND**：使用冻结 C2 production `append()`（staged domain），
+   禁止 batch writer；event payload 绑定 authorization_id/session/C3/candidate；
+8. **G-C4-REPLAY**：staged 与 published 两次 fresh-load persisted replay +
+   mandatory head；最终恰为一个 open REVEAL、零 production SEAL。
+
+### 6.1 C3 authority semantics（C4-DESIGN-FIX1-D）
+
+`04f54e1` 是 frozen audit reference / provenance anchor，不是 HEAD 约束：
+
+- 该 commit 必须存在于仓库历史；
+- 当前消费的 C3 authoritative artifacts 与其冻结 authority 一致：
+  - manifest commitment = `883c9869...`；
+  - packet schema hash = frozen value；
+  - C1/source commitments = frozen values；
+  - secret C3 manifest canonical hash = `883c9869...`；
+  - packet bytes hash = manifest entry。
 
 ## 7. Synthetic / negative gates（设计阶段，不触碰 production）
 
@@ -224,10 +320,12 @@ C4 设计审计和实现测试必须使用独立 synthetic domain 或 temporary 
 - existing production directory → G-C4-SESSION FAIL；
 - C3 authority/manifest mismatch → G-C4-AUTHORITY/MANIFEST FAIL；
 - modified secret manifest → G-C4-MANIFEST FAIL；
-- zero/multiple legal next packets → G-C4-NEXT FAIL；
+- zero/multiple recomputed first candidates → G-C4-NEXT FAIL；
 - packet bytes one-byte mutation → G-C4-BYTES FAIL；
-- missing/consumed/mismatched authorization → G-C4-AUTHZ FAIL；
+- missing/already-consumed/candidate-mismatched authorization → G-C4-AUTHZ FAIL；
+  （consumed 判定 = production chain 中存在绑定该 authorization_id 的 REVEAL）
 - batch-writer substitution → G-C4-APPEND FAIL；
+- staged tamper / 缺 fsync / 非 atomic rename 路径 → G-C4-APPEND FAIL；
 - persisted log tamper/truncation/missing head → G-C4-REPLAY FAIL；
 - attempted second reveal or seal after first reveal → final-state gate FAIL。
 
