@@ -287,7 +287,7 @@ C3 preflight PASS 后，另立 C4 或用户明确裁决，才允许第一个真�
 8. G-C3-DATE；
 9. G-C3-CHART；
 10. G-C3-CONGRUENCE（packet/receipt/event schema congruence）；
-7. C2 isolated append/replay preflight（事件可写，但不构成 production schedule）；
-8. determinism、G5/XP boundary、NO_PRODUCTION_REVEAL/SEAL/REAL_ANNOTATION 审计；
-9. 公开 audit artifacts 与 C3 report；
-10. 独立命令和退出码复核后 commit。
+11. C2 isolated append/replay preflight（事件可写，但不构成 production schedule）；
+12. determinism、G5/XP boundary、NO_PRODUCTION_REVEAL/SEAL/REAL_ANNOTATION 审计；
+13. 公开 audit artifacts 与 C3 report；
+14. 独立命令和退出码复核后 commit。
