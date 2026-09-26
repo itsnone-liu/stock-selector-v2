@@ -119,3 +119,15 @@ CSR-7 冻结规则的 AND 条件顺序为：
 产物作为 commit B。Git 历史即可证明规则冻结先于结果生成。
 （注：G1 候选数从 21 变 3 会改变单一 rng 流的消耗，G2/G3/G4/G5 的 chosen 将随流
 变化——这是流一致性的正常结果，manifest 记录新流即为可重放。）
+
+
+## G2-P1b 检查窗口澄清（erratum v2 内部矛盾修正，先于重跑 commit B 登记）
+
+erratum v2 的操作句 "fwd window includes T0; no-new-high = fwd max <= pre20 high"
+存在逻辑矛盾：T0 为突破日，其收盘价超过前 20 日高是突破事件的定义性特征，
+若检查窗口含 T0 则条件几乎必然失败（实测 G2 候选=0，自证矛盾）。
+修正冻结：
+  reference_high = 前 20 个交易日最高收盘（不含 T0）——同 G2-P1 不变；
+  检查窗口 = T0 之后至 T0+120（不含 T0）；
+  no-new-high = max(close[T0+1 .. T0+120]) ≤ reference_high。
+即"突破日可以站上前高（那是突破本身），之后 120 日不得再超出前高"。
