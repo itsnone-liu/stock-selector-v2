@@ -22,12 +22,12 @@ publication_date/available_date 一律由主仓侧公告索引补齐。
 |---|---|---|---|---|
 | 日线 OHLCV（84 案例） | baostock hfq/unadj（研究窗已冻结）+ TDX 日线交叉验证 | research / tdx | FROZEN（Phase A 已用）+ CROSSCHECK_PENDING | 交易日历天然 PIT |
 | 除权事件 | TDX 分红送配（600519 十条级）+ baostock | tdx | CONTENT_VERIFIED（送转内部一致性 26/27 ≤2%） | 生效日语义；公告日由公告索引补 |
-| **股本历史（E-MKT-04/E-SEC-04 市值构造）** | TDX get_gb_info_by_date（股票侧） | tdx | **CONTENT_VERIFIED**（703 变化点；≥1% 变动 112 个与官方生效日对齐；公告抽查 2/2 精确命中） | market_cap(T)=price(T)×share(T) 生效日语义成立；PIT 严格语义仍需公告日链 → CSR-6 重评级时可升至 C 类可构造（BACKTEST_ONLY→CONTENT_VERIFIED，升级声明见 CSR84_EVIDENCE_REPORT §一） |
-| 十大股东/十大流通（E-STK-01/02 content 源） | TDX download_file type=1（gd+ltgd 成对） | tdx | CONTENT_OK_PIT_PENDING（2035 快照/504 下载零错误/五组均衡） | TDX content × 公告索引 publication_date join（主仓侧） |
+| 股本历史（**数据源语义：VERIFIED_ON_CSR84**；E-MKT-04/E-SEC-04=DATA_SOURCE_CANDIDATE_VERIFIED，CSR-6 状态暂不变） | TDX get_gb_info_by_date（股票侧） | tdx | VERIFIED_ON_CSR84（84 案例内语义可信；全冻结 universe 5,240 股 coverage 未证明） | 84 案例级 market_cap(T)=price(T)×share(T) 生效日语义成立。112 个 ≥1% 变化=送转内部一致性 26/27≤2%+公告抽查 2/2 命中（非 112/112 全量）。E-MKT-04 重评级前置=5,240 股全覆盖；E-SEC-04 另需 PIT 行业表+权重口径（自由流通 vs 总市值）预注册。满足后再提请，不在 Phase B 擅动 |
+| 十大股东/十大流通（**E-STK-02** content 源；E-STK-01=股东户数由单独通道建设，TDX 不覆盖） | TDX download_file type=1（gd+ltgd 成对） | tdx | CONTENT_OK_PIT_PENDING（2035 快照/504 下载零错误/五组均衡） | TDX content × 公告索引 publication_date join（主仓侧） |
 | 龙虎榜（历史） | akshare lhb_detail_em | research | CONTENT_OK_PIT_PENDING（probe 已确认 430 行/字段齐） | 聚合源无 timestamp 保守 T+1+availability_basis |
 | 龙虎榜（forward） | TDX watchlist 每日归档（archivist LHB×20） | tdx | FORWARD_ARCHIVE_RUNNING | 归档起点 2026-09-26；只供未来事件，不回填历史 |
 | 限售解禁（forward） | TDX unlock×20 每日归档 | tdx | FORWARD_ARCHIVE_RUNNING | 同上 |
-| 个股两融明细（E-STK-08） | akshare margin_detail_sse/szse | research | CONTENT_OK_PIT_PENDING（两所均确认；TDX GP03 付费墙止损） | 交易所官方 T 日盘后；聚合源按 source timestamp 登记 |
+| 个股两融明细（E-STK-08） | akshare margin_detail_sse/szse | research | CONTENT_OK_PIT_PENDING（SSE 1,906 行确认；SZSE 间歇限流 PENDING_RETRY，endpoint 已验证） | 交易所官方 T 日盘后；聚合源按 source timestamp 登记。**TDX GP03 系免费路线止损**（付费墙仅 TDX 侧，AKShare 通道不受影响） |
 | 两融标的池历史 membership | akshare underlying 快照（每日存档从现在积累）+ TDX 分类 56/57（标签待确认） | research / tdx | SNAPSHOT_ACCUMULATING | 不能回溯——只能 forward 积累（两边口径并采，以交易所为准） |
 | 增减持/户数/基金持仓（xp） | akshare（东财域） | research | PENDING_RETRY→见 probe | 公告日链=巨潮 join（主仓侧统一做） |
 | **ETF 历史份额** | 无（GP52 付费墙；get_gb_info=红线） | — | **INTERFACE_GAP_CONFIRMED**（TDX 侧二次确认 akshare 侧缺口） | 三选一路径已登记：升级权限复测 / 独立点时源 / PCF 每日归档不补历史（archivist 已在做 PCF×8） |
@@ -37,14 +37,18 @@ publication_date/available_date 一律由主仓侧公告索引补齐。
 ## 3. 红线（继承 tdx-node，主仓同等生效）
 
 1. **ETF get_gb_info_by_date 永久禁用为历史份额**（当前快照铺满历史：三只 ETF 1250 日 unique=1）；
-2. GP52/两融历史付费墙止损——不反复重试免费路线；
+2. TDX GP52 / GP03 系免费路线止损（付费墙仅限 TDX 侧；两融历史由 research-node
+   AKShare 通道承担，不受此红线约束）——不反复重试 TDX 免费路线；
 3. 当前 ETF 列表/两融池不得倒灌历史 membership；
 4. TDX 股本变化日是生效日不是公告日——任何"当时可知"判断不得引用。
 
 ## 4. 数据流契约（两节点统一字段）
 
-- 主仓 ingestion 七字段：trade_date / source / source_record_date / publication_date /
-  retrieved_at / available_date / availability_basis；
+- 主仓 ingestion 七字段：**observation_date** / source / source_record_date /
+  publication_date / retrieved_at / available_date / availability_basis。
+  CSR-6 核心时间链 observation_date→publication_date→available_date 适用于全部通道
+  （XP 通道 observation≠trade：股东=报告期末、基金=季末、解禁=实施日）；通道自身的
+  trade_date / report_period / event_date / effective_date 留在 payload，不进主键层；
 - tdx-node 归档四件套（已实现）：retrieved_at / request / sha256 / outcome
   （SUCCESS_NONEMPTY ≠ SUCCESS_EMPTY ≠ FAILED，三分类永不混同）；
 - 消费规则：tdx-node archive/<date>/manifest.json 为主仓唯一进口；主仓引用归档文件
@@ -60,10 +64,11 @@ archivist 起点为 2026-09-26。Phase C 标注若需 forward 证据（T 日后�
 
 ## 6. 对 CSR-6 重评级的影响（提请下轮 CSR-6 修订时执行，不在 Phase B 内擅动）
 
-- E-MKT-04/E-SEC-04：BACKTEST_ONLY → C 类可构造（CONTENT_VERIFIED，生效日语义）；
-  availability 不变（本地构造=C_RELIABLE_PROXY 语义链保持）；
-- E-STK-01/02（十大股东 content）：content 覆盖升级确认（84/84 全覆盖、
-  每股≥15 快照），availability 维持 LAGGED_VERIFICATION；
+- 股本历史数据源：VERIFIED_ON_CSR84（数据源语义验证；非 E-MKT-04/E-SEC-04 重评级）——
+  E-MKT-04 需 5,240 股股本历史全覆盖后再提请；E-SEC-04 另需 PIT 行业表+权重口径
+  （自由流通 vs 总市值）预注册（CSR-6 已冻结该开放问题）；
+- E-STK-02（十大流通/十大股东 content）：覆盖确认（84/84 全覆盖、每股≥15 快照），
+  availability 维持 LAGGED_VERIFICATION；E-STK-01（股东户数）由单独通道建设，本方案不涉及；
 - ETF 份额类：缺口二次确认——CSR-6 的 contract_items_for_ingestion 中
   ETF 份额项标记 BLOCKED_ON_PERMISSION_OR_ALTERNATE_SOURCE。
 
