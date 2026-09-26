@@ -74,6 +74,10 @@ SESSION_MANIFEST_KEYS = {
     'first_candidate_commitment', 'price_source_commitments',
     'phase_b_input_commitments', 'initial_state', 'created_at',
 }
+FIRST_CANDIDATE_RECORD_KEYS = {
+    'version', 'session_id', 'c3_manifest_commitment',
+    'candidate_packet_id', 'candidate_packet_sha256',
+}
 C3_COMMITMENT_KEYS = {
     'packet_manifest_commitment', 'packet_schema_sha256', 'source_commitments',
 }
@@ -241,6 +245,35 @@ def verify_session_permissions(prod):
             fail(f'G-C4-SESSION: {name} must exist with selector-only 0600')
 
 
+def verify_first_candidate_record(session_id, prod, manifest=None, entry=None):
+    """FIX2 closed-world gate: the frozen canonical record schema is exact.
+
+    Rejects any record whose key set differs from the frozen five-field
+    canonical form — including records that keep all five frozen values but
+    add an extra field (even when the manifest commitment was re-hashed to
+    match, which the schema gate must catch on its own).
+    """
+    record = json.loads((prod / 'first_candidate_record.json').read_text())
+    if set(record) != FIRST_CANDIDATE_RECORD_KEYS:
+        fail('G-C4-NEXT: first_candidate_record key set != frozen canonical '
+             'schema (closed-world violation)')
+    if record['version'] != SELECTOR_VERSION:
+        fail('G-C4-NEXT: candidate record version drift')
+    if record['session_id'] != session_id:
+        fail('G-C4-NEXT: candidate record session_id drift')
+    if record['c3_manifest_commitment'] != C3_COMMITMENT:
+        fail('G-C4-NEXT: candidate record C3 commitment drift')
+    if entry is not None:
+        if record['candidate_packet_id'] != entry['packet_id']:
+            fail('G-C4-NEXT: candidate record packet_id drift')
+        if record['candidate_packet_sha256'] != entry['sha256']:
+            fail('G-C4-NEXT: candidate record packet sha256 drift')
+    if manifest is not None:
+        if manifest['first_candidate_commitment'] != sha(canon(record).encode()):
+            fail('G-C4-NEXT: candidate record commitment mismatch')
+    return record
+
+
 def verify_session_manifest(session_id, prod):
     """F1: exact immutable session-manifest schema + frozen value binding."""
     manifest = json.loads((prod / 'session_manifest.json').read_text())
@@ -276,7 +309,9 @@ def verify_session_manifest(session_id, prod):
     if manifest['initial_state'] != 'INITIALIZED_NO_REVEAL':
         fail('G-C4-SESSION: initial_state drift')
     try:
-        time.strptime(manifest['created_at'], '%Y-%m-%dT%H:%M:%SZ')
+        parsed = time.strptime(manifest['created_at'], '%Y-%m-%dT%H:%M:%SZ')
+        if time.strftime('%Y-%m-%dT%H:%M:%SZ', parsed) != manifest['created_at']:
+            fail('G-C4-SESSION: created_at not canonical round-trip timestamp')
     except (ValueError, TypeError):
         fail('G-C4-SESSION: created_at not canonical UTC timestamp')
     record = json.loads((prod / 'first_candidate_record.json').read_text())
@@ -347,6 +382,8 @@ def c4a_init(session_id, prod_root=PROD_ROOT):
         os.umask(old)
     verify_session_manifest(session_id, prod)
     verify_session_permissions(prod)
+    verify_first_candidate_record(session_id, prod, manifest=manifest,
+                                  entry=entry)
     print('C4-A INIT PASS  session=%s' % session_id)
     print('  G-C4-SESSION fresh, selector-only 0700/0600, exact c4-v1.0 schema')
     print('  G-C4-AUTHORITY all frozen authorities + C3 provenance/artifact '
@@ -374,15 +411,8 @@ def c4b_readiness(session_id, prod_root=PROD_ROOT):
     c1 = verify_frozen_authorities()
     cand = first_candidate(c1)
     entry = candidate_packet(c1, cand)
-    record = json.loads((prod / 'first_candidate_record.json').read_text())
-    if (record['version'] != SELECTOR_VERSION
-            or record['session_id'] != session_id
-            or record['c3_manifest_commitment'] != C3_COMMITMENT
-            or record['candidate_packet_id'] != entry['packet_id']
-            or record['candidate_packet_sha256'] != entry['sha256']):
-        fail('G-C4-NEXT: recomputed candidate differs from frozen record')
-    if manifest['first_candidate_commitment'] != sha(canon(record).encode()):
-        fail('G-C4-NEXT: first candidate commitment mismatch')
+    record = verify_first_candidate_record(session_id, prod, manifest=manifest,
+                                           entry=entry)
     verify_candidate_bytes(entry)
     print('C4-B READINESS PASS  session=%s' % session_id)
     print('  G-C4-AUTHORITY all frozen authorities + C3 provenance/artifact '
@@ -460,9 +490,21 @@ def selftest():
         expect_fail(lambda: c4b_readiness('s1', root),
                     'tampered candidate record -> G-C4-NEXT FAIL')
         rec.write_text(orig_rec)
-        # G-C4-SESSION: session manifest mutation (schema drift)
+        # G-C4-NEXT closed-world: extra field + re-hashed manifest commitment
         smf = root / 's1' / 'session_manifest.json'
         orig_sm = smf.read_text()
+        bad2 = json.loads(orig_rec)
+        bad2['extra_field'] = 'anything'
+        sm2 = json.loads(orig_sm)
+        sm2['first_candidate_commitment'] = sha(canon(bad2).encode())
+        rec.write_text(canon(bad2))
+        smf.write_text(canon(sm2))
+        expect_fail(lambda: c4b_readiness('s1', root),
+                    'record extra field + re-hashed commitment -> '
+                    'G-C4-NEXT closed-world FAIL')
+        rec.write_text(orig_rec)
+        smf.write_text(orig_sm)
+        # G-C4-SESSION: session manifest mutation (schema drift)
         bad_sm = json.loads(orig_sm)
         bad_sm['session_version'] = 'c4-v9.9'
         smf.write_text(canon(bad_sm))
@@ -523,7 +565,7 @@ def selftest():
         supersede('s1', root)
         expect_fail(lambda: c4b_readiness('s1', root),
                     'superseded session -> INVALID_FOR_ACTIVATION FAIL')
-    print('C4 SELFTEST PASS: 11 isolated fail-closed fixtures calling '
+    print('C4 SELFTEST PASS: 13 isolated fail-closed fixtures calling '
           'production helpers; production event count remains 0 everywhere')
 
 
