@@ -51,12 +51,12 @@ channels:
   layer: rt
   channel_family: margin
   evidence_ref: E-STK-08 (per-stock)
-  status: CONTENT_OK_PIT_PENDING
+  status: PENDING_RETRY
   fields: null
   note: 2026-09-26 首探连接重置（深交所域）；重跑成功即升级
   success_status: CONTENT_OK_PIT_PENDING
-  rows_probed: 1981
-  probe_result: OK
+  probe_result: 'FAIL ConnectionError: (''Connection aborted.'', ConnectionResetError(104, ''Connection
+    reset by peer''))'
 - name: rt_margin_underlying_pool_szse
   layer: rt
   channel_family: margin
@@ -117,23 +117,17 @@ channels:
   layer: xp
   channel_family: holder_count
   evidence_ref: CSR-6 户数 verdict
-  status: CONTENT_OK_PIT_PENDING
+  status: FIELD_SCHEMA_MISMATCH
   fields:
-  - 股东户数统计截止日
   - 股票代码
   - 股东户数
-  - 户均持股市值
-  - 户均持股数
-  note: 东财域间歇限流；成功即升级
+  note: 东财域间歇限流；成功且必需字段齐才升级(FIELD_SCHEMA_MISMATCH gate)
   success_status: CONTENT_OK_PIT_PENDING
   rows_probed: 5231
   fields_missing_from_response:
-  - 股东户数统计截止日
   - 股票代码
   - 股东户数
-  - 户均持股市值
-  - 户均持股数
-  probe_result: OK
+  probe_result: OK_BUT_FIELDS_MISSING
 - name: xp_holder_count_detail
   layer: xp
   channel_family: holder_count
@@ -226,10 +220,11 @@ counts:
   endpoint_count: 15
   evidence_id_count: 13
   by_status:
-    CONTENT_OK_PIT_PENDING: 9
+    CONTENT_OK_PIT_PENDING: 7
+    PENDING_RETRY: 3
     SMOKE_OK_OPTIONAL_REFERENCE: 1
     INTERFACE_GAP: 1
-    PENDING_RETRY: 2
+    FIELD_SCHEMA_MISMATCH: 1
     OPTIONAL_ENDPOINT_FAILING: 1
     SOURCE_DESIGN_REQUIRED: 1
 next:

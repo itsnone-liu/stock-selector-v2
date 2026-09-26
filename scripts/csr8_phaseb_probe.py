@@ -67,8 +67,9 @@ PROBES = [
     P('xp_holder_count_list', 'xp', 'holder_count', 'CSR-6 户数 verdict',
       'PENDING_RETRY',
       lambda: __import__('akshare').stock_zh_a_gdhs(symbol='20250331'),
-      ['股东户数统计截止日', '股票代码', '股东户数', '户均持股市值', '户均持股数'],
-      '东财域间歇限流；成功即升级', success_status='CONTENT_OK_PIT_PENDING'),
+      ['股票代码', '股东户数'],
+      '东财域间歇限流；成功且必需字段齐才升级(FIELD_SCHEMA_MISMATCH gate)', 
+      success_status='CONTENT_OK_PIT_PENDING'),
     P('xp_holder_count_detail', 'xp', 'holder_count', 'CSR-6 户数 verdict',
       'PENDING_RETRY',
       lambda: __import__('akshare').stock_zh_a_gdhs_detail_em(symbol='sh688686'),
@@ -124,7 +125,12 @@ def run():
                     missing = [f for f in row['fields'] if f not in cols]
                     row['fields_missing_from_response'] = missing or []
                 row['probe_result'] = 'OK'
-                if row['status'] == 'PENDING_RETRY':
+                # AUDIT rule: nonempty is NOT sufficient — required fields must
+                # all be present before any upgrade (FIELD_SCHEMA_MISMATCH gate)
+                if row.get('fields_missing_from_response'):
+                    row['status'] = 'FIELD_SCHEMA_MISMATCH'
+                    row['probe_result'] = 'OK_BUT_FIELDS_MISSING'
+                elif row['status'] == 'PENDING_RETRY':
                     row['status'] = row['success_status']
         except Exception as e:
             row['probe_result'] = f'FAIL {type(e).__name__}: {str(e)[:100]}'
