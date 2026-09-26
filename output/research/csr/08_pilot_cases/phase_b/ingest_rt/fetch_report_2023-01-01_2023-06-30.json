@@ -1,0 +1,26 @@
+{
+ "margin_sse": {
+  "expected": 118,
+  "skipped_valid": 118,
+  "attempted": 0,
+  "failed_after_retry": 0
+ },
+ "margin_szse": {
+  "expected": 118,
+  "skipped_valid": 118,
+  "attempted": 0,
+  "failed_after_retry": 0
+ },
+ "lhb": {
+  "expected": 6,
+  "skipped_valid": 5,
+  "attempted": 1,
+  "failed_after_retry": 0
+ },
+ "dzjy": {
+  "expected": 6,
+  "skipped_valid": 6,
+  "attempted": 0,
+  "failed_after_retry": 0
+ }
+}
