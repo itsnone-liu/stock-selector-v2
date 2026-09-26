@@ -40,20 +40,25 @@ fields:
 
   source:
     nullable: NO
-    source: 采集时登记：具体 endpoint 名 + 节点（research-node / tdx-node）
-            + 采集器版本（akshare 版本号 / archivist 版本号）。
-    derivation: 无（事实字段，机器写入）。
+    source: >
+      canonical grammar（管道分隔单字符串，机器可解析，RG-4 依此执行）：
+      LEVEL|node|collector@version|endpoint
+      例：AGGREGATOR|research-node|akshare@1.18.97|stock_lhb_detail_em
+          LOCAL_NODE|tdx-node|archivist@1.2.0|download_file:type=1
+      LEVEL ∈ {OFFICIAL_EXCHANGE, OFFICIAL_DISCLOSURE, AGGREGATOR, LOCAL_NODE}。
+    derivation: 无（事实字段，机器按 grammar 组装写入）。
     forbidden_default: >
-      禁止"akshare"类泛称（必须到 endpoint 级）；
-      禁止聚合源写成官方源（source 层级：OFFICIAL_EXCHANGE / OFFICIAL_DISCLOSURE /
-      AGGREGATOR / LOCAL_NODE，必填其一且不得越级声明）。
+      禁止"akshare"类泛称（必须 endpoint 级）；禁止聚合源写成官方源
+      （层级不得越级声明）；grammar 不符=gate 拒绝（RG-4 机器检查前提）。
 
   source_record_date:
-    nullable: YES（NULL=源未提供行内日期，合法）
+    nullable: YES（NULL = source does not expose a distinct record date，合法语义）
     source: 数据源自带行内日期字段的原样拷贝。
     derivation: payload 原生 copy，不做任何换算。
     forbidden_default: 禁止用 observation_date 顶替（源记录日≠观测日是两种语义）；
-                       NULL 时必须在 availability_basis 说明。
+                       如需标记缺失原因放 payload 字段
+                       source_record_date_status: NOT_PROVIDED——
+                       availability_basis 职责是可得性证明，不承担源日期缺失解释。
 
   publication_date:
     nullable: YES（NULL=UNKNOWN，合法且预期常见）
@@ -67,24 +72,34 @@ fields:
 
   retrieved_at:
     nullable: NO
-    source: 采集时刻 timestamp（Asia/Shanghai），采集器机器生成。
-    derivation: 系统时钟；禁止手工编辑。
-    forbidden_default: 禁止用文件 mtime / 归档目录日期顶替采集时刻。
+    source: >
+      采集时刻 timestamp：timezone-aware ISO-8601，storage canonical = UTC
+      （如 2026-09-26T12:30:15.123456+00:00）。显示层需要时再转 Asia/Shanghai，
+      存储层不因本机时区产生不同语义（tdx-node archivist 已为 UTC +00:00，
+      research-node 同口径；bridge 直接映射因此成立）。
+    derivation: 系统时钟（UTC canonical）；禁止手工编辑。
+    forbidden_default: 禁止用文件 mtime / 归档目录日期顶替采集时刻；
+                       禁止 naive timestamp（无时区=非法记录，gate 拒绝）。
 
   available_date:
-    nullable: YES（xp 层常见 NULL）
+    nullable: YES（xp 层常见 NULL；NULL = 对所有消费层不可见，见 consumption）
     source: >
       三级依据（basis 登记哪个）：
       (a) OFFICIAL_RULE——官方披露规则可证明（如交易所两融 T 日盘后披露）；
       (b) SOURCE_TIMESTAMP——聚合源记录时间可验证（页面/接口自带时间戳）；
-      (c) CONSERVATIVE_T1——rt 聚合源无 timestamp 时的保守回退（T+1）。
+      (c) CONSERVATIVE_T1——rt 聚合源无 timestamp 时的保守回退：
+          available_date = next_trading_day(observation_date,
+          frozen_exchange_calendar)——即下一**交易日**，不是 calendar date+1
+          （周五的 T+1 是周一，不是周六；日历+1 会产生假 available_date）。
     derivation: >
-      仅可由 publication_date 或官方规则派生。publication_date=NULL 时：
-      rt 通道可用 (c) 保守 T+1（basis=CONSERVATIVE_T1 登记）；
-      xp 通道不得派生（保持 NULL，记录不可用直到公告日链补齐）。
+      仅可在 ingestion 阶段由 publication_date 或官方规则派生并显式写入；
+      publication_date=NULL 时：rt 通道可用 (c) 保守下一交易日
+      （basis=CONSERVATIVE_T1 登记）；xp 通道不得派生（保持 NULL，
+      记录不可用直到公告日链补齐）。消费层禁止任何时间推导（见 consumption）。
     forbidden_default: >
       禁止=observation_date（除非官方规则明确同日披露且 basis=OFFICIAL_RULE）；
-      xp 层禁止一切默认；禁止 (b)/(c) 冒充 (a)。
+      xp 层禁止一切默认；禁止 (b)/(c) 冒充 (a)；
+      禁止 calendar date+1 充当下一交易日。
 
   availability_basis:
     nullable: NO
@@ -111,12 +126,19 @@ record_gates:
 consumption:
   hindsight_filter: >
     任何 CSR-8 标注/分析层引用数据，必须以 available_date <= 决策日 T
-    过滤（这是防 hindsight 三层隔离在数据面的执行点）；
-    available_date=NULL 的记录对 rt 层按 CONSERVATIVE_T1 解释、对 xp 层不可见。
+    过滤（这是防 hindsight 三层隔离在数据面的执行点）。
+    available_date=NULL 的记录对**所有**消费层不可见——消费层禁止
+    任何时间推导（包括对 rt 层按 CONSERVATIVE_T1 的再解释：rt 想用
+    下一交易日，必须在 ingestion 阶段显式填入 available_date+basis，
+    消费层只读不推）。此条为 hard_gate_1 在消费侧的镜像。
   pit_ready_definition: >
-    通道 PIT_READY = xp 类记录能以公告索引 join 填 publication_date（比例
-    登记阈值另定），rt 类能以 (a)/(b) 级 basis 填 available_date。
-    CONTENT_OK_PIT_PENDING → PIT_READY 的机器判据即本契约字段完备性。
+    两级拆分（不得混同）：
+    record_pit_usable = 单条记录七字段完备 + basis 可证明
+      （record 级，本契约即可机器判定）；
+    channel_pit_ready = 通道级评级，需 OQ-3 覆盖率阈值冻结后才可
+      自动升级——**在 OQ-3 冻结前 channel-level PIT_READY promotion
+      保持禁用**。CONTENT_OK_PIT_PENDING → channel PIT_READY 的
+      机器判据 = record_pit_usable 比例 ≥ OQ-3 阈值（待定）。
 
 # ============ 与 tdx-node 归档四件套的对接 ============
 tdx_bridge:
@@ -127,8 +149,27 @@ tdx_bridge:
     （payload 层），主键层七字段不变。
   verification: 主仓消费归档文件前校验 sha256 与 archivist 复验值一致。
 
-open_questions（冻结前需用户裁决）:
-  OQ-1: 巨潮公告索引的 join 键（股票代码+公告类型+日期窗）与容差规则；
-  OQ-2: tdx-node 归档回传通道选型（scp/rsync/git-lfs/手动 zip）；
-  OQ-3: publication_date join 覆盖率的最低阈值（PIT_READY 判定的量化标准）；
-  OQ-4: 拒绝日志的落盘位置与格式（ingestion_rejects 表结构）。
+# ============ OQ-4 已裁决：最小 reject log schema（契约组成部分）============
+reject_log_schema:
+  note: hard gate 承诺"违反即拒绝+日志"——日志结构是契约本体，非实现细节。
+  required_fields:
+    ingest_run_id: 入库批次标识（同一批次拒绝可聚合审计）
+    rejected_at: timezone-aware UTC ISO-8601（同 retrieved_at 口径）
+    gate_id: 触发拒绝的 gate（hard_gate_1 / RG-1 / RG-2 / RG-3 / RG-4）
+    source: canonical grammar 字符串（同 source 字段格式）
+    record_identity: 记录业务标识（如 code+observation_date）
+    raw_ref: 被拒记录在原始采集文件中的定位引用
+    raw_sha256: 原始文件哈希（保证 raw_ref 可复验）
+    reason: 机器可分类的拒绝原因码+人读描述
+    payload_excerpt: 可选，被拒记录摘录（便于事后审计，不含敏感字段）
+
+# ============ open questions 裁决状态（用户 2026-09-26）============
+open_questions_status:
+  OQ-1_giant_tide_join: >
+    OPEN——但 XP publication_date join 在 OQ-1 冻结前禁止投入正式 PIT 使用
+    （rt 首批 ingestion 不受阻塞）。
+  OQ-2_transfer_channel: >
+    OPEN——回传方式不影响数据语义，不阻塞。
+  OQ-3_pit_ready_threshold: >
+    OPEN——channel-level PIT_READY promotion 保持禁用，直到覆盖率阈值冻结。
+  OQ-4_reject_schema: RESOLVED（见上 reject_log_schema，随本契约冻结）。
