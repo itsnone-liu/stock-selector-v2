@@ -1,9 +1,9 @@
 # CSR-8 Phase C4-D — First Annotation + SEAL Protocol Design
 
-- 状态：DESIGN DRAFT v0.3（= v0.2 @ `d28c02a` + C4-D-DESIGN-FIX2 修订，
-  五项协议闭合已全部落入正文）；待用户审计；本文件不授权、不实现、不
-  创建任何 production 对象、不创建 annotator 域与 c4d_receipts 域、
-  不产生任何 production event
+- 状态：DESIGN DRAFT v0.4（= v0.3 @ `1af93c5` + C4-D-DESIGN-FIX3 修订，
+  三处最终一致性收口 F17/F18/F19 已全部落入正文）；待用户审计；本文件
+  不授权、不实现、不创建任何 production 对象、不创建 annotator 域与
+  c4d_receipts 域、不产生任何 production event
 - 基线（全部已冻结）：
   - C2 seal log FINAL FROZEN @ `9d19be7`（`REVEAL_PACKET` / `SEAL_ANNOTATION`
     事件语义、exact-byte binding、strict REVEAL→SEAL 交替、**head anchor
@@ -65,6 +65,14 @@ HARD_STOP              = active（等待 C4-D 设计冻结 + 逐步人工授权�
 | C5 | ordinal-N 完整 persisted protocol：proposal/approval/permit 固定路径 + 0700/0600/O_EXCL/fsync 契约 + REVEAL payload 扩展字段（链导出消费证明） | §7.2 §7.5 |
 | fixtures | D40–D45 | §9 |
 
+## 0.3 FIX3 修订记录（v0.3 → v0.4；最终一致性收口）
+
+| 项 | 修订 | 落点 |
+| --- | --- | --- |
+| F17 | `c4d_proposals` selector-only 0700/0600 契约（proposal 由 0644 改 0600，全路径父目录 0700，列入 §2.1 selector-only 域；0644 无法机器证明 proposal 对 annotator 不可见）；human UI 仍只输出 proposal_sha256；fixture D46 | §2.1 §7.2 §9 |
+| F18 | §5.3 `SEAL_TAIL_UNANCHORED` 完成提交的终态由 SEALED 更正为 **SEAL_COMMITTED**（sync_head+fsync+verify+semantic replay 之后），再走 anchor durable → cleanup → POST_SEAL_FINAL → SEALED；与 FIX2-C4 分相全文一致 | §5.3 |
+| F19 | draft 锁定并入 attempt 发布事务（8 步冻结顺序：锁 0400 + reread exact + fsync **先于** renameat2）；invariant：attempt 存在 ⇒ draft 已锁且 bytes==snapshot；crash 在锁后/rename 前的恢复 = 清 staging + 确认无 committed attempt + chmod 回 0600 → ANNOTATION_OPEN；attempt 已存在时 draft 漂移 = FORENSIC 不静默修正（D22 确定语义）；D41 扩展两窗口 | §4.3 §3 §9 |
+
 ---
 
 ## 1. 设计范围与不动点
@@ -103,6 +111,11 @@ selector-only     data/csr8_phase_c/secret/            （salt、packet_plan、
                                                        authorization）
                   data/csr8_phase_c/c3_preflight/      （全部 packet 池）
                   data/csr8_phase_c/c4c_proposals/     （C4-C 历史 proposal 域）
+                  data/csr8_phase_c/c4d_proposals/      （FIX3-F17：ordinal-N
+                                                       reveal proposal 域，
+                                                       0700/0600，含下一
+                                                       packet identity，
+                                                       selector-only）
                   data/csr8_phase_c/c4d_receipts/      （F1：annotation 控制
                                                        域，见 §4.6）
 
@@ -199,9 +212,11 @@ SEAL_COMMITTED ─anchor durable + cleanup + POST_SEAL_FINAL→ SEALED
 
 - ANNOTATION_OPEN：active draft 自由改写；schema 只在 `make_receipt`
   时 fail-closed 校验（工作期不逐笔拦截，准入在冻结点）；
-- READY_TO_SEAL：receipt 自 O_EXCL 创建起不可变；active draft 转只读
-  0400；draft 的 exact bytes 已快照到 selector-only
-  `draft_snapshot.bin`（F1），`draft_sha256 = SHA256(draft_snapshot.bin)`
+- READY_TO_SEAL：receipt 自发布起不可变；**active draft 已锁 0400
+  （锁定先于 attempt 发布，§4.3 FIX3-F19 invariant：attempt 存在 ⇒
+  draft 已锁且 bytes == draft_snapshot.bin）**；draft 的 exact bytes
+  已快照到 selector-only `draft_snapshot.bin`（F1），
+  `draft_sha256 = SHA256(draft_snapshot.bin)`
   ——语义重放从此**不依赖 annotator 工作目录存在**；作废 = 对该
   attempt 追加 `revocation.json`（§4.5），随后新 attempt 从
   ANNOTATION_OPEN 重新起草；**seal_approval 存在后禁止作废**（否则出现
@@ -342,24 +357,40 @@ created_at: <canonical UTC，创建时固定>
 `make_receipt` 是唯一冻结点：读 exact draft bytes → closed-world 校验
 （schema + §4.1 契约 + packet/session 绑定 + reveal_event_hash ==
 production chain 最后一条 REVEAL 的 event_hash）→ 组装 → canonical 序列
-化。**发布为整个 attempt 的原子事务（FIX2-C3）**：
+化。**发布为整个 attempt 的原子事务，且 draft 锁定先于发布
+（FIX3-F19：attempt 出现 ⇒ draft 已锁 0400，为 invariant）**：
 
 ```text
-1. 同级创建 staging 目录 ordinal-XXXX/attempt-NNNN.staging/（0700）
-2. staging 内完整构造 receipt.json（canonical，0600）与
-   draft_snapshot.bin（exact draft bytes，0600）
+1. 读 exact active draft bytes D，closed-world 校验
+2. staging 内构造 receipt.json（canonical，0600）与
+   draft_snapshot.bin（== D，0600）
 3. fsync(receipt.json)、fsync(draft_snapshot.bin)、fsync(staging dir)
-4. renameat2(RENAME_NOREPLACE) staging → attempt-NNNN/
-5. fsync(ordinal-XXXX/)
+4. active draft chmod 0400（锁）
+5. reread active draft：必须仍 exact == D（否则 HALT——内容在锁定
+   竞争中被改写）
+6. fsync(active draft) + fsync(active draft parent)
+7. renameat2(RENAME_NOREPLACE) attempt-NNNN.staging → attempt-NNNN/
+8. fsync(ordinal-XXXX/)
 ```
 
-crash 在 1–3 之间只留下 `*.staging/`（uncommitted，等同 C4-C
-`sealing.staging` 的 disposable 地位，恢复时直接清理，不构成任何
-attempt 状态）；attempt 目录一旦出现即**完整含 receipt+snapshot**——
-不存在"有 receipt 无 snapshot"的半状态。attempt 发布后 active draft
-chmod 0400；receipt 与 snapshot 均不可变（重建/改写 = G-C4D-RECEIPT
-FAIL）。`seal_approval.json` / `revocation.json` 随后以单文件 O_EXCL
-追加进已发布的 attempt 目录（各自原子，无需 staging）。
+**crash 恢复（严格定义，不新增长期状态）：**
+
+- crash 在 1–3（draft 未锁）：只留 `*.staging/`（uncommitted，等同
+  C4-C `sealing.staging` 的 disposable 地位）→ 清 staging → 状态仍
+  ANNOTATION_OPEN；
+- crash 在 4–6 之后、7 之前（draft 已锁 0400，attempt 未发布）：
+  清 disposable staging → 确认不存在 committed attempt →
+  **chmod draft 回 0600 + fsync** → ANNOTATION_OPEN（无 half-READY）；
+- attempt 已存在（7 之后）：draft **必须**为 0400 且 bytes ==
+  draft_snapshot.bin——若 mode/content 漂移，属 contract drift /
+  tamper，**FORENSIC，不得静默修正**（G-C4D-SEAL-PREFLIGHT，即 D22
+  的确定语义）。
+
+attempt 目录一旦出现即完整含 receipt+snapshot 且对应 draft 已锁——
+不存在"有 receipt 无 snapshot"或"READY 但 draft 可写"的半状态。
+receipt 与 snapshot 均不可变（重建/改写 = G-C4D-RECEIPT FAIL）。
+`seal_approval.json` / `revocation.json` 随后以单文件 O_EXCL 追加进已
+发布的 attempt 目录（各自原子，无需 staging）。
 
 ### 4.4 SEAL approval authority（F4，c4d-seal-approval-v1，closed-world）
 
@@ -506,7 +537,11 @@ C4-D semantic replay（§6，对 exact receipt）PASS
 不存在任何额外 event / 额外 tail / foreign bytes
         ↓
 sync_head(candidate chain) → fsync(head) → fsync(sealing dir)
-→ verify(check_head=True) PASS
+→ verify(check_head=True) PASS → semantic replay PASS
+        ↓
+SEAL_COMMITTED                    （FIX3-F18：终态是 COMMITTED，不是 SEALED）
+        ↓
+c4d anchor durable → workspace cleanup → POST_SEAL_FINAL
         ↓
 SEALED
 ```
@@ -620,24 +655,35 @@ exact-copy permit + fsync）。旧授权 `911d8b84…5dc81` 属
 `c4c-auth-v1 / FIRST_REVEAL_ONLY`，在新 schema 下四重不匹配
 （版本/scope/序数/前缀绑定）= G-C4D-AUTHZ FAIL。
 
-**Persisted protocol（FIX2-C5：路径/schema/权限契约逐项冻结）**——
+**Persisted protocol（FIX2-C5 + FIX3-F17：路径/schema/权限契约逐项冻结）**——
+proposal 含 candidate_packet_id/sha256、sealed_prefix_head、reveal_ordinal
+等下一 packet identity，**必须 selector-only**；整条路径链 0700、文件
+0600（替代 v0.3 的 0644——0644 无法机器证明 proposal 对 annotator 不可
+见，违反 §2.3/blindness 契约）：
 
 ```text
-proposal（外部域，对 production 只读）
-  data/csr8_phase_c/c4d_proposals/c4-prod-0002/ordinal-000N/
-    next_reveal.proposal.json          canonical，0644，O_EXCL，
-                                      fsync file+parent；gitignored
+proposal（外部域，对 production 只读；FIX3-F17 selector-only）
+  data/csr8_phase_c/c4d_proposals/       0700
+  └── c4-prod-0002/                      0700
+      └── ordinal-000N/                  0700
+          └── next_reveal.proposal.json  0600
+                                        canonical，O_EXCL，
+                                        fsync(file + parent)，gitignored
 
 approval（human exact-hash 批准的机器化持久；production 域首个新写）
   data/csr8_phase_c/production/c4-prod-0002/authorization/ordinal-000N/
-    next_reveal.approval.json          canonical，0600，O_EXCL，fsync
-                                      file+parent；目录 0700
+    next_reveal.approval.json            canonical，0600，O_EXCL，fsync
+                                        file+parent；目录 0700
 
 permit（approval 的 exact-copy 物化，事务唯一入口）
   …/authorization/ordinal-000N/next_reveal.permit.json
-                                      bytes == approved proposal bytes，
-                                      0600，O_EXCL
+                                        bytes == approved proposal bytes，
+                                        0600，O_EXCL
 ```
+
+human UI 仍然只输出 `proposal_sha256`（§7.4）；annotator 任何时点不可
+读 c4d_proposals / authorization 域（G-C4D-AUTHZ + G-C4D-VISIBILITY，
+fixture D46 证之）。
 
 approval schema（c4d-reveal-approval-v1，closed-world）：
 
@@ -795,7 +841,7 @@ fsync(parent) → reread）。
 | D19 | approval 后作废 | seal_approval 存在时创建 revocation | G-C4D-RECEIPT |
 | D20 | approval hash mismatch | approved_receipt_sha256 ≠ SHA256(receipt bytes) 时 SEAL | G-C4D-SEAL-PREFLIGHT |
 | D21 | duplicate approval | seal_approval 已存在再创建 | G-C4D-RECEIPT（O_EXCL） |
-| D22 | draft mutated post-freeze | receipt 后 active draft 变更 | G-C4D-SEAL-PREFLIGHT |
+| D22 | draft drift post-freeze | published attempt 存在但 active draft mode≠0400 或 bytes≠draft_snapshot（FORENSIC 不静默修正） | G-C4D-SEAL-PREFLIGHT |
 | D23 | SEAL hash mismatch | payload receipt_sha256 ≠ 归档 bytes SHA256 | C2 delegated（exact-byte） |
 | D24 | SEAL without REVEAL | 空/外来链上先 SEAL | C2 delegated |
 | D25 | double SEAL | 对同一 (ocid,T) 二次 SEAL | C2 delegated |
@@ -814,11 +860,12 @@ fsync(parent) → reread）。
 | D38 | SEALED 后清理 | cleanup 后 active 域恰空；semantic replay 仍 PASS（不依赖 workspace） | cleanup assertion |
 | D39 | C4-C anchor 不可变 | SEAL 流程任何一步后 c4c_anchor.json 字节不变 | G-C4D-BOUNDARY |
 | D40 | foreign orphan | 孤儿 bytes hash ≠ receipt/approval 三方 → FORENSIC，bytes 原样未动，禁止 retry/覆盖 | recovery assertion（FIX2-C2） |
-| D41 | attempt 发布 crash | staging 半途（receipt 有 snapshot 无）→ 不产生 half-READY 态；staging 清理后重做 make_receipt PASS | recovery assertion（FIX2-C3） |
+| D41 | attempt 发布 crash（两窗口） | (a) staging 半途（receipt 有 snapshot 无）→ 不产生 half-READY；(b) draft 已锁 0400 + staging 未 rename（FIX3-F19）→ 清 staging → 确认无 committed attempt → draft chmod 回 0600 → ANNOTATION_OPEN → 重做 make_receipt PASS | recovery assertion（FIX2-C3 + FIX3-F19） |
 | D42 | SEAL committed / anchor missing | 链上 SEAL 完整、c4d anchor 缺失 → SEALED_PENDING_FINALIZE → 仅 finalize（anchor+cleanup+复验），第二次 append SEAL 被拒 | recovery assertion（FIX2-C4） |
 | D43 | anchor durable / workspace 未清 | cleanup 前 crash → finalize-only 恢复补 cleanup；期间 ordinal-2 proposal 被拒（前置=SEALED 非 COMMITTED） | recovery assertion（FIX2-C4） |
 | D44 | ordinal-N 路径/schema 违例 | proposal/approval/permit 路径错、schema 多/缺字段、permit 非 exact-copy、权限位错 | G-C4D-AUTHZ（FIX2-C5） |
 | D45 | ordinal-2 绑定断裂 | REVEAL payload 的 authorization/sealed_prefix/candidate 字段任一与 permit 不一致（其余自洽） | G-C4D-AUTHZ + G-C4D-SEAL-REPLAY delegated（FIX2-C5） |
+| D46 | proposal 域权限漂移 | c4d_proposals 任一层目录非 0700 / proposal 非 0600（如 0644/0755）→ FAIL 且 approval/permit 均 ABSENT | G-C4D-AUTHZ + G-C4D-VISIBILITY（FIX3-F17） |
 
 另保留 C4-C 全部既有 fixtures 作为回归（live-chain 断言在 C4-D 实现期
 升级为：恰 1 REVEAL（SEAL 后 2）+ 双 anchor 一致 + 各域 fingerprint
