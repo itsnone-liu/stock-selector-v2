@@ -1409,6 +1409,70 @@ def cmd_real_proposal():
     return proposal_sha
 
 
+# ---------------- REAL execution (§9 steps 5-13, single authorization) ----
+
+def cmd_execute(approved_hash):
+    """Consume the single human FIRST_REVEAL_ONLY authorization.
+
+    The operator-supplied approved hash must equal SHA256(persisted
+    proposal bytes) exactly; then: O_EXCL approval authority -> exact-copy
+    permit -> the frozen 22-step transaction -> semantic replay -> external
+    anchor. Any failure FAIL-CLOSED; after a durable REVEAL no retry is
+    possible (chain-derived consumption).
+    """
+    sb = ROOT / 'data/csr8_phase_c'
+    # post-reveal retry diagnosis BEFORE the pristine assertion (the
+    # frozen recovery matrix decides from the chain, not from "sealing
+    # exists")
+    state = derive_consumption(sb, REAL_SESSION)
+    if state == 'CONSUMED':
+        fail('G-C4C-AUTHZ: authorization already consumed (chain-derived: '
+             'production replay + semantic replay prove a valid REVEAL '
+             'bound to this authorization) — retry forbidden')
+    if state == 'UNRESOLVABLE':
+        fail('G-C4C-AUTHZ: UNRESOLVABLE production state — HALT/forensic, '
+             'retry forbidden')
+    if state == 'FOREIGN':
+        fail('G-C4C-PUBLISH: production sealing target already exists '
+             '(foreign content)')
+    ppath = REAL_PROPOSALS / REAL_SESSION / 'first_reveal.proposal.json'
+    if not ppath.exists():
+        fail('G-C4C-AUTHZ: persisted proposal missing — nothing to execute')
+    persisted = ppath.read_bytes()
+    if sha(persisted) != approved_hash:
+        fail('G-C4C-AUTHZ: approved hash != SHA256(persisted proposal '
+             'bytes) — this authorization does not match the persisted '
+             'proposal; FAIL-CLOSED')
+    assert_real_session_pristine()
+    print(f'AUTHORIZED HASH VERIFIED: {approved_hash}')
+    # §9 step 6: O_EXCL approval authority (first write into the real
+    # production session) — machine representation of the human approval
+    approve(sb, REAL_SESSION, approved_hash)
+    # §9 step 7-8: exact-copy permit + triple hash equality (materializer
+    # re-proves everything from persisted state)
+    materialize_permit(sb, REAL_SESSION)
+    # §9 step 9-10: the frozen transaction + semantic replay
+    summary = run_transaction(sb, REAL_SESSION)
+    # §9 step 12: publish external anchor (commitments only)
+    anchor = {
+        'production_head_hash': summary['head_hash'],
+        'authorization_sha256': approved_hash,
+    }
+    pub = ROOT / ('output/research/csr/08_pilot_cases/phase_c/c4_public')
+    pub.mkdir(parents=True, exist_ok=True)
+    (pub / 'c4c_anchor.json').write_text(canon(anchor))
+    # §9 step 13: HARD STOP
+    print('C4-C FIRST REVEAL EXECUTED — experiment STARTED')
+    print(f'  production_head_hash   = {summary["head_hash"]}')
+    print(f'  authorization_sha256   = {approved_hash}')
+    print('  PRODUCTION_EVENT_COUNT = 1 (exactly one REVEAL_PACKET)')
+    print('  first reveal consumed the one-time authorization; no second '
+          'reveal, no SEAL, no annotation, no outcome')
+    print('  external anchor published (post-commit audit durability)')
+    print('  HARD STOP')
+    return summary
+
+
 def cmd_synthetic():
     assert_real_production_pristine()               # F5 pre-run assertion
     before = tree_fingerprint(REAL_PRODUCTION)
@@ -1451,14 +1515,21 @@ def cmd_synthetic():
 
 
 def main():
-    if len(sys.argv) != 2 or sys.argv[1] not in ('synthetic', 'real-proposal'):
-        print('usage: csr8_phase_c_first_reveal.py synthetic | real-proposal')
+    if len(sys.argv) < 2 or sys.argv[1] not in ('synthetic', 'real-proposal',
+                                                'execute'):
+        print('usage: csr8_phase_c_first_reveal.py synthetic | real-proposal '
+              '| execute <approved_sha256>')
         sys.exit(2)
     try:
         if sys.argv[1] == 'synthetic':
             cmd_synthetic()
-        else:
+        elif sys.argv[1] == 'real-proposal':
             cmd_real_proposal()
+        else:
+            if len(sys.argv) != 3 or len(sys.argv[2]) != 64:
+                print('execute needs the approved proposal sha256 (64 hex)')
+                sys.exit(2)
+            cmd_execute(sys.argv[2])
     except RuntimeError:
         sys.exit(1)
 
