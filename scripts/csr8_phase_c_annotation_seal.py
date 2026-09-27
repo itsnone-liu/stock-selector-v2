@@ -16,6 +16,38 @@ under the user's synthetic-only authorization:
 Frozen modules are IMPORTED read-only (c1 / c2 / c4ab / c4c); nothing in
 them is modified. Every operation here takes an explicit sandbox root;
 cmd_synthetic is strictly read-only on real state and proves that.
+
+C4-D-SYNTH-AUDIT-FIX1 (after user implementation-level audit of dfbf1b1;
+S1–S11 all accepted as blocking):
+  S1  draft_sha256 = SHA256(exact draft bytes D) — an OPEN draft may be
+      noncanonical JSON (D47 proves exact-byte freeze)
+  S2  make_receipt re-proves the exact ACTIVE packet bytes against the
+      REVEAL binding before freeze (D48: post-handoff tamper)
+  S3  receipt re-proven as a field-level DERIVATIVE of the exact frozen
+      draft snapshot; snapshot re-runs the full draft contract; packet
+      bytes re-derived from the C2 archive so proofs hold post-cleanup
+      (D49)
+  S4  SEAL precondition REQUIRES active packet + draft present and exact
+      (missing != skip) + visibility closed-world (D50, D22 widened)
+  S5  revocation durably unlocks the draft (tombstone→0600→fsync);
+      attempt progression requires all earlier attempts revoked;
+      approval must target the CURRENT active attempt (D51, D52)
+  S6  ordinal-N authorization fully re-proved from persisted bytes at
+      every step (proposal/approval/permit: closed-world schema,
+      canonical bytes, exact modes, every semantic binding) — generating
+      functions are never trusted (D53, D28 strengthened)
+  S7  SEAL payload (3 fields) and ordinal-N REVEAL payload (11 fields)
+      are closed-world sets; C2 would hash extra fields into the event,
+      so C4-D blocks them before append (D54)
+  S8  derive_state's SEALED / SEAL_PENDING_FINALIZE branches re-prove
+      semantic replay — selector-side artifact tamper turns the state
+      FORENSIC and blocks ordinal-2 proposals (D55)
+  S9  c4d_receipts + authorization domains created layer-by-layer 0700;
+      an EXISTING drifted layer fails closed BEFORE any write (D56)
+  S10 D31 rebuilt as a true target-aware mutation fixture (CAND-2
+      duplicate injection + CAND-3 prefix-jump injection)
+  S11 synthetic/candidates output is blindness-safe: gates/booleans/
+      safe counts only — no ocid/T/packet_id leaves the selector side
 """
 
 import contextlib
@@ -128,6 +160,13 @@ RECEIPT_VERSION = 'c4d-receipt-v1'
 APPROVAL_VERSION = 'c4d-seal-approval-v1'
 REVOCATION_VERSION = 'c4d-receipt-revocation-v1'
 REVEAL_AUTHZ_VERSION = 'c4d-reveal-v1'
+
+# ordinal-N REVEAL payload closed world (design §7.2: base fields + the
+# six authorization-extension fields; nothing else may enter the event)
+REVEAL_PAYLOAD_KEYS = {'opaque_case_id', 'T', 'packet_id', 'packet_sha256',
+                       'session_id', 'reveal_ordinal', 'authorization_id',
+                       'authorization_sha256', 'sealed_prefix_head',
+                       'c3_manifest_commitment', 'candidate_packet_sha256'}
 
 SYNTH_CASE = 'C4D_SYNTH_A'
 SYNTH_T = '2099-01-02'
@@ -404,7 +443,8 @@ def resolve_pointer(ptr, obj):
 
 
 def validate_draft(sb, sid, draft, packet_obj):
-    r1 = chain_events(sb, sid)[-1]
+    evs = chain_events(sb, sid)
+    r1 = [e for e in evs if e['event_type'] == c2.REVEAL][-1]
     if not isinstance(draft, dict) or set(draft.keys()) != DRAFT_TOP:
         keys = set(draft.keys()) if isinstance(draft, dict) else set()
         extra, missing = keys - DRAFT_TOP, DRAFT_TOP - keys
@@ -547,7 +587,9 @@ def active_attempt(sb, sid, ordinal):
     return live[-1] if live else None
 
 
-def build_receipt_object(sb, sid, draft, r1, attempt):
+def build_receipt_object(sb, sid, draft, r1, attempt, draft_sha):
+    """draft_sha = SHA256(exact draft bytes D) — NOT sha(canon(draft)):
+    an OPEN draft may legally be noncanonical JSON (§4.3, FIX1-S1)."""
     return {
         'receipt_version': RECEIPT_VERSION,
         'session_id': sid,
@@ -555,7 +597,7 @@ def build_receipt_object(sb, sid, draft, r1, attempt):
         'packet_sha256': draft['packet_sha256'],
         'reveal_event_hash': r1['event_hash'],
         'annotation_attempt': attempt,
-        'draft_sha256': sha(canon(draft).encode()),
+        'draft_sha256': draft_sha,
         'annotation': draft['annotation'],
         'annotation_session_id': draft['annotation_session_id'],
         'receipt_id': f'receipt-{uuid.uuid4().hex[:12]}',
@@ -563,9 +605,26 @@ def build_receipt_object(sb, sid, draft, r1, attempt):
     }
 
 
+def _ensure_receipts_domain(sb, sid, ordinal):
+    """Layer-by-layer 0700 (FIX1-S9): an EXISTING layer with drifted mode
+    fails closed BEFORE any write — never silently repaired."""
+    for p in (sb / 'c4d_receipts', receipts_dom(sb, sid),
+              ordinal_dir(sb, sid, ordinal)):
+        if p.exists():
+            if mode_of(p) != 0o700:
+                fail(f'{G_VIS}: receipts domain mode drift — must be 0700 '
+                     f'({p}); refusing before any write')
+        else:
+            p.mkdir(mode=0o700)
+
+
 def make_receipt(sb, sid, ordinal=None, stop_after=None):
     """§4.3 F19 frozen 8-step order. Invariant: attempt exists => draft
-    locked 0400 with bytes == draft_snapshot.bin."""
+    locked 0400 with bytes == draft_snapshot.bin.
+
+    FIX1 hardening: exact active packet re-proof before freeze (S2);
+    draft_sha256 = SHA256(exact D) (S1); every published attempt must be
+    revoked before a new one is published (S5)."""
     if ordinal is None:
         ordinal = active_ordinal(sb, sid)
     r1 = [e for e in chain_events(sb, sid)
@@ -576,28 +635,51 @@ def make_receipt(sb, sid, ordinal=None, stop_after=None):
         if stop_after == name:
             raise CrashSim(name)
 
+    # 0a. exact ACTIVE packet re-proof (handoff proof must still hold at
+    # freeze time — post-handoff mutation is FORENSIC, not silently
+    # re-trusted)
+    pk = packet_path(sb, sid, r1['payload']['packet_id'])
+    if not pk.exists():
+        fail(f'{G_REC}: active packet missing before receipt freeze — '
+             f'FORENSIC')
+    pkt_bytes = pk.read_bytes()
+    if sha(pkt_bytes) != r1['payload']['packet_sha256']:
+        fail(f'{G_REC}: active packet bytes drifted from the REVEAL '
+             f'binding (post-handoff mutation) — freeze refused')
+    try:
+        packet_obj = json.loads(pkt_bytes)
+    except json.JSONDecodeError:
+        fail(f'{G_REC}: active packet is not JSON — freeze refused')
+    if not isinstance(packet_obj, dict) or \
+            packet_obj.get('packet_id') != r1['payload']['packet_id']:
+        fail(f'{G_REC}: active packet internal packet_id mismatch')
+    # 0b. attempt progression: every published attempt must be terminal
+    # (revoked) before a new attempt may be published
+    published = attempts_published(sb, sid, ordinal)
+    for n in published:
+        if not (attempt_dir(sb, sid, ordinal, n) / 'revocation.json'
+                ).exists():
+            fail(f'{G_REC}: attempt {n} is not revoked — publishing the '
+                 f'next attempt is forbidden (revoke or seal first)')
     # 1. read exact active draft bytes D, closed-world validate
+    if not dp.exists():
+        fail(f'{G_REC}: active draft missing — FORENSIC')
     D = dp.read_bytes()
     draft = json.loads(D)
-    packet_obj = json.loads(
-        packet_path(sb, sid, draft['packet_id']).read_bytes())
     validate_draft(sb, sid, draft, packet_obj)
     attempt = next_attempt(sb, sid, ordinal)
     if draft['annotation_attempt'] != attempt:
         fail(f'{G_REC}: draft annotation_attempt != next attempt number '
              f'(attempt bookkeeping)')
-    # 2. staging construction (receipt canonical + snapshot == D)
-    od = ordinal_dir(sb, sid, ordinal)
-    od.mkdir(parents=True, exist_ok=True, mode=0o700)
-    for anc in (sb / 'c4d_receipts', receipts_dom(sb, sid)):
-        if not anc.exists():
-            anc.mkdir(mode=0o700)
+    # 2. receipts domain layers (0700 exact, fail-closed on drift)
+    _ensure_receipts_domain(sb, sid, ordinal)
     staging = attempt_staging(sb, sid, ordinal, attempt)
     if staging.exists():
         fail(f'{G_REC}: staging leftover blocking make_receipt — run '
              f'recovery first ({staging})')
     staging.mkdir(mode=0o700)
-    receipt = build_receipt_object(sb, sid, draft, r1, attempt)
+    receipt = build_receipt_object(sb, sid, draft, r1, attempt,
+                                   draft_sha=sha(D))
     rbytes = canon(receipt).encode()
     excl_write(staging / 'receipt.json', rbytes)
     excl_write(staging / 'draft_snapshot.bin', D)
@@ -621,7 +703,7 @@ def make_receipt(sb, sid, ordinal=None, stop_after=None):
     rename_noreplace_wrap(staging, attempt_dir(sb, sid, ordinal, attempt))
     stop('after_rename')
     # 8. fsync ordinal parent
-    fsync_dir(od)
+    fsync_dir(ordinal_dir(sb, sid, ordinal))
     return receipt, rbytes
 
 
@@ -639,6 +721,10 @@ def receipt_bytes_of(sb, sid, ordinal, attempt):
 # --------------------------------------------------------------------------
 
 def _check_attempt_artifacts(sb, sid, ordinal, attempt, r1, gate):
+    """FIX1-S3: the receipt is re-proven as a DERIVATIVE of the exact
+    frozen draft snapshot — parse snapshot, re-run the full draft
+    contract, then prove field-level derivation. Packet bytes come from
+    the C2 archive so this holds post-cleanup too."""
     adir = attempt_dir(sb, sid, ordinal, attempt)
     rpath = adir / 'receipt.json'
     if not rpath.exists() or not (adir / 'draft_snapshot.bin').exists():
@@ -667,9 +753,41 @@ def _check_attempt_artifacts(sb, sid, ordinal, attempt, r1, gate):
     if obj['annotation'].get('annotation_contract_sha256') != \
             ANNOTATION_CONTRACT_SHA256:
         fail(f'{gate}: annotation contract drift inside receipt')
-    if obj['draft_sha256'] != sha((adir / 'draft_snapshot.bin').read_bytes()):
+    # exact-byte snapshot equality (draft_sha256 = SHA256(exact D))
+    D = (adir / 'draft_snapshot.bin').read_bytes()
+    if obj['draft_sha256'] != sha(D):
         fail(f'{gate}: draft snapshot equality broken '
              f'(receipt.draft_sha256 != SHA256(snapshot))')
+    try:
+        snap = json.loads(D)
+    except json.JSONDecodeError:
+        fail(f'{gate}: draft snapshot is not JSON')
+    # re-derive the packet from the C2 archive (works post-cleanup)
+    try:
+        pkt_bytes = (sealing_dir(sb, sid) /
+                     r1['payload']['bytes_ref']).read_bytes()
+        packet_obj = json.loads(pkt_bytes)
+    except (OSError, json.JSONDecodeError):
+        fail(f'{gate}: C2-archived REVEAL packet unreadable — cannot '
+             f're-derive the frozen draft contract')
+    if sha(pkt_bytes) != r1['payload']['packet_sha256']:
+        fail(f'{gate}: C2 archive binding broken')
+    try:
+        validate_draft(sb, sid, snap, packet_obj)
+    except RuntimeError as e:
+        fail(f'{gate}: frozen draft snapshot violates the draft contract '
+             f'— {e}')
+    # field-level derivation: receipt must equal the exact frozen draft
+    if obj['annotation'] != snap['annotation'] or \
+            obj['annotation_session_id'] != snap['annotation_session_id'] \
+            or obj['packet_id'] != snap['packet_id'] or \
+            obj['packet_sha256'] != snap['packet_sha256'] or \
+            obj['session_id'] != snap['session_id']:
+        fail(f'{gate}: receipt is not derived from the exact frozen '
+             f'draft snapshot (field-level mismatch — canonical rewrite '
+             f'cannot smuggle a new annotation)')
+    if snap.get('annotation_attempt') != attempt:
+        fail(f'{gate}: snapshot attempt binding broken')
     if (adir / 'revocation.json').exists():
         fail(f'{gate}: attempt {attempt} is revoked (INELIGIBLE_FOR_SEAL)')
     return rbytes, obj
@@ -683,13 +801,18 @@ def make_seal_approval(sb, sid, ordinal=None, attempt=None,
     if r1 is None:
         r1 = [e for e in chain_events(sb, sid)
               if e['event_type'] == c2.REVEAL][-1]
+    active = active_attempt(sb, sid, ordinal)
+    if active is None:
+        if attempts_published(sb, sid, ordinal):
+            fail(f'{G_REC}: all published attempts revoked — approval '
+                 f'refused (append-only tombstone contract)')
+        fail(f'{G_PRE}: no attempt published — nothing to approve')
     if attempt is None:
-        attempt = active_attempt(sb, sid, ordinal)
-        if attempt is None:
-            if attempts_published(sb, sid, ordinal):
-                fail(f'{G_REC}: all published attempts revoked — approval '
-                     f'refused (append-only tombstone contract)')
-            fail(f'{G_PRE}: no attempt published — nothing to approve')
+        attempt = active
+    elif attempt != active:
+        fail(f'{G_REC}: approval must target the CURRENT active attempt '
+             f'({active}), got {attempt} — earlier attempts are '
+             f'permanently INELIGIBLE_FOR_SEAL')
     rbytes, _ = _check_attempt_artifacts(sb, sid, ordinal, attempt, r1,
                                          G_REC)
     adir = attempt_dir(sb, sid, ordinal, attempt)
@@ -737,6 +860,17 @@ def revoke_receipt(sb, sid, reason_code, ordinal=None, attempt=None):
         'created_at': '2099-01-02T00:00:00Z',
     }
     excl_write(adir / 'revocation.json', canon(tomb).encode())
+    fsync_dir(adir)
+    # FIX1-S5: revocation durably UNLOCKS the active draft for the next
+    # attempt (tombstone first, then chmod 0600 + fsync draft+parent);
+    # otherwise derive_state would claim ANNOTATION_OPEN while the draft
+    # stays 0400 — a contradiction the flow must never depend on root to
+    # paper over.
+    dp = draft_path(sb, sid)
+    if dp.exists() and mode_of(dp) == 0o400:
+        os.chmod(dp, 0o600)
+        fsync_file(dp)
+        fsync_dir(dp.parent)
     return tomb
 
 
@@ -766,6 +900,13 @@ def finalize_complete(sb, sid, seal_ev):
     return not (dom.exists() and any(dom.rglob('*')))
 
 
+def prove_seal_committed(sb, sid):
+    """SEAL_COMMITTED ⇒ semantic replay PASS (FIX1-S8). Any tamper of the
+    selector-side receipt/approval artifacts turns the derived state
+    FORENSIC even when the C2 chain + archive still verify."""
+    semantic_replay(sb, sid)
+
+
 def derive_state(sb, sid):
     """-> (state, info) in the frozen lifecycle vocabulary."""
     ordinal = active_ordinal(sb, sid)
@@ -773,6 +914,12 @@ def derive_state(sb, sid):
     if not ok:
         return 'FORENSIC', {'ordinal': ordinal}
     if seal_ev is not None:
+        try:
+            prove_seal_committed(sb, sid)
+        except RuntimeError:
+            return 'FORENSIC', {'ordinal': ordinal,
+                                'reason': 'semantic replay broken '
+                                          'post-commit'}
         if finalize_complete(sb, sid, seal_ev):
             return 'SEALED', {'seal': seal_ev, 'ordinal': ordinal}
         return 'SEAL_PENDING_FINALIZE', {'seal': seal_ev,
@@ -928,13 +1075,23 @@ def seal_transaction(sb, sid, stop_after=None, payload_override=None,
     if approval['approved_receipt_sha256'] != sha(rbytes):
         fail(f'{G_PRE}: approved_receipt_sha256 != SHA256(exact receipt '
              f'bytes) — approval does not cover this artifact')
+    # FIX1-S4: SEAL_AUTHORIZED presupposes the ACTIVE workspace — packet
+    # AND draft must exist and be exact at seal time. Missing != skip.
+    pk = packet_path(sb, sid, r1['payload']['packet_id'])
+    if not pk.exists() or sha(pk.read_bytes()) != \
+            r1['payload']['packet_sha256']:
+        fail(f'{G_PRE}: active packet missing/drifted before SEAL — '
+             f'FORENSIC')
     dp = draft_path(sb, sid)
-    if dp.exists():
-        if mode_of(dp) != 0o400:
-            fail(f'{G_PRE}: published attempt with unlocked draft '
-                 f'(FORENSIC — F19 invariant drift)')
-        if dp.read_bytes() != (adir / 'draft_snapshot.bin').read_bytes():
-            fail(f'{G_PRE}: draft drift post-freeze (FORENSIC, D22)')
+    if not dp.exists():
+        fail(f'{G_PRE}: active draft missing before SEAL — FORENSIC '
+             f'(F19 invariant: published attempt ⇒ locked draft present)')
+    if mode_of(dp) != 0o400:
+        fail(f'{G_PRE}: published attempt with unlocked draft '
+             f'(FORENSIC — F19 invariant drift)')
+    if dp.read_bytes() != (adir / 'draft_snapshot.bin').read_bytes():
+        fail(f'{G_PRE}: draft drift post-freeze (FORENSIC, D22)')
+    check_visibility_domain(sb, sid)
     stop('after_precondition')
     # (3) payload — exactly the three frozen fields (+ C2 bytes_ref)
     payload = payload_override if payload_override is not None else {
@@ -942,6 +1099,11 @@ def seal_transaction(sb, sid, stop_after=None, payload_override=None,
         'T': r1['payload']['T'],
         'receipt_sha256': sha(rbytes),
     }
+    if not isinstance(payload, dict) or set(payload.keys()) != \
+            {'opaque_case_id', 'T', 'receipt_sha256'}:
+        fail(f'{G_PRE}: SEAL payload must be exactly the three frozen '
+             f'fields (closed-world; C2 would hash any extra field into '
+             f'the event — C4-D blocks it here)')
     # (4) frozen C2 in-place append (pre-write exact-byte gate inside)
     ev = c2translate(lg.append, c2.SEAL, payload, rbytes)
     stop('after_append')
@@ -1153,12 +1315,22 @@ def recover(sb, sid, anchor_override=None):
 def recover_publication(sb, sid):
     """F19 publication crash window: lock-after / rename-before."""
     ordinal = active_ordinal(sb, sid)
-    staging = attempt_staging(sb, sid, ordinal, next_attempt(sb, sid,
-                                                             ordinal))
     published = attempts_published(sb, sid, ordinal)
     dp = draft_path(sb, sid)
-    if published and dp.exists():
-        adir = attempt_dir(sb, sid, ordinal, published[-1])
+    if published:
+        if not dp.exists():
+            fail(f'{G_PRE}: published attempt without an active draft — '
+                 f'FORENSIC, no silent correction (F19 invariant broken)')
+        active = active_attempt(sb, sid, ordinal)
+        if active is None:
+            # every attempt revoked — unlock idempotently (revoke-side
+            # recovery completion)
+            if mode_of(dp) == 0o400:
+                os.chmod(dp, 0o600)
+                fsync_file(dp)
+                fsync_dir(dp.parent)
+            return 'ANNOTATION_OPEN'
+        adir = attempt_dir(sb, sid, ordinal, active)
         locked = mode_of(dp) == 0o400
         exact = dp.read_bytes() == \
             (adir / 'draft_snapshot.bin').read_bytes()
@@ -1168,6 +1340,8 @@ def recover_publication(sb, sid):
         return 'READY_TO_SEAL'
     # attempt NOT published: staging is disposable; a locked draft rolls
     # back to the OPEN state (design §4.3 crash recovery).
+    staging = attempt_staging(sb, sid, ordinal, next_attempt(sb, sid,
+                                                             ordinal))
     if staging.exists():
         shutil.rmtree(staging)
         fsync_dir(ordinal_dir(sb, sid, ordinal))
@@ -1227,15 +1401,28 @@ def _cand1_gate(order_head, fc):
         fail(f'{G_CAND}-1: ordinal-1 drift vs frozen first_candidate')
 
 
+def _cand_uniqueness_gate(order):
+    keys = [(c['opaque_case_id'], c['T']) for c in order]
+    if len(set(keys)) != len(keys):
+        fail(f'{G_CAND}-2: duplicate (ocid,T) in candidate total order')
+
+
+def _cand_prefix_gate(order, revealed):
+    keys = [(c['opaque_case_id'], c['T']) for c in order]
+    if revealed != keys[:len(revealed)]:
+        fail(f'{G_CAND}-3: revealed set != frozen order prefix '
+             f'(ordinal jump/out-of-order)')
+
+
 def verify_candidate_gates():
-    """G-C4D-CAND-1..4 (parity, uniqueness, prefix law, determinism)."""
+    """G-C4D-CAND-1..4 (parity, uniqueness, prefix law, determinism).
+    Returns blindness-safe booleans/counts ONLY — no ocid/T/packet_id
+    leaves the selector side (FIX1-S11)."""
     order = candidate_total_order()
     if canon(order) != canon(candidate_total_order()):
         fail(f'{G_CAND}-4: candidate order recomputation is not '
              f'deterministic')
-    keys = [(c['opaque_case_id'], c['T']) for c in order]
-    if len(set(keys)) != len(keys):
-        fail(f'{G_CAND}-2: duplicate (ocid,T) in candidate total order')
+    _cand_uniqueness_gate(order)
     fc = c4ab.first_candidate(c1)
     _cand1_gate(order[0], fc)
     real_log = REAL_PRODUCTION / REAL_SESSION / 'sealing' / \
@@ -1244,10 +1431,9 @@ def verify_candidate_gates():
            if l.strip()]
     revealed = [(e['payload']['opaque_case_id'], e['payload']['T'])
                 for e in evs if e['event_type'] == c2.REVEAL]
-    if revealed != keys[:len(revealed)]:
-        fail(f'{G_CAND}-3: revealed set != frozen order prefix '
-             f'(ordinal jump/out-of-order)')
-    return {'size': len(order), 'ordinal1': keys[0],
+    _cand_prefix_gate(order, revealed)
+    return {'size': len(order),
+            'ordinal1_matches_frozen_first': True,
             'revealed_prefix': len(revealed)}
 
 
@@ -1278,7 +1464,7 @@ def _guard_or_create_proposal_domain(sb, sid, ordinal):
             if mode_of(d) != 0o700:
                 fail(f'{G_VIS}: proposal domain mode drift — must be 0700 '
                      f'selector-only ({d}); refusing before any write')
-        elif not d.exists():
+        else:
             d.mkdir(mode=0o700)
     od = proposals_dom(sb, sid, ordinal)
     if od.exists():
@@ -1320,21 +1506,121 @@ def build_next_reveal_proposal(sb, sid, ordinal, sealed_prefix_head,
     return proposal
 
 
-def approve_next_reveal(sb, sid, ordinal):
+def _ensure_authz_domain(sb, sid, ordinal):
+    """Layer-by-layer 0700 (FIX1-S9): drifted existing layer fails
+    closed BEFORE any approval/permit write."""
+    base = prod_dir(sb, sid) / 'authorization'
+    for p in (base, next_authz_dir(sb, sid, ordinal)):
+        if p.exists():
+            if mode_of(p) != 0o700:
+                fail(f'{G_VIS}: authorization domain mode drift — must '
+                     f'be 0700 ({p}); refusing before any write')
+        else:
+            p.mkdir(mode=0o700)
+
+
+def _check_proposal(sb, sid, ordinal):
+    """FIX1-S6: FULL closed-world re-proof of the PERSISTED proposal —
+    schema, canonical bytes, every semantic binding against frozen
+    constants and the committed chain. Never trusts the generating
+    function wrote it correctly."""
     p = verify_proposal_domain(sb, sid, ordinal)
-    proposal = read_json(p)
-    if set(proposal.keys()) != REVEAL_PROPOSAL_KEYS:
+    pbytes = p.read_bytes()
+    try:
+        proposal = json.loads(pbytes)
+    except json.JSONDecodeError:
+        fail(f'{G_AUTHZ}: proposal is not JSON')
+    if not isinstance(proposal, dict) or \
+            set(proposal.keys()) != REVEAL_PROPOSAL_KEYS:
         fail(f'{G_AUTHZ}: proposal closed-world schema violation')
+    if canon(proposal).encode() != pbytes:
+        fail(f'{G_AUTHZ}: proposal bytes noncanonical (exact-bytes '
+             f'contract)')
+    if proposal['authorization_version'] != REVEAL_AUTHZ_VERSION:
+        fail(f'{G_AUTHZ}: proposal authorization_version drift')
+    if proposal['scope'] != 'NEXT_REVEAL_ONLY':
+        fail(f'{G_AUTHZ}: proposal scope must be NEXT_REVEAL_ONLY')
+    if proposal['reveal_ordinal'] != ordinal:
+        fail(f'{G_AUTHZ}: proposal reveal_ordinal binding violated')
+    if proposal['session_id'] != sid:
+        fail(f'{G_AUTHZ}: proposal session binding violated')
+    if proposal['authorized'] is not True:
+        fail(f'{G_AUTHZ}: proposal not authorized')
+    if proposal['c3_manifest_commitment'] != c4ab.C3_COMMITMENT:
+        fail(f'{G_AUTHZ}: proposal c3_manifest_commitment drift — the '
+             f'frozen C3 commitment is required')
+    cand = candidate_for_ordinal(ordinal)
+    packet_id = sha(f"{cand['opaque_case_id']}|{cand['T']}".encode())
+    frozen = c4ab.C3_STATE / 'packets' / f'{packet_id}.json'
+    if not frozen.exists():
+        fail(f'{G_AUTHZ}: candidate packet not in frozen C3 pool')
+    fb = frozen.read_bytes()
+    if proposal['candidate_packet_id'] != packet_id:
+        fail(f'{G_AUTHZ}: proposal candidate binding drift '
+             f'(candidate_for_ordinal mismatch)')
+    if proposal['candidate_packet_sha256'] != sha(fb):
+        fail(f'{G_AUTHZ}: proposal candidate_packet_sha256 does not match '
+             f'the frozen C3 packet bytes')
+    if proposal['sealed_prefix_head'] != _current_prefix_head(sb, sid):
+        fail(f'{G_AUTHZ}: sealed_prefix_head does not match the committed '
+             f'chain head')
+    return proposal, pbytes
+
+
+def _check_approval_permit(sb, sid, ordinal, proposal, pbytes):
+    """FIX1-S6: full persisted approval + permit re-proof (schema,
+    canonical bytes, modes, every binding)."""
     ad = next_authz_dir(sb, sid, ordinal)
-    ad.mkdir(parents=True, exist_ok=True, mode=0o700)
-    ad.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+    for p in (ad.parent, ad):
+        if not p.exists() or mode_of(p) != 0o700:
+            fail(f'{G_VIS}: authorization domain mode drift — must be '
+                 f'0700 ({p})')
+    ap = ad / 'next_reveal.approval.json'
+    pm = ad / 'next_reveal.permit.json'
+    for f in (ap, pm):
+        if not f.exists():
+            fail(f'{G_AUTHZ}: authorization artifact absent ({f.name})')
+        if mode_of(f) != 0o600:
+            fail(f'{G_VIS}: authorization file mode drift — must be 0600 '
+                 f'({f.name})')
+    ab = ap.read_bytes()
+    try:
+        approval = json.loads(ab)
+    except json.JSONDecodeError:
+        fail(f'{G_AUTHZ}: approval is not JSON')
+    if not isinstance(approval, dict) or \
+            set(approval.keys()) != REVEAL_APPROVAL_KEYS:
+        fail(f'{G_AUTHZ}: approval closed-world schema violation')
+    if canon(approval).encode() != ab:
+        fail(f'{G_AUTHZ}: approval bytes noncanonical')
+    if approval['approval_version'] != 'c4d-reveal-approval-v1':
+        fail(f'{G_AUTHZ}: approval approval_version drift')
+    if approval['scope'] != 'NEXT_REVEAL_ONLY' or \
+            approval['session_id'] != sid or \
+            approval['reveal_ordinal'] != ordinal or \
+            approval['approved'] is not True:
+        fail(f'{G_AUTHZ}: approval semantic binding violated')
+    if approval['sealed_prefix_head'] != proposal['sealed_prefix_head']:
+        fail(f'{G_AUTHZ}: approval/prefix binding broken')
+    if approval['approved_authorization_sha256'] != sha(pbytes):
+        fail(f'{G_AUTHZ}: approval does not bind the exact proposal bytes')
+    if pm.read_bytes() != pbytes:
+        fail(f'{G_AUTHZ}: permit bytes != proposal bytes (exact-copy '
+             f'break)')
+    return approval
+
+
+def approve_next_reveal(sb, sid, ordinal):
+    proposal, pbytes = _check_proposal(sb, sid, ordinal)
+    _ensure_authz_domain(sb, sid, ordinal)
+    ad = next_authz_dir(sb, sid, ordinal)
     approval = {
         'approval_version': 'c4d-reveal-approval-v1',
         'scope': 'NEXT_REVEAL_ONLY',
         'session_id': sid,
         'reveal_ordinal': ordinal,
         'sealed_prefix_head': proposal['sealed_prefix_head'],
-        'approved_authorization_sha256': sha(p.read_bytes()),
+        'approved_authorization_sha256': sha(pbytes),
         'approved': True,
         'created_at': '2099-01-02T00:00:00Z',
     }
@@ -1344,7 +1630,7 @@ def approve_next_reveal(sb, sid, ordinal):
 
 def materialize_next_permit(sb, sid, ordinal):
     """Permit = EXACT COPY of the approved proposal bytes."""
-    p = verify_proposal_domain(sb, sid, ordinal)
+    proposal, pbytes = _check_proposal(sb, sid, ordinal)
     ad = next_authz_dir(sb, sid, ordinal)
     ap = ad / 'next_reveal.approval.json'
     if not ap.exists():
@@ -1353,13 +1639,13 @@ def materialize_next_permit(sb, sid, ordinal):
     if set(approval.keys()) != REVEAL_APPROVAL_KEYS or \
             not approval['approved']:
         fail(f'{G_AUTHZ}: approval closed-world schema violation')
-    if approval['approved_authorization_sha256'] != sha(p.read_bytes()):
+    if approval['approved_authorization_sha256'] != sha(pbytes):
         fail(f'{G_AUTHZ}: approval does not bind the exact proposal bytes')
     permit = ad / 'next_reveal.permit.json'
     if permit.exists():
         fail(f'{G_AUTHZ}: duplicate permit (O_EXCL)')
-    excl_write(permit, p.read_bytes())
-    if permit.read_bytes() != p.read_bytes():
+    excl_write(permit, pbytes)
+    if permit.read_bytes() != pbytes:
         fail(f'{G_AUTHZ}: permit is not the exact approved bytes')
     return permit
 
@@ -1371,23 +1657,10 @@ def _current_prefix_head(sb, sid):
 
 
 def verify_next_authorization_chain(sb, sid, ordinal):
-    p = verify_proposal_domain(sb, sid, ordinal)
-    proposal = read_json(p)
-    if set(proposal.keys()) != REVEAL_PROPOSAL_KEYS:
-        fail(f'{G_AUTHZ}: proposal closed-world schema violation')
-    permit = next_authz_dir(sb, sid, ordinal) / 'next_reveal.permit.json'
-    if not permit.exists():
-        fail(f'{G_AUTHZ}: permit absent')
-    if permit.read_bytes() != p.read_bytes():
-        fail(f'{G_AUTHZ}: permit bytes != proposal bytes (exact-copy break)')
-    cand = candidate_for_ordinal(ordinal)
-    packet_id = sha(f"{cand['opaque_case_id']}|{cand['T']}".encode())
-    if proposal['candidate_packet_id'] != packet_id:
-        fail(f'{G_AUTHZ}: proposal candidate binding drift '
-             f'(candidate_for_ordinal mismatch)')
-    if proposal['sealed_prefix_head'] != _current_prefix_head(sb, sid):
-        fail(f'{G_AUTHZ}: sealed_prefix_head does not match the committed '
-             f'chain head')
+    """Authorization layer re-proof immediately before append: proposal
+    + approval + permit all re-proven from persisted bytes."""
+    proposal, pbytes = _check_proposal(sb, sid, ordinal)
+    _check_approval_permit(sb, sid, ordinal, proposal, pbytes)
     return proposal
 
 
@@ -1449,6 +1722,13 @@ def reveal_transaction(sb, sid, ordinal=2, payload_override=None):
     }
     if payload_override:
         payload.update(payload_override)
+    # FIX1-S7: closed-world payload — C2 would hash ANY extra field into
+    # the event hash, so C4-D blocks extra/missing fields itself.
+    if not isinstance(payload, dict) or set(payload.keys()) != \
+            REVEAL_PAYLOAD_KEYS:
+        fail(f'{G_AUTHZ}: ordinal-{ordinal} REVEAL payload closed-world '
+             f'violated (extra/missing field)')
+    if payload_override:
         expected = {
             'reveal_ordinal': proposal['reveal_ordinal'],
             'authorization_id': proposal['authorization_id'],
@@ -1765,17 +2045,25 @@ def d21():
     cleanup_sb(sb)
 
 
-@fixture('D22', 'draft drift post-freeze -> PREFLIGHT FORENSIC')
+@fixture('D22', 'draft drift post-freeze (content/mode) -> PREFLIGHT')
 def d22():
     sb, sid = prepared_ready()
     dp = draft_path(sb, sid)
+    # content drift (rewritten, re-locked — self-consistent trap)
     os.chmod(dp, 0o600)
     dp.write_bytes(canon(sample_draft(sb, sid,
                                       ann_session='annsess-other'
                                       )).encode())
     os.chmod(dp, 0o400)
     expect_exact_gate(lambda: seal_transaction(sb, sid), G_PRE)
+    # mode drift (unlocked 0600 while attempt published)
+    sb2, sid2 = prepared_ready()
+    dp2 = draft_path(sb2, sid2)
+    os.chmod(dp2, 0o600)
+    expect_exact_gate(lambda: seal_transaction(sb2, sid2), G_PRE)
+    expect_exact_gate(lambda: recover_publication(sb2, sid2), G_PRE)
     cleanup_sb(sb)
+    cleanup_sb(sb2)
 
 
 @fixture('D23', 'SEAL hash mismatch vs archived -> C2 delegated')
@@ -1856,15 +2144,40 @@ def d27():
     cleanup_sb(sb)
 
 
-@fixture('D28', 'wrong sealed_prefix -> AUTHZ')
+@fixture('D28', 'wrong sealed_prefix -> AUTHZ (caught at re-proof)')
 def d28():
     sb, sid = prepared_sealed()
-    build_next_reveal_proposal(sb, sid, 2, 'd' * 64)
-    approve_next_reveal(sb, sid, 2)
-    materialize_next_permit(sb, sid, 2)
-    expect_exact_gate(lambda: verify_next_authorization_chain(sb, sid, 2),
-                      G_AUTHZ)
+    build_next_reveal_proposal(sb, sid, 2, 'd' * 64)  # forged prefix
+    # the persisted re-proof layer rejects it BEFORE any approval is
+    # written (FIX1-S6: generators are never trusted)
+    expect_exact_gate(lambda: approve_next_reveal(sb, sid, 2), G_AUTHZ)
+    assert not (next_authz_dir(sb, sid, 2) /
+                'next_reveal.approval.json').exists()
+    # post-approval drift of the same binding is caught at verify time
+    sb2, sid2 = prepared_sealed()
+    head = _current_prefix_head(sb2, sid2)
+    build_next_reveal_proposal(sb2, sid2, 2, head)
+    approve_next_reveal(sb2, sid2, 2)
+    materialize_next_permit(sb2, sid2, 2)
+    ppath = proposal_path(sb2, sid2, 2)
+    p = read_json(ppath)
+    p['sealed_prefix_head'] = 'd' * 64
+    pbytes = canon(p).encode()
+    os.chmod(ppath, 0o600)
+    ppath.write_bytes(pbytes)
+    ad = next_authz_dir(sb2, sid2, 2)
+    a = read_json(ad / 'next_reveal.approval.json')
+    a['approved_authorization_sha256'] = sha(pbytes)
+    a['sealed_prefix_head'] = 'd' * 64
+    os.chmod(ad / 'next_reveal.approval.json', 0o600)
+    (ad / 'next_reveal.approval.json').write_bytes(canon(a).encode())
+    os.chmod(ad / 'next_reveal.permit.json', 0o600)
+    (ad / 'next_reveal.permit.json').write_bytes(pbytes)
+    expect_exact_gate(lambda: verify_next_authorization_chain(sb2, sid2,
+                                                              2), G_AUTHZ)
+    print('PASS D28')
     cleanup_sb(sb)
+    cleanup_sb(sb2)
 
 
 @fixture('D29', 'ordinal-2 proposal before SEALED -> AUTHZ')
@@ -1890,9 +2203,17 @@ def d30():
 def d31():
     info = verify_candidate_gates()
     assert info['revealed_prefix'] == 1
-    print('PASS D31 (uniqueness + revealed-prefix law verified on the '
-          'frozen plan; any duplicate/out-of-order reveal hits '
-          'G-C4D-CAND-2/3)')
+    order = candidate_total_order()
+    # CAND-2: injected duplicate candidate entry
+    dup = order + [dict(order[0])]
+    expect_exact_gate(lambda: _cand_uniqueness_gate(dup), f'{G_CAND}-2')
+    # CAND-3: revealed prefix law break (ordinal jump / out-of-order)
+    keys = [(c['opaque_case_id'], c['T']) for c in order]
+    jump = [keys[1], keys[0]]
+    expect_exact_gate(lambda: _cand_prefix_gate(order, jump),
+                      f'{G_CAND}-3')
+    print('PASS D31 (targeted CAND-2 duplicate + CAND-3 prefix-jump '
+          'mutations both hit their exact gates)')
 
 
 @fixture('D32', 'malformed persisted chain -> FORENSIC (recovery)')
@@ -2191,6 +2512,218 @@ def d46():
     cleanup_sb(sb)
 
 
+@fixture('D47', 'noncanonical valid draft -> exact-byte freeze (S1)')
+def d47():
+    sb, sid = prepared_sandbox()
+    d = sample_draft(sb, sid)
+    nc = json.dumps(d, ensure_ascii=False, sort_keys=True,
+                    indent=2).encode()            # valid, NONcanonical
+    dp = draft_path(sb, sid)
+    dp.write_bytes(nc)                            # OPEN rewrite, 0600
+    make_receipt(sb, sid)                         # must PASS
+    adir = attempt_dir(sb, sid, 1, 1)
+    snap = (adir / 'draft_snapshot.bin').read_bytes()
+    assert snap == nc                             # exact original bytes
+    assert json.loads((adir / 'receipt.json').read_bytes())[
+        'draft_sha256'] == sha(nc)                # SHA256(exact D)
+    make_seal_approval(sb, sid)
+    seal_transaction(sb, sid)
+    semantic_replay(sb, sid)
+    print('PASS D47')
+    cleanup_sb(sb)
+
+
+@fixture('D48', 'packet tampered after handoff -> RECEIPT refused (S2)')
+def d48():
+    sb, sid = prepared_sandbox()
+    r1 = chain_events(sb, sid)[-1]
+    pk = packet_path(sb, sid, r1['payload']['packet_id'])
+    os.chmod(pk, 0o600)
+    obj = json.loads(pk.read_bytes())
+    obj['price_panel']['close'][0] = 9.9          # semantic tamper
+    pk.write_bytes(canon(obj).encode())           # sha drifts
+    expect_exact_gate(lambda: make_receipt(sb, sid), G_REC)
+    assert not attempts_published(sb, sid, 1)     # nothing published
+    assert not attempt_staging(sb, sid, 1, 1).exists()
+    assert not (attempt_dir(sb, sid, 1, 1) /
+                'seal_approval.json').exists()
+    cleanup_sb(sb)
+
+
+@fixture('D49', 'receipt annotation differs from snapshot -> RECEIPT (S3)')
+def d49():
+    sb, sid = prepared_ready()
+    adir = attempt_dir(sb, sid, 1, 1)
+    r = read_json(adir / 'receipt.json')
+    r['annotation']['overall_note'] = 'tampered-post-receipt'
+    (adir / 'receipt.json').write_bytes(canon(r).encode())  # canonical
+    expect_exact_gate(lambda: make_seal_approval(sb, sid), G_REC)
+    assert not (adir / 'seal_approval.json').exists()
+    cleanup_sb(sb)
+
+
+@fixture('D50', 'active draft/packet missing before SEAL -> PREFLIGHT (S4)')
+def d50():
+    # (a) active packet removed
+    sb, sid = prepared_authorized()
+    r1 = chain_events(sb, sid)[-1]
+    packet_path(sb, sid, r1['payload']['packet_id']).unlink()
+    expect_exact_gate(lambda: seal_transaction(sb, sid), G_PRE)
+    cleanup_sb(sb)
+    # (b) active draft removed (published attempt without a draft)
+    sb, sid = prepared_authorized()
+    draft_path(sb, sid).unlink()
+    expect_exact_gate(lambda: seal_transaction(sb, sid), G_PRE)
+    expect_exact_gate(lambda: recover_publication(sb, sid), G_PRE)
+    cleanup_sb(sb)
+
+
+@fixture('D51', 'revoke unlocks draft durably + attempt-2 flow (S5)')
+def d51():
+    sb, sid = prepared_ready()
+    dp = draft_path(sb, sid)
+    assert mode_of(dp) == 0o400
+    revoke_receipt(sb, sid, 'DRAFT_ERROR')
+    assert mode_of(dp) == 0o600                   # durably unlocked
+    state, _ = derive_state(sb, sid)
+    assert state == 'ANNOTATION_OPEN'
+    write_draft(sb, sid, sample_draft(sb, sid, attempt=2,
+                                      ann_session='annsess-opaque-0002'))
+    make_receipt(sb, sid)
+    assert attempts_published(sb, sid, 1) == [1, 2]
+    make_seal_approval(sb, sid)                   # targets attempt 2
+    seal_transaction(sb, sid)
+    semantic_replay(sb, sid)
+    print('PASS D51')
+    cleanup_sb(sb)
+
+
+@fixture('D52', 'unrevoked progression / old-attempt approval -> REC (S5)')
+def d52():
+    sb, sid = prepared_ready()
+    write_draft(sb, sid, sample_draft(sb, sid, attempt=2,
+                                      ann_session='annsess-x2'))
+    expect_exact_gate(lambda: make_receipt(sb, sid), G_REC)  # 1 not revoked
+    assert attempts_published(sb, sid, 1) == [1]
+    revoke_receipt(sb, sid, 'DRAFT_ERROR')
+    write_draft(sb, sid, sample_draft(sb, sid, attempt=2,
+                                      ann_session='annsess-x2'))
+    make_receipt(sb, sid)                         # attempt 2 published
+    expect_exact_gate(lambda: make_seal_approval(sb, sid, attempt=1),
+                      G_REC)
+    assert not (attempt_dir(sb, sid, 1, 2) /
+                'seal_approval.json').exists()
+    make_seal_approval(sb, sid)                   # active target OK
+    cleanup_sb(sb)
+
+
+@fixture('D53', 'self-consistent proposal/approval drift -> AUTHZ (S6)')
+def d53():
+    sb, sid = prepared_sealed()
+    build_next_reveal_proposal(sb, sid, 2, _current_prefix_head(sb, sid))
+    approve_next_reveal(sb, sid, 2)
+    materialize_next_permit(sb, sid, 2)
+    # (a) proposal c3_manifest_commitment drift with approval+permit
+    # re-forged to stay self-consistent (exact hash chain intact)
+    ppath = proposal_path(sb, sid, 2)
+    p = read_json(ppath)
+    p['c3_manifest_commitment'] = 'f' * 64
+    pbytes = canon(p).encode()
+    os.chmod(ppath, 0o600)
+    ppath.write_bytes(pbytes)
+    ad = next_authz_dir(sb, sid, 2)
+    a = read_json(ad / 'next_reveal.approval.json')
+    a['approved_authorization_sha256'] = sha(pbytes)
+    os.chmod(ad / 'next_reveal.approval.json', 0o600)
+    (ad / 'next_reveal.approval.json').write_bytes(canon(a).encode())
+    os.chmod(ad / 'next_reveal.permit.json', 0o600)
+    (ad / 'next_reveal.permit.json').write_bytes(pbytes)
+    expect_exact_gate(lambda: verify_next_authorization_chain(sb, sid, 2),
+                      G_AUTHZ)
+    # (b) approval_version drift (key set unchanged)
+    sb2, sid2 = prepared_sealed()
+    build_next_reveal_proposal(sb2, sid2, 2,
+                               _current_prefix_head(sb2, sid2))
+    approve_next_reveal(sb2, sid2, 2)
+    materialize_next_permit(sb2, sid2, 2)
+    ad2 = next_authz_dir(sb2, sid2, 2)
+    a2 = read_json(ad2 / 'next_reveal.approval.json')
+    a2['approval_version'] = 'c4d-reveal-approval-v2'
+    os.chmod(ad2 / 'next_reveal.approval.json', 0o600)
+    (ad2 / 'next_reveal.approval.json').write_bytes(canon(a2).encode())
+    expect_exact_gate(lambda: verify_next_authorization_chain(sb2, sid2,
+                                                              2), G_AUTHZ)
+    print('PASS D53')
+    cleanup_sb(sb)
+    cleanup_sb(sb2)
+
+
+@fixture('D54', 'extra SEAL/REVEAL payload field -> closed-world (S7)')
+def d54():
+    sb, sid = prepared_authorized()
+    rbytes = receipt_bytes_of(sb, sid, 1, 1)
+    r1 = chain_events(sb, sid)[-1]
+    expect_exact_gate(lambda: seal_transaction(
+        sb, sid,
+        payload_override={'opaque_case_id': r1['payload']['opaque_case_id'],
+                          'T': r1['payload']['T'],
+                          'receipt_sha256': sha(rbytes),
+                          'extra_field': 1}), G_PRE)
+    sb2, sid2 = prepared_sealed()
+    build_next_reveal_proposal(sb2, sid2, 2,
+                               _current_prefix_head(sb2, sid2))
+    approve_next_reveal(sb2, sid2, 2)
+    materialize_next_permit(sb2, sid2, 2)
+    evs_before = chain_events(sb2, sid2)
+    expect_exact_gate(lambda: reveal_transaction(sb2, sid2, 2,
+                                                 payload_override={
+                                                     'extra': 1}), G_AUTHZ)
+    assert chain_events(sb2, sid2) == evs_before  # nothing appended
+    print('PASS D54')
+    cleanup_sb(sb)
+    cleanup_sb(sb2)
+
+
+@fixture('D55', 'SEALED artifact tamper blocks ordinal-2 -> AUTHZ (S8)')
+def d55():
+    sb, sid = prepared_sealed()
+    adir = attempt_dir(sb, sid, 1, 1)
+    r = read_json(adir / 'receipt.json')
+    r['annotation']['overall_note'] = 'post-seal tamper'
+    (adir / 'receipt.json').write_bytes(canon(r).encode())
+    state, _ = derive_state(sb, sid)
+    assert state == 'FORENSIC', state             # replay broken => not SEALED
+    expect_exact_gate(lambda: build_next_reveal_proposal(
+        sb, sid, 2, '0' * 64), G_AUTHZ)
+    assert not proposals_dom(sb, sid, 2).exists()
+    cleanup_sb(sb)
+
+
+@fixture('D56', 'receipts/authz domain permission drift -> fail pre-write')
+def d56():
+    # (a) c4d_receipts root drifted 0755 — refuse BEFORE any write
+    sb, sid = prepared_sandbox()
+    root = sb / 'c4d_receipts'
+    root.mkdir(mode=0o755)
+    expect_exact_gate(lambda: make_receipt(sb, sid), G_VIS)
+    assert not attempts_published(sb, sid, 1)
+    assert not attempt_staging(sb, sid, 1, 1).exists()
+    os.chmod(root, 0o700)
+    make_receipt(sb, sid)                         # legal again
+    assert attempts_published(sb, sid, 1) == [1]
+    cleanup_sb(sb)
+    # (b) authorization ordinal dir drifted 0755
+    sb2, sid2 = prepared_sealed()
+    build_next_reveal_proposal(sb2, sid2, 2,
+                               _current_prefix_head(sb2, sid2))
+    approve_next_reveal(sb2, sid2, 2)
+    materialize_next_permit(sb2, sid2, 2)
+    os.chmod(next_authz_dir(sb2, sid2, 2), 0o755)
+    expect_exact_gate(lambda: verify_next_authorization_chain(sb2, sid2,
+                                                              2), G_VIS)
+    cleanup_sb(sb2)
+
+
 # --------------------------------------------------------------------------
 # live-state guards (read-only)
 # --------------------------------------------------------------------------
@@ -2229,7 +2762,8 @@ def cmd_synthetic():
     before = fingerprint_real()
     cand = verify_candidate_gates()
     print(f"CANDIDATE GATES PASS: order_size={cand['size']} "
-          f"ordinal1=…{cand['ordinal1'][0][-12:]} T={cand['ordinal1'][1]} "
+          f"ordinal1_matches_frozen_first="
+          f"{cand['ordinal1_matches_frozen_first']} "
           f"revealed_prefix={cand['revealed_prefix']}")
     with tempfile.TemporaryDirectory(prefix='c4d-positive-') as td:
         sb, sid = Path(td), REAL_SESSION
@@ -2265,8 +2799,12 @@ def cmd_synthetic():
         'design': 'PHASE_C_C4D_ANNOTATION_SEAL_DESIGN v1.0 FINAL FROZEN '
                   '@ 034d152',
         'fixtures': f'D01–D{len(FIXTURES):02d} ({len(FIXTURES)} PASS)',
-        'candidate_gates': {k: cand[k] for k in
-                            ('size', 'ordinal1', 'revealed_prefix')},
+        'candidate_gates': {'candidate_order_verified': True,
+                            'ordinal1_matches_frozen_first':
+                                cand['ordinal1_matches_frozen_first'],
+                            'order_size': cand['size'],
+                            'revealed_prefix_verified':
+                                cand['revealed_prefix'] > 0},
         'c4c_regression': 'PASS',
         'live_invariants': 'REVEAL=1 SEAL=0 annotation=0 '
                            'c4d_domains=absent anchor=absent',
