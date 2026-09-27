@@ -568,8 +568,7 @@ def run_transaction(sb, sid, stop_after=None, staging_override=None):
         'authorization_sha256': permit_sha,
     }
     pub = sb / 'public'
-    pub.mkdir(parents=True, exist_ok=True)
-    (pub / 'c4c_anchor.json').write_text(canon(anchor))
+    publish_anchor_durable(pub / 'c4c_anchor.json', anchor)
     return {'state': 'FIRST_REVEAL_OPEN', 'consumed': True,
             'head_hash': head_hash}
 
@@ -1285,6 +1284,13 @@ def fixtures():
                     'production_head_hash': summary['head_hash'],
                     'authorization_sha256': approved}:
                 raise RuntimeError('20c: reconciled anchor != chain truth')
+            # window 1b: malformed/truncated anchor -> same repair path
+            synthetic_anchor.write_bytes(b'{"production_head_hash":')
+            status = reconcile_anchor(sb, sid, approved, synthetic_anchor)
+            if status != 'reconciled' or read_json(synthetic_anchor) != {
+                    'production_head_hash': summary['head_hash'],
+                    'authorization_sha256': approved}:
+                raise RuntimeError('20c: malformed anchor not repaired')
             # window 2: anchor is STALE (tampered) -> overwritten from chain
             synthetic_anchor.write_text(canon({
                 'production_head_hash': '0' * 64,
@@ -1441,14 +1447,19 @@ def cmd_real_proposal():
     """
     sb = ROOT / 'data/csr8_phase_c'
     state = derive_consumption(sb, REAL_SESSION)
-    if state != 'UNUSED':
-        # consumed / foreign / unresolvable — never mutate anything
+    if state == 'CONSUMED':
         ppath_v = REAL_PROPOSALS / REAL_SESSION / 'first_reveal.proposal.json'
-        print(f'C4-C REAL PROPOSAL: authorization state = {state} '
-              f'(chain-derived) — verify-only')
+        print('C4-C REAL PROPOSAL: authorization state = CONSUMED '
+              '(chain-derived) — verify-only')
         print(f'  persisted proposal hash = {sha(ppath_v.read_bytes())}')
         print('  HARD STOP')
         return sha(ppath_v.read_bytes())
+    if state == 'FOREIGN':
+        fail('G-C4C-PUBLISH: real production sealing target is FOREIGN — '
+             'HALT/forensic; proposal verify-only is forbidden')
+    if state == 'UNRESOLVABLE':
+        fail('G-C4C-AUTHZ: real production state UNRESOLVABLE — '
+             'HALT/forensic; proposal verify-only is forbidden')
     assert_real_session_pristine()
     prod = REAL_PRODUCTION / REAL_SESSION
     if not prod.exists():
@@ -1523,6 +1534,48 @@ def anchor_path():
                     'c4_public') / 'c4c_anchor.json')
 
 
+def publish_anchor_durable(apath, expected):
+    """Publish a chain-derived anchor crash-safely and idempotently.
+
+    Missing, malformed, or stale anchors are replaced through a same-dir
+    temporary file: complete canonical bytes, fsync(temp), atomic replace,
+    fsync(parent), then exact persisted reread. The anchor is a derivative,
+    so replacement is allowed; production events are never touched here.
+    """
+    apath = Path(apath)
+    if apath.exists():
+        try:
+            if read_json(apath) == expected:
+                return 'consistent'
+        except (OSError, ValueError, json.JSONDecodeError):
+            pass
+    apath.parent.mkdir(parents=True, exist_ok=True)
+    data = canon(expected).encode()
+    fd, tmp_name = tempfile.mkstemp(prefix=f'.{apath.name}.',
+                                    suffix='.tmp', dir=str(apath.parent))
+    tmp = Path(tmp_name)
+    try:
+        view = memoryview(data)
+        while view:
+            written = os.write(fd, view)
+            if written <= 0:
+                raise OSError('anchor temporary write made no progress')
+            view = view[written:]
+        os.fsync(fd)
+    finally:
+        os.close(fd)
+    try:
+        os.replace(str(tmp), str(apath))
+        fsync_dir(apath.parent)
+        persisted = apath.read_bytes()
+        if persisted != data or read_json(apath) != expected:
+            fail('G-C4C-PUBLISH: durable anchor reread mismatch')
+    finally:
+        if tmp.exists():
+            tmp.unlink()
+    return 'reconciled'
+
+
 def verify_approved_proposal(approved_hash):
     """The operator-approved hash must equal SHA256(persisted proposal
     bytes) exactly — the only bridge between the human authorization and
@@ -1591,15 +1644,11 @@ def reconcile_anchor(sb, sid, approved_hash, apath=None):
     expected = {'production_head_hash': head,
                 'authorization_sha256': approved_hash}
     apath = apath or anchor_path()
-    if apath.exists():
-        current = read_json(apath)
-        if current == expected:
-            return 'consistent'
-    apath.parent.mkdir(parents=True, exist_ok=True)
-    apath.write_text(canon(expected))
-    print('EXEC RECOVERY: external anchor reconciled from the chain '
-          '(no REVEAL re-executed)')
-    return 'reconciled'
+    status = publish_anchor_durable(apath, expected)
+    if status == 'reconciled':
+        print('EXEC RECOVERY: external anchor reconciled from the chain '
+              '(no REVEAL re-executed)')
+    return status
 
 
 def cmd_execute(approved_hash):
@@ -1643,8 +1692,7 @@ def cmd_execute(approved_hash):
         'authorization_sha256': approved_hash,
     }
     apath = anchor_path()
-    apath.parent.mkdir(parents=True, exist_ok=True)
-    apath.write_text(canon(anchor))
+    publish_anchor_durable(apath, anchor)
     # §9 step 13: HARD STOP
     print('C4-C FIRST REVEAL EXECUTED — experiment STARTED')
     print(f'  production_head_hash   = {summary["head_hash"]}')
