@@ -110,6 +110,32 @@ text UNCHANGED):
       FORENSIC), and a revoked historical attempt may not contain
       seal_approval.json; post-SEAL deletion is caught by semantic
       replay, derive_state and POST_SEAL_FINAL (D65)
+
+C4-D-SYNTH-AUDIT-FIX5 (after the user's re-audit of e022383; design
+text UNCHANGED; R7-C5 follows the user's Option-A ruling — NO new
+persisted ledger artifact):
+  R7C1 recover() proves the WHOLE history (events=prefix, gate
+      G_BOUND) after trusted-prefix verification and BEFORE any tail
+      truncation, orphan classification or retry return — a FORENSIC
+      history blocks recovery mutations; the partial tail is left
+      byte-for-byte untouched (D66)
+  R7C2 seal_transaction re-proves the COMPLETE history at commit time
+      and requires live == [attempt] immediately before the exact-byte
+      receipt/approval proof and the irreversible append; the crash
+      boundary stop_after='after_derive' exposes the post-derive
+      tamper window (D67)
+  R7C3/R7C4 fixtures are target-aware: replay_attempt(default) is
+      history-gated (D64); D64/D65/D68 assert exact gates / exact
+      reason strings instead of bare state checks
+  R7C5 OBSERVABILITY BOUNDARY (declared): the R7B continuity gate
+      detects disappearance only when a persisted successor attempt,
+      SEAL binding or internal hole exists. TOTAL deletion of the SOLE
+      attempt directory of an ordinal has no persisted witness in the
+      current protocol state and is NOT independently provable; the
+      protocol does not claim universal deletion detection. D69 pins
+      this declared behavior. Closing this boundary would require a
+      new append-only attempt ledger artifact — deliberately deferred
+      (design erratum territory, not an implementation fix).
 """
 
 import contextlib
@@ -520,9 +546,10 @@ def resolve_pointer(ptr, obj):
     return cur
 
 
-def validate_draft(sb, sid, draft, packet_obj):
-    evs = chain_events(sb, sid)
-    r1 = [e for e in evs if e['event_type'] == c2.REVEAL][-1]
+def validate_draft(sb, sid, draft, packet_obj, r1=None):
+    if r1 is None:
+        evs = chain_events(sb, sid)
+        r1 = [e for e in evs if e['event_type'] == c2.REVEAL][-1]
     if not isinstance(draft, dict) or set(draft.keys()) != DRAFT_TOP:
         keys = set(draft.keys()) if isinstance(draft, dict) else set()
         extra, missing = keys - DRAFT_TOP, DRAFT_TOP - keys
@@ -875,7 +902,7 @@ def _check_attempt_artifacts(sb, sid, ordinal, attempt, r1, gate,
     if sha(pkt_bytes) != r1['payload']['packet_sha256']:
         fail(f'{gate}: C2 archive binding broken')
     try:
-        validate_draft(sb, sid, snap, packet_obj)
+        validate_draft(sb, sid, snap, packet_obj, r1=r1)
     except RuntimeError as e:
         fail(f'{gate}: frozen draft snapshot violates the draft contract '
              f'— {e}')
@@ -1388,6 +1415,7 @@ def seal_transaction(sb, sid, stop_after=None, payload_override=None,
         fail(f'{G_PRE}: state must be SEAL_AUTHORIZED for seal '
              f'(derived={state})')
     ordinal, attempt = info['ordinal'], info['attempt']
+    stop('after_derive')
     adir = attempt_dir(sb, sid, ordinal, attempt)
     rbytes = (adir / 'receipt.json').read_bytes()
     approval = read_json(adir / 'seal_approval.json')
@@ -1411,6 +1439,14 @@ def seal_transaction(sb, sid, stop_after=None, payload_override=None,
     if dp.read_bytes() != (adir / 'draft_snapshot.bin').read_bytes():
         fail(f'{G_PRE}: draft drift post-freeze (FORENSIC, D22)')
     check_visibility_domain(sb, sid)
+    # FIX5-R7C2: commit-time WHOLE-history re-proof. The derive above may
+    # have passed on an earlier view; the irreversible append requires the
+    # complete persisted history to be valid NOW and `attempt` to be its
+    # sole live attempt (user audit of e022383, blocker 2).
+    history = prove_attempt_history(sb, sid, ordinal, gate=G_PRE)
+    if history['live'] != [attempt]:
+        fail(f'{G_PRE}: commit-time history proof — attempt {attempt} is '
+             f'not the sole live attempt (live={history["live"]})')
     # FIX3-R6: LAST-MOMENT proof returns the exact bytes that are then
     # consumed by append. Approval is mandatory on this path; its absence
     # cannot be treated as an optional skipped check.
@@ -1581,7 +1617,13 @@ def recover(sb, sid, anchor_override=None, stop_after=None):
              f'(no recovery permitted)')
     prefix = parsed[:n]
     ordinal = sum(1 for e in prefix if e['event_type'] == c2.REVEAL)
-    attempt = active_attempt(sb, sid, ordinal)
+    # FIX5-R7C1: whole-history barrier BEFORE any recovery mutation.
+    # Truncating a partial tail, classifying orphans or returning a retry
+    # state must never proceed from a local active_attempt view while the
+    # persisted history is FORENSIC (user audit of e022383, blocker 1).
+    history = prove_attempt_history(sb, sid, ordinal, gate=G_BOUND,
+                                    events=prefix)
+    attempt = history['live'][0] if history['live'] else None
     k = len(parsed)
     # ---- exactly the trusted prefix (no complete extra event) ----
     if k == n:
@@ -3444,6 +3486,8 @@ def d64():
                       G_REC)
     assert not (ad2 / 'revocation.json').exists()
     expect_exact_gate(lambda: recover_publication(sb, sid), G_PRE)
+    # FIX5-R7C3: the default-target proof entry is equally history-gated.
+    expect_exact_gate(lambda: replay_attempt(sb, sid), G_REP)
     cleanup_sb(sb)
     print('PASS D64')
 
@@ -3458,7 +3502,10 @@ def d65():
                                       ann_session='annsess-opaque-0002'))
     make_receipt(sb, sid)
     shutil.rmtree(attempt_dir(sb, sid, 1, 1))
-    assert derive_state(sb, sid)[0] == 'FORENSIC'
+    # FIX5-R7C4: target-aware — the failure must be the continuity gate.
+    state, info = derive_state(sb, sid)
+    assert state == 'FORENSIC' and 'has a hole ([2])' in info['reason'], \
+        (state, info)
     cleanup_sb(sb)
     # A hole [1,3] is equally invalid (attempt-2 disappeared).
     sb, sid = prepared_ready()
@@ -3469,7 +3516,9 @@ def d65():
     ad2 = attempt_dir(sb, sid, 1, 2)
     shutil.copytree(ad2, attempt_dir(sb, sid, 1, 3))
     shutil.rmtree(ad2)
-    assert derive_state(sb, sid)[0] == 'FORENSIC'
+    state, info = derive_state(sb, sid)
+    assert state == 'FORENSIC' and 'has a hole ([1, 3])' \
+        in info['reason'], (state, info)
     cleanup_sb(sb)
     # Revoked history may not contain a late seal approval.
     sb, sid = prepared_ready()
@@ -3486,7 +3535,9 @@ def d65():
         'created_at': '2099-01-02T00:00:00Z',
     }
     excl_write(ad1 / 'seal_approval.json', canon(approval).encode())
-    assert derive_state(sb, sid)[0] == 'FORENSIC'
+    state, info = derive_state(sb, sid)
+    assert state == 'FORENSIC' and 'illegal seal_approval' \
+        in info['reason'], (state, info)
     cleanup_sb(sb)
     # Post-SEAL historical deletion is still visible to all final proofs.
     sb, sid = prepared_ready()
@@ -3502,6 +3553,117 @@ def d65():
     expect_exact_gate(lambda: post_seal_final(sb, sid), G_REP)
     cleanup_sb(sb)
     print('PASS D65')
+
+
+@fixture('D66', 'FORENSIC history + partial tail: recover fails before truncate')
+def d66():
+    sb, sid = prepared_ready()
+    revoke_receipt(sb, sid, 'DRAFT_ERROR')
+    write_draft(sb, sid, sample_draft(sb, sid, attempt=2,
+                                      ann_session='annsess-opaque-0002'))
+    make_receipt(sb, sid)
+    make_seal_approval(sb, sid)
+    # Half-line SEAL tail on the log (same construction as D35).
+    rbytes = receipt_bytes_of(sb, sid, 1, 2)
+    r1 = chain_events(sb, sid)[-1]
+    payload = {'opaque_case_id': r1['payload']['opaque_case_id'],
+               'T': r1['payload']['T'], 'receipt_sha256': sha(rbytes),
+               'bytes_ref': 'bytes/seal_annotation/1.bin'}
+    ev = dict(sequence_no=1, prev_event_hash=r1['event_hash'],
+              event_type=c2.SEAL, payload=payload,
+              event_hash=c2.event_hash(1, r1['event_hash'], c2.SEAL,
+                                       payload),
+              ts=time.time())
+    with open(log_path(sb, sid), 'ab') as f:
+        f.write(canon(ev).encode()[:20])          # HALF LINE only
+    log_before = log_path(sb, sid).read_bytes()
+    head_before = head_path(sb, sid).read_bytes()
+    # Historical corruption AFTER the partial tail exists: recovery must
+    # fail on the history barrier BEFORE truncating anything (R7-C1).
+    os.chmod(attempt_dir(sb, sid, 1, 1) / 'draft_snapshot.bin', 0o644)
+    expect_exact_gate(lambda: recover(sb, sid), G_BOUND)
+    assert log_path(sb, sid).read_bytes() == log_before   # NOT truncated
+    assert head_path(sb, sid).read_bytes() == head_before
+    cleanup_sb(sb)
+    print('PASS D66')
+
+
+@fixture('D67', 'commit-time whole-history re-proof blocks post-derive tamper')
+def d67():
+    sb, sid = prepared_ready()
+    revoke_receipt(sb, sid, 'DRAFT_ERROR')
+    write_draft(sb, sid, sample_draft(sb, sid, attempt=2,
+                                      ann_session='annsess-opaque-0002'))
+    make_receipt(sb, sid)
+    make_seal_approval(sb, sid)
+    # Early derive PASSES — the stop lands exactly after derive_state.
+    try:
+        seal_transaction(sb, sid, stop_after='after_derive')
+        raise RuntimeError('expected CrashSim after_derive')
+    except CrashSim:
+        pass
+    # Tamper the HISTORICAL attempt inside the post-derive window: the
+    # commit-time whole-history proof must refuse the append (R7-C2).
+    os.chmod(attempt_dir(sb, sid, 1, 1) / 'draft_snapshot.bin', 0o644)
+    evs_before = chain_events(sb, sid)
+    head_before = head_path(sb, sid).read_bytes()
+    expect_exact_gate(lambda: seal_transaction(sb, sid), G_PRE)
+    assert chain_events(sb, sid) == evs_before       # no SEAL appended
+    assert head_path(sb, sid).read_bytes() == head_before
+    assert derive_state(sb, sid)[0] == 'FORENSIC'
+    cleanup_sb(sb)
+    print('PASS D67')
+
+
+@fixture('D68', 'internal history hole hits the exact continuity gate')
+def d68():
+    # [2]: attempt-1 deleted with a successor present — derive must name
+    # the continuity gate, and the approval write entry must hit it too.
+    sb, sid = prepared_ready()
+    revoke_receipt(sb, sid, 'DRAFT_ERROR')
+    write_draft(sb, sid, sample_draft(sb, sid, attempt=2,
+                                      ann_session='annsess-opaque-0002'))
+    make_receipt(sb, sid)
+    shutil.rmtree(attempt_dir(sb, sid, 1, 1))
+    state, info = derive_state(sb, sid)
+    assert state == 'FORENSIC' and 'has a hole ([2])' in info['reason'], \
+        (state, info)
+    expect_exact_gate(lambda: make_seal_approval(sb, sid), G_REC)
+    cleanup_sb(sb)
+    # [1,3]: middle attempt deleted — progression is gated exactly.
+    sb, sid = prepared_ready()
+    revoke_receipt(sb, sid, 'DRAFT_ERROR')
+    write_draft(sb, sid, sample_draft(sb, sid, attempt=2,
+                                      ann_session='annsess-opaque-0002'))
+    make_receipt(sb, sid)
+    ad2 = attempt_dir(sb, sid, 1, 2)
+    shutil.copytree(ad2, attempt_dir(sb, sid, 1, 3))
+    shutil.rmtree(ad2)
+    expect_exact_gate(lambda: make_receipt(sb, sid), G_REC)
+    state, info = derive_state(sb, sid)
+    assert state == 'FORENSIC' and 'has a hole ([1, 3])' \
+        in info['reason'], (state, info)
+    cleanup_sb(sb)
+    print('PASS D68')
+
+
+@fixture('D69', 'sole-attempt deletion: declared observability boundary')
+def d69():
+    """R7-C5 Option A (user ruling): with no persisted successor, no SEAL
+    binding and no external ledger, total deletion of the SOLE attempt
+    directory is not independently provable from current state. The
+    fixture PINS the declared behavior — no spurious FORENSIC, no crash,
+    no pretense of detection; the boundary itself is documented in the
+    module docstring (FIX5-R7C5)."""
+    sb, sid = prepared_ready()
+    revoke_receipt(sb, sid, 'DRAFT_ERROR')     # draft durably unlocked
+    shutil.rmtree(attempt_dir(sb, sid, 1, 1))
+    state, info = derive_state(sb, sid)
+    assert state == 'ANNOTATION_OPEN', (state, info)
+    assert attempts_published(sb, sid, 1) == []
+    assert next_attempt(sb, sid, 1) == 1       # documented boundary
+    cleanup_sb(sb)
+    print('PASS D69')
 
 
 # --------------------------------------------------------------------------
