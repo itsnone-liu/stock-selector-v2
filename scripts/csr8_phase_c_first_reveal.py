@@ -205,13 +205,9 @@ def tree_fingerprint(path):
     return items
 
 
-def assert_real_production_pristine():
-    """F5/FIX3: runtime read-only proof that the real experiment has NOT
-    started — including that the real pre-authorization proposal domain
-    does not exist."""
-    if REAL_PROPOSALS.exists():
-        fail('real c4c_proposals domain exists — real proposal must NOT '
-             'exist before the human FIRST_REVEAL_ONLY authorization')
+def assert_real_session_pristine():
+    """Runtime read-only proof that the REAL production experiment has NOT
+    started (0 events, no sealing/staging/authorization in real sessions)."""
     s1, s2 = REAL_PRODUCTION / 'c4-prod-0001', REAL_PRODUCTION / 'c4-prod-0002'
     if not (s1 / 'SUPERSEDED.json').exists():
         fail('real c4-prod-0001 SUPERSEDED marker missing')
@@ -223,6 +219,16 @@ def assert_real_production_pristine():
             if (sid_dir / bad).exists():
                 fail(f'real production mutated: {sid_dir.name}/{bad} exists')
     return 0
+
+
+def assert_real_production_pristine():
+    """F5/FIX3: synthetic-phase assertion — the real experiment has NOT
+    started AND the real pre-authorization proposal domain does not exist
+    (once the real proposal exists, the synthetic phase is closed)."""
+    if REAL_PROPOSALS.exists():
+        fail('real c4c_proposals domain exists — real proposal must NOT '
+             'exist before the human FIRST_REVEAL_ONLY authorization')
+    return assert_real_session_pristine()
 
 
 # ---------------- three-stage authorization (design §2.2) ----------------
@@ -1320,7 +1326,88 @@ def crash_matrix():
     return outcomes
 
 
-# ---------------- entry point ----------------
+# ---------------- REAL proposal preparation (design §9 steps 3-4) ----------
+
+REAL_SESSION = 'c4-prod-0002'
+
+
+def cmd_real_proposal():
+    """Design §9 steps 3–4 ONLY (authorized after C4-C SYNTHETIC FINAL
+    FROZEN @ aa04403): construct the exact canonical 9-field proposal for
+    the REAL readiness session, persist it in the pre-authorization
+    selector-only domain, and expose ONLY proposal_sha256.
+
+    Creates NO approval authority, NO permit, NO sealing domain; NEVER
+    calls the production C2 append. HARD STOP follows — the next state
+    change requires the single human FIRST_REVEAL_ONLY authorization of
+    the exact hash.
+    """
+    assert_real_session_pristine()
+    prod = REAL_PRODUCTION / REAL_SESSION
+    if not prod.exists():
+        fail('real readiness session c4-prod-0002 missing')
+    # reverify C4-A/B readiness + all frozen authorities (read-only)
+    c4ab.c4b_readiness(REAL_SESSION)
+    cand = c4ab.first_candidate(c1)
+    entry = c4ab.candidate_packet(c1, cand)
+    # construct the exact canonical proposal (id/created_at fixed HERE)
+    proposal = {
+        'authorization_version': AUTHZ_VERSION,
+        'scope': 'FIRST_REVEAL_ONLY',
+        'authorization_id': uuid.uuid4().hex,
+        'session_id': REAL_SESSION,
+        'c3_manifest_commitment': c4ab.C3_COMMITMENT,
+        'candidate_packet_id': entry['packet_id'],
+        'candidate_packet_sha256': entry['sha256'],
+        'authorized': True,
+        'created_at': time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime()),
+    }
+    proposal_bytes = canon(proposal).encode()
+    # persist ONLY in the pre-authorization proposal domain: 0600 file,
+    # 0700 dirs, fsync closure; O_EXCL refuses to recreate an existing
+    # proposal — a persisted one is NEVER regenerated, only re-proven.
+    REAL_PROPOSALS.mkdir(parents=True, exist_ok=True, mode=0o700)
+    if REAL_PROPOSALS.stat().st_mode & 0o777 != 0o700:
+        fail('G-C4C-AUTHZ: proposal domain root not selector-only 0700')
+    pdir = REAL_PROPOSALS / REAL_SESSION
+    pdir.mkdir(mode=0o700, exist_ok=True)
+    ppath = pdir / 'first_reveal.proposal.json'
+    if ppath.exists():
+        print('C4-C REAL PROPOSAL: persisted object detected — verifying '
+              'persisted state (no regeneration)')
+    else:
+        excl_write(ppath, proposal_bytes)
+        fsync_dir(REAL_PROPOSALS)
+    # persisted-state self-proof: exact canonical bytes + closed-world +
+    # frozen-candidate binding + selector-only contract — all derived from
+    # disk, identical rules to the synthetic materializer.
+    persisted = ppath.read_bytes()
+    persisted_obj = json.loads(persisted)
+    verify_permit(persisted_obj, REAL_SESSION)
+    if persisted != canon(persisted_obj).encode():
+        fail('G-C4C-AUTHZ: persisted proposal is not the exact canonical '
+             'bytes')
+    if persisted_obj['candidate_packet_id'] != entry['packet_id'] or \
+            persisted_obj['candidate_packet_sha256'] != entry['sha256']:
+        fail('G-C4C-AUTHZ: persisted proposal does not bind the frozen '
+             'first candidate')
+    if ppath.stat().st_mode & 0o777 != 0o600:
+        fail('G-C4C-AUTHZ: persisted proposal not selector-only 0600')
+    if pdir.stat().st_mode & 0o777 != 0o700 or \
+            REAL_PROPOSALS.stat().st_mode & 0o777 != 0o700:
+        fail('G-C4C-AUTHZ: proposal domain not selector-only 0700')
+    proposal_sha = sha(persisted)
+    print('C4-C REAL PROPOSAL PREPARED (pre-authorization domain only)')
+    print(f'  FIRST_REVEAL proposal hash = {proposal_sha}')
+    print('  authorization_id / created_at fixed at proposal time; '
+          'packet identity NOT exposed')
+    print('  proposal exists != authorization granted')
+    print('  HARD STOP: awaiting the single human FIRST_REVEAL_ONLY '
+          'authorization of this exact hash')
+    print('  no approval authority / permit / sealing / REVEAL created; '
+          'PRODUCTION_EVENT_COUNT=0; experiment NOT STARTED')
+    return proposal_sha
+
 
 def cmd_synthetic():
     assert_real_production_pristine()               # F5 pre-run assertion
@@ -1364,11 +1451,14 @@ def cmd_synthetic():
 
 
 def main():
-    if len(sys.argv) != 2 or sys.argv[1] != 'synthetic':
-        print('usage: csr8_phase_c_first_reveal.py synthetic')
+    if len(sys.argv) != 2 or sys.argv[1] not in ('synthetic', 'real-proposal'):
+        print('usage: csr8_phase_c_first_reveal.py synthetic | real-proposal')
         sys.exit(2)
     try:
-        cmd_synthetic()
+        if sys.argv[1] == 'synthetic':
+            cmd_synthetic()
+        else:
+            cmd_real_proposal()
     except RuntimeError:
         sys.exit(1)
 
