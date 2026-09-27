@@ -79,6 +79,37 @@ are implementation-vs-frozen-text realignments, not hardening):
       sync_head makes it durable (crash boundary stop_after=
       'after_semantic_proof'); a semantic-invalid tail never touches
       the trusted head (D61)
+
+C4-D-SYNTH-AUDIT-FIX3 (after the user's re-audit of e4819a8; R6
+accepted CLOSED there; design text UNCHANGED):
+  R6  seal_transaction consumes the exact bytes RETURNED by the
+      commit-time proof: replay_attempt(require_approval=True) re-proves
+      receipt+approval and returns rbytes; persisted receipt is re-read
+      and compared == rbytes; payload.receipt_sha256 = SHA256(rbytes);
+      C2 append(content_bytes=rbytes) — proof, payload and append are
+      one fact, never a cached earlier read; approval absence is a hard
+      pre-append failure, not an optional skipped check (D62)
+  R7  prove_attempt_history(ordinal) is the single history authority:
+      every published attempt's dir/receipt/snapshot/schema/canonical/
+      bindings/modes, every historical tombstone, exactly-one-live
+      (pre-SEAL) or exactly-one-SEAL-bound-with-valid-approval (post-
+      SEAL); wired into derive_state / make_receipt progression / seal
+      preflight / semantic_replay / post_seal_final (D63)
+
+C4-D-SYNTH-AUDIT-FIX4 (after the user's re-audit of 8479170; design
+text UNCHANGED):
+  R7A no mutation or recovery entry may act on a local active_attempt
+      view while the persisted history is FORENSIC: make_seal_approval,
+      revoke_receipt, recover_publication and replay_attempt(default
+      target) all derive their target from prove_attempt_history FIRST;
+      a FORENSIC history blocks approval writes, tombstone writes and
+      publication recovery alike (D64)
+  R7B historical object disappearance is detectable corruption:
+      published attempts must be the contiguous sequence 1..max (a hole
+      such as [2] or [1,3] after deleting an attempt directory is
+      FORENSIC), and a revoked historical attempt may not contain
+      seal_approval.json; post-SEAL deletion is caught by semantic
+      replay, derive_state and POST_SEAL_FINAL (D65)
 """
 
 import contextlib
@@ -956,6 +987,12 @@ def prove_attempt_history(sb, sid, ordinal, gate=G_REP, events=None):
     evs = list(events) if events is not None else chain_events(sb, sid)
     r1 = _last_reveal(evs)
     published = attempts_published(sb, sid, ordinal)
+    # FIX4-R7B: historical object disappearance is itself corruption.
+    # Published attempts are an append-only contiguous sequence; a hole
+    # ([2], [1,3], ...) cannot be forgotten by rescanning the filesystem.
+    if published and published != list(range(1, published[-1] + 1)):
+        fail(f'{gate}: published attempt history has a hole '
+             f'({published}) — FORENSIC')
     seals = [e for e in evs if e['event_type'] == c2.SEAL]
     seal_bound = None
     if len(seals) > 1:
@@ -978,6 +1015,12 @@ def prove_attempt_history(sb, sid, ordinal, gate=G_REP, events=None):
             live.append(n)
         elif seal_bound == n:
             fail(f'{gate}: SEAL-bound attempt {n} is revoked')
+        # A revoked historical attempt may not later acquire a seal
+        # approval; its immutable file set is receipt+snapshot+revocation.
+        if tomb is not None and (attempt_dir(sb, sid, ordinal, n) /
+                                 'seal_approval.json').exists():
+            fail(f'{gate}: revoked attempt {n} contains illegal '
+                 f'seal_approval.json — FORENSIC')
     if seal_bound is not None:
         if live != [seal_bound]:
             fail(f'{gate}: SEAL-bound attempt is not the sole live attempt '
@@ -998,7 +1041,10 @@ def make_seal_approval(sb, sid, ordinal=None, attempt=None,
     if r1 is None:
         r1 = [e for e in chain_events(sb, sid)
               if e['event_type'] == c2.REVEAL][-1]
-    active = active_attempt(sb, sid, ordinal)
+    # FIX4-R7A: no approval write may proceed from a local active_attempt
+    # view while another historical artifact is FORENSIC.
+    history = prove_attempt_history(sb, sid, ordinal, gate=G_REC)
+    active = history['live'][0] if history['live'] else None
     if active is None:
         if attempts_published(sb, sid, ordinal):
             fail(f'{G_REC}: all published attempts revoked — approval '
@@ -1041,6 +1087,11 @@ def revoke_receipt(sb, sid, reason_code, ordinal=None, attempt=None):
         attempt = active_attempt(sb, sid, ordinal)
         if attempt is None:
             fail(f'{G_REC}: no active attempt to revoke')
+    # FIX4-R7A: revocation is also a state transition; prove the whole
+    # persisted history before writing a new tombstone.
+    history = prove_attempt_history(sb, sid, ordinal, gate=G_REC)
+    if attempt not in history['live']:
+        fail(f'{G_REC}: requested attempt is not the sole live attempt')
     adir = attempt_dir(sb, sid, ordinal, attempt)
     if (adir / 'seal_approval.json').exists():
         fail(f'{G_REC}: revocation forbidden once seal_approval exists '
@@ -1195,7 +1246,11 @@ def replay_attempt(sb, sid, ordinal=None, attempt=None,
     if ordinal is None:
         ordinal = active_ordinal(sb, sid)
     if attempt is None:
-        attempt = active_attempt(sb, sid, ordinal)
+        # FIX4-R7A: the default target is chosen from the PROVEN history,
+        # not a local active_attempt view — corrupted historical artifacts
+        # fail closed here too.
+        history = prove_attempt_history(sb, sid, ordinal, gate=G_REP)
+        attempt = history['live'][0] if history['live'] else None
         if attempt is None:
             fail(f'{G_REP}: no active attempt to replay')
     r1 = _last_reveal(chain_events(sb, sid))
@@ -1601,10 +1656,13 @@ def recover_publication(sb, sid):
     published = attempts_published(sb, sid, ordinal)
     dp = draft_path(sb, sid)
     if published:
+        # FIX4-R7A: recovery must not return READY from a partial view;
+        # first prove every persisted attempt and the history shape.
+        history = prove_attempt_history(sb, sid, ordinal, gate=G_PRE)
         if not dp.exists():
             fail(f'{G_PRE}: published attempt without an active draft — '
                  f'FORENSIC, no silent correction (F19 invariant broken)')
-        active = active_attempt(sb, sid, ordinal)
+        active = history['live'][0] if history['live'] else None
         if active is None:
             # every attempt revoked — unlock idempotently (revoke-side
             # recovery completion)
@@ -3367,6 +3425,83 @@ def d63():
     expect_exact_gate(lambda: post_seal_final(sb, sid), G_REP)
     cleanup_sb(sb)
     print('PASS D63')
+
+
+@fixture('D64', 'FORENSIC history blocks every mutation/recovery path (R7A)')
+def d64():
+    sb, sid = prepared_ready()
+    revoke_receipt(sb, sid, 'DRAFT_ERROR')
+    write_draft(sb, sid, sample_draft(sb, sid, attempt=2,
+                                      ann_session='annsess-opaque-0002'))
+    make_receipt(sb, sid)
+    ad1 = attempt_dir(sb, sid, 1, 1)
+    os.chmod(ad1 / 'draft_snapshot.bin', 0o644)
+    assert derive_state(sb, sid)[0] == 'FORENSIC'
+    ad2 = attempt_dir(sb, sid, 1, 2)
+    expect_exact_gate(lambda: make_seal_approval(sb, sid), G_REC)
+    assert not (ad2 / 'seal_approval.json').exists()
+    expect_exact_gate(lambda: revoke_receipt(sb, sid, 'DRAFT_ERROR'),
+                      G_REC)
+    assert not (ad2 / 'revocation.json').exists()
+    expect_exact_gate(lambda: recover_publication(sb, sid), G_PRE)
+    cleanup_sb(sb)
+    print('PASS D64')
+
+
+@fixture('D65', 'historical deletion/hole/illegal file set -> FORENSIC (R7B)')
+def d65():
+    # Delete attempt-1 after attempt-2 is ready: the contiguous-history
+    # invariant detects the disappearance before any state transition.
+    sb, sid = prepared_ready()
+    revoke_receipt(sb, sid, 'DRAFT_ERROR')
+    write_draft(sb, sid, sample_draft(sb, sid, attempt=2,
+                                      ann_session='annsess-opaque-0002'))
+    make_receipt(sb, sid)
+    shutil.rmtree(attempt_dir(sb, sid, 1, 1))
+    assert derive_state(sb, sid)[0] == 'FORENSIC'
+    cleanup_sb(sb)
+    # A hole [1,3] is equally invalid (attempt-2 disappeared).
+    sb, sid = prepared_ready()
+    revoke_receipt(sb, sid, 'DRAFT_ERROR')
+    write_draft(sb, sid, sample_draft(sb, sid, attempt=2,
+                                      ann_session='annsess-opaque-0002'))
+    make_receipt(sb, sid)
+    ad2 = attempt_dir(sb, sid, 1, 2)
+    shutil.copytree(ad2, attempt_dir(sb, sid, 1, 3))
+    shutil.rmtree(ad2)
+    assert derive_state(sb, sid)[0] == 'FORENSIC'
+    cleanup_sb(sb)
+    # Revoked history may not contain a late seal approval.
+    sb, sid = prepared_ready()
+    revoke_receipt(sb, sid, 'DRAFT_ERROR')
+    ad1 = attempt_dir(sb, sid, 1, 1)
+    approval = {
+        'approval_version': APPROVAL_VERSION,
+        'scope': 'SEAL_ANNOTATION_ONLY',
+        'session_id': sid,
+        'reveal_event_hash': chain_events(sb, sid)[-1]['event_hash'],
+        'annotation_attempt': 1,
+        'approved_receipt_sha256': sha((ad1 / 'receipt.json').read_bytes()),
+        'approved': True,
+        'created_at': '2099-01-02T00:00:00Z',
+    }
+    excl_write(ad1 / 'seal_approval.json', canon(approval).encode())
+    assert derive_state(sb, sid)[0] == 'FORENSIC'
+    cleanup_sb(sb)
+    # Post-SEAL historical deletion is still visible to all final proofs.
+    sb, sid = prepared_ready()
+    revoke_receipt(sb, sid, 'DRAFT_ERROR')
+    write_draft(sb, sid, sample_draft(sb, sid, attempt=2,
+                                      ann_session='annsess-opaque-0002'))
+    make_receipt(sb, sid)
+    make_seal_approval(sb, sid)
+    seal_transaction(sb, sid)
+    shutil.rmtree(attempt_dir(sb, sid, 1, 1))
+    expect_exact_gate(lambda: semantic_replay(sb, sid), G_REP)
+    assert derive_state(sb, sid)[0] == 'FORENSIC'
+    expect_exact_gate(lambda: post_seal_final(sb, sid), G_REP)
+    cleanup_sb(sb)
+    print('PASS D65')
 
 
 # --------------------------------------------------------------------------
