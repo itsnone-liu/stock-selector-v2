@@ -37,6 +37,13 @@ C4-C-SYNTH-AUDIT-FIX2 (user audit):
      permit stays ABSENT). Report annotates fixture 09's gate as a
      delegated C4-B proof.
 
+C4-C-SYNTH-AUDIT-FIX4 (user audit):
+  F8 pre-materialization permission contract — BEFORE any content check
+     the materializer proves the persisted authority objects satisfy the
+     selector-only contract: authorization dir 0700, proposal dir 0700,
+     approval file 0600, proposal file 0600. Fixtures 06m/06n/06o prove a
+     permission-violating chain leaves the permit ABSENT.
+
 C4-C-SYNTH-AUDIT-FIX3 (user audit):
   F7 permit pre-materialization legality — BEFORE the O_EXCL creation the
      materializer additionally proves: (A) proposal bytes ARE the exact
@@ -283,11 +290,26 @@ def materialize_permit(sb, sid):
     if not apath.exists():
         fail('G-C4C-AUTHZ: approval authority missing — no basis to '
              'materialize a permit')
-    approval = read_json(apath)
-    verify_approval(approval, sid)
     ppath = sb / 'c4c_proposals' / sid / 'first_reveal.proposal.json'
     if not ppath.exists():
         fail('G-C4C-AUTHZ: persisted proposal missing')
+    # FIX4: selector-only permission contract BEFORE anything else —
+    # persisted state that violates the authority contract has no standing
+    # to produce a permit.
+    for dpath, what in ((adir, 'authorization'),
+                        (ppath.parent, 'proposal')):
+        mode = dpath.stat().st_mode & 0o777
+        if mode != 0o700:
+            fail(f'G-C4C-AUTHZ: {what} directory must be selector-only '
+                 f'0700 (is {mode:o})')
+    for fpath, what in ((apath, 'first_reveal.approval.json'),
+                        (ppath, 'first_reveal.proposal.json')):
+        mode = fpath.stat().st_mode & 0o777
+        if mode != 0o600:
+            fail(f'G-C4C-AUTHZ: {what} must be selector-only 0600 '
+                 f'(is {mode:o})')
+    approval = read_json(apath)
+    verify_approval(approval, sid)
     proposal_bytes = ppath.read_bytes()
     proposal = json.loads(proposal_bytes)
     verify_permit(proposal, sid)   # same 9-field closed-world + canonical
@@ -974,6 +996,23 @@ def fixtures():
             sb, sid, dict(read_json(
                 sb / 'c4c_proposals' / sid / 'first_reveal.proposal.json'),
                 candidate_packet_sha256='e' * 64)))
+    no_permit_fixture(
+        '06m-approval-not-0600-no-permit',
+        'first_reveal.approval.json must be selector-only 0600',
+        forge=lambda sb, sid: os.chmod(
+            sb / 'production' / sid / 'authorization' /
+            'first_reveal.approval.json', 0o644))
+    no_permit_fixture(
+        '06n-proposal-not-0600-no-permit',
+        'first_reveal.proposal.json must be selector-only 0600',
+        forge=lambda sb, sid: os.chmod(
+            sb / 'c4c_proposals' / sid / 'first_reveal.proposal.json',
+            0o644))
+    no_permit_fixture(
+        '06o-authz-dir-not-0700-no-permit',
+        'authorization directory must be selector-only 0700',
+        forge=lambda sb, sid: os.chmod(
+            sb / 'production' / sid / 'authorization', 0o755))
 
     # 7 authorization reuse after success — CHAIN-DERIVED consumption
     def f07(td):
@@ -1302,7 +1341,7 @@ def cmd_synthetic():
     runtime_events = assert_real_production_pristine()  # F5 post-run
     report = {
         'construction_mode': 'synthetic/staging only; real session untouched',
-        'audit_fix': 'C4-C-SYNTH-AUDIT-FIX3 (F1-F7)',
+        'audit_fix': 'C4-C-SYNTH-AUDIT-FIX4 (F1-F8)',
         'real_proposal_domain_absent': True,
         'transaction_gates': ['G-C4C-AUTHZ', 'G-C4-NEXT', 'G-C4C-BYTES',
                               'G-C4C-STAGED-REPLAY', 'G-C4C-PUBLISH',
@@ -1318,7 +1357,7 @@ def cmd_synthetic():
     }
     SYNTH_DIR.mkdir(parents=True, exist_ok=True)
     (SYNTH_DIR / 'c4c_synthetic_report.json').write_text(canon(report))
-    print(f'C4-C SYNTHETIC PASS (AUDIT-FIX3): {len(fixture_results)} '
+    print(f'C4-C SYNTHETIC PASS (AUDIT-FIX4): {len(fixture_results)} '
           f'target-isolated fixtures + {len(crash_results)} recovery '
           f'scenarios; real production + proposal domain content-fingerprint '
           f'unchanged, runtime-asserted {runtime_events} production events')
