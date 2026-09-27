@@ -1,8 +1,8 @@
 # CSR-8 Phase C4-D — First Annotation + SEAL Protocol Design
 
-- 状态：DESIGN DRAFT v0.2（= v0.1 @ `f9874b5` + C4-D-DESIGN-FIX1 修订，
-  F1–F10 与五项用户裁决已全部落入正文）；待用户审计；本文件不授权、不实
-  现、不创建任何 production 对象、不创建 annotator 域与 c4d_receipts 域、
+- 状态：DESIGN DRAFT v0.3（= v0.2 @ `d28c02a` + C4-D-DESIGN-FIX2 修订，
+  五项协议闭合已全部落入正文）；待用户审计；本文件不授权、不实现、不
+  创建任何 production 对象、不创建 annotator 域与 c4d_receipts 域、
   不产生任何 production event
 - 基线（全部已冻结）：
   - C2 seal log FINAL FROZEN @ `9d19be7`（`REVEAL_PACKET` / `SEAL_ANNOTATION`
@@ -53,6 +53,17 @@ HARD_STOP              = active（等待 C4-D 设计冻结 + 逐步人工授权�
 | 裁决3 | receipt 作废 = append-only tombstone，永不删除 | §4.5 |
 | 裁决4 | SEAL 后清除 active annotator workspace | §6.4 |
 | 裁决5 | ordinal-2 人工授权只看 `proposal_sha256`，措辞固定 | §7.4 |
+
+## 0.2 FIX2 修订记录（v0.2 → v0.3）
+
+| 项 | 修订 | 落点 |
+| --- | --- | --- |
+| C1 | contract exact hash preimage 逐字节写进文档（canonical 单行 JSON + 序列化规则），可独立复算 | §4.1.1 |
+| C2 | 孤儿 SEAL bytes 区分 `MATCHED_ORPHAN`（可 retry）/`FOREIGN_ORPHAN`（FORENSIC，禁止覆盖）；partial-tail 截断后同判据 | §5.3 |
+| C3 | receipt+draft_snapshot 同目录 staging 完整构造 → fsync → RENAME_NOREPLACE 原子发布整个 attempt；消除半状态窗口 | §4.3 §4.6 |
+| C4 | SEAL 后拆分 `SEAL_COMMITTED → anchor durable → cleanup → POST_SEAL_FINAL/SEALED`；新增 `SEALED_PENDING_FINALIZE` 恢复（只补 anchor/cleanup，绝不再次 append）；修正 v0.2 §5.2/§6.3 顺序矛盾 | §3 §5.2 §6.3 §6.4 |
+| C5 | ordinal-N 完整 persisted protocol：proposal/approval/permit 固定路径 + 0700/0600/O_EXCL/fsync 契约 + REVEAL payload 扩展字段（链导出消费证明） | §7.2 §7.5 |
+| fixtures | D40–D45 | §9 |
 
 ---
 
@@ -155,13 +166,17 @@ annotation-visible set ≠ selector-visible set ≠ outcome-visible set
 
 ---
 
-## 3. Annotation lifecycle（五态状态机，冻结）
+## 3. Annotation lifecycle（状态机，冻结；FIX2-C4 后含 finalize 分相）
 
 ```text
 NO_ANNOTATION ─handoff→ ANNOTATION_OPEN ─make_receipt→ READY_TO_SEAL
-                     （draft 可自由改写）                  （receipt 已 O_EXCL
-                                                             不可变）
-READY_TO_SEAL ─human seal approval→ SEAL_AUTHORIZED ─seal txn→ SEALED
+                     （draft 可自由改写）                  （attempt 已原子
+                                                             发布，不可变）
+READY_TO_SEAL ─human seal approval→ SEAL_AUTHORIZED ─seal txn→ SEAL_COMMITTED
+                                                                （链上事实已定）
+SEAL_COMMITTED ─anchor durable + cleanup + POST_SEAL_FINAL→ SEALED
+     └─ crash in finalize → SEALED_PENDING_FINALIZE（只补 finalize，
+        绝不第二次 append SEAL）
 ```
 
 **状态由 persisted 文件集合派生，不存在独立可写的 state 字段。**
@@ -173,7 +188,8 @@ READY_TO_SEAL ─human seal approval→ SEAL_AUTHORIZED ─seal txn→ SEALED
 | ANNOTATION_OPEN | packet 文件存在且有效；active attempt 无 receipt |
 | READY_TO_SEAL | active attempt 的 receipt 存在且 closed-world 有效且与 packet/REVEAL 事件一致；无 seal_approval |
 | SEAL_AUTHORIZED | READY_TO_SEAL 判据 + seal_approval 存在且有效（approved_receipt_sha256 == SHA256(exact receipt bytes)） |
-| SEALED | production chain 上存在绑定该 receipt 的合法 SEAL 且 §6 语义重放 PASS |
+| SEAL_COMMITTED | chain 存在合法 SEAL 且 verify(check_head=True)+semantic replay PASS；finalize（anchor/cleanup）未完 |
+| SEALED | SEAL_COMMITTED ∧ c4d_seal_anchor durable ∧ active workspace 已清空 ∧ POST_SEAL_FINAL（§6.3）PASS |
 
 **active attempt 定义（F5）**：`ordinal-XXXX/` 下编号最大的
 `attempt-NNNN/` 且该 attempt 无 `revocation.json`；更早 attempt 一律
@@ -192,6 +208,8 @@ READY_TO_SEAL ─human seal approval→ SEAL_AUTHORIZED ─seal txn→ SEALED
   "批准 A、seal B"的语义复杂度）；
 - SEAL_AUTHORIZED：只允许进入 seal transaction 或（approval 尚未被消
   费且未 SEAL 时）保持；approval 不可变、不可撤；
+- SEAL_COMMITTED：链上事实已定；只允许 finalize（anchor 发布 +
+  cleanup + POST_SEAL_FINAL 复验）或保持；**任何再次 SEAL append 非法**；
 - SEALED：一切只读；approval 被 SEAL 不可逆消费（§6.2）。
 
 **Exact-bytes 原则（与 C4-C no-equivalent-regeneration 同型）：**
@@ -249,6 +267,22 @@ annotation_contract_sha256
 `json.dumps(sort_keys=True, ensure_ascii=False,
 separators=(',',':'))` 后取 SHA256；实现必须内嵌同一常量并在校验
 时重算比对。）
+
+### 4.1.1 Contract exact preimage（FIX2-C1：逐字节冻结，可独立复算）
+
+上表 hash 的**唯一 preimage** 即下面这一行 canonical JSON（UTF-8，无空
+格、无换行、键按字典序）；任何人可对其逐字节复算出上表 hash：
+
+```json
+{"contract_version":"c4d-annotation-content-v1","flags_enum":["DATA_QUALITY_ISSUE","EVIDENCE_INCOMPLETE_AT_T","PACKET_PARSE_ANOMALY","FLAGGED_FOR_REVIEW"],"flags_rule":"flags may be empty; values unique; closed set","hypotheses":["rt_H01","rt_H02","rt_H03","rt_H04","rt_H05","rt_H06"],"judgment_rule":"exactly one judgment per hypothesis; order fixed as listed; none may be dropped","observability_enum":["OBSERVABLE","UNOBSERVABLE"],"source":"CSR_7_CASE_PROTOCOL.yaml hypothesis_block (frozen) — copied verbatim, not redefined","support_enum":["SUPPORTED_STRONG","SUPPORTED_PARTIAL","MIXED","NOT_OBSERVED","CONTRADICTED"],"support_presence_rule":"support present iff observability == OBSERVABLE; UNOBSERVABLE leaves support empty (data absence != disconfirmation)","unjudgeable_mapping":"CSR-7-native UNOBSERVABLE realizes 'cannot judge' — no hypothesis may be deleted"}
+```
+
+复算程序（与 C2/c4d canon 同规则）：
+
+```text
+SHA256( json.dumps(contract, sort_keys=True, ensure_ascii=False,
+                   separators=(',',':')) )
+```
 
 ### 4.2 Draft schema（c4d-draft-v1，closed-world）
 
@@ -308,10 +342,24 @@ created_at: <canonical UTC，创建时固定>
 `make_receipt` 是唯一冻结点：读 exact draft bytes → closed-world 校验
 （schema + §4.1 契约 + packet/session 绑定 + reveal_event_hash ==
 production chain 最后一条 REVEAL 的 event_hash）→ 组装 → canonical 序列
-化 → O_EXCL 写入（0600，fsync file+parent）→ 同事务内 exact-copy
-draft bytes 到 `draft_snapshot.bin`（O_EXCL 0600）。receipt 创建后
-active draft chmod 0400；receipt 与 snapshot 均不可变（重建/改写 =
-G-C4D-RECEIPT FAIL）。
+化。**发布为整个 attempt 的原子事务（FIX2-C3）**：
+
+```text
+1. 同级创建 staging 目录 ordinal-XXXX/attempt-NNNN.staging/（0700）
+2. staging 内完整构造 receipt.json（canonical，0600）与
+   draft_snapshot.bin（exact draft bytes，0600）
+3. fsync(receipt.json)、fsync(draft_snapshot.bin)、fsync(staging dir)
+4. renameat2(RENAME_NOREPLACE) staging → attempt-NNNN/
+5. fsync(ordinal-XXXX/)
+```
+
+crash 在 1–3 之间只留下 `*.staging/`（uncommitted，等同 C4-C
+`sealing.staging` 的 disposable 地位，恢复时直接清理，不构成任何
+attempt 状态）；attempt 目录一旦出现即**完整含 receipt+snapshot**——
+不存在"有 receipt 无 snapshot"的半状态。attempt 发布后 active draft
+chmod 0400；receipt 与 snapshot 均不可变（重建/改写 = G-C4D-RECEIPT
+FAIL）。`seal_approval.json` / `revocation.json` 随后以单文件 O_EXCL
+追加进已发布的 attempt 目录（各自原子，无需 staging）。
 
 ### 4.4 SEAL approval authority（F4，c4d-seal-approval-v1，closed-world）
 
@@ -361,8 +409,9 @@ created_at: <canonical UTC>
 data/csr8_phase_c/c4d_receipts/                  （gitignored，0700）
 └── c4-prod-0002/
     └── ordinal-0001/                            （本 packet 的 REVEAL 序数）
-        ├── attempt-0001/
-        │   ├── receipt.json                     （0600，O_EXCL，不可变）
+        ├── attempt-NNNN.staging/                （仅 crash 残留；disposable）
+        ├── attempt-0001/                        （RENAME_NOREPLACE 原子发布）
+        │   ├── receipt.json                     （0600，不可变）
         │   ├── draft_snapshot.bin               （exact draft bytes 快照）
         │   ├── seal_approval.json               （§4.4，可有可无）
         │   └── revocation.json                  （§4.5，可有可无）
@@ -409,12 +458,18 @@ anchor mandatory）不被重定义。
      bytes/seal_annotation/<seq>.bin；追加事件行；重写 head）
 (5)  事务级 fsync closure：bytes 文件、log、head、sealing 目录逐一 fsync
 (6)  production verify()（check_head=True）全链重放 PASS
-(7)  C4-D semantic replay（§6）PASS
-(8)  final invariant（§6.3）PASS
-(9)  c4d_seal_anchor.json 原子发布（publish_anchor_durable 语义，§8）
-(10) active annotator workspace 清空（§6.4）
+(7)  C4-D semantic replay（§6.1，对 exact receipt）PASS
+     —— 至此 **SEAL_COMMITTED**（链上事实已定；此后任何失败都不得
+     再次 append SEAL）
+(8)  c4d_seal_anchor.json 原子发布（publish_anchor_durable 语义，§8）
+(9)  active annotator workspace 清空（§6.4）
+(10) POST_SEAL_FINAL 校验（§6.3，含 workspace 已清空）PASS
+     —— 至此 **SEALED**
 (11) HARD STOP（第二 packet 权限另起，§7）
 ```
+
+(8)–(10) 为 finalize 阶段：任一步 crash 进入 `SEALED_PENDING_FINALIZE`
+（§5.3），恢复**只允许补 anchor / cleanup**，绝不允许第二次 SEAL append。
 
 ### 5.3 Recovery matrix（F2/F3；核心语义冻结）
 
@@ -428,10 +483,12 @@ prefix 证明）。
 
 | 链上事实 | 判定 | 恢复动作 |
 | --- | --- | --- |
-| 前 N 行 == trusted prefix；无第 N+1 行；`bytes/seal_annotation/<N>.bin` 存在但无事件引用 | 孤儿 bytes（无链意义） | READY/SEAL_AUTHORIZED 保持；受控 retry（append 重写同 seq 确定性路径） |
+| 前 N 行 == trusted prefix；无第 N+1 行；`bytes/seal_annotation/<N>.bin` 存在但无事件引用，且 `SHA256(orphan bytes)` == `SHA256(persisted receipt)` == `approved_receipt_sha256` | **MATCHED_ORPHAN**（本事务自身的未竟写入） | READY/SEAL_AUTHORIZED 保持；受控 retry（append 重写同 seq 确定性路径） |
+| 前 N 行 == trusted prefix；无第 N+1 行；孤儿 bytes 存在但 hash 不匹配上述三方 | **FOREIGN_ORPHAN** | FORENSIC：HALT，**禁止覆盖/删除该 bytes**，禁止 retry |
 | 前 N 行 == trusted prefix；恰有第 N+1 **完整** 行，且 candidate 满足下述全部条件 | `SEAL_TAIL_UNANCHORED`（**不得记作 SEALED**） | 按严格条件完成提交（下） |
-| 前 N 行 == trusted prefix；其后 suffix 为 malformed/不完整 JSON 行 | `SEAL_TAIL_PARTIAL`（uncommitted tail） | 截断回 trusted-head byte boundary（即第 N 行行尾字节偏移）→ fsync(log) → 孤儿 bytes 处理 → 状态保持 READY/SEAL_AUTHORIZED |
-| 全链含 SEAL 且 verify(check_head=True) PASS | SEALED | 只读；semantic replay 复证 |
+| 前 N 行 == trusted prefix；其后 suffix 为 malformed/不完整 JSON 行 | `SEAL_TAIL_PARTIAL`（uncommitted tail） | 截断回 trusted-head byte boundary（即第 N 行行尾字节偏移）→ fsync(log) → 残留 `bytes/seal_annotation/<N>.bin` 按**上述 MATCHED/FOREIGN 判据**处理（MATCHED 可 retry；FORENSIC 不得动） → 状态保持 READY/SEAL_AUTHORIZED |
+| 链含合法 SEAL 且 verify(check_head=True) PASS，但 c4d anchor 缺失/陈旧，或 active workspace 未清空 | `SEALED_PENDING_FINALIZE`（FIX2-C4） | **只允许** publish_anchor_durable 补 anchor + cleanup workspace + POST_SEAL_FINAL 复验；**绝不再次 append SEAL** |
+| 全链含 SEAL 且 verify(check_head=True) PASS 且 finalize 完成 | SEALED | 只读；semantic replay 复证 |
 | 其他（trusted prefix 不成立 / 多余 tail / foreign bytes / 验证失败） | SEAL_FORENSIC | HALT，禁止 retry |
 
 **`SEAL_TAIL_UNANCHORED` 完成提交的严格条件（全部成立才允许
@@ -482,19 +539,27 @@ annotator active 域文件集合 == closed-world 期望集合
 
 任何一方不一致 ⇒ G-C4D-SEAL-REPLAY FAIL（fail-closed，HALT）。
 
-### 6.2 SEALED 的机器定义 + approval 消费
+### 6.2 SEAL_COMMITTED 的机器定义 + approval 消费
 
 ```text
-first packet SEALED :=
+first packet SEAL_COMMITTED :=
     production chain 存在 REVEAL r1（绑定 session c4-prod-0002）
   ∧ 存在 exact persisted receipt artifact（§4.3 有效、无 revocation）
   ∧ 存在合法 seal_approval（§4.4）
   ∧ 存在合法 SEAL s1（C2 全链重放 PASS：闭包、无重复、exact-byte）
   ∧ persisted semantic replay（§6.1）证明 r1→s1 配对
   ∧ s1 exact 绑定 approved_receipt_sha256（approval 被消费）
+
+SEALED := SEAL_COMMITTED
+  ∧ c4d_seal_anchor.json durable（§8）
+  ∧ active annotator workspace 已清空（§6.4）
+  ∧ POST_SEAL_FINAL（§6.3）PASS
 ```
 
-### 6.3 Final invariant（SEAL 后）
+§7.1 的第二 packet 前置以 **SEALED**（完整 finalize 后）为准；
+`SEALED_PENDING_FINALIZE` 期间不得生成 ordinal-2 proposal。
+
+### 6.3 POST_SEAL_FINAL invariant（FIX2-C4：仅在 cleanup 之后校验）
 
 ```text
 PRODUCTION_EVENT_COUNT == 2 且事件序 == [REVEAL_PACKET, SEAL_ANNOTATION]
@@ -549,9 +614,83 @@ authorization_id: <opaque，proposal 时固定>
 created_at: <canonical UTC，proposal 时固定>
 ```
 
-三段式流程与 C4-C 同构，沿用其冻结 materializer 语义。旧授权
-`911d8b84…5dc81` 属 `c4c-auth-v1 / FIRST_REVEAL_ONLY`，在新 schema 下
-四重不匹配（版本/scope/序数/前缀绑定）= G-C4D-AUTHZ FAIL。
+三段式流程与 C4-C 同构，沿用其冻结 materializer 语义（权限契约 +
+closed-world + canonical bytes + frozen candidate binding + O_EXCL +
+exact-copy permit + fsync）。旧授权 `911d8b84…5dc81` 属
+`c4c-auth-v1 / FIRST_REVEAL_ONLY`，在新 schema 下四重不匹配
+（版本/scope/序数/前缀绑定）= G-C4D-AUTHZ FAIL。
+
+**Persisted protocol（FIX2-C5：路径/schema/权限契约逐项冻结）**——
+
+```text
+proposal（外部域，对 production 只读）
+  data/csr8_phase_c/c4d_proposals/c4-prod-0002/ordinal-000N/
+    next_reveal.proposal.json          canonical，0644，O_EXCL，
+                                      fsync file+parent；gitignored
+
+approval（human exact-hash 批准的机器化持久；production 域首个新写）
+  data/csr8_phase_c/production/c4-prod-0002/authorization/ordinal-000N/
+    next_reveal.approval.json          canonical，0600，O_EXCL，fsync
+                                      file+parent；目录 0700
+
+permit（approval 的 exact-copy 物化，事务唯一入口）
+  …/authorization/ordinal-000N/next_reveal.permit.json
+                                      bytes == approved proposal bytes，
+                                      0600，O_EXCL
+```
+
+approval schema（c4d-reveal-approval-v1，closed-world）：
+
+```yaml
+approval_version: c4d-reveal-approval-v1
+scope: NEXT_REVEAL_ONLY
+session_id: c4-prod-0002
+reveal_ordinal: N
+sealed_prefix_head: <与 proposal 一致>
+approved_authorization_sha256: <approved proposal exact hash>
+approved: true
+created_at: <canonical UTC>
+```
+
+约束：approval 只在 proposal bytes 与 persisted approval 精确一致时可
+创建；permit 是 approved proposal bytes 的 exact copy（无重新
+canonicalization）；三者任一 hash 不一致 = G-C4D-AUTHZ FAIL。**C4-C 的
+`first_reveal.*` authorization 文件为冻结事实，永不触碰。**
+
+### 7.2.1 REVEAL payload 扩展（链导出消费证明，FIX2-C5）
+
+ordinal-2+ 的 `REVEAL_PACKET` payload 在 C1 字段之外**必须**绑定新授权
+（closed-world；ordinal-1 保持已提交的 `b5ec0ba1…` 原样不动）：
+
+```yaml
+opaque_case_id: <candidate_for_ordinal(N)>
+T: <同上>
+packet_id: <SHA256(opaque_case_id|T)>
+packet_sha256: <exact packet bytes hash>
+session_id: c4-prod-0002
+reveal_ordinal: N                       # 新增
+authorization_id: <proposal 时固定>     # 新增
+authorization_sha256: <proposal hash>   # 新增
+sealed_prefix_head: <与 proposal 一致>  # 新增
+c3_manifest_commitment: 883c9869…d0b    # 新增
+candidate_packet_sha256: <与 proposal 一致>  # 新增
+# bytes_ref 由 C2 append 自动附加
+```
+
+链导出消费定义（与 C4-C derive_consumption 同型）：
+
+```text
+authorization(N) CONSUMED ⇔ production chain 存在 REVEAL r_N 满足
+    r_N.payload.authorization_id        == proposal.authorization_id
+  ∧ r_N.payload.authorization_sha256    == approved_authorization_sha256
+  ∧ r_N.payload.sealed_prefix_head      == proposal.sealed_prefix_head
+  ∧ r_N.payload.c3_manifest_commitment  == proposal.c3_manifest_commitment
+  ∧ r_N.payload.candidate_packet_sha256 == proposal.candidate_packet_sha256
+  ∧ r_N.payload.reveal_ordinal          == N
+```
+
+无链上匹配 = UNUSED；permit 存在但链字段不一致 = UNRESOLVABLE →
+FORENSIC；匹配到别的 ordinal/session = FOREIGN → FORENSIC。
 
 ### 7.3 candidate_for_ordinal(n)（F7：确定性全序，冻结）
 
@@ -627,7 +766,7 @@ fsync(parent) → reread）。
 
 ---
 
-## 9. Synthetic / negative design gates（v0.2 冻结清单）
+## 9. Synthetic / negative design gates（v0.3 冻结清单）
 
 沿 C4-C 纪律：target-aware fixture——preparation 必须成功，只有命中
 **指定 gate** 的失败才算 PASS；materialization 类 fixture 显式断言目标
@@ -668,12 +807,18 @@ fsync(parent) → reread）。
 | D31 | candidate 重复/乱序 | 全序含重复 (ocid,T)；revealed ≠ 前缀 | G-C4D-CAND-2/3 |
 | D32 | malformed persisted chain | production log 篡改后 SEAL/恢复 | G-C4C-PROD-REPLAY delegated |
 | D33 | semantic three-way break | receipt/归档 bytes/event hash 任一方单独篡改（其余自洽） | G-C4D-SEAL-REPLAY |
-| D34 | crash: 孤儿 bytes | bytes 写入后无事件行 → retry 成功且恰 2 events | recovery assertion |
+| D34 | crash: matched orphan | bytes 写入后无事件行且三方 hash 匹配 → MATCHED_ORPHAN → retry 成功且恰 2 events | recovery assertion |
 | D35 | crash: partial JSONL tail | 半行写入 → 截断回 trusted-head boundary → 状态保持 → retry | recovery assertion |
-| D36 | crash: unanchored tail | 完整 SEAL 行 + head 未重写 → 严格条件完成提交 → SEALED；并证伪"head 是 cache"表述（任何条件不满足即 FORENSIC） | recovery assertion |
+| D36 | crash: unanchored tail | 完整 SEAL 行 + head 未重写 → 严格条件完成提交 → SEAL_COMMITTED；并证伪"head 是 cache"表述（任何条件不满足即 FORENSIC） | recovery assertion |
 | D37 | attempt-2 正向流 | attempt-1 作废 → attempt-2 全流程 PASS；attempt-1 artifact 保留且 INELIGIBLE | positive proof |
 | D38 | SEALED 后清理 | cleanup 后 active 域恰空；semantic replay 仍 PASS（不依赖 workspace） | cleanup assertion |
 | D39 | C4-C anchor 不可变 | SEAL 流程任何一步后 c4c_anchor.json 字节不变 | G-C4D-BOUNDARY |
+| D40 | foreign orphan | 孤儿 bytes hash ≠ receipt/approval 三方 → FORENSIC，bytes 原样未动，禁止 retry/覆盖 | recovery assertion（FIX2-C2） |
+| D41 | attempt 发布 crash | staging 半途（receipt 有 snapshot 无）→ 不产生 half-READY 态；staging 清理后重做 make_receipt PASS | recovery assertion（FIX2-C3） |
+| D42 | SEAL committed / anchor missing | 链上 SEAL 完整、c4d anchor 缺失 → SEALED_PENDING_FINALIZE → 仅 finalize（anchor+cleanup+复验），第二次 append SEAL 被拒 | recovery assertion（FIX2-C4） |
+| D43 | anchor durable / workspace 未清 | cleanup 前 crash → finalize-only 恢复补 cleanup；期间 ordinal-2 proposal 被拒（前置=SEALED 非 COMMITTED） | recovery assertion（FIX2-C4） |
+| D44 | ordinal-N 路径/schema 违例 | proposal/approval/permit 路径错、schema 多/缺字段、permit 非 exact-copy、权限位错 | G-C4D-AUTHZ（FIX2-C5） |
+| D45 | ordinal-2 绑定断裂 | REVEAL payload 的 authorization/sealed_prefix/candidate 字段任一与 permit 不一致（其余自洽） | G-C4D-AUTHZ + G-C4D-SEAL-REPLAY delegated（FIX2-C5） |
 
 另保留 C4-C 全部既有 fixtures 作为回归（live-chain 断言在 C4-D 实现期
 升级为：恰 1 REVEAL（SEAL 后 2）+ 双 anchor 一致 + 各域 fingerprint
@@ -694,8 +839,9 @@ C4-D DESIGN FINAL FROZEN（用户）
   → 真实 annotation draft（标注 session）
   → 真实 receipt（机器冻结点，含 draft_snapshot）
   → 人工确认 seal 该 exact receipt_sha256（→ seal_approval 落盘）
-  → SEAL transaction（一次）→ semantic replay → c4d_seal_anchor
-  → active workspace cleanup → HARD STOP
+  → SEAL transaction（一次）→ semantic replay → SEAL_COMMITTED
+  → c4d_seal_anchor durable → workspace cleanup
+  → POST_SEAL_FINAL → SEALED → HARD STOP
 ```
 
 设计冻结前禁止：创建 annotator/c4d_receipts 域、handoff、draft/
