@@ -1218,6 +1218,100 @@ def fixtures():
             expect_exact_gate(lambda: attempt(sb, sid), 'G-C4C-BOUNDARY')
         add(name, 'G-C4C-BOUNDARY', boundary)
 
+    # 20-20c EXEC-RECOVERY-ERRATUM: executor-level crash windows
+    # (synthetic sandboxes; recovery semantics only, never a second REVEAL)
+
+    # 20: approval durable -> crash BEFORE permit -> controlled resume
+    #     materializes the permit from the PERSISTED approval; the
+    #     authorization identity (approval bytes) must be untouched.
+    def f20(td):
+        sb, sid, entry = build_sandbox_pre_permit(td)
+        approved = sha((sb / 'c4c_proposals' / sid /
+                        'first_reveal.proposal.json').read_bytes())
+        apath = (sb / 'production' / sid / 'authorization' /
+                 'first_reveal.approval.json')
+        approval_before = apath.read_bytes()
+        resume = recover_or_create_authorization(sb, sid, approved)
+        if apath.read_bytes() != approval_before:
+            raise RuntimeError('20: persisted approval was mutated by '
+                               'recovery — identity must be preserved')
+        permit = (sb / 'production' / sid / 'authorization' /
+                  'first_reveal.json')
+        if not permit.exists() or sha(permit.read_bytes()) != approved:
+            raise RuntimeError('20: permit not materialized as exact copy')
+        print(f'20 RECOVERY PROOF: {resume}; approval bytes unchanged')
+    add('20-resume-approval-durable', 'EXEC-RECOVERY', f20)
+
+    # 20b: approval + permit durable + staging leftover -> crash before
+    #     rename -> recovery reuses the persisted authorization as-is and
+    #     cleans the disposable staging; no authority byte is touched.
+    def f20b(td):
+        sb, sid, entry = build_sandbox(td)
+        approved = sha((sb / 'c4c_proposals' / sid /
+                        'first_reveal.proposal.json').read_bytes())
+        adir = sb / 'production' / sid / 'authorization'
+        approval_before = (adir / 'first_reveal.approval.json').read_bytes()
+        permit_before = (adir / 'first_reveal.json').read_bytes()
+        staging = sb / 'production' / sid / 'sealing.staging'
+        staging.mkdir()
+        (staging / 'junk').write_text('crash leftover')
+        resume = recover_or_create_authorization(sb, sid, approved)
+        if staging.exists():
+            raise RuntimeError('20b: staging leftover not cleaned')
+        if (adir / 'first_reveal.approval.json').read_bytes() != \
+                approval_before or \
+                (adir / 'first_reveal.json').read_bytes() != permit_before:
+            raise RuntimeError('20b: persisted authorization mutated by '
+                               'recovery')
+        print(f'20b RECOVERY PROOF: {resume}; staging cleaned; '
+              f'authorization bytes unchanged')
+    add('20b-resume-staging-leftover', 'EXEC-RECOVERY', f20b)
+
+    # 20c: REVEAL durable + external anchor MISSING/STALE -> CONSUMED path
+    #     reconciles the anchor FROM the chain; production events stay at
+    #     exactly one (no append ever).
+    def f20c(td):
+        sb, sid, entry = build_sandbox(td)
+        summary = run_transaction(sb, sid)
+        approved = sha((sb / 'c4c_proposals' / sid /
+                        'first_reveal.proposal.json').read_bytes())
+        synthetic_anchor = Path(td) / 'synthetic-anchor.json'
+        try:
+            # window 1: anchor publication never happened
+            status = reconcile_anchor(sb, sid, approved, synthetic_anchor)
+            if status != 'reconciled':
+                raise RuntimeError('20c: missing anchor not reconciled')
+            if read_json(synthetic_anchor) != {
+                    'production_head_hash': summary['head_hash'],
+                    'authorization_sha256': approved}:
+                raise RuntimeError('20c: reconciled anchor != chain truth')
+            # window 2: anchor is STALE (tampered) -> overwritten from chain
+            synthetic_anchor.write_text(canon({
+                'production_head_hash': '0' * 64,
+                'authorization_sha256': '0' * 64}))
+            status = reconcile_anchor(sb, sid, approved, synthetic_anchor)
+            if status != 'reconciled' or read_json(synthetic_anchor) != {
+                    'production_head_hash': summary['head_hash'],
+                    'authorization_sha256': approved}:
+                raise RuntimeError('20c: stale anchor not repaired from '
+                                   'chain')
+            # window 3: consistent anchor -> no rewrite
+            status = reconcile_anchor(sb, sid, approved, synthetic_anchor)
+            if status != 'consistent':
+                raise RuntimeError('20c: consistent anchor reported '
+                                   f'{status}')
+            log = [json.loads(l) for l in
+                   (sb / 'production' / sid / 'sealing' /
+                    'sealing_log.jsonl').read_text().splitlines() if l.strip()]
+            if [e['event_type'] for e in log] != ['REVEAL_PACKET']:
+                raise RuntimeError('20c: reconciliation appended events')
+            print('20c RECOVERY PROOF: anchor reconciled/repaired/verified '
+                  'from chain; production events still exactly 1')
+        finally:
+            if synthetic_anchor.exists():
+                synthetic_anchor.unlink()
+    add('20c-anchor-reconciliation', 'EXEC-RECOVERY', f20c)
+
     return fx
 
 
@@ -1341,7 +1435,20 @@ def cmd_real_proposal():
     calls the production C2 append. HARD STOP follows — the next state
     change requires the single human FIRST_REVEAL_ONLY authorization of
     the exact hash.
+
+    Post-execution: the authorization is CONSUMED; the command degrades
+    to verify-only reporting (persisted proposal hash + chain status).
     """
+    sb = ROOT / 'data/csr8_phase_c'
+    state = derive_consumption(sb, REAL_SESSION)
+    if state != 'UNUSED':
+        # consumed / foreign / unresolvable — never mutate anything
+        ppath_v = REAL_PROPOSALS / REAL_SESSION / 'first_reveal.proposal.json'
+        print(f'C4-C REAL PROPOSAL: authorization state = {state} '
+              f'(chain-derived) — verify-only')
+        print(f'  persisted proposal hash = {sha(ppath_v.read_bytes())}')
+        print('  HARD STOP')
+        return sha(ppath_v.read_bytes())
     assert_real_session_pristine()
     prod = REAL_PRODUCTION / REAL_SESSION
     if not prod.exists():
@@ -1411,30 +1518,15 @@ def cmd_real_proposal():
 
 # ---------------- REAL execution (§9 steps 5-13, single authorization) ----
 
-def cmd_execute(approved_hash):
-    """Consume the single human FIRST_REVEAL_ONLY authorization.
+def anchor_path():
+    return (ROOT / ('output/research/csr/08_pilot_cases/phase_c/'
+                    'c4_public') / 'c4c_anchor.json')
 
-    The operator-supplied approved hash must equal SHA256(persisted
-    proposal bytes) exactly; then: O_EXCL approval authority -> exact-copy
-    permit -> the frozen 22-step transaction -> semantic replay -> external
-    anchor. Any failure FAIL-CLOSED; after a durable REVEAL no retry is
-    possible (chain-derived consumption).
-    """
-    sb = ROOT / 'data/csr8_phase_c'
-    # post-reveal retry diagnosis BEFORE the pristine assertion (the
-    # frozen recovery matrix decides from the chain, not from "sealing
-    # exists")
-    state = derive_consumption(sb, REAL_SESSION)
-    if state == 'CONSUMED':
-        fail('G-C4C-AUTHZ: authorization already consumed (chain-derived: '
-             'production replay + semantic replay prove a valid REVEAL '
-             'bound to this authorization) — retry forbidden')
-    if state == 'UNRESOLVABLE':
-        fail('G-C4C-AUTHZ: UNRESOLVABLE production state — HALT/forensic, '
-             'retry forbidden')
-    if state == 'FOREIGN':
-        fail('G-C4C-PUBLISH: production sealing target already exists '
-             '(foreign content)')
+
+def verify_approved_proposal(approved_hash):
+    """The operator-approved hash must equal SHA256(persisted proposal
+    bytes) exactly — the only bridge between the human authorization and
+    on-disk state."""
     ppath = REAL_PROPOSALS / REAL_SESSION / 'first_reveal.proposal.json'
     if not ppath.exists():
         fail('G-C4C-AUTHZ: persisted proposal missing — nothing to execute')
@@ -1443,14 +1535,106 @@ def cmd_execute(approved_hash):
         fail('G-C4C-AUTHZ: approved hash != SHA256(persisted proposal '
              'bytes) — this authorization does not match the persisted '
              'proposal; FAIL-CLOSED')
-    assert_real_session_pristine()
+    return ppath
+
+
+def recover_or_create_authorization(sb, sid, approved_hash):
+    """EXEC-RECOVERY-ERRATUM item 1 — UNUSED-path executor recovery per the
+    frozen recovery matrix. Crash windows covered:
+
+      approval durable -> crash                       : resume, materialize
+      approval + permit durable -> crash before append: resume as-is
+      staging leftover -> crash before rename         : clean + resume
+
+    Persisted authorization objects are REUSED and re-proven, NEVER
+    re-created (no second authorization identity is possible); only
+    genuinely-absent objects are created. Returns a resume description."""
+    prod = sb / 'production' / sid
+    staging = prod / 'sealing.staging'
+    if staging.exists():
+        shutil.rmtree(staging)
+        fsync_dir(prod)
+        print('EXEC RECOVERY: staging leftover cleaned (disposable by '
+              'frozen design)')
+    adir = prod / 'authorization'
+    if not adir.exists():
+        approve(sb, sid, approved_hash)
+        materialize_permit(sb, sid)
+        return 'created (no persisted authorization existed)'
+    apath = adir / 'first_reveal.approval.json'
+    if not apath.exists():
+        fail('G-C4C-AUTHZ: authorization dir exists without approval '
+             'authority — HALT/forensic, retry forbidden')
+    approval = read_json(apath)
+    verify_approval(approval, sid)
+    if approval['approved_authorization_sha256'] != approved_hash:
+        fail('G-C4C-AUTHZ: persisted approval authorizes a DIFFERENT hash '
+             'than the operator-approved one — a second authorization '
+             'identity cannot be created; FAIL-CLOSED')
+    permit = adir / 'first_reveal.json'
+    if not permit.exists():
+        materialize_permit(sb, sid)  # from the persisted approval
+        return 'resumed: permit materialized from persisted approval '\
+               '(identity preserved)'
+    verify_authorization_chain(sb, sid)
+    return 'resumed: persisted authorization reused as-is'
+
+
+def reconcile_anchor(sb, sid, approved_hash, apath=None):
+    """EXEC-RECOVERY-ERRATUM item 2 — CONSUMED-path anchor reconciliation.
+    The chain is re-proven (semantic replay + final invariant) and the
+    external anchor is derived FROM the chain; a missing or stale anchor is
+    republished. NEVER appends another REVEAL. Returns a status string.
+    ``apath`` is injectable only for isolated synthetic tests."""
+    head = semantic_replay(sb, sid)
+    final_invariant(sb, sid)
+    expected = {'production_head_hash': head,
+                'authorization_sha256': approved_hash}
+    apath = apath or anchor_path()
+    if apath.exists():
+        current = read_json(apath)
+        if current == expected:
+            return 'consistent'
+    apath.parent.mkdir(parents=True, exist_ok=True)
+    apath.write_text(canon(expected))
+    print('EXEC RECOVERY: external anchor reconciled from the chain '
+          '(no REVEAL re-executed)')
+    return 'reconciled'
+
+
+def cmd_execute(approved_hash):
+    """Consume the single human FIRST_REVEAL_ONLY authorization.
+
+    The operator-supplied approved hash must equal SHA256(persisted
+    proposal bytes) exactly; then: O_EXCL approval authority -> exact-copy
+    permit -> the frozen 22-step transaction -> semantic replay -> external
+    anchor. Any failure FAIL-CLOSED; after a durable REVEAL no retry is
+    possible (chain-derived consumption) — only anchor reconciliation.
+    """
+    sb = ROOT / 'data/csr8_phase_c'
+    verify_approved_proposal(approved_hash)
+    # the frozen recovery matrix decides from the chain, not from
+    # "sealing exists"
+    state = derive_consumption(sb, REAL_SESSION)
+    if state == 'CONSUMED':
+        status = reconcile_anchor(sb, REAL_SESSION, approved_hash)
+        head = semantic_replay(sb, REAL_SESSION)
+        print('C4-C EXECUTE: authorization already consumed — REVEAL '
+              'retry forbidden (chain-derived)')
+        print(f'  external anchor: {status}')
+        print(f'  production_head_hash = {head}')
+        print('  HARD STOP')
+        return {'state': 'FIRST_REVEAL_OPEN', 'consumed': True,
+                'anchor': status, 'head_hash': head}
+    if state == 'UNRESOLVABLE':
+        fail('G-C4C-AUTHZ: UNRESOLVABLE production state — HALT/forensic, '
+             'retry forbidden')
+    if state == 'FOREIGN':
+        fail('G-C4C-PUBLISH: production sealing target already exists '
+             '(foreign content)')
     print(f'AUTHORIZED HASH VERIFIED: {approved_hash}')
-    # §9 step 6: O_EXCL approval authority (first write into the real
-    # production session) — machine representation of the human approval
-    approve(sb, REAL_SESSION, approved_hash)
-    # §9 step 7-8: exact-copy permit + triple hash equality (materializer
-    # re-proves everything from persisted state)
-    materialize_permit(sb, REAL_SESSION)
+    resume = recover_or_create_authorization(sb, REAL_SESSION, approved_hash)
+    print(f'AUTHORIZATION PATH: {resume}')
     # §9 step 9-10: the frozen transaction + semantic replay
     summary = run_transaction(sb, REAL_SESSION)
     # §9 step 12: publish external anchor (commitments only)
@@ -1458,9 +1642,9 @@ def cmd_execute(approved_hash):
         'production_head_hash': summary['head_hash'],
         'authorization_sha256': approved_hash,
     }
-    pub = ROOT / ('output/research/csr/08_pilot_cases/phase_c/c4_public')
-    pub.mkdir(parents=True, exist_ok=True)
-    (pub / 'c4c_anchor.json').write_text(canon(anchor))
+    apath = anchor_path()
+    apath.parent.mkdir(parents=True, exist_ok=True)
+    apath.write_text(canon(anchor))
     # §9 step 13: HARD STOP
     print('C4-C FIRST REVEAL EXECUTED — experiment STARTED')
     print(f'  production_head_hash   = {summary["head_hash"]}')
@@ -1473,8 +1657,37 @@ def cmd_execute(approved_hash):
     return summary
 
 
+def assert_real_experiment_started():
+    """Post-execution live-chain regression proof: the experiment is
+    STARTED with EXACTLY one durable REVEAL bound to the authorized hash,
+    no staging leftover, a chain-consistent external anchor, and no second
+    reveal. Read-only."""
+    sb = ROOT / 'data/csr8_phase_c'
+    sid = REAL_SESSION
+    state = derive_consumption(sb, sid)
+    if state != 'CONSUMED':
+        fail(f'real experiment state regressed: derive_consumption={state}')
+    head = semantic_replay(sb, sid)
+    final_invariant(sb, sid)
+    ppath = REAL_PROPOSALS / sid / 'first_reveal.proposal.json'
+    expected = {'production_head_hash': head,
+                'authorization_sha256': sha(ppath.read_bytes())}
+    if read_json(anchor_path()) != expected:
+        fail('external anchor inconsistent with the chain — forensic')
+    for sid_dir in (REAL_PRODUCTION / 'c4-prod-0001', REAL_PRODUCTION / sid):
+        if (sid_dir / 'sealing.staging').exists():
+            fail(f'staging leftover in real {sid_dir.name} — forensic')
+    log = [json.loads(l) for l in
+           (sb / 'production' / sid / 'sealing' /
+            'sealing_log.jsonl').read_text().splitlines() if l.strip()]
+    if [e['event_type'] for e in log] != ['REVEAL_PACKET']:
+        fail(f'real production must hold exactly one REVEAL_PACKET, '
+             f'found {[e["event_type"] for e in log]}')
+    return 1
+
+
 def cmd_synthetic():
-    assert_real_production_pristine()               # F5 pre-run assertion
+    assert_real_experiment_started()               # live-chain pre-run
     before = tree_fingerprint(REAL_PRODUCTION)
     before_proposals = tree_fingerprint(REAL_PROPOSALS)
     with tempfile.TemporaryDirectory(prefix='c4c-synthetic-') as td:
@@ -1489,11 +1702,11 @@ def cmd_synthetic():
         fail('REAL PRODUCTION DOMAIN WAS MUTATED — fail-closed')
     if tree_fingerprint(REAL_PROPOSALS) != before_proposals:
         fail('REAL PROPOSAL DOMAIN WAS MUTATED — fail-closed')
-    runtime_events = assert_real_production_pristine()  # F5 post-run
+    runtime_events = assert_real_experiment_started()  # post-run
     report = {
-        'construction_mode': 'synthetic/staging only; real session untouched',
-        'audit_fix': 'C4-C-SYNTH-AUDIT-FIX4 (F1-F8)',
-        'real_proposal_domain_absent': True,
+        'construction_mode': 'synthetic/staging only; real chain untouched',
+        'audit_fix': 'C4-C-SYNTH-AUDIT-FIX4 + EXEC-RECOVERY-ERRATUM',
+        'real_experiment_started': True,
         'transaction_gates': ['G-C4C-AUTHZ', 'G-C4-NEXT', 'G-C4C-BYTES',
                               'G-C4C-STAGED-REPLAY', 'G-C4C-PUBLISH',
                               'G-C4C-PROD-REPLAY', 'G-C4C-BOUNDARY'],
@@ -1504,14 +1717,14 @@ def cmd_synthetic():
         'real_production_untouched': True,
         'real_production_fingerprint': 'per-file SHA256 content fingerprint',
         'production_event_count': runtime_events,
-        'experiment_started': False,
+        'experiment_started': True,
     }
     SYNTH_DIR.mkdir(parents=True, exist_ok=True)
     (SYNTH_DIR / 'c4c_synthetic_report.json').write_text(canon(report))
-    print(f'C4-C SYNTHETIC PASS (AUDIT-FIX4): {len(fixture_results)} '
+    print(f'C4-C SYNTHETIC PASS (FIX4+EXEC-ERRATUM): {len(fixture_results)} '
           f'target-isolated fixtures + {len(crash_results)} recovery '
-          f'scenarios; real production + proposal domain content-fingerprint '
-          f'unchanged, runtime-asserted {runtime_events} production events')
+          f'scenarios; real chain re-proven CONSUMED/1-REVEAL before+after, '
+          f'content fingerprints unchanged')
 
 
 def main():
