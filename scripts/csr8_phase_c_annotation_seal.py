@@ -48,6 +48,37 @@ S1–S11 all accepted as blocking):
       duplicate injection + CAND-3 prefix-jump injection)
   S11 synthetic/candidates output is blindness-safe: gates/booleans/
       safe counts only — no ocid/T/packet_id leaves the selector side
+
+C4-D-SYNTH-AUDIT-FIX2 (after the user's implementation-level re-audit of
+dc6e5eb; R1–R5 all accepted as blocking; design text UNCHANGED — these
+are implementation-vs-frozen-text realignments, not hardening):
+  R1  derive_state READY_TO_SEAL / SEAL_AUTHORIZED are CONTENT-derived
+      (valid receipt / valid approval), never file-existence;
+      seal_transaction re-runs the full receipt+approval replay as the
+      LAST step before the irreversible append; replay_attempt fully
+      re-proves seal_approval (version/scope/session/attempt/reveal/
+      canonical bytes/approved/exact receipt hash/0600) (D57)
+  R2  a revocation counts only as a fully re-proven tombstone (closed-
+      world schema, canonical bytes, version/session/reveal/attempt/
+      receipt-hash bindings, reason_code closed set, 0600) — an invalid
+      or forged tombstone is FORENSIC, never a silent reclassification;
+      revoke_receipt re-proves the attempt artifacts AND the F19 draft
+      invariant (locked 0400, bytes == snapshot) BEFORE writing the
+      tombstone — a drifted locked draft can no longer be laundered
+      back to ANNOTATION_OPEN (D58)
+  R3  materialize_next_permit fully re-proves the persisted approval
+      (schema/canonical/version/scope/session/ordinal/prefix/exact
+      proposal-hash binding) and the authorization domain modes
+      (layer 0700, files 0600) BEFORE the O_EXCL permit write (D59)
+  R4  published c4d_receipts artifacts are mode-re-proven at replay:
+      every domain layer 0700, receipt.json / draft_snapshot.bin /
+      seal_approval.json 0600 — drift fails closed at every consumer
+      (approval, seal, replay, derive) (D60)
+  R5  SEAL_TAIL_UNANCHORED completion order matches frozen §5.3: the
+      C4-D semantic replay must PASS on the candidate view BEFORE
+      sync_head makes it durable (crash boundary stop_after=
+      'after_semantic_proof'); a semantic-invalid tail never touches
+      the trusted head (D61)
 """
 
 import contextlib
@@ -351,6 +382,22 @@ def chain_events(sb, sid):
     return c2.read_events(log_path(sb, sid))
 
 
+def events_complete_lines(sb, sid):
+    """FIX2-R2: r1 lookup tolerant of an UNCOMMITTED tail — parse
+    COMPLETE lines only. A partial last line / malformed suffix is not a
+    committed event; tombstone bindings refer to the committed prefix,
+    so recovery-time re-proof (active_attempt under a SEAL_TAIL_PARTIAL
+    log) must read the same view recover() classifies from."""
+    lines, _partial, _raw = _split_log_raw(sb, sid)
+    evs = []
+    for lb in lines:
+        try:
+            evs.append(json.loads(lb))
+        except json.JSONDecodeError:
+            break
+    return evs
+
+
 # --------------------------------------------------------------------------
 # §2 visibility domain (closed-world, machine-asserted)
 # --------------------------------------------------------------------------
@@ -579,12 +626,22 @@ def next_attempt(sb, sid, ordinal):
 
 def active_attempt(sb, sid, ordinal):
     """F5: max attempt number without a revocation (earlier attempts stay
-    published and are permanently INELIGIBLE_FOR_SEAL)."""
-    ns = attempts_published(sb, sid, ordinal)
-    live = [n for n in ns
-            if not (attempt_dir(sb, sid, ordinal, n) / 'revocation.json'
-                    ).exists()]
-    return live[-1] if live else None
+    published and are permanently INELIGIBLE_FOR_SEAL).
+
+    FIX2-R2: "without a revocation" means without a FULLY RE-PROVEN
+    tombstone. A revocation.json that fails re-proof (forged, damaged,
+    binding-broken, mode-drifted) is contract drift and fails closed —
+    it may never silently reclassify a live attempt as revoked."""
+    r1 = _last_reveal(events_complete_lines(sb, sid))
+    live = None
+    for n in attempts_published(sb, sid, ordinal):
+        if _check_revocation(sb, sid, ordinal, n, r1, G_REC) is None:
+            if live is not None:
+                fail(f'{G_REC}: two unrevoked attempts published '
+                     f'({live}, {n}) — progression invariant broken, '
+                     f'FORENSIC')
+            live = n
+    return live
 
 
 def build_receipt_object(sb, sid, draft, r1, attempt, draft_sha):
@@ -654,11 +711,11 @@ def make_receipt(sb, sid, ordinal=None, stop_after=None):
             packet_obj.get('packet_id') != r1['payload']['packet_id']:
         fail(f'{G_REC}: active packet internal packet_id mismatch')
     # 0b. attempt progression: every published attempt must be terminal
-    # (revoked) before a new attempt may be published
+    # (VALID revoked tombstone — FIX2-R2 re-proof, existence alone is
+    # not evidence) before a new attempt may be published
     published = attempts_published(sb, sid, ordinal)
     for n in published:
-        if not (attempt_dir(sb, sid, ordinal, n) / 'revocation.json'
-                ).exists():
+        if _check_revocation(sb, sid, ordinal, n, r1, G_REC) is None:
             fail(f'{G_REC}: attempt {n} is not revoked — publishing the '
                  f'next attempt is forbidden (revoke or seal first)')
     # 1. read exact active draft bytes D, closed-world validate
@@ -729,6 +786,18 @@ def _check_attempt_artifacts(sb, sid, ordinal, attempt, r1, gate):
     rpath = adir / 'receipt.json'
     if not rpath.exists() or not (adir / 'draft_snapshot.bin').exists():
         fail(f'{gate}: attempt {attempt} incomplete (receipt/snapshot)')
+    # FIX2-R4: published selector-only artifacts are mode-re-proven at
+    # every replay — §4.6 contract (dirs 0700, files 0600) holds for the
+    # WHOLE published domain, not only at write time.
+    for d in (sb / 'c4d_receipts', receipts_dom(sb, sid),
+              ordinal_dir(sb, sid, ordinal), adir):
+        if mode_of(d) != 0o700:
+            fail(f'{gate}: receipts domain mode drift — must be 0700 '
+                 f'selector-only ({d})')
+    for f in (rpath, adir / 'draft_snapshot.bin'):
+        if mode_of(f) != 0o600:
+            fail(f'{gate}: attempt artifact mode drift — must be 0600 '
+                 f'({f.name})')
     rbytes = rpath.read_bytes()
     try:
         obj = json.loads(rbytes)
@@ -788,9 +857,89 @@ def _check_attempt_artifacts(sb, sid, ordinal, attempt, r1, gate):
              f'cannot smuggle a new annotation)')
     if snap.get('annotation_attempt') != attempt:
         fail(f'{gate}: snapshot attempt binding broken')
-    if (adir / 'revocation.json').exists():
+    if _check_revocation(sb, sid, ordinal, attempt, r1, gate) is not None:
         fail(f'{gate}: attempt {attempt} is revoked (INELIGIBLE_FOR_SEAL)')
     return rbytes, obj
+
+
+def _check_seal_approval(sb, sid, ordinal, attempt, rbytes, r1, gate):
+    """FIX2-R1: FULL persisted seal-approval re-proof — closed-world
+    schema, canonical bytes, version/scope/session/reveal/attempt
+    bindings, approved, exact receipt-hash binding, 0600 mode. Shared by
+    replay_attempt, derive_state and the seal preflight; generating
+    functions are never trusted."""
+    apath = attempt_dir(sb, sid, ordinal, attempt) / 'seal_approval.json'
+    if not apath.exists():
+        fail(f'{gate}: seal approval absent ({apath.name})')
+    ab = apath.read_bytes()
+    try:
+        approval = json.loads(ab)
+    except json.JSONDecodeError:
+        fail(f'{gate}: seal approval is not JSON')
+    if not isinstance(approval, dict) or set(approval.keys()) != \
+            APPROVAL_KEYS:
+        fail(f'{gate}: seal approval closed-world schema violation')
+    if canon(approval).encode() != ab:
+        fail(f'{gate}: seal approval bytes noncanonical (exact-bytes '
+             f'contract)')
+    if approval['approval_version'] != APPROVAL_VERSION:
+        fail(f'{gate}: seal approval_version drift')
+    if approval['scope'] != 'SEAL_ANNOTATION_ONLY':
+        fail(f'{gate}: seal approval scope must be SEAL_ANNOTATION_ONLY')
+    if approval['session_id'] != sid:
+        fail(f'{gate}: seal approval session binding violated')
+    if approval['reveal_event_hash'] != r1['event_hash']:
+        fail(f'{gate}: seal approval reveal binding violated')
+    if approval['annotation_attempt'] != attempt:
+        fail(f'{gate}: seal approval attempt binding violated')
+    if approval['approved'] is not True:
+        fail(f'{gate}: seal approval not approved')
+    if approval['approved_receipt_sha256'] != sha(rbytes):
+        fail(f'{gate}: approval does not bind the exact receipt hash')
+    if mode_of(apath) != 0o600:
+        fail(f'{gate}: seal approval mode drift — must be 0600')
+    return approval
+
+
+def _check_revocation(sb, sid, ordinal, attempt, r1, gate):
+    """FIX2-R2: full tombstone re-proof. -> tombstone object if a VALID
+    revocation exists, None if absent. Any invalid persisted tombstone
+    (schema/canonical/version/bindings/reason_code/mode) fails closed as
+    contract drift — FORENSIC, never a silent reclassification."""
+    tpath = attempt_dir(sb, sid, ordinal, attempt) / 'revocation.json'
+    if not tpath.exists():
+        return None
+    tb = tpath.read_bytes()
+    try:
+        tomb = json.loads(tb)
+    except json.JSONDecodeError:
+        fail(f'{gate}: revocation is not JSON — FORENSIC (damaged '
+             f'tombstone)')
+    if not isinstance(tomb, dict) or set(tomb.keys()) != REVOCATION_KEYS:
+        fail(f'{gate}: revocation closed-world schema violation — '
+             f'FORENSIC (forged tombstone)')
+    if canon(tomb).encode() != tb:
+        fail(f'{gate}: revocation bytes noncanonical — FORENSIC '
+             f'(tampered tombstone)')
+    if tomb['revocation_version'] != REVOCATION_VERSION:
+        fail(f'{gate}: revocation_version drift — FORENSIC')
+    if tomb['session_id'] != sid:
+        fail(f'{gate}: revocation session binding violated — FORENSIC')
+    if tomb['reveal_event_hash'] != r1['event_hash']:
+        fail(f'{gate}: revocation reveal binding violated — FORENSIC')
+    if tomb['annotation_attempt'] != attempt:
+        fail(f'{gate}: revocation attempt binding violated — FORENSIC')
+    rb = (attempt_dir(sb, sid, ordinal, attempt) /
+          'receipt.json').read_bytes()
+    if tomb['receipt_sha256'] != sha(rb):
+        fail(f'{gate}: revocation does not bind the exact receipt hash '
+             f'— FORENSIC')
+    if tomb['reason_code'] not in REASON_CODES:
+        fail(f'{gate}: revocation reason_code outside frozen closed set '
+             f'— FORENSIC')
+    if mode_of(tpath) != 0o600:
+        fail(f'{gate}: revocation mode drift — must be 0600 — FORENSIC')
+    return tomb
 
 
 def make_seal_approval(sb, sid, ordinal=None, attempt=None,
@@ -850,24 +999,47 @@ def revoke_receipt(sb, sid, reason_code, ordinal=None, attempt=None):
              f'(approve-A-seal-B complexity)')
     r1 = [e for e in chain_events(sb, sid)
           if e['event_type'] == c2.REVEAL][-1]
+    # FIX2-R2: re-prove WHAT is being revoked and the F19 draft invariant
+    # BEFORE any write. A drifted locked draft (content or mode) is
+    # FORENSIC and may never be laundered back to ANNOTATION_OPEN by a
+    # tombstone + unlock; a corrupted attempt may not be "revoked away".
+    rbytes, _ = _check_attempt_artifacts(sb, sid, ordinal, attempt, r1,
+                                         G_REC)
+    dp = draft_path(sb, sid)
+    if not dp.exists():
+        fail(f'{G_REC}: published attempt without an active draft — '
+             f'FORENSIC, revoke refused (F19 invariant broken)')
+    if mode_of(dp) != 0o400:
+        fail(f'{G_REC}: published attempt with unlocked draft '
+             f'(mode {oct(mode_of(dp))}) — FORENSIC, revoke refused '
+             f'(F19 invariant drift)')
+    if dp.read_bytes() != (adir / 'draft_snapshot.bin').read_bytes():
+        fail(f'{G_REC}: active draft drifted from the frozen snapshot — '
+             f'FORENSIC, revoke refused (no launder back to OPEN)')
     tomb = {
         'revocation_version': REVOCATION_VERSION,
         'session_id': sid,
         'reveal_event_hash': r1['event_hash'],
         'annotation_attempt': attempt,
-        'receipt_sha256': sha((adir / 'receipt.json').read_bytes()),
+        'receipt_sha256': sha(rbytes),
         'reason_code': reason_code,
         'created_at': '2099-01-02T00:00:00Z',
     }
-    excl_write(adir / 'revocation.json', canon(tomb).encode())
+    tpath = adir / 'revocation.json'
+    excl_write(tpath, canon(tomb).encode())
     fsync_dir(adir)
+    # FIX2-R2: read-back re-proof of the just-written tombstone (the
+    # write boundary itself is verified, not assumed)
+    if tpath.read_bytes() != canon(tomb).encode() or \
+            mode_of(tpath) != 0o600:
+        fail(f'{G_REC}: tombstone read-back verification failed — '
+             f'FORENSIC')
     # FIX1-S5: revocation durably UNLOCKS the active draft for the next
     # attempt (tombstone first, then chmod 0600 + fsync draft+parent);
     # otherwise derive_state would claim ANNOTATION_OPEN while the draft
     # stays 0400 — a contradiction the flow must never depend on root to
-    # paper over.
-    dp = draft_path(sb, sid)
-    if dp.exists() and mode_of(dp) == 0o400:
+    # paper over. (dp already re-proven locked+exact above — FIX2-R2)
+    if mode_of(dp) == 0o400:
         os.chmod(dp, 0o600)
         fsync_file(dp)
         fsync_dir(dp.parent)
@@ -927,12 +1099,34 @@ def derive_state(sb, sid):
     dom = annot_dom(sb, sid)
     has_packet = bool(dom.exists() and (dom / 'packet').exists()
                       and any((dom / 'packet').iterdir()))
-    attempt = active_attempt(sb, sid, ordinal)
+    # FIX2-R1: tombstone re-proof inside active_attempt — a forged or
+    # damaged revocation makes the derived state FORENSIC instead of
+    # silently reclassifying attempts.
+    try:
+        attempt = active_attempt(sb, sid, ordinal)
+    except RuntimeError as e:
+        return 'FORENSIC', {'ordinal': ordinal, 'reason': str(e)}
     if attempt is None:
         return ('ANNOTATION_OPEN' if has_packet else 'NO_ANNOTATION'), \
             {'ordinal': ordinal}
+    # FIX2-R1: READY_TO_SEAL requires the receipt to be closed-world
+    # VALID and consistent with packet/REVEAL (frozen §3 row), not
+    # merely present on disk.
+    r1 = _last_reveal(chain_events(sb, sid))
+    try:
+        rbytes, _ = _check_attempt_artifacts(sb, sid, ordinal, attempt,
+                                             r1, G_REC)
+    except RuntimeError as e:
+        return 'FORENSIC', {'ordinal': ordinal, 'reason': str(e)}
     if (attempt_dir(sb, sid, ordinal, attempt) /
             'seal_approval.json').exists():
+        # FIX2-R1: SEAL_AUTHORIZED = READY judgment + a VALID approval
+        # (frozen §3 row), fully re-proven from persisted bytes.
+        try:
+            _check_seal_approval(sb, sid, ordinal, attempt, rbytes, r1,
+                                 G_REC)
+        except RuntimeError as e:
+            return 'FORENSIC', {'ordinal': ordinal, 'reason': str(e)}
         return 'SEAL_AUTHORIZED', {'attempt': attempt, 'ordinal': ordinal}
     return 'READY_TO_SEAL', {'attempt': attempt, 'ordinal': ordinal}
 
@@ -957,26 +1151,32 @@ def replay_attempt(sb, sid, ordinal=None, attempt=None):
     r1 = _last_reveal(chain_events(sb, sid))
     rbytes, obj = _check_attempt_artifacts(sb, sid, ordinal, attempt, r1,
                                            G_REP)
-    adir = attempt_dir(sb, sid, ordinal, attempt)
-    apath = adir / 'seal_approval.json'
-    if apath.exists():
-        approval = read_json(apath)
-        if set(approval.keys()) != APPROVAL_KEYS or not approval['approved']:
-            fail(f'{G_REP}: seal approval closed-world schema violation')
-        if approval['approved_receipt_sha256'] != sha(rbytes):
-            fail(f'{G_REP}: approval does not bind the exact receipt hash')
-        if approval['annotation_attempt'] != attempt or \
-                approval['reveal_event_hash'] != r1['event_hash']:
-            fail(f'{G_REP}: approval attempt/reveal binding broken')
+    # FIX2-R1: the persisted approval is FULLY re-proven (schema,
+    # canonical bytes, version/scope/session/reveal/attempt bindings,
+    # approved, exact receipt hash, 0600 mode) — not key-set spot checks
+    if (attempt_dir(sb, sid, ordinal, attempt) /
+            'seal_approval.json').exists():
+        _check_seal_approval(sb, sid, ordinal, attempt, rbytes, r1, G_REP)
     return rbytes, obj
 
 
-def semantic_replay(sb, sid):
+def semantic_replay(sb, sid, events=None):
     """G-C4D-SEAL-REPLAY: three-way exact-byte equality + every binding,
-    derived ONLY from persisted state (never the annotator workspace)."""
+    derived ONLY from persisted state (never the annotator workspace).
+
+    FIX2-R5: with `events` given, the proof runs against that CANDIDATE
+    full-chain view (verified from genesis, check_head=False) without
+    touching the trusted head — this is the §5.3 requirement that the
+    C4-D semantic replay PASS *before* sync_head makes a SEAL tail
+    durable."""
     lg = c2.SealingLog(log_path(sb, sid), head_path(sb, sid))
-    c2translate(lg.load().verify, True)
-    evs = lg.events
+    if events is None:
+        c2translate(lg.load().verify, True)
+        evs = lg.events
+    else:
+        lg.events = list(events)
+        c2translate(lg.verify, False)
+        evs = list(events)
     r1 = _last_reveal(evs)
     seals = [e for e in evs if e['event_type'] == c2.SEAL]
     if len(seals) != 1:
@@ -1009,7 +1209,9 @@ def semantic_replay(sb, sid):
             or s1['payload']['T'] != r1['payload']['T']:
         fail(f'{G_REP}: SEAL does not close r1 (case,T mismatch)')
     check_visibility_domain(sb, sid)
-    return lg.head()
+    # FIX2-R5: head of the PROVEN view (== persisted head when events
+    # was None; == candidate tail hash in the pre-sync proof path)
+    return evs[-1]['event_hash']
 
 
 def post_seal_final(sb, sid):
@@ -1092,6 +1294,11 @@ def seal_transaction(sb, sid, stop_after=None, payload_override=None,
     if dp.read_bytes() != (adir / 'draft_snapshot.bin').read_bytes():
         fail(f'{G_PRE}: draft drift post-freeze (FORENSIC, D22)')
     check_visibility_domain(sb, sid)
+    # FIX2-R1: LAST-MOMENT full re-proof of receipt + seal approval
+    # immediately before the irreversible append — commit-time evidence
+    # is re-derived from persisted bytes; nothing proven earlier in the
+    # transaction is carried on trust into the append.
+    replay_attempt(sb, sid, ordinal, attempt)
     stop('after_precondition')
     # (3) payload — exactly the three frozen fields (+ C2 bytes_ref)
     payload = payload_override if payload_override is not None else {
@@ -1201,12 +1408,9 @@ def _truncate_to_trusted(sb, sid, n_keep_lines, complete_lines):
 
 
 def _state_from_files(sb, sid, ordinal, attempt):
-    if attempt is None:
-        return 'ANNOTATION_OPEN'
-    if (attempt_dir(sb, sid, ordinal, attempt) /
-            'seal_approval.json').exists():
-        return 'SEAL_AUTHORIZED'
-    return 'READY_TO_SEAL'
+    """FIX2-R1: recovery state labels route through the CONTENT-derived
+    lifecycle (derive_state) — no parallel file-existence state logic."""
+    return derive_state(sb, sid)[0]
 
 
 def _finalize_only(sb, sid, anchor_override=None):
@@ -1227,12 +1431,22 @@ def _finalize_only(sb, sid, anchor_override=None):
     return 'SEALED'
 
 
-def recover(sb, sid, anchor_override=None):
+def recover(sb, sid, anchor_override=None, stop_after=None):
     """§5.3 chain-derived classification + controlled recovery.
 
     frozen semantics: trusted head = committed prefix; an unanchored log
     tail is NOT a committed event. Completion only under the full strict
-    condition set; terminal label is SEAL_COMMITTED, then finalize."""
+    condition set; terminal label is SEAL_COMMITTED, then finalize.
+
+    FIX2-R5: the C4-D semantic replay on the candidate view PASSES
+    BEFORE sync_head (frozen §5.3 strict-condition order) — a crash at
+    the stop('after_semantic_proof') boundary leaves no durable trace
+    (head stale, tail unanchored) and recovery retries cleanly; a
+    semantic-invalid tail NEVER touches the trusted head."""
+    def stop(name):
+        if stop_after == name:
+            raise CrashSim(name)
+
     if not head_path(sb, sid).exists():
         fail(f'{G_BOUND}: trusted head anchor MISSING — FORENSIC (head '
              f'anchor is mandatory)')
@@ -1292,19 +1506,23 @@ def recover(sb, sid, anchor_override=None):
             except RuntimeError:
                 strict = False
         if strict:
-            head_before = head_path(sb, sid).read_bytes()
+            # FIX2-R5: semantic proof FIRST, on the candidate view, with
+            # NO durable write — the frozen §5.3 order. The old
+            # sync_head→replay window (a durable trusted head over an
+            # unproven SEAL) is eliminated by construction.
             try:
-                c2.sync_head(head_path(sb, sid), parsed)
-                fsync_file(head_path(sb, sid))
-                fsync_dir(sealing_dir(sb, sid))
-                lg2 = c2.SealingLog(log_path(sb, sid), head_path(sb, sid))
-                c2translate(lg2.load().verify, True)
-                semantic_replay(sb, sid)       # => SEAL_COMMITTED
-            except (RuntimeError, OSError):
-                head_path(sb, sid).write_bytes(head_before)
-                fsync_file(head_path(sb, sid))
+                semantic_replay(sb, sid, events=parsed)
+            except RuntimeError:
                 fail(f'{G_BOUND}: SEAL_TAIL_UNANCHORED completion rejected '
-                     f'— replay FAIL (FORENSIC, head restored stale)')
+                     f'— C4-D semantic proof FAIL (FORENSIC; trusted head '
+                     f'untouched)')
+            stop('after_semantic_proof')   # crash boundary: proof PASSed,
+            #                                   head NOT yet advanced
+            c2.sync_head(head_path(sb, sid), parsed)
+            fsync_file(head_path(sb, sid))
+            fsync_dir(sealing_dir(sb, sid))
+            lg2 = c2.SealingLog(log_path(sb, sid), head_path(sb, sid))
+            c2translate(lg2.load().verify, True)
             return _finalize_only(sb, sid, anchor_override)
         fail(f'{G_BOUND}: SEAL_TAIL_UNANCHORED strict conditions failed — '
              f'FORENSIC (head left stale, no commit)')
@@ -1567,22 +1785,23 @@ def _check_proposal(sb, sid, ordinal):
     return proposal, pbytes
 
 
-def _check_approval_permit(sb, sid, ordinal, proposal, pbytes):
-    """FIX1-S6: full persisted approval + permit re-proof (schema,
-    canonical bytes, modes, every binding)."""
+def _check_reveal_approval(sb, sid, ordinal, proposal, pbytes):
+    """FIX2-R3: FULL persisted ordinal-N approval re-proof — domain
+    modes (layer 0700), file mode (0600), closed-world schema, canonical
+    bytes, version/scope/session/ordinal/prefix bindings and the exact
+    proposal-hash binding. Shared by permit materialization (pre-write
+    fail-closed) and the pre-append authorization chain check."""
     ad = next_authz_dir(sb, sid, ordinal)
     for p in (ad.parent, ad):
         if not p.exists() or mode_of(p) != 0o700:
             fail(f'{G_VIS}: authorization domain mode drift — must be '
                  f'0700 ({p})')
     ap = ad / 'next_reveal.approval.json'
-    pm = ad / 'next_reveal.permit.json'
-    for f in (ap, pm):
-        if not f.exists():
-            fail(f'{G_AUTHZ}: authorization artifact absent ({f.name})')
-        if mode_of(f) != 0o600:
-            fail(f'{G_VIS}: authorization file mode drift — must be 0600 '
-                 f'({f.name})')
+    if not ap.exists():
+        fail(f'{G_AUTHZ}: approval absent ({ap.name})')
+    if mode_of(ap) != 0o600:
+        fail(f'{G_VIS}: authorization file mode drift — must be 0600 '
+             f'({ap.name})')
     ab = ap.read_bytes()
     try:
         approval = json.loads(ab)
@@ -1604,6 +1823,20 @@ def _check_approval_permit(sb, sid, ordinal, proposal, pbytes):
         fail(f'{G_AUTHZ}: approval/prefix binding broken')
     if approval['approved_authorization_sha256'] != sha(pbytes):
         fail(f'{G_AUTHZ}: approval does not bind the exact proposal bytes')
+    return approval
+
+
+def _check_approval_permit(sb, sid, ordinal, proposal, pbytes):
+    """FIX1-S6: full persisted approval + permit re-proof (schema,
+    canonical bytes, modes, every binding)."""
+    approval = _check_reveal_approval(sb, sid, ordinal, proposal, pbytes)
+    ad = next_authz_dir(sb, sid, ordinal)
+    pm = ad / 'next_reveal.permit.json'
+    if not pm.exists():
+        fail(f'{G_AUTHZ}: authorization artifact absent ({pm.name})')
+    if mode_of(pm) != 0o600:
+        fail(f'{G_VIS}: authorization file mode drift — must be 0600 '
+             f'({pm.name})')
     if pm.read_bytes() != pbytes:
         fail(f'{G_AUTHZ}: permit bytes != proposal bytes (exact-copy '
              f'break)')
@@ -1629,18 +1862,15 @@ def approve_next_reveal(sb, sid, ordinal):
 
 
 def materialize_next_permit(sb, sid, ordinal):
-    """Permit = EXACT COPY of the approved proposal bytes."""
+    """Permit = EXACT COPY of the approved proposal bytes.
+
+    FIX2-R3: the persisted approval is FULLY re-proven (domain modes,
+    file mode, schema, canonical bytes, every semantic binding) BEFORE
+    the O_EXCL permit write — pre-write fail-closed, not verify-later.
+    The failing path performs NO write (no domain creation)."""
     proposal, pbytes = _check_proposal(sb, sid, ordinal)
+    _check_reveal_approval(sb, sid, ordinal, proposal, pbytes)
     ad = next_authz_dir(sb, sid, ordinal)
-    ap = ad / 'next_reveal.approval.json'
-    if not ap.exists():
-        fail(f'{G_AUTHZ}: approval absent before permit materialization')
-    approval = read_json(ap)
-    if set(approval.keys()) != REVEAL_APPROVAL_KEYS or \
-            not approval['approved']:
-        fail(f'{G_AUTHZ}: approval closed-world schema violation')
-    if approval['approved_authorization_sha256'] != sha(pbytes):
-        fail(f'{G_AUTHZ}: approval does not bind the exact proposal bytes')
     permit = ad / 'next_reveal.permit.json'
     if permit.exists():
         fail(f'{G_AUTHZ}: duplicate permit (O_EXCL)')
@@ -2605,6 +2835,13 @@ def d52():
                                       ann_session='annsess-x2'))
     expect_exact_gate(lambda: make_receipt(sb, sid), G_REC)  # 1 not revoked
     assert attempts_published(sb, sid, 1) == [1]
+    # FIX2-R2: the attempted OPEN rewrite above is itself a draft
+    # invariant drift while attempt-1 is published; restore the exact
+    # locked snapshot before exercising the legal revoke path.
+    dp = draft_path(sb, sid)
+    snap1 = (attempt_dir(sb, sid, 1, 1) / 'draft_snapshot.bin').read_bytes()
+    dp.write_bytes(snap1)
+    os.chmod(dp, 0o400)
     revoke_receipt(sb, sid, 'DRAFT_ERROR')
     write_draft(sb, sid, sample_draft(sb, sid, attempt=2,
                                       ann_session='annsess-x2'))
@@ -2722,6 +2959,236 @@ def d56():
     expect_exact_gate(lambda: verify_next_authorization_chain(sb2, sid2,
                                                               2), G_VIS)
     cleanup_sb(sb2)
+
+
+# --------------------------------------------------------------------------
+# C4-D-SYNTH-AUDIT-FIX2 fixtures D57–D61 (R1–R5)
+# --------------------------------------------------------------------------
+
+
+def _write_unanchored_seal_tail(sb, sid, payload_override=None):
+    """Write a complete C2-valid SEAL event and its exact bytes artifact,
+    but deliberately do NOT sync the trusted head. This models the
+    post-append/pre-head crash window used by D61."""
+    rbytes = receipt_bytes_of(sb, sid, 1, 1)
+    r1 = chain_events(sb, sid)[-1]
+    payload = {
+        'opaque_case_id': r1['payload']['opaque_case_id'],
+        'T': r1['payload']['T'],
+        'receipt_sha256': sha(rbytes),
+        'bytes_ref': 'bytes/seal_annotation/1.bin',
+    }
+    if payload_override:
+        payload.update(payload_override)
+    ev = {
+        'sequence_no': 1,
+        'prev_event_hash': r1['event_hash'],
+        'event_type': c2.SEAL,
+        'payload': payload,
+        'event_hash': c2.event_hash(1, r1['event_hash'], c2.SEAL,
+                                    payload),
+        'ts': time.time(),
+    }
+    bp = _orphan_bytes_path(sb, sid, 1)
+    bp.parent.mkdir(parents=True, exist_ok=True)
+    bp.write_bytes(rbytes)
+    fsync_file(bp)
+    with open(log_path(sb, sid), 'ab') as f:
+        f.write(canon(ev).encode() + b'\n')
+    fsync_file(log_path(sb, sid))
+    # C2 chain validity without trusted-head commitment: this is exactly
+    # the distinction D61 must preserve.
+    lg = c2.SealingLog(log_path(sb, sid), head_path(sb, sid))
+    lg.events = c2.read_events(log_path(sb, sid))
+    c2translate(lg.verify, False)
+    return ev
+
+
+@fixture('D57', 'seal approval last-moment re-proof -> no append (R1)')
+def d57():
+    variants = (
+        ('approval_version', 'c4d-seal-approval-v2', G_PRE),
+        ('scope', 'SEAL_ANNOTATION_AND_MORE', G_PRE),
+        ('session_id', 'foreign-session', G_PRE),
+        ('__noncanonical__', None, G_PRE),
+        ('__mode__', None, G_PRE),
+    )
+    for key, value, gate in variants:
+        sb, sid = prepared_authorized()
+        ap = attempt_dir(sb, sid, 1, 1) / 'seal_approval.json'
+        approval = read_json(ap)
+        if key == '__noncanonical__':
+            os.chmod(ap, 0o600)
+            ap.write_bytes(json.dumps(approval, sort_keys=True,
+                                      indent=2).encode())
+        elif key == '__mode__':
+            os.chmod(ap, 0o644)
+        else:
+            approval[key] = value
+            os.chmod(ap, 0o600)
+            ap.write_bytes(canon(approval).encode())
+        evs_before = chain_events(sb, sid)
+        head_before = head_path(sb, sid).read_bytes()
+        assert derive_state(sb, sid)[0] == 'FORENSIC'
+        expect_exact_gate(lambda: replay_attempt(sb, sid), G_REP)
+        expect_exact_gate(lambda: seal_transaction(sb, sid), gate)
+        assert chain_events(sb, sid) == evs_before
+        assert head_path(sb, sid).read_bytes() == head_before
+        cleanup_sb(sb)
+    print('PASS D57')
+
+
+@fixture('D58', 'revocation tombstone/draft drift -> FORENSIC, no unlock (R2)')
+def d58():
+    # (a) READY draft drift may not be laundered through revoke.
+    sb, sid = prepared_ready()
+    dp = draft_path(sb, sid)
+    drift = sample_draft(sb, sid)
+    drift['annotation']['overall_note'] = 'locked-draft-drift'
+    os.chmod(dp, 0o600)
+    dp.write_bytes(canon(drift).encode())
+    os.chmod(dp, 0o400)
+    expect_exact_gate(lambda: revoke_receipt(sb, sid, 'DRAFT_ERROR'), G_REC)
+    assert not (attempt_dir(sb, sid, 1, 1) / 'revocation.json').exists()
+    assert mode_of(dp) == 0o400
+    expect_exact_gate(lambda: recover_publication(sb, sid), G_PRE)
+    cleanup_sb(sb)
+    # (b) a damaged persisted tombstone is FORENSIC, not "revoked".
+    sb, sid = prepared_ready()
+    revoke_receipt(sb, sid, 'DRAFT_ERROR')
+    tp = attempt_dir(sb, sid, 1, 1) / 'revocation.json'
+    tomb = read_json(tp)
+    tomb['reason_code'] = 'NOT_A_REASON'
+    os.chmod(tp, 0o600)
+    tp.write_bytes(canon(tomb).encode())
+    assert derive_state(sb, sid)[0] == 'FORENSIC'
+    expect_exact_gate(lambda: make_receipt(sb, sid), G_REC)
+    cleanup_sb(sb)
+    # (c) a forged tombstone on a live attempt cannot unlock/progress it.
+    sb, sid = prepared_ready()
+    adir = attempt_dir(sb, sid, 1, 1)
+    forged = {
+        'revocation_version': REVOCATION_VERSION,
+        'session_id': sid,
+        'reveal_event_hash': chain_events(sb, sid)[-1]['event_hash'],
+        'annotation_attempt': 1,
+        'receipt_sha256': 'f' * 64,
+        'reason_code': 'DRAFT_ERROR',
+        'created_at': '2099-01-02T00:00:00Z',
+    }
+    excl_write(adir / 'revocation.json', canon(forged).encode())
+    assert mode_of(dp := draft_path(sb, sid)) == 0o400
+    assert derive_state(sb, sid)[0] == 'FORENSIC'
+    expect_exact_gate(lambda: make_seal_approval(sb, sid), G_REC)
+    assert mode_of(dp) == 0o400
+    cleanup_sb(sb)
+    print('PASS D58')
+
+
+@fixture('D59', 'permit pre-write persisted approval/mode re-proof (R3)')
+def d59():
+    variants = (
+        ('approval_version', 'c4d-reveal-approval-v2', G_AUTHZ),
+        ('scope', 'WRONG_SCOPE', G_AUTHZ),
+        ('session_id', 'foreign-session', G_AUTHZ),
+        ('reveal_ordinal', 99, G_AUTHZ),
+        ('sealed_prefix_head', 'f' * 64, G_AUTHZ),
+        ('__noncanonical__', None, G_AUTHZ),
+        ('__approval_mode__', None, G_VIS),
+        ('__ordinal_mode__', None, G_VIS),
+        ('__base_mode__', None, G_VIS),
+    )
+    for key, value, gate in variants:
+        sb, sid = prepared_sealed()
+        build_next_reveal_proposal(sb, sid, 2,
+                                   _current_prefix_head(sb, sid))
+        approve_next_reveal(sb, sid, 2)
+        ad = next_authz_dir(sb, sid, 2)
+        ap = ad / 'next_reveal.approval.json'
+        if key == '__noncanonical__':
+            approval = read_json(ap)
+            os.chmod(ap, 0o600)
+            ap.write_bytes(json.dumps(approval, sort_keys=True,
+                                      indent=2).encode())
+        elif key == '__approval_mode__':
+            os.chmod(ap, 0o644)
+        elif key == '__ordinal_mode__':
+            os.chmod(ad, 0o755)
+        elif key == '__base_mode__':
+            os.chmod(ad.parent, 0o755)
+        else:
+            approval = read_json(ap)
+            approval[key] = value
+            os.chmod(ap, 0o600)
+            ap.write_bytes(canon(approval).encode())
+        expect_exact_gate(lambda: materialize_next_permit(sb, sid, 2),
+                          gate)
+        assert not (ad / 'next_reveal.permit.json').exists()
+        cleanup_sb(sb)
+    print('PASS D59')
+
+
+@fixture('D60', 'published receipt artifact mode drift -> replay/derive fail (R4)')
+def d60():
+    # Receipt-domain directory and immutable receipt/snapshot files.
+    for target in ('attempt_dir', 'receipt', 'snapshot'):
+        sb, sid = prepared_ready()
+        ad = attempt_dir(sb, sid, 1, 1)
+        if target == 'attempt_dir':
+            os.chmod(ad, 0o755)
+        elif target == 'receipt':
+            os.chmod(ad / 'receipt.json', 0o644)
+        else:
+            os.chmod(ad / 'draft_snapshot.bin', 0o644)
+        expect_exact_gate(lambda: replay_attempt(sb, sid), G_REP)
+        expect_exact_gate(lambda: make_seal_approval(sb, sid), G_REC)
+        assert derive_state(sb, sid)[0] == 'FORENSIC'
+        cleanup_sb(sb)
+    # seal_approval itself is an immutable 0600 artifact.
+    sb, sid = prepared_authorized()
+    ap = attempt_dir(sb, sid, 1, 1) / 'seal_approval.json'
+    os.chmod(ap, 0o644)
+    expect_exact_gate(lambda: replay_attempt(sb, sid), G_REP)
+    expect_exact_gate(lambda: seal_transaction(sb, sid), G_PRE)
+    assert derive_state(sb, sid)[0] == 'FORENSIC'
+    cleanup_sb(sb)
+    print('PASS D60')
+
+
+@fixture('D61', 'semantic proof precedes trusted-head sync (R5)')
+def d61():
+    # (a) C2-valid tail whose persisted approval is semantically invalid:
+    # structural tail checks pass, but proof must fail BEFORE head writes.
+    sb, sid = prepared_authorized()
+    ap = attempt_dir(sb, sid, 1, 1) / 'seal_approval.json'
+    approval = read_json(ap)
+    approval['scope'] = 'WRONG_SCOPE'
+    os.chmod(ap, 0o600)
+    ap.write_bytes(canon(approval).encode())
+    _write_unanchored_seal_tail(sb, sid)
+    head_before = head_path(sb, sid).read_bytes()
+    log_before = log_path(sb, sid).read_bytes()
+    expect_exact_gate(lambda: recover(sb, sid),
+                      'C4-D semantic proof FAIL')
+    assert head_path(sb, sid).read_bytes() == head_before
+    assert log_path(sb, sid).read_bytes() == log_before
+    cleanup_sb(sb)
+    # (b) crash exactly after proof PASS but before sync_head: no durable
+    # head advance; a subsequent recovery may safely retry and complete.
+    sb, sid = prepared_authorized()
+    _write_unanchored_seal_tail(sb, sid)
+    head_before = head_path(sb, sid).read_bytes()
+    try:
+        recover(sb, sid, stop_after='after_semantic_proof')
+    except CrashSim:
+        pass
+    else:
+        fail('D61: expected crash at after_semantic_proof')
+    assert head_path(sb, sid).read_bytes() == head_before
+    assert recover(sb, sid) == 'SEALED'
+    assert derive_state(sb, sid)[0] == 'SEALED'
+    cleanup_sb(sb)
+    print('PASS D61')
 
 
 # --------------------------------------------------------------------------
