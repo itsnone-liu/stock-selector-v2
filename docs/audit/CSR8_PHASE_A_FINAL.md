@@ -32,7 +32,7 @@ D71 已执行：
 
 ## A3 — 独立复现结果
 
-独立机器证据已入库：`tests/test_csr8_phase_a.py` 以子进程真实执行 Phase A synthetic runner，直接断言 D71、D01-D71、C4-C regression、candidate gates、live invariants，并在运行前后比较 `c4c_anchor.json` 字节；说明文档本身不作为这些结论的证据。
+独立机器证据已入库：`tests/test_csr8_phase_a.py` 在临时隔离 sandbox 中直接调用真实 Phase-A guard/授权函数，验证 D71 的正向 ordinal-2 控制、ordinal-3 拒绝及 artifact absent，并静态绑定 guard 的 C2 full-verify/SEAL 条件与全部授权入口；说明文档本身不作为这些结论的证据。另有 runner smoke 由同一提交的测试命令复跑。
 
 执行环境：`/root/.hermes/hermes-agent/venv/bin/python3`。
 
