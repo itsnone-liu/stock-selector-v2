@@ -173,6 +173,56 @@ def test_cli_rejects_bottom_realtime_without_select(capsys):
     assert a.select is True and a.realtime is True
     assert (a.select, a.realtime) == (b.select, b.realtime)
 
-    # 纯盘后扫描不受影响
+    # 纯盘后扫描不受影响；未指定 --realtime 时默认值为布尔 False（P1：契约稳定）
     c = run(["bottom-volume"])
     assert c.select is False and c.realtime is False
+
+
+def test_pool_delayed_refresh_expiry_beats_late_break(tmp_path):
+    """T3 状态竞争：事件后前60日不破位、第61日达过期边界、第70日才破位。
+    延迟一次刷新到第70日 → 终态必须是 expired（过期先生效），不得 invalidated。"""
+    store = BottomPoolStore(tmp_path / "events.csv")
+    n = 70
+    index = pd.bdate_range(end="2026-09-15", periods=n)
+    closes = np.full(n, 12.0)  # 事件价上方横盘，全程不破位……
+    closes[-1] = 9.0  # ……只有第 70 日（最后一根）破位
+    daily = pd.DataFrame({"close": closes, "volume": [1e6] * n}, index=index)
+    store.append([{"代码": "000001", "事件日": str(index[0].date()), "事件日最低": 10.0, "状态": "active"}])
+    # asof = 第 70 根（事件后第 70 个可见交易日）：过期于第 61 根已生效
+    counts = store.refresh(lambda code: daily, index[-1].to_pydatetime(), 60)
+    assert counts == {"invalidated": 0, "expired": 1, "checked": 1}
+    frame = store.load()
+    assert frame.iloc[0]["状态"] == "expired"
+    assert frame.iloc[0]["失效日"] == ""
+
+
+def test_pool_early_break_beats_already_passed_expiry(tmp_path):
+    """T3 状态竞争（反向）：60日窗口内先跌破，asof 已越过过期边界 → 仍必须 invalidated，
+    且失效日 = 首次跌破日（不是刷新日）。"""
+    store = BottomPoolStore(tmp_path / "events.csv")
+    n = 70
+    index = pd.bdate_range(end="2026-09-15", periods=n)
+    closes = np.full(n, 12.0)
+    closes[9] = 9.5  # 事件后第 10 根首次跌破（10.0 事件低点）
+    closes[10:] = 11.5  # 随后收回——首次破位已不可逆
+    daily = pd.DataFrame({"close": closes, "volume": [1e6] * n}, index=index)
+    store.append([{"代码": "000001", "事件日": str(index[0].date()), "事件日最低": 10.0, "状态": "active"}])
+    counts = store.refresh(lambda code: daily, index[-1].to_pydatetime(), 60)
+    assert counts == {"invalidated": 1, "expired": 0, "checked": 1}
+    frame = store.load()
+    assert frame.iloc[0]["状态"] == "invalidated"
+    assert frame.iloc[0]["失效日"] == str(index[9].date())
+
+
+def test_pool_break_exactly_at_expiry_bar_counts_as_invalidated(tmp_path):
+    """T3 状态竞争（同日并列）：第 61 根（过期生效当根）恰好首次破位 → invalidated（并列时破位优先）。"""
+    store = BottomPoolStore(tmp_path / "events.csv")
+    n = 61
+    index = pd.bdate_range(end="2026-09-15", periods=n)
+    closes = np.full(n, 12.0)
+    closes[-1] = 9.0  # 第 61 根（0-based 60 == expiry_pos）首次破位
+    daily = pd.DataFrame({"close": closes, "volume": [1e6] * n}, index=index)
+    store.append([{"代码": "000001", "事件日": str(index[0].date()), "事件日最低": 10.0, "状态": "active"}])
+    counts = store.refresh(lambda code: daily, index[-1].to_pydatetime(), 60)
+    assert counts["invalidated"] == 1 and counts["expired"] == 0
+    assert store.load().iloc[0]["失效日"] == str(index[-1].date())

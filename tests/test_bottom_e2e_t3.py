@@ -61,7 +61,14 @@ def test_bottom_scan_channel_fixture_e2e(tmp_path, config):
     data_before = _snapshot_tree(repo_data)
     asof = datetime(2026, 9, 15, 15, 10)
 
-    # 1) 盘后扫描：事件落池 active，诊断计数可追溯
+    # 0) 预置一条历史事件（事件日=帧首日，事件低点高于近期收盘）→ 扫描内建 refresh 应将其转成 invalidated
+    first_day = frame.index[0]
+    pipeline.bottom_pool.append(
+        [{"代码": "600001", "名称": "测试票", "事件日": str(pd.Timestamp(first_day).date()),
+          "事件日最低": float(frame["close"].iloc[1:].max()) + 1.0, "状态": "active"}]
+    )
+
+    # 1) 盘后扫描：新事件落池 active，诊断计数可追溯；预置事件被 refresh 转为 invalidated
     scan = pipeline.run_bottom_scan(asof=asof)
     events = pd.read_csv(scan["new_events"], dtype={"代码": str})
     assert events["代码"].tolist() == ["600001"]
@@ -69,8 +76,13 @@ def test_bottom_scan_channel_fixture_e2e(tmp_path, config):
     diag = json.loads((Path(scan["run_archive"]) / "diagnostics.json").read_text(encoding="utf-8"))
     assert diag["reasons"].get("bottom_volume_launch") == 1
     assert Path(scan["run_archive"]).name == "bottom_scan"
+    states = pipeline.bottom_pool.load()
+    state_by_row = {(r["代码"], r["事件日"]): r["状态"] for _, r in states.iterrows()}
+    old_key = ("600001", str(pd.Timestamp(first_day).date()))
+    assert state_by_row[old_key] == "invalidated", "预置历史事件应在扫描内被 refresh 转为 invalidated"
+    assert diag["refresh"].get("invalidated") == 1, diag["refresh"]
     pool = pd.read_csv(scan["active_pool"], dtype={"代码": str})
-    assert pool["代码"].tolist() == ["600001"]
+    assert pool["代码"].tolist() == ["600001"]  # invalidated 不在活跃池
 
     # 2) 小金叉通道（--select 语义）：事件票要求周线趋势，未达标 → 拒绝逐票可见，不崩溃
     chan = pipeline.run_bottom_channel(asof=asof, realtime=False)

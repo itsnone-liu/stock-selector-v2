@@ -113,6 +113,37 @@
 
 ## READY_FOR_AUDIT 标记
 
+## 迭代 2 REVISE 反馈修复
+
+iteration 2 裁决（针对 iteration 1 目标 `e779372`）三条 P0 + 一条 P1，全部处置：
+
+1. **状态转换时序错误（新发现，真缺陷）**：`refresh()` 先扫全窗口破位再查过期——
+   延迟刷新场景（前 60 日不破位、第 61 日已达过期边界、第 70 日才首次破位）会把
+   本应 `expired` 的事件错标 `invalidated`。修复：比较**首次跌破位**（0-based 位置）
+   与**过期生效位**（事件后第 61 根，0-based `expiry_trading_days`），较早者决定终态；
+   同根并列时破位优先（当日更具体事件）。回归三例：
+   - `test_pool_delayed_refresh_expiry_beats_late_break`：第 70 日延迟刷新 → expired；
+   - `test_pool_early_break_beats_already_passed_expiry`：第 10 日破位 + 第 70 日刷新
+     → invalidated 且失效日=首次跌破日；
+   - `test_pool_break_exactly_at_expiry_bar_counts_as_invalidated`：第 61 根并列 → invalidated。
+2. **参数顺序依赖**：iteration 1 目标中 `_RealtimeRequiresSelect` 解析期读
+   `namespace.select`。已在迭代 1 修复提交中改为 `validate_args`（完整解析后校验），
+   本轮保持；测试断言两种顺序等价、`--realtime` 单独出现 exit 2。
+3. **fixture e2e 机器证据**：`tests/test_bottom_e2e_t3.py` 已入库，本轮扩展为覆盖
+   **状态刷新**：预置历史事件（事件低点高于近期收盘）→ 扫描内建 refresh 转为
+   invalidated（诊断 `refresh.invalidated==1`），活跃池只保留新事件。下一轮桥接器
+   在目标 commit 全量 pytest 即机器执行并验证该测试。
+4. **P1 默认值契约**：`--realtime` 为普通 `store_true`（default=False），测试断言
+   未指定时为布尔 `False`。
+
+## 全量回归（迭代 2）
+
+`PYTHONPATH=src ... -m pytest -q --junitxml=/tmp/t3-i2-full.xml`
+→ **459 passed / 0 failed / 0 errors / 0 skipped**（专项 26/0：
+bottom 10 + e2e 2 + archives 12 + snapshots 2）。
+
+## READY_FOR_AUDIT 标记
+
 [DSH-AUDIT]
 STATE: READY_FOR_AUDIT
 RUN_ID: audit_20260928115358315
@@ -120,5 +151,5 @@ HOST_ID: RainYun-c438TDGn
 STAGE: T3
 ITERATION: 2
 HEAD: <本提交哈希，见 git log>
-SUMMARY: T3六项核对+迭代1审核反馈修复：池刷新绑定显式asof；--realtime校验顺序无关化；fixture e2e入库（tmp_path、不写data/、归档防覆盖、模式隔离）
-TESTS: 专项23/0；全量456 passed/0 failed/0 errors/0 skipped
+SUMMARY: T3迭代2：状态机最早终止事件优先（延迟刷新expired/invalidated竞争修复+三例回归）；--realtime顺序无关校验保持；fixture e2e扩展覆盖状态刷新；459全过
+TESTS: 专项26/0；全量459 passed/0 failed/0 errors/0 skipped

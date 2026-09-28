@@ -63,9 +63,14 @@ class BottomPoolStore:
     def refresh(self, daily_loader, asof: datetime, expiry_trading_days: int = 60) -> dict[str, int]:
         """按最新数据更新各事件状态。daily_loader(code)->DataFrame|None。
 
-        显式 asof 边界：只允许事件日之后、asof（含）之前的日线参与失效/过期
-        判定（与信号管线同一约定）。数据源里 asof 之后的未来行不得驱动状态机——
-        否则一次提前更新的数据文件会把 active 事件错误判成 invalidated/expired。
+        - 显式 asof 边界：只允许事件日之后、asof（含）之前的日线参与失效/过期
+          判定（与信号管线同一约定）。数据源里 asof 之后的未来行不得驱动状态机——
+          否则一次提前更新的数据文件会把 active 事件错误判成 invalidated/expired。
+        - 最早终止事件优先（延迟刷新竞争语义）：破位与过期以各自**首次生效日**
+          比较，较早者决定终态。若过期在第 61 个可见交易日已生效，而破位发生在
+          第 70 日，则终态必须是 expired（本方法此前先扫全窗口破位，延迟刷新时
+          会把本应 expired 的事件错标 invalidated）。同日同时触发时记 invalidated
+          （破位是当日更具体的事件）。
         """
         frame = self.load()
         if frame.empty:
@@ -82,10 +87,18 @@ class BottomPoolStore:
             after = daily[(daily.index > pd.Timestamp(row["事件日"])) & (daily.index <= asof_ts)]
             event_low = float(row["事件日最低"])
             broken = after[after["close"] < event_low]
+            # 过期生效位：事件后第 (expiry+1) 根可见日线（0-based 索引 = expiry）。
+            expiry_pos = expiry_trading_days
             if not broken.empty:
-                frame.at[i, "状态"] = "invalidated"
-                frame.at[i, "失效日"] = str(broken.index[0].date())
-                counts["invalidated"] += 1
+                first_break_pos = int(after.index.get_loc(broken.index[0]))
+                if first_break_pos <= expiry_pos:
+                    frame.at[i, "状态"] = "invalidated"
+                    frame.at[i, "失效日"] = str(broken.index[0].date())
+                    counts["invalidated"] += 1
+                    continue
+                # 破位晚于过期生效日：过期已先行终止状态机。
+                frame.at[i, "状态"] = "expired"
+                counts["expired"] += 1
                 continue
             if len(after) > expiry_trading_days:
                 frame.at[i, "状态"] = "expired"
