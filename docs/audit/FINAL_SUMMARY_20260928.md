@@ -10,7 +10,7 @@
 | T1 基线与契约 | audit_20260928010142066 / 053052504 | 通过（基线确立） | `d33db24e79e81f033f4fa4c097c558c901c6cb7a`（451 tests / 0 fail 基线） |
 | T2 规则与数据语义 | audit_20260928055411432 | **APPROVE** iter 9 | `748d7c930c270cf8ca0807f38c71a9c8cc94539a` 未来闸门按完整时间戳+量能回退；`2fdf9fdc753396e366d9725d66a3a8051a700714` 双阳量效率+趋势/底部新鲜度归档；`65d4991679cc3fe971708f05094858eac24db423` 语义文档；`b6a4dc6f0b8033116648391bb0130c05a93a2373` 可执行终验门证据；`346aeb03141fff88c1883341e938189cbce3cd64` 空数据走新鲜度诊断 |
 | T3 专项通道与研究边界 | audit_20260928115358315 | **APPROVE** iter 2 | `e7793720a753febc762e96a015561e080e5ec574` 池刷新绑定显式 asof + `--realtime` 守卫；`4f4b5d52fe5d81cd3f537cba554558e4c25a18cb` 顺序无关校验 + fixture e2e 入库；`91f2db8b2e43075dfdb6cf551815e044bfdf8e41` 最早终止事件语义（延迟刷新竞争） |
-| T4 最终回归与交付 | audit_20260928124829807 | iteration 1 已提交，iteration 2 待复审 | `8a666d94a3898e62c9a6e1aee2dc23aa35c09994`（iteration 1 初版交付）；本轮新提交由本次 marker 的 HEAD 精确指认 |
+| T4 最终回归与交付 | audit_20260928124829807 | iteration 4 当前交付，待本轮复审 | `8a666d94a3898e62c9a6e1aee2dc23aa35c09994`（i1）；`d3172539ecfe8e51365deeb774d9d699db15ee99`（i2）；`670b2fa2c320374c81aba6005d62d29e839f19df`（i3，桥接器验证目标）; 本提交为 i4 摘要纠错提交，精确 tip 由本轮 marker 与 remote gate 记录 |
 
 ## 修复项汇总（按严重度）
 
@@ -48,19 +48,9 @@
 
 ## 可复现验证方式
 
-1. 全量：`PYTHONPATH=src /root/.hermes/hermes-agent/venv/bin/python3 -m pytest -q`（471/0，T4 i2）；
+1. 全量：`PYTHONPATH=src /root/.hermes/hermes-agent/venv/bin/python3 -m pytest -q`（471/0，T4 i4 本地复跑；目标 commit 由 remote gate 复核）；
 2. 专项：`pytest tests/test_bottom.py tests/test_bottom_e2e_t3.py tests/test_pipeline_archives_t3.py tests/test_snapshots.py -q`（26/0，含状态竞争三例与离线 e2e 两例）；
-3. **CLI 独立机器证据（T4 i2）**：`tests/test_cli_smoke_t4.py` 以 `subprocess` 真实调用 `python -m stock_selector.cli`；9 个子命令 `--help` 全部 exit 0；无 `--select` 的 `bottom-volume --realtime` exit 2 且 stderr 指明用法；两种选项顺序均不触发参数守卫。该测试由审计桥接器在目标 commit 的全量 pytest 独立执行，不依赖真实行情、不伪造数据成功；
+3. **CLI 独立机器证据（T4 i3）**：`tests/test_cli_smoke_t4.py` 以 `subprocess` 真实调用 `python -m stock_selector.cli`；9 个子命令 `--help` 全部 exit 0；无 `--select` 的 `bottom-volume --realtime` exit 2 且 stderr 指明用法；两种选项顺序均不触发参数守卫。该测试由审计桥接器在目标 commit 的全量 pytest 独立执行，不依赖真实行情、不伪造数据成功；
 4. T2 语义回归：`tests/test_spec_semantics_t2.py`（72 例）。
 
-本摘要的阶段 commit 均为完整哈希；本轮新增的严格交付标记如下（标记所指的前一版交付 HEAD 为 `d3172539ecfe8e51365deeb774d9d699db15ee99`，本轮最终 commit 由会话 marker 精确指认）：
-
-[DSH-AUDIT]
-STATE: READY_FOR_AUDIT
-RUN_ID: audit_20260928124829807
-HOST_ID: RainYun-c438TDGn
-STAGE: T4
-ITERATION: 3
-HEAD: d3172539ecfe8e51365deeb774d9d699db15ee99
-SUMMARY: T4交付标记已纳入最终摘要；CLI独立机器证据与全阶段完整commit哈希均可复核
-TESTS: full 471 passed/0 failed/0 errors/0 skipped
+本摘要的阶段 commit 均为完整哈希；上一轮目标 `670b2fa2c320374c81aba6005d62d29e839f19df` 的桥接器验证事实为 471 passed / 0 failed / 0 errors / 0 skipped。下一轮严格交付 marker 以会话输出为准，文档不自引用尚未创建的 commit 哈希。
