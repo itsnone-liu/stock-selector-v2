@@ -28,28 +28,8 @@ def _load():
 
 def test_d71_uses_real_guard_and_leaves_ordinal3_artifacts_absent(tmp_path):
     mod = _load()
-    old_state, old_plan = mod.c4ab.C3_STATE, mod.c1.PLAN_FILE
-    old_salt = mod.c1.load_salt
+    old = _patch_isolated_c3(mod, tmp_path)
     try:
-        c3 = tmp_path / "c3" / "packets"
-        c3.mkdir(parents=True)
-        mod.c4ab.C3_STATE = c3.parent
-        mod.c1.load_salt = lambda: "phase-a-test-salt"
-        mod.c1.PLAN_FILE = tmp_path / "packet_plan.json"
-        ocid = mod.c2.synth_ocid(mod.SYNTH_CASE)
-        case_key = f"G1_complete_bull|{mod.SYNTH_CASE}"
-        second_t = "2099-01-03"
-        mod.c1.PLAN_FILE.write_text(json.dumps({"entries": [
-            {"case_key": case_key, "T": mod.SYNTH_T},
-            {"case_key": case_key, "T": second_t},
-        ]}))
-        for packet_t in (mod.SYNTH_T, second_t):
-            packet_id = hashlib.sha256(f"{ocid}|{packet_t}".encode()).hexdigest()
-            (c3 / f"{packet_id}.json").write_bytes(mod.synth_packet_bytes(mod.SYNTH_CASE, packet_t))
-        old_first = mod.c4ab.first_candidate
-        old_candidate = mod.candidate_for_ordinal
-        mod.c4ab.first_candidate = lambda _c1: {"opaque_case_id": ocid, "T": mod.SYNTH_T, "digest": "test"}
-        mod.candidate_for_ordinal = lambda ordinal: {"opaque_case_id": ocid, "T": second_t, "t_rank": 1, "case_rank": 0}
         output = io.StringIO()
         with redirect_stdout(output):
             mod.d71()
@@ -57,13 +37,57 @@ def test_d71_uses_real_guard_and_leaves_ordinal3_artifacts_absent(tmp_path):
         assert "PASS D71" in text
         assert "G-C4D-AUTHZ" in text
     finally:
-        mod.c4ab.C3_STATE = old_state
-        mod.c1.PLAN_FILE = old_plan
-        mod.c1.load_salt = old_salt
-        if 'old_first' in locals():
-            mod.c4ab.first_candidate = old_first
-        if 'old_candidate' in locals():
-            mod.candidate_for_ordinal = old_candidate
+        _restore_isolated_c3(mod, old)
+
+
+def _patch_isolated_c3(mod, tmp_path):
+    c3 = tmp_path / "c3" / "packets"
+    c3.mkdir(parents=True)
+    old = (mod.c4ab.C3_STATE, mod.c1.PLAN_FILE, mod.c1.load_salt,
+           mod.c4ab.first_candidate, mod.candidate_total_order,
+           mod.candidate_for_ordinal, mod.verify_candidate_gates)
+    mod.c4ab.C3_STATE = c3.parent
+    mod.c1.load_salt = lambda: "phase-a-test-salt"
+    mod.c1.PLAN_FILE = tmp_path / "packet_plan.json"
+    ocid = mod.c2.synth_ocid(mod.SYNTH_CASE)
+    case_key = f"G1_complete_bull|{mod.SYNTH_CASE}"
+    order = [{"opaque_case_id": ocid, "T": mod.SYNTH_T,
+              "t_rank": 0, "case_rank": 0},
+             {"opaque_case_id": ocid, "T": "2099-01-03",
+              "t_rank": 1, "case_rank": 0}]
+    mod.c1.PLAN_FILE.write_text(json.dumps({"entries": [
+        {"case_key": case_key, "T": mod.SYNTH_T},
+        {"case_key": case_key, "T": "2099-01-03"},
+    ]}))
+    for item in order:
+        pid = hashlib.sha256(f"{item['opaque_case_id']}|{item['T']}".encode()).hexdigest()
+        (c3 / f"{pid}.json").write_bytes(mod.synth_packet_bytes(mod.SYNTH_CASE, item["T"]))
+    mod.c4ab.first_candidate = lambda _c1: dict(order[0], digest="test")
+    mod.candidate_total_order = lambda: list(order)
+    mod.candidate_for_ordinal = lambda n: dict(order[n - 1])
+    mod.verify_candidate_gates = lambda: {"size": 2,
+        "ordinal1_matches_frozen_first": True, "revealed_prefix": 1}
+    return old
+
+
+def _restore_isolated_c3(mod, old):
+    (mod.c4ab.C3_STATE, mod.c1.PLAN_FILE, mod.c1.load_salt,
+     mod.c4ab.first_candidate, mod.candidate_total_order,
+     mod.candidate_for_ordinal, mod.verify_candidate_gates) = old
+
+
+def test_complete_d01_d71_matrix_runs_in_isolated_sandbox(tmp_path):
+    """Every registered fixture executes; only its declared target may fail."""
+    mod = _load()
+    old = _patch_isolated_c3(mod, tmp_path)
+    seen = []
+    try:
+        for name, _description, fixture_fn in mod.FIXTURES:
+            fixture_fn()
+            seen.append(name)
+    finally:
+        _restore_isolated_c3(mod, old)
+    assert seen == [f"D{i:02d}" for i in range(1, 72)]
 
 
 def test_d71_artifact_absence_is_checked_after_each_real_entrypoint(tmp_path):
