@@ -5,12 +5,13 @@
 """
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import date, datetime
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
 
+from stock_selector.calendar import current_week_rows, elapsed_week_fraction
 from conftest import make_daily
 from stock_selector.data.realtime import TencentQuoteProvider
 from stock_selector.freshness import check_daily_freshness, check_quote_freshness
@@ -387,6 +388,66 @@ def test_surge_bearish_to_bullish_reversal_pass(config):
     assert result.reason == "bearish_to_bullish_reversal"
 
 
+def _engulfing_quote(daily: pd.DataFrame) -> Quote:
+    """阳包阴构造：上周严格阴线（open=close+0.5），本周收盘反穿上周开盘。"""
+    prev_close = float(daily.iloc[-1]["close"])
+    monday_close = float(daily.iloc[-5]["close"])
+    prev_week_open = monday_close + 0.5
+    return Quote(
+        "600001",
+        price=prev_week_open + 0.10,  # 收盘高于上周开盘（实体反包）
+        open=prev_close * 0.99,  # 开盘不高于上周收盘
+        previous_close=prev_close,
+        volume=1_000_000,
+        timestamp=datetime(2026, 9, 14, 10, 30),
+    )
+
+
+def _bearish_last_week_daily() -> pd.DataFrame:
+    daily = make_daily(periods=480, end="2026-09-11", drift=0.01)
+    daily.iloc[-5:, daily.columns.get_loc("open")] = daily["close"].iloc[-5:] + 0.5
+    return daily
+
+
+def test_surge_bullish_engulfing_positive(config):
+    """第三类正向形态（阳包阴反包）：PASS + 独立 reason/signals + 关键指标。"""
+    daily = _bearish_last_week_daily()
+    result = weekly_surge(daily, datetime(2026, 9, 14, 10, 30), config, quote=_engulfing_quote(daily))
+    assert result.decision == Decision.PASS
+    assert result.passed
+    assert result.reason == "bullish_engulfing"
+    assert result.signals == ["bullish_engulfing"]
+    assert result.metrics["engulfing_body"] is True
+    assert result.metrics["projected_volume_ratio"] >= 0.8
+    assert result.metrics["current_change_pct"] > 0
+
+
+def test_surge_engulfing_counterexamples_fall_back_to_reversal(config):
+    """反例1：上周阴线但收盘未反穿上周开盘 → 阴转阳（非反包）；
+    反例2：反包形态但 allow_bullish_engulfing=False → 阴转阳（配置关闭）。"""
+    daily = _bearish_last_week_daily()
+    prev_close = float(daily.iloc[-1]["close"])
+    non_engulfing = Quote(
+        "600001",
+        price=prev_close * 1.02,  # 低于上周开盘，实体未反包
+        open=prev_close * 0.99,
+        previous_close=prev_close,
+        volume=1_000_000,
+        timestamp=datetime(2026, 9, 14, 10, 30),
+    )
+    result = weekly_surge(daily, datetime(2026, 9, 14, 10, 30), config, quote=non_engulfing)
+    assert result.passed
+    assert result.reason == "bearish_to_bullish_reversal"
+    assert "engulfing_body" not in result.metrics
+
+    gated = dict(config)
+    gated["surge"] = {**config["surge"], "allow_bullish_engulfing": False}
+    result = weekly_surge(daily, datetime(2026, 9, 14, 10, 30), gated, quote=_engulfing_quote(daily))
+    assert result.passed
+    assert result.reason == "bearish_to_bullish_reversal"
+    assert "engulfing_body" not in result.metrics
+
+
 def test_surge_not_up_vs_previous_close_rejected(config):
     daily = make_daily(periods=480, end="2026-09-11", drift=0.12)
     prev_close = float(daily.iloc[-1]["close"])
@@ -717,6 +778,37 @@ def test_bottom_volume_rejects_low_multiple_and_non_yang(config):
 # ---- 输出归档与研究边界 ----
 
 
+def test_current_week_rows_excludes_future_days(config):
+    """前视防护：当前周切片只允许 asof 当日（含）之前的行。"""
+    frame = make_daily(periods=40, end="2026-09-18")  # 含周一至周五完整周
+    rows_tue = current_week_rows(frame, datetime(2026, 9, 16, 10, 30))
+    assert set(pd.to_datetime(rows_tue.index).date) <= {date(2026, 9, 14), date(2026, 9, 15), date(2026, 9, 16)}
+    rows_mon = current_week_rows(frame, datetime(2026, 9, 14, 10, 30))
+    assert set(pd.to_datetime(rows_mon.index).date) == {date(2026, 9, 14)}
+
+
+def test_week_fraction_never_counts_future_days_after_close(config):
+    """盘后周进度只统计 asof（含）之前已完成的交易日，未来行不计入。"""
+    frame = make_daily(periods=40, end="2026-09-18")  # 误同步含周四/周五数据
+    fraction = elapsed_week_fraction(frame, datetime(2026, 9, 16, 15, 10), realtime=False)
+    assert abs(fraction - 0.6) < 1e-9  # 周一二三 3/5，而非 5/5
+
+
+def test_daily_buy_ignores_future_rows(config):
+    """日线买点盘后语义只允许 asof 当日（含）之前的日线参与计算（与截断数据完全等价）。"""
+    frame = make_daily(periods=260, end="2026-09-18", drift=0.01)
+    truncated = frame[frame.index <= "2026-09-16"]
+    asof = datetime(2026, 9, 16, 15, 10)
+    with_future = daily_buy(frame, asof, config)
+    without_future = daily_buy(truncated, asof, config)
+    assert with_future.reason == without_future.reason
+    assert with_future.decision == without_future.decision
+    if without_future.passed:
+        # “今天”必须是周三：含未来行与截断后价格指标一致
+        assert with_future.metrics["price"] == without_future.metrics["price"]
+        assert with_future.metrics["price"] == round(float(truncated.iloc[-1]["close"]), 3)
+
+
 def test_run_archive_preserves_previous_results(config, tmp_path):
     """两次运行的 runs/ 归档各自独立，既有归档不被覆盖。"""
     pipeline = _bare_pipeline(config, make_daily(periods=260, end="2026-09-15"), tmp_path)
@@ -729,6 +821,20 @@ def test_run_archive_preserves_previous_results(config, tmp_path):
     assert (archive2 / "diagnostics.json").exists()
     d1 = __import__("json").loads((archive1 / "diagnostics.json").read_text(encoding="utf-8"))
     assert d1["surge"]["reasons"].get("board_mode_skips_surge") == 1  # 第一次归档未被第二次覆盖
+
+
+def test_run_archive_same_second_collision_appends_suffix(config, tmp_path):
+    """归档碰撞边界：同一秒重复运行追加序号目录，既有归档内容原样保留。"""
+    pipeline = _bare_pipeline(config, make_daily(periods=260, end="2026-09-15"), tmp_path)
+    pool = pd.DataFrame({"代码": ["600001"], "名称": ["正常公司"]})
+    same_moment = datetime(2026, 9, 15, 15, 10)
+    first = pipeline._run_signal_pipeline(pool, same_moment, {}, {}, realtime=False, skip_surge=True)
+    second = pipeline._run_signal_pipeline(pool, same_moment, {}, {}, realtime=False, skip_surge=True)
+    archive1, archive2 = Path(first["run_archive"]), Path(second["run_archive"])
+    assert archive1 != archive2  # 同秒不覆盖：second 落到 <suffix>-2
+    assert archive2.name.endswith("-2")
+    assert (archive1 / "diagnostics.json").exists()
+    assert (archive2 / "diagnostics.json").exists()
 
 
 def test_scores_are_ranking_only_and_rules_never_consume_backtest(config):

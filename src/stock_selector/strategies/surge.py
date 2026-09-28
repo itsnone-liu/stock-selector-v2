@@ -82,8 +82,15 @@ def weekly_surge(daily: pd.DataFrame, asof: datetime, config: dict, quote: Quote
 
     previous_is_bearish = previous["close"] <= previous["open"]
     previous_is_bullish = previous["close"] > previous["open"]
+    previous_strictly_bearish = previous["close"] < previous["open"]
+    # 阳包阴反包（第三类正向形态）：上周严格收阴，本周阳线实体反包上周实体
+    # （本周收盘 > 上周开盘 且 本周开盘 <= 上周收盘）。判定先于阴转阳，
+    # 未满足反包条件的上周阴线仍走 bearish_to_bullish_reversal。
+    engulfs_body = current["close"] > float(previous["open"]) and current["open"] <= float(previous["close"])
     pattern = None
-    if cfg.get("allow_reversal", True) and previous_is_bearish:
+    if cfg.get("allow_bullish_engulfing", True) and previous_strictly_bearish and week_up and engulfs_body:
+        pattern = "bullish_engulfing"
+    elif cfg.get("allow_reversal", True) and previous_is_bearish:
         pattern = "bearish_to_bullish_reversal"
     elif cfg.get("allow_dual_yang", True) and previous_is_bullish:
         pattern = "dual_yang_efficiency"
@@ -110,18 +117,23 @@ def weekly_surge(daily: pd.DataFrame, asof: datetime, config: dict, quote: Quote
     score = min(abs(current_change) / 2, 10) + min((current_efficiency / max(previous_efficiency, 0.1)) * 5, 10)
     if pattern == "bearish_to_bullish_reversal":
         score = min(abs(current_change) / 2, 10) + 5
+    if pattern == "bullish_engulfing":
+        score = min(abs(current_change) / 2, 10) + 6
+    metrics = {
+        "current_change_pct": round(current_change, 3),
+        "previous_change_pct": round(previous_change, 3),
+        "projected_volume_ratio": round(volume_ratio, 3),
+        "elapsed_week_fraction": round(fraction, 4),
+        "current_efficiency": round(current_efficiency, 3),
+        "previous_efficiency": round(previous_efficiency, 3),
+    }
+    if pattern == "bullish_engulfing":
+        metrics["engulfing_body"] = True
     return RuleResult(
         Decision.PASS,
         "surge",
         pattern,
         round(score, 2),
-        {
-            "current_change_pct": round(current_change, 3),
-            "previous_change_pct": round(previous_change, 3),
-            "projected_volume_ratio": round(volume_ratio, 3),
-            "elapsed_week_fraction": round(fraction, 4),
-            "current_efficiency": round(current_efficiency, 3),
-            "previous_efficiency": round(previous_efficiency, 3),
-        },
+        metrics,
         [pattern],
     )

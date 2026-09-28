@@ -26,7 +26,8 @@ def current_week_rows(frame: pd.DataFrame, asof: date | datetime) -> pd.DataFram
     monday = ts - pd.Timedelta(days=ts.weekday())
     friday = monday + pd.Timedelta(days=4)
     idx = pd.to_datetime(frame.index)
-    return frame[(idx >= monday) & (idx < friday + pd.Timedelta(days=1))].copy()
+    # 前视防护：当前周切片只允许 asof 当日（含）之前的行，绝不让未来日线参与聚合。
+    return frame[(idx >= monday) & (idx < friday + pd.Timedelta(days=1)) & (idx <= ts)].copy()
 
 
 def completed_week_rows(frame: pd.DataFrame, asof: date | datetime) -> pd.DataFrame:

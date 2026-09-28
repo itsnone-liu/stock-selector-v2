@@ -331,7 +331,13 @@ class SelectorPipeline:
             for key, frame in frames.items()
         }
         paths["diagnostics"] = write_json(diagnostics, self.output_dir / f"diagnostics_{suffix}.json")
-        run_dir = self.output_dir / "runs" / at.strftime("%Y%m%d_%H%M%S") / suffix
+        stamp_dir = self.output_dir / "runs" / at.strftime("%Y%m%d_%H%M%S")
+        # 归档碰撞防护：同一秒同一 suffix 的重复运行追加序号，绝不覆盖既有归档。
+        run_dir = stamp_dir / str(suffix)
+        n = 2
+        while run_dir.exists():
+            run_dir = stamp_dir / f"{suffix}-{n}"
+            n += 1
         for key, frame in frames.items():
             write_csv(frame, run_dir / f"{key}.csv")
         write_json(diagnostics, run_dir / "diagnostics.json")

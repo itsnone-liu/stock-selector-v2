@@ -59,6 +59,11 @@ def daily_buy(
 ) -> RuleResult:
     if daily is None or len(daily) < 60:
         return RuleResult(Decision.SKIP, "buy", "insufficient_daily_bars")
+    # 前视防护：盘后语义下只允许 asof 当日（含）之前的日线参与计算，
+    # 防止误同步的未来日线被当作“今天”。
+    daily = daily[pd.to_datetime(daily.index).date <= asof.date()]
+    if len(daily) < 60:
+        return RuleResult(Decision.SKIP, "buy", "insufficient_daily_bars")
     cfg = config["buy"]
     close_series = daily["close"].copy()
     # 盘后无实时行情时，最后一根日线就是“今天”，其前两根才是昨天/前天。

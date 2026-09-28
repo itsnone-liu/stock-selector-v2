@@ -1,11 +1,12 @@
 # T2 Rule & Data Semantics Audit Evidence (Run audit_20260928055411432)
 
 - Task: stock-selector-v2 formal audit, frozen task packet hash 3ed7f3bc098d
-- Run: audit_20260928055411432 (stage T2, iteration 3)
+- Run: audit_20260928055411432 (stage T2, iteration 4)
 - Date: 2026-09-28
-- Suite: `tests/test_spec_semantics_t2.py` (56 deterministic tests, no network), plus the
+- Suite: `tests/test_spec_semantics_t2.py` (62 deterministic tests, no network), plus the
   pre-existing repo suite re-run in full; machine-verifiable post-commit log in
-  `docs/audit/T2_TESTLOG_20260928.md`.
+  `docs/audit/T2_TESTLOG_20260928.md` with raw output artifact
+  `docs/audit/T2_PYTEST_OUT_20260928.txt`.
 
 ## Iteration-3 mapping (REVISE testsRequired → added tests)
 
@@ -18,6 +19,16 @@
 | 输出归档不覆盖既有结果 | `test_run_archive_preserves_previous_results`（两次运行归档独立、首次归档内容存活） |
 | 排序分非概率、回测不参与规则判定 | `test_scores_are_ranking_only_and_rules_never_consume_backtest`（strategies/* 禁止引用 backtest；pipeline/output 无“概率”字样；输出列名为“综合评分”） |
 | 提交后重跑 + 机器可核验记录 + READY_FOR_AUDIT | `docs/audit/T2_TESTLOG_20260928.md`（命令/退出码/通过数）+ 最终 HEAD 上复跑后在 marker TESTS 行给出同源数据 |
+
+## Iteration-4 mapping (REVISE testsRequired → changes)
+
+| 评审要求 | 迭代4落地 |
+| --- | --- |
+| 第三类正向形态：实现修复 + 独立正向测试（PASS/reason/signals/关键指标）+ 反例防误命中 | `surge.py` 新增 `bullish_engulfing`（阳包阴反包，先于阴转阳判定，`allow_bullish_engulfing` 门控，默认开）；SPEC §6 补第三条形态定义。`test_surge_bullish_engulfing_positive`（PASS + `bullish_engulfing` + signals + `engulfing_body` 指标）；`test_surge_engulfing_counterexamples_fall_back_to_reversal`（未反包→阴转阳；配置关闭→阴转阳） |
+| 关键未来数据边界 | `current_week_rows` 截断到 asof 当日（含）——`test_current_week_rows_excludes_future_days`；盘后周进度只数已完成日——`test_week_fraction_never_counts_future_days_after_close`（3/5 而非 5/5）；`daily_buy` 入口截断——`test_daily_buy_ignores_future_rows`（与截断帧完全等价：同判定/同reason/同"今天"价格） |
+| 归档碰撞边界 | `pipeline.py` 同秒同 suffix 归档追加 `-2` 序号；`test_run_archive_same_second_collision_appends_suffix`（同秒两次运行→两个归档、首个保留） |
+| 测试证据须为可信执行证据而非自述 | 原始 pytest 输出以命令重定向落盘并入库：`docs/audit/T2_PYTEST_OUT_20260928.txt`（exit 0, 428 passed, 逐字未编辑），`T2_TESTLOG_20260928.md` 更新为指向该原始产物 |
+
 
 
 ## Frozen item → test mapping (SPEC §1-8, iteration 2 complete)
