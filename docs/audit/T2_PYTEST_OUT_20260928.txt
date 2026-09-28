@@ -1,14 +1,14 @@
-# TARGET_COMMIT execution record (audit_20260928055411432, T2, iteration 7)
-# code commit (run performed here, clean tree, never amended): f17ccd7514eeee40ea51500f13b69787a7db6ebc
-# target commit: this artifact's own commit (parent == code commit above;
-#   provable via tests/test_audit_target_binding.py: evidence-only delta, code identical)
+# TARGET_COMMIT execution record (audit_20260928055411432, T2, iteration 8)
+# code commit (clean-tree full run recorded verbatim below, never amended): 748d7c930c270cf8ca0807f38c71a9c8cc94539a
+# target commit: this artifact's own commit; final gate = tests/test_audit_target_binding.py
+#   (runs the FULL code suite at the exact target commit and asserts exit0/434 passed)
 # command: PYTHONPATH=src /root/.hermes/hermes-agent/venv/bin/python3 -m pytest -q
 # git status --porcelain at run: [] (empty = clean)
 ........................................................................ [ 16%]
 ........................................................................ [ 33%]
-........................................................................ [ 50%]
+........................................................................ [ 49%]
 ........................................................................ [ 66%]
-........................................................................ [ 83%]
-........................................................................ [100%]
+........................................................................ [ 82%]
+........................................................................ [ 99%]
+..                                                                       [100%]
 # exit code: 0
-# dots: 432 code tests at code commit; +2 binding tests at target = 434

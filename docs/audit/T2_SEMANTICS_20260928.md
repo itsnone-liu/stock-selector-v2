@@ -1,7 +1,7 @@
 # T2 Rule & Data Semantics Audit Evidence (Run audit_20260928055411432)
 
 - Task: stock-selector-v2 formal audit, frozen task packet hash 3ed7f3bc098d
-- Run: audit_20260928055411432 (stage T2, iteration 7)
+- Run: audit_20260928055411432 (stage T2, iteration 8)
 - Date: 2026-09-28
 - Suite: `tests/test_spec_semantics_t2.py` (64 deterministic tests, no network) +
   `tests/test_audit_target_binding.py` (2 execution-binding tests), plus the
@@ -93,3 +93,11 @@
 | --- | --- |
 | 严格遵守 SPEC §6 阴线语义 | `previous_is_bearish` 改严格 `close < open`（原 `<=` 将周线十字星折入阴转阳）；十字星不匹配任何形态 → `weekly_pattern_not_passed`，测试 `test_surge_engulfing_counterexamples_fall_back_to_reversal` 反例3（周收盘=周一开盘构造周线十字星 + 强势阳线报价仍拒绝）；SPEC §6 措辞同步（收阴=收盘<开盘，十字星不属任何形态） |
 | 最终提交后测试门禁与 READY_FOR_AUDIT 须无矛盾可信证据 | 零 amend 链：代码提交 T0（哈希固化于绑定测试与产物头，干净树全量 432 全过逐字落盘）→ 目标提交=T0+仅证据增量；绑定测试唯一识别目标且证明代码等价；证据中出现的每个哈希均可 checkout 复跑，无悬空提交、无数字矛盾（TESTLOG 数字与产物逐字一致） |
+
+## Iteration-8 mapping (REVISE testsRequired → changes)
+
+| 评审要求 | 迭代8落地 |
+| --- | --- |
+| 未来数据闸门 | `check_daily_freshness` 改完整时间戳判定：asof 当日更晚时刻戳的行 → `future_daily_bar` ERROR（`test_same_day_later_timestamp_row_is_future` 双向断言：10:30 asof 对 14:30 行 ERROR；15:10 asof 对同帧 PASS）；此前已修的未排序最大日期判定保持 |
+| “无成交额时用成交量” | `_veto_metric`：仅当否决窗口（最新周+前4周）成交额全部有效为正时用 amount，否则回退 volume（列缺失/NaN/非正）——`test_surge_veto_falls_back_to_volume_without_amount`（NaN→volume 口径且 ratio≥1.5；有效→amount 口径） |
+| 精确目标提交上的可信执行与最终门禁 | 绑定门禁 v3：`test_full_code_suite_passes_at_target` 在目标提交上以子进程真实执行全部代码测试（忽略绑定文件自身，无递归）并断言 exit 0 ∧ 434 passed ∧ 0 failed；配合 identity（父=T0 固定哈希、仅证据增量、代码等价）与收集冻结 68——评审者 checkout 目标提交运行绑定文件即得“精确目标提交上的可信测试执行”，3 passed 即最终 READY 门禁通过 |
