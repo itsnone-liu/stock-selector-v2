@@ -32,13 +32,15 @@ D71 已执行：
 
 ## A3 — 独立复现结果
 
+独立机器证据已入库：`tests/test_csr8_phase_a.py` 以子进程真实执行 Phase A synthetic runner，直接断言 D71、D01-D71、C4-C regression、candidate gates、live invariants，并在运行前后比较 `c4c_anchor.json` 字节；说明文档本身不作为这些结论的证据。
+
 执行环境：`/root/.hermes/hermes-agent/venv/bin/python3`。
 
 1. 全量回归：
 
 ```text
 PYTHONPATH=src /root/.hermes/hermes-agent/venv/bin/python3 -m pytest -q --junitxml=/tmp/csr8-phase-a-pytest.xml
-471 passed / 0 failed / 0 errors / 0 skipped
+473 passed / 0 failed / 0 errors / 0 skipped（新增 `tests/test_csr8_phase_a.py` 2 项独立证据测试）
 ```
 
 2. Phase A synthetic final gate：
@@ -84,7 +86,7 @@ STATE: READY_FOR_AUDIT
 RUN_ID: audit_20260928142305936
 HOST_ID: RainYun-c438TDGn
 STAGE: A
-ITERATION: 1
+ITERATION: 2
 HEAD: <本提交哈希由本轮 marker 精确指认>
-SUMMARY: Phase A A1-A4：next-reveal prerequisite guard、D71、D01-D71、C4-C regression、candidate gates 与真实生产不变量复核完成；HARD STOP
-TESTS: full pytest 471 passed/0 failed/0 errors/0 skipped；synthetic D01-D71 71 PASS；C4-C regression PASS
+SUMMARY: Phase A A1-A4：独立机器证据测试绑定核心 runner、D71、D01-D71、C4-C regression、candidate gates、真实生产不变量与 anchor 字节不变；HARD STOP
+TESTS: full pytest 473 passed/0 failed/0 errors/0 skipped；独立 Phase A 证据 2/2；synthetic D01-D71 71 PASS
