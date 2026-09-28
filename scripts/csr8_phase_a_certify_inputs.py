@@ -1,0 +1,128 @@
+#!/usr/bin/env python3
+"""Certified live-input inventory for bridge-executed audits (Phase A i17).
+
+The audit bridge executes post-commit pytest in an isolated detached
+worktree that intentionally has NO access to gitignored ``data/`` state.
+The Phase-A freeze nevertheless requires the REAL production gates
+(C4-C regression, live preflight, candidate gates, blindness scan,
+production REVEAL=1/SEAL=0, forbidden-domain absence, real fingerprint
+before==after) to run there.
+
+The audit verdict for iteration 16 states the sanctioned resolution:
+committed tests must not *necessarily* fail; gates that depend on
+non-committed live inputs need CERTIFIED inputs provided through the
+audit infrastructure.
+
+This script produces that certification, pinned inside the repo:
+
+* it walks the COMPLETE trees the frozen C4-C/C4-D chain reads
+  (every dir and file, with mode / size / sha256 — full inventory,
+  not a cherry-pick): ``data/csr8_phase_c`` (production chain, C3
+  preflight, secret) and ``data/adjustment_baostock`` (frozen price
+  authority verified by the C4-C regression);
+* it refuses to certify if any forbidden C4-D domain exists under
+  ``data/csr8_phase_c`` (annotator/, c4d_receipts/, c4d_proposals/) —
+  so the committed manifest itself is machine-checkable proof that
+  those domains are absent from the real tree;
+* it writes ``config/audit/certified_live_inputs.json`` (version 2,
+  multi-root).
+
+The bridge then reads this manifest FROM THE TARGET COMMIT (git object
+db, never the working tree), verifies the executor's live trees match
+every pinned hash exactly, and only then materializes them into the
+detached worktree.  Any drift (modified / missing / extra entry) is
+recorded and nothing is copied — fail-closed.
+
+Run (read-only w.r.t. data/, writes one config file):
+
+    python3 scripts/csr8_phase_a_certify_inputs.py
+"""
+
+import hashlib
+import json
+import stat
+import sys
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+OUT = ROOT / 'config/audit/certified_live_inputs.json'
+
+# 冻结 C4-C/C4-D 链读取的全部 data/ 根（grep 全量枚举过）。
+ROOTS = (
+    'data/csr8_phase_c',
+    'data/adjustment_baostock',
+)
+
+# C4-D 禁止域：绝不允许出现在认证树里（Phase A HARD STOP 的一部分）。
+FORBIDDEN_PREFIXES = (
+    'annotator/',
+    'c4d_receipts/',
+    'c4d_proposals/',
+)
+
+
+def sha256_file(p):
+    h = hashlib.sha256()
+    with open(p, 'rb') as f:
+        for chunk in iter(lambda: f.read(1 << 20), b''):
+            h.update(chunk)
+    return h.hexdigest()
+
+
+def inventory(root_rel):
+    root = ROOT / root_rel
+    if not root.is_dir():
+        print(f'FAIL: live root missing: {root}')
+        sys.exit(1)
+    dirs, files = [], []
+    for p in sorted(root.rglob('*')):
+        rel = p.relative_to(root).as_posix()
+        st = p.lstat()
+        if stat.S_ISLNK(st.st_mode):
+            print(f'FAIL: symlink refused in certified tree: '
+                  f'{root_rel}/{rel}')
+            sys.exit(1)
+        if p.is_dir():
+            if any(rel.startswith(fp) for fp in FORBIDDEN_PREFIXES):
+                print(f'FAIL: forbidden C4-D domain present: '
+                      f'{root_rel}/{rel}')
+                sys.exit(1)
+            dirs.append({'path': rel, 'mode': stat.S_IMODE(st.st_mode)})
+        elif p.is_file():
+            if any(rel.startswith(fp) for fp in FORBIDDEN_PREFIXES):
+                print(f'FAIL: forbidden C4-D file present: '
+                      f'{root_rel}/{rel}')
+                sys.exit(1)
+            files.append({'path': rel, 'sha256': sha256_file(p),
+                          'bytes': st.st_size,
+                          'mode': stat.S_IMODE(st.st_mode)})
+        else:
+            print(f'FAIL: non-regular entry refused: {root_rel}/{rel}')
+            sys.exit(1)
+    return {'root': root_rel, 'dirCount': len(dirs),
+            'fileCount': len(files),
+            'totalBytes': sum(f['bytes'] for f in files),
+            'dirs': dirs, 'files': files}
+
+
+def main():
+    roots = [inventory(r) for r in ROOTS]
+    manifest = {
+        'version': 2,
+        'generator': 'scripts/csr8_phase_a_certify_inputs.py',
+        'forbiddenPrefixes': list(FORBIDDEN_PREFIXES),
+        'roots': roots,
+        'fileCount': sum(r['fileCount'] for r in roots),
+        'totalBytes': sum(r['totalBytes'] for r in roots),
+    }
+    OUT.parent.mkdir(parents=True, exist_ok=True)
+    OUT.write_text(json.dumps(manifest, sort_keys=True, indent=1),
+                   encoding='utf-8')
+    print(f'certified {len(roots)} roots / '
+          f'{manifest["fileCount"]} files / '
+          f'{manifest["totalBytes"]} bytes -> {OUT.relative_to(ROOT)}')
+    return 0
+
+
+if __name__ == '__main__':
+    sys.exit(main())

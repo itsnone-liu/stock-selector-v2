@@ -185,8 +185,9 @@ def test_public_blindness_contract_and_anchor_are_machine_checked():
 
 def test_bridge_machine_audit_script_executes_complete_matrix():
     import subprocess, sys
-    result = subprocess.run([sys.executable, str(ROOT / "scripts/csr8_phase_a_machine_audit.py")], cwd=ROOT, capture_output=True, text=True, timeout=900)
+    result = subprocess.run([sys.executable, str(ROOT / "scripts/csr8_phase_a_machine_audit.py")], cwd=ROOT, capture_output=True, text=True, timeout=1200)
     assert result.returncode == 0, result.stdout[-4000:] + result.stderr[-4000:]
+    assert '"certified_inputs":"VERIFIED"' in result.stdout
     assert '"D01_D71":"PASS"' in result.stdout
     assert '"C4D":"PASS"' in result.stdout
     assert '"C4C_regression":"PASS"' in result.stdout
@@ -195,8 +196,63 @@ def test_bridge_machine_audit_script_executes_complete_matrix():
     assert '"real_fingerprint":"UNCHANGED"' in result.stdout
     assert '"production_snapshot":"REVEAL=1 SEAL=0"' in result.stdout
     assert '"integration":"PASS"' in result.stdout
-    assert '"C4C_regression":"PASS"' in result.stdout
-    assert '"real_fingerprint":"UNCHANGED"' in result.stdout
+
+
+def test_certified_live_inputs_manifest_is_complete_and_forbidden_free():
+    """The committed inventory certifies the ENTIRE data/csr8_phase_c tree:
+    no forbidden C4-D domain can be listed (or exist), the local tree must
+    match every pinned hash/mode exactly, and the pinned production chain
+    links to the frozen anchor head hash."""
+    import importlib.util
+    cert = ROOT / "config/audit/certified_live_inputs.json"
+    assert cert.is_file(), "config/audit/certified_live_inputs.json missing"
+    manifest = json.loads(cert.read_text())
+    assert manifest["version"] == 2
+    assert {r["root"] for r in manifest["roots"]} == {
+        "data/csr8_phase_c", "data/adjustment_baostock"}
+    assert manifest["fileCount"] == sum(len(r["files"]) for r in manifest["roots"])
+    paths = []
+    for r in manifest["roots"]:
+        paths += [f"{r['root']}/{f['path']}" for f in r["files"]]
+        paths += [f"{r['root']}/{d['path']}" for d in r["dirs"]]
+    for forbidden in ("data/csr8_phase_c/annotator/",
+                      "data/csr8_phase_c/c4d_receipts/",
+                      "data/csr8_phase_c/c4d_proposals/"):
+        assert not any(p.startswith(forbidden) for p in paths), \
+            f"forbidden C4-D domain certified: {forbidden}"
+    # required gate inputs are pinned
+    listed = {f"{r['root']}/{f['path']}" for r in manifest["roots"]
+              for f in r["files"]}
+    for required in (
+        "data/csr8_phase_c/secret/secret_salt",
+        "data/csr8_phase_c/secret/packet_plan.json",
+        "data/csr8_phase_c/production/c4-prod-0002/sealing/sealing_log.jsonl",
+        "data/csr8_phase_c/c4c_proposals/c4-prod-0002/first_reveal.proposal.json",
+        "data/adjustment_baostock/fetch_manifest.json",
+    ):
+        assert required in listed, f"gate input not certified: {required}"
+    # the local trees must equal the manifest exactly (bridge-certified
+    # materialization or native live tree — either way, zero tolerance)
+    spec = importlib.util.spec_from_file_location(
+        "c4d_machine_audit", ROOT / "scripts/csr8_phase_a_machine_audit.py")
+    audit = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(audit)
+    checked = audit.verify_certified_tree()
+    assert checked["fileCount"] == manifest["fileCount"]
+    # pinned chain links to the frozen anchor head
+    mod = _load()
+    csr_root = next(r for r in manifest["roots"]
+                    if r["root"] == "data/csr8_phase_c")
+    log_entry = next(f for f in csr_root["files"]
+                     if f["path"] == "production/c4-prod-0002/sealing/"
+                                     "sealing_log.jsonl")
+    import hashlib
+    live_log = mod.REAL_PRODUCTION / mod.REAL_SESSION / "sealing" / \
+        "sealing_log.jsonl"
+    assert hashlib.sha256(live_log.read_bytes()).hexdigest() == \
+        log_entry["sha256"]
+    evs = [json.loads(l) for l in live_log.read_text().splitlines() if l.strip()]
+    assert evs[0]["event_hash"] == mod.LIVE_R1_EVENT_HASH
 
 
 def test_phase_a_machine_evidence_manifest_is_complete():

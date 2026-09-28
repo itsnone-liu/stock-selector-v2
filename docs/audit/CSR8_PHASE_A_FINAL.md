@@ -42,8 +42,11 @@ D71 已执行：
 
 ```text
 PYTHONPATH=src /root/.hermes/hermes-agent/venv/bin/python3 -m pytest -q --junitxml=/tmp/csr8-phase-a-pytest.xml
-473 passed / 0 failed / 0 errors / 0 skipped（新增 `tests/test_csr8_phase_a.py` 2 项独立证据测试）
+481 passed / 0 failed / 0 errors / 0 skipped（tests/test_csr8_phase_a.py 10 项独立证据测试）
 ```
+
+> 本文档的数字仅为历史记录；权威测试证据是审计桥在精确目标提交上生成的
+> executor-tests 记录，不以本文档为准。
 
 2. Phase A synthetic final gate：
 
