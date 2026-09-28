@@ -1,10 +1,22 @@
 {
-  "goal": "DSH /audit A5 验收演练：在 stock-selector-v2 新增一个独立、无副作用的纯函数小模块，端到端验证审计闭环 EXECUTING→READY_FOR_AUDIT→远端gate→AUDITING→REVISE→修复→APPROVE。演练约定：T1 第 1 轮按 approvedPlan 植入恰好一处违反 R2 的边界缺陷（代码注释标 PLANTED-DEFECT）供审核链路验证，收到 REVISE 后在修复轮移除。全程不触碰 csr8/c4 协议脚本、docs 冻结设计文档与 data/ 目录。",
-  "approvedPlan": "T1 单阶段两轮。第 1 轮：实现 scripts/audit_e2e_drill/range_stats.py 与 test_range_stats.py（标准库 unittest），并按演练约定在『空输入』边界植入一处违反 R2 的缺陷（return None 而非 []，行尾注释 PLANTED-DEFECT），git commit 后输出 READY_FOR_AUDIT；预期审核结论 REVISE。第 2 轮：仅修复该边界使 R2 全部满足、测试全绿，再次 commit 并输出 READY_FOR_AUDIT；预期 APPROVE。除该新目录外不修改任何文件，不 push（push 由审计 gate 负责）。",
+  "goal": "正式审计 stock-selector-v2：依据 SPEC.md、README.md、EVALUATION.md 和现有测试，验证统一选股系统的规则语义、数据闸门、风险过滤、周/月/日线管线、板块与底部观察池、输出归档及回测研究边界；发现问题后由 DSH 在同一 session 修复，并经 GitHub remote gate 与独立 Web reviewer 逐轮复审，直到所有阶段通过。审计不得把研究性结论误写成实盘保证，不得修改 data/ 中的原始数据，不得泄露或提交凭据。",
+  "approvedPlan": "分四阶段执行正式审计。T1 基线与契约：运行完整 pytest，检查 CLI/配置/模型/输出归档的基本可用性，核对 README、SPEC 与实现是否一致；修复阻断性测试、导入、路径、配置和输出契约问题。T2 规则与数据语义：逐项核对显式 asof、已完成周/当前周切分、周内成交量进度、腾讯手到股换算、数据新鲜度、实时报价闸门、B股/ST/退市/上市时间/流动性过滤、月周趋势、周线形态、日线买点和板块模式；补充或修复可复现的边界测试。T3 专项通道与研究边界：核对底部三倍量观察池状态机、小金叉通道、盘后/盘中/板块输出、rejections/diagnostics、同刻量快照、不可覆盖运行归档、回测统计及研究结论与生产语义的隔离；修复发现的问题并验证不破坏主流程。T4 最终回归与交付：运行全量测试和必要的本地端到端/CLI dry-run，检查 git diff 仅包含本审计允许的代码、测试、文档或配置修复，不修改 data/ 原始数据和凭据；形成最终证据摘要，确认所有 P0/P1 已清零或明确进入 NEED_USER。每一轮必须先测试再提交，输出 READY_FOR_AUDIT；Web reviewer 只能依据 GitHub remote commit、diff、测试报告和 verified evidence bundle 独立裁决。",
   "stages": [
     {
       "id": "T1",
-      "requirements": "1) 新建 scripts/audit_e2e_drill/range_stats.py：实现模块级函数 clamp_range(values, lo, hi)，返回 values 中位于闭区间 [lo, hi] 内的元素列表，去重后升序。2) R2 边界语义（必须逐条全部满足）：a) values 为空列表 [] 或 None 时必须返回空列表 []，不得返回 None、不得抛异常；b) 元素为 NaN（math.isnan 为真）时该元素必须被排除；c) lo > hi 时必须返回空列表 []。3) 新建 scripts/audit_e2e_drill/test_range_stats.py，仅用标准库 unittest，至少覆盖：常规区间过滤、空列表输入、None 输入、全 NaN 输入、lo>hi、含重复元素的去重升序；注意本机系统 python3 损坏，测试必须用 /root/venv/bin/python3 执行：cd <repo根> && /root/venv/bin/python3 -m unittest discover -s scripts/audit_e2e_drill -p 'test_*.py' 必须 0 失败。4) 除上述新目录内文件（含按需的 __init__.py）外不得修改、删除任何其他文件。"
+      "requirements": "1) 必须运行项目完整测试命令（优先使用项目声明的环境/解释器与 pytest -q），记录命令、通过数、失败数和跳过项；2) 检查所有模块可导入，CLI 的 help/config 路径可用，默认配置可加载；3) 核对 README、SPEC、EVALUATION 与当前实现的关键契约，尤其是 output/runs 不覆盖、诊断/拒绝输出和研究结论非实盘保证；4) 修复发现的阻断性问题并补最小回归测试；5) 不修改 data/ 原始数据、密钥或无关项目；6) 只有全量基线测试通过且证据写入提交后才能 READY_FOR_AUDIT。"
+    },
+    {
+      "id": "T2",
+      "requirements": "1) 逐项验证 SPEC 第1-8节：显式 asof 与已完成周/当前周边界、真实涨幅不外推、成交量周内进度、腾讯手→股、历史/实时新鲜度闸门、零价零量处理、B股/ST/退市/上市时间/低流动性过滤、月线 MA5>MA10>MA20、周线三类信号、放量阴线否决、当前周阳线及三类形态、日线三类买点优先级与投影回退标记、板块跳过 weeksurge 但保留统一数据闸门和买点；2) 对发现的缺口补充确定性单元/语义测试并修复；3) 测试必须覆盖空数据、短历史、NaN、过期数据、未来数据、周一/盘中边界、成交量单位和缺少同刻快照等边界；4) 不能以回测结果替代规则正确性，不能把排序分解释为概率；5) 提交后再次运行相关测试并输出 READY_FOR_AUDIT。"
+    },
+    {
+      "id": "T3",
+      "requirements": "1) 核对底部三倍量观察池的事件定义、active/invalidated/expired/converted 状态机、60交易日过期、跌破事件日低点失效以及 --select 专用通道；2) 核对盘后、盘中、板块、bottom-volume、backtest 的输出字段和模式隔离；3) 核对 rejections_*、diagnostics_*、bottom_pool_active、bottom_new_events、intraday_volume_snapshots 与 output/runs 时间归档的可追溯性和不可覆盖性；4) 核对研究脚本的分区/断点/资源限制与生产数据边界，不能提交 data/ 生成物或凭据；5) 运行专项测试和至少一个不改数据的 dry-run/fixture 端到端验证；6) 修复后全量回归并输出 READY_FOR_AUDIT。"
+    },
+    {
+      "id": "T4",
+      "requirements": "1) 运行完整 pytest 和本审计新增的全部回归测试，必须 0 失败；2) 对主要 CLI 入口执行 help 或 fixture/dry-run 验证，不得因真实外部行情不可用而伪造通过；3) 检查 git diff、测试报告、提交范围和 remote tip，确认没有修改 data/ 原始数据、凭据、定时任务或旧系统；4) README/SPEC/EVALUATION 若因修复需要更新，必须同步说明边界和证据，不得无证据扩大结论；5) P0/P1 问题必须清零，无法由执行者安全决定的策略改变必须 NEED_USER；6) 形成最终审计摘要，包含每阶段 commit、测试命令与结果、修复项、残余风险和可复现验证方式，并输出 READY_FOR_AUDIT。"
     }
   ]
 }
