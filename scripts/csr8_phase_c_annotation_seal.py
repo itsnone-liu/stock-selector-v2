@@ -136,6 +136,21 @@ persisted ledger artifact):
       this declared behavior. Closing this boundary would require a
       new append-only attempt ledger artifact — deliberately deferred
       (design erratum territory, not an implementation fix).
+
+C4-D-SYNTH-AUDIT-FIX6 (after the user's re-audit of 8074cc7 — R6/R7
+formally CLOSED there; design text UNCHANGED; no state-machine
+extension):
+  sealed-pair replay: semantic_replay pairs each SEAL with the REVEAL
+      it actually CLOSES (last REVEAL strictly before the SEAL) and
+      derives the ordinal from that pairing; prove_attempt_history
+      accepts an explicit `reveal` and windows SEALs to the ordinal's
+      chain segment, so the legitimate executor-produced chain
+      [R1,S1,R2] keeps the S1 proof anchored to R1/ordinal-1 instead
+      of re-pairing it to R2 (D70)
+  D67 hardening: seal_transaction exposes a test-only after_derive_hook
+      injection point; the fixture tampers history INSIDE the same
+      transaction after the early derive passed, proving the
+      commit-time whole-history barrier itself refuses the append
 """
 
 import contextlib
@@ -1003,16 +1018,23 @@ def _check_revocation(sb, sid, ordinal, attempt, r1, gate):
     return tomb
 
 
-def prove_attempt_history(sb, sid, ordinal, gate=G_REP, events=None):
+def prove_attempt_history(sb, sid, ordinal, gate=G_REP, events=None,
+                          reveal=None):
     """FIX3-R7: one invariant proof for the complete published-attempt
     history. Every attempt's directory, receipt, snapshot, schema,
     canonical bytes, mode and receipt↔snapshot derivation are checked;
     every non-current attempt must have a valid tombstone; the SEAL-bound
     attempt, if any, must be the sole non-revoked attempt and have a valid
     approval. This is deliberately shared by pre-SEAL derivation,
-    progression, seal preflight and post-SEAL replay/finalization."""
+    progression, seal preflight and post-SEAL replay/finalization.
+
+    FIX6: `reveal` pins the REVEAL this history proof closes, and SEALs
+    are windowed to the ordinal's chain segment (strictly after the
+    ordinal-th REVEAL, strictly before the (ordinal+1)-th) — a later
+    REVEAL on the chain ([R1,S1,R2]) can never re-pair the sealed S1
+    with the wrong r1/ordinal."""
     evs = list(events) if events is not None else chain_events(sb, sid)
-    r1 = _last_reveal(evs)
+    r1 = reveal if reveal is not None else _last_reveal(evs)
     published = attempts_published(sb, sid, ordinal)
     # FIX4-R7B: historical object disappearance is itself corruption.
     # Published attempts are an append-only contiguous sequence; a hole
@@ -1020,10 +1042,16 @@ def prove_attempt_history(sb, sid, ordinal, gate=G_REP, events=None):
     if published and published != list(range(1, published[-1] + 1)):
         fail(f'{gate}: published attempt history has a hole '
              f'({published}) — FORENSIC')
-    seals = [e for e in evs if e['event_type'] == c2.SEAL]
+    rpos = [i for i, e in enumerate(evs) if e['event_type'] == c2.REVEAL]
+    if not 1 <= ordinal <= len(rpos):
+        fail(f'{gate}: ordinal {ordinal} outside the revealed prefix '
+             f'({len(rpos)}) — FORENSIC')
+    lo = rpos[ordinal - 1]
+    hi = rpos[ordinal] if ordinal < len(rpos) else len(evs)
+    seals = [e for e in evs[lo + 1:hi] if e['event_type'] == c2.SEAL]
     seal_bound = None
     if len(seals) > 1:
-        fail(f'{gate}: more than one SEAL while proving attempt history')
+        fail(f'{gate}: more than one SEAL in ordinal {ordinal} window')
     if seals:
         target_sha = seals[0]['payload']['receipt_sha256']
         matches = [n for n in published
@@ -1267,7 +1295,7 @@ def _last_reveal(evs):
 
 
 def replay_attempt(sb, sid, ordinal=None, attempt=None,
-                   require_approval=False):
+                   require_approval=False, r1=None):
     """Pre-seal receipt-side replay (D17 surface): artifact consistency
     without requiring a SEAL on the chain yet. Gate: G-C4D-SEAL-REPLAY."""
     if ordinal is None:
@@ -1280,7 +1308,11 @@ def replay_attempt(sb, sid, ordinal=None, attempt=None,
         attempt = history['live'][0] if history['live'] else None
         if attempt is None:
             fail(f'{G_REP}: no active attempt to replay')
-    r1 = _last_reveal(chain_events(sb, sid))
+    if r1 is None:
+        # FIX6: only derive r1 when the caller did not pin the sealed
+        # pair's REVEAL — a later REVEAL on the chain must not re-pair
+        # an ordinal-1 proof to the wrong r1.
+        r1 = _last_reveal(chain_events(sb, sid))
     rbytes, obj = _check_attempt_artifacts(sb, sid, ordinal, attempt, r1,
                                            G_REP)
     # FIX2-R1: the persisted approval is FULLY re-proven (schema,
@@ -1313,16 +1345,26 @@ def semantic_replay(sb, sid, events=None):
         lg.events = list(events)
         c2translate(lg.verify, False)
         evs = list(events)
-    r1 = _last_reveal(evs)
     seals = [e for e in evs if e['event_type'] == c2.SEAL]
     if len(seals) != 1:
         fail(f'{G_REP}: expected exactly one SEAL for replay here, found '
              f'{len(seals)}')
     s1 = seals[0]
-    ordinal = sum(1 for e in evs if e['event_type'] == c2.REVEAL)
+    # FIX6: pair the SEAL with the REVEAL it actually CLOSES — the last
+    # REVEAL strictly before the SEAL — never the chain's last REVEAL.
+    # On [R1,S1,R2] the proof of S1 stays anchored to R1/ordinal-1; the
+    # presence of a later REVEAL must not break a sealed pair (user
+    # audit of 8074cc7, final blocker).
+    s_idx = next(i for i, e in enumerate(evs) if e is s1)
+    before = [e for e in evs[:s_idx] if e['event_type'] == c2.REVEAL]
+    if not before:
+        fail(f'{G_REP}: SEAL does not close any REVEAL')
+    r1 = before[-1]
+    ordinal = len(before)
     # FIX3-R7: semantic replay is a whole-history proof, including
     # revoked/historical attempts, not only the SEAL-bound attempt.
-    prove_attempt_history(sb, sid, ordinal, gate=G_REP, events=evs)
+    prove_attempt_history(sb, sid, ordinal, gate=G_REP, events=evs,
+                          reveal=r1)
     bound = None
     for n in attempts_published(sb, sid, ordinal):
         if sha(receipt_bytes_of(sb, sid, ordinal, n)) == \
@@ -1337,7 +1379,7 @@ def semantic_replay(sb, sid, events=None):
     adir = attempt_dir(sb, sid, ordinal, bound)
     if not (adir / 'seal_approval.json').exists():
         fail(f'{G_REP}: SEAL binds an unapproved receipt')
-    replay_attempt(sb, sid, ordinal, bound)
+    replay_attempt(sb, sid, ordinal, bound, r1=r1)
     archived = (sealing_dir(sb, sid) /
                 s1['payload']['bytes_ref']).read_bytes()
     if not (sha(rbytes) == s1['payload']['receipt_sha256']
@@ -1391,7 +1433,7 @@ def _anchor_payload(seal_ev, rsha):
 
 
 def seal_transaction(sb, sid, stop_after=None, payload_override=None,
-                     anchor_override=None):
+                     anchor_override=None, after_derive_hook=None):
     """§5.2 frozen 1–11 order with crash checkpoints (FIX3-F18 labels:
     replay PASS => SEAL_COMMITTED; finalize => SEALED)."""
     def stop(name):
@@ -1416,6 +1458,11 @@ def seal_transaction(sb, sid, stop_after=None, payload_override=None,
              f'(derived={state})')
     ordinal, attempt = info['ordinal'], info['attempt']
     stop('after_derive')
+    if after_derive_hook is not None:
+        # FIX6: test-only, same-transaction tamper injection point —
+        # proves the commit-time whole-history barrier catches history
+        # corruption that happens AFTER the early derive already passed.
+        after_derive_hook()
     adir = attempt_dir(sb, sid, ordinal, attempt)
     rbytes = (adir / 'receipt.json').read_bytes()
     approval = read_json(adir / 'seal_approval.json')
@@ -3588,7 +3635,7 @@ def d66():
     print('PASS D66')
 
 
-@fixture('D67', 'commit-time whole-history re-proof blocks post-derive tamper')
+@fixture('D67', 'commit-time whole-history re-proof blocks same-transaction tamper')
 def d67():
     sb, sid = prepared_ready()
     revoke_receipt(sb, sid, 'DRAFT_ERROR')
@@ -3596,18 +3643,19 @@ def d67():
                                       ann_session='annsess-opaque-0002'))
     make_receipt(sb, sid)
     make_seal_approval(sb, sid)
-    # Early derive PASSES — the stop lands exactly after derive_state.
-    try:
-        seal_transaction(sb, sid, stop_after='after_derive')
-        raise RuntimeError('expected CrashSim after_derive')
-    except CrashSim:
-        pass
-    # Tamper the HISTORICAL attempt inside the post-derive window: the
-    # commit-time whole-history proof must refuse the append (R7-C2).
-    os.chmod(attempt_dir(sb, sid, 1, 1) / 'draft_snapshot.bin', 0o644)
+
+    def tamper_history():
+        # Fires INSIDE the same seal_transaction, after the early
+        # derive_state() has already passed on the clean history.
+        os.chmod(attempt_dir(sb, sid, 1, 1) / 'draft_snapshot.bin', 0o644)
+
     evs_before = chain_events(sb, sid)
     head_before = head_path(sb, sid).read_bytes()
-    expect_exact_gate(lambda: seal_transaction(sb, sid), G_PRE)
+    # ONE transaction: early derive PASSes, the hook tampers the
+    # historical attempt mid-transaction, and the commit-time
+    # whole-history proof must refuse the irreversible append (R7-C2).
+    expect_exact_gate(lambda: seal_transaction(
+        sb, sid, after_derive_hook=tamper_history), G_PRE)
     assert chain_events(sb, sid) == evs_before       # no SEAL appended
     assert head_path(sb, sid).read_bytes() == head_before
     assert derive_state(sb, sid)[0] == 'FORENSIC'
@@ -3664,6 +3712,39 @@ def d69():
     assert next_attempt(sb, sid, 1) == 1       # documented boundary
     cleanup_sb(sb)
     print('PASS D69')
+
+
+@fixture('D70', 'post-R2 sealed-pair replay stays valid ([R1,S1,R2])')
+def d70():
+    """FIX6 final blocker (user audit of 8074cc7): the frozen executor can
+    legitimately produce [R1,S1,R2]; the S1 semantic proof must stay
+    anchored to R1/ordinal-1 and must not be re-paired to R2. The R2-era
+    lifecycle naming is deliberately NOT extended here (deferred state-
+    machine design); only 'old sealed pair proof must not rot' is owed."""
+    sb, sid = prepared_sealed()
+    build_next_reveal_proposal(sb, sid, 2, _current_prefix_head(sb, sid))
+    approve_next_reveal(sb, sid, 2)
+    materialize_next_permit(sb, sid, 2)
+    reveal_transaction(sb, sid, 2)
+    # C2 full-chain verify against the trusted head
+    lg = c2.SealingLog(log_path(sb, sid), head_path(sb, sid))
+    c2translate(lg.load().verify, True)
+    evs = chain_events(sb, sid)
+    assert [e['event_type'] for e in evs] == \
+        [c2.REVEAL, c2.SEAL, c2.REVEAL]
+    # authorization(2) fully consumed by the appended R2
+    proposal = read_json(proposal_path(sb, sid, 2))
+    assert derive_reveal_consumption(evs, proposal, sid) == 'CONSUMED'
+    # S1 ↔ R1 semantic replay on the extended chain
+    head = semantic_replay(sb, sid)
+    assert head == evs[-1]['event_hash']
+    # ordinal-1 attempt history proves against R1 — not R2
+    r1 = [e for e in evs if e['event_type'] == c2.REVEAL][0]
+    prove_attempt_history(sb, sid, 1, gate=G_REP, events=evs, reveal=r1)
+    # the sealed pair must not degrade to FORENSIC because R2 exists
+    assert derive_state(sb, sid)[0] != 'FORENSIC'
+    cleanup_sb(sb)
+    print('PASS D70')
 
 
 # --------------------------------------------------------------------------
