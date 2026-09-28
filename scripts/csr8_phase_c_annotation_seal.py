@@ -2203,6 +2203,10 @@ def derive_reveal_consumption(evs, proposal, sid):
 def reveal_transaction(sb, sid, ordinal=2, payload_override=None):
     """Ordinal-N reveal with binding verification BEFORE any append
     (authorization layer first; frozen C2 alternation beneath)."""
+    # Explicit append-site prerequisite: retain the guard at the irreversible
+    # REVEAL boundary even though verify_next_authorization_chain also proves
+    # it, so every entry point is independently fail-closed.
+    prove_next_reveal_eligible(sb, sid, ordinal)
     proposal = verify_next_authorization_chain(sb, sid, ordinal)
     evs = chain_events(sb, sid)
     state = derive_reveal_consumption(evs, proposal, sid)

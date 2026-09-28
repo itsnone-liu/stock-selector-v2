@@ -8,8 +8,10 @@ import hashlib
 import importlib.util
 import io
 import json
+import ast
 from contextlib import redirect_stdout
 from pathlib import Path
+import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = ROOT / "scripts" / "csr8_phase_c_annotation_seal.py"
@@ -64,11 +66,51 @@ def test_d71_uses_real_guard_and_leaves_ordinal3_artifacts_absent(tmp_path):
             mod.candidate_for_ordinal = old_candidate
 
 
-def test_phase_a_guard_is_wired_at_all_authorization_entrypoints():
-    text = SCRIPT.read_text()
-    guard = "prove_next_reveal_eligible(sb, sid, ordinal)"
-    assert text.count(guard) >= 4
-    assert "c2translate(lg.load().verify, True)" in text
-    assert "last committed event" in text
-    assert "_cand_prefix_gate" in text
-    assert "fingerprint_real() != before" in text
+def test_guard_semantics_and_five_entrypoints_are_machine_checked():
+    tree = ast.parse(SCRIPT.read_text())
+    funcs = {n.name: n for n in ast.walk(tree) if isinstance(n, ast.FunctionDef)}
+    guard = funcs["prove_next_reveal_eligible"]
+    calls = [n for n in ast.walk(guard) if isinstance(n, ast.Call)]
+    call_text = {ast.unparse(n) for n in calls}
+    assert "c2translate(lg.load().verify, True)" in call_text
+    assert any("event_type" in ast.unparse(n) and "c2.SEAL" in ast.unparse(n) for n in ast.walk(guard))
+    assert any("ordinal != reveals + 1" in ast.unparse(n) for n in ast.walk(guard))
+    for name in ("build_next_reveal_proposal", "approve_next_reveal",
+                 "materialize_next_permit", "verify_next_authorization_chain",
+                 "reveal_transaction"):
+        assert name in funcs
+        body = ast.unparse(funcs[name])
+        assert "prove_next_reveal_eligible(sb, sid, ordinal)" in body, name
+
+
+def test_live_fingerprint_and_blindness_scan_are_explicitly_executed():
+    mod = _load()
+    before = mod.fingerprint_real()
+    mod.live_preflight()
+    candidate = mod.verify_candidate_gates()
+    assert candidate["ordinal1_matches_frozen_first"] is True
+    assert candidate["revealed_prefix"] >= 1
+    assert mod.fingerprint_real() == before
+    assert mod.REAL_ANNOTATOR.exists() is False
+    assert mod.REAL_RECEIPTS.exists() is False
+    assert mod.REAL_PROPOSALS_C4D.exists() is False
+    public = mod.PUBLIC_DIR
+    forbidden = ("opaque_case_id", "packet_id", "case_key", "secret_salt", "outcome")
+    for p in public.glob("*.json"):
+        text = p.read_text()
+        assert not any(word in text for word in forbidden), p
+
+
+def test_executable_runner_reports_all_frozen_gate_classes():
+    mod = _load()
+    result = __import__("subprocess").run(
+        [__import__("sys").executable, str(SCRIPT), "synthetic"],
+        cwd=ROOT, capture_output=True, text=True, timeout=900,
+    )
+    assert result.returncode == 0, result.stdout[-4000:] + result.stderr[-4000:]
+    out = result.stdout
+    for token in ("CANDIDATE GATES PASS", "[D71] PASS", "C4-D SYNTHETIC AUDIT GREEN"):
+        assert token in out
+    assert '"fixtures":"D01–D71 (71 PASS)"' in out
+    assert '"c4c_regression":"PASS"' in out
+    assert '"live_invariants":"REVEAL=1 SEAL=0 annotation=0 c4d_domains=absent anchor=absent"' in out
