@@ -46,17 +46,16 @@ def main():
         # real pre/post production fingerprint claim in machine output.
         import subprocess, sys
         c4c_state = ROOT / "data/csr8_phase_c/production/c4-prod-0002/sealing/sealing_log.jsonl"
-        c4c = subprocess.run([sys.executable, str(ROOT / "scripts/csr8_phase_c_first_reveal.py"), "synthetic"], cwd=ROOT, capture_output=True, text=True, timeout=900) if c4c_state.exists() else None
+        secret_salt = ROOT / "data/csr8_phase_c/secret/secret_salt"
+        c4c = subprocess.run([sys.executable, str(ROOT / "scripts/csr8_phase_c_first_reveal.py"), "synthetic"], cwd=ROOT, capture_output=True, text=True, timeout=900) if c4c_state.exists() and secret_salt.exists() else None
         if c4c is not None:
             if c4c.returncode != 0 or "C4-C SYNTHETIC PASS" not in c4c.stdout or "content fingerprints unchanged" not in c4c.stdout:
                 raise RuntimeError("C4-C regression integration gate failed")
         else:
-            # Detached audit worktrees intentionally omit secret/live domains.
-            # The committed C4-C public snapshot is the reproducible fixture;
-            # its exact schema and frozen one-REVEAL invariant are checked below.
-            snap = json.loads((m.PUBLIC_DIR / "c4d_phase_a_public_state.json").read_text())
-            if snap["production"] != {"event_types": ["REVEAL_PACKET"], "production_head_hash": "b5ec0ba1d485219fd7a2198b23e7ac0f979c23d4dd0cced16faa80d8f19437d5", "seal_count": 0, "reveal_count": 1}:
-                raise RuntimeError("C4-C committed integration fixture drift")
+            # Missing live/secret inputs are an unavailable integration gate,
+            # never a synthetic PASS.  This is fail-closed for detached
+            # worktrees and forces the bridge to provide real inputs.
+            raise RuntimeError("C4-C live integration inputs unavailable: refusing PASS")
         seen = []
         for name, _desc, fn in m.FIXTURES:
             fn(); seen.append(name)
