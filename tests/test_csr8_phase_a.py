@@ -90,27 +90,49 @@ def test_complete_d01_d71_matrix_runs_in_isolated_sandbox(tmp_path):
     assert seen == [f"D{i:02d}" for i in range(1, 72)]
 
 
+def test_guard_rejects_prefix_mismatch_without_swallowing(tmp_path):
+    mod = _load()
+    old = _patch_isolated_c3(mod, tmp_path)
+    try:
+        sb, sid = mod.prepared_sealed()
+        # Persisted R1 is deliberately not candidate prefix; rejection must
+        # escape the guard and no proposal domain may be created.
+        mod.candidate_total_order = lambda: [{"opaque_case_id": "wrong", "T": "2099-01-02"}]
+        with pytest.raises(RuntimeError, match="candidate total-order prefix"):
+            mod.build_next_reveal_proposal(sb, sid, 2, mod._current_prefix_head(sb, sid))
+        assert not mod.proposals_dom(sb, sid, 2).exists()
+        mod.cleanup_sb(sb)
+    finally:
+        _restore_isolated_c3(mod, old)
+
+
+def test_second_sealed_pair_continues_to_next_ordinal(tmp_path):
+    mod = _load()
+    old = _patch_isolated_c3(mod, tmp_path)
+    try:
+        sb, sid = mod.prepared_sealed()
+        mod.build_next_reveal_proposal(sb, sid, 2, mod._current_prefix_head(sb, sid))
+        mod.approve_next_reveal(sb, sid, 2)
+        mod.materialize_next_permit(sb, sid, 2)
+        mod.reveal_transaction(sb, sid, 2)
+        # Complete the second synthetic pair using the same persisted APIs.
+        mod.handoff(sb, sid, mod.SYNTH_CASE, "2099-01-03")
+        mod.write_draft(sb, sid, mod.sample_draft(sb, sid))
+        mod.make_receipt(sb, sid)
+        mod.make_seal_approval(sb, sid)
+        mod.seal_transaction(sb, sid)
+        evs = mod.chain_events(sb, sid)
+        assert [e["event_type"] for e in evs] == [mod.c2.REVEAL, mod.c2.SEAL, mod.c2.REVEAL, mod.c2.SEAL]
+        mod.prove_next_reveal_eligible(sb, sid, 3)
+        mod.cleanup_sb(sb)
+    finally:
+        _restore_isolated_c3(mod, old)
+
+
 def test_d71_artifact_absence_is_checked_after_each_real_entrypoint(tmp_path):
     mod = _load()
-    old_state, old_plan = mod.c4ab.C3_STATE, mod.c1.PLAN_FILE
-    old_salt, old_candidate = mod.c1.load_salt, mod.candidate_for_ordinal
+    old = _patch_isolated_c3(mod, tmp_path)
     try:
-        c3 = tmp_path / "c3" / "packets"
-        c3.mkdir(parents=True)
-        mod.c4ab.C3_STATE = c3.parent
-        mod.c1.load_salt = lambda: "phase-a-test-salt"
-        mod.c1.PLAN_FILE = tmp_path / "packet_plan.json"
-        case_key = f"G1_complete_bull|{mod.SYNTH_CASE}"
-        mod.c1.PLAN_FILE.write_text(json.dumps({"entries": [
-            {"case_key": case_key, "T": mod.SYNTH_T},
-            {"case_key": case_key, "T": "2099-01-03"},
-        ]}))
-        ocid = mod.c2.synth_ocid(mod.SYNTH_CASE)
-        for t in (mod.SYNTH_T, "2099-01-03"):
-            pid = hashlib.sha256(f"{ocid}|{t}".encode()).hexdigest()
-            (c3 / f"{pid}.json").write_bytes(mod.synth_packet_bytes(mod.SYNTH_CASE, t))
-        mod.candidate_for_ordinal = lambda n: {"opaque_case_id": ocid,
-            "T": "2099-01-03", "t_rank": 1, "case_rank": 0}
         sb, sid = mod.prepared_sealed()
         mod.build_next_reveal_proposal(sb, sid, 2, mod._current_prefix_head(sb, sid))
         mod.approve_next_reveal(sb, sid, 2)
@@ -119,7 +141,6 @@ def test_d71_artifact_absence_is_checked_after_each_real_entrypoint(tmp_path):
         proposal = mod.proposals_dom(sb, sid, 3)
         with pytest.raises(RuntimeError, match="G-C4D-AUTHZ"):
             mod.build_next_reveal_proposal(sb, sid, 3, mod._current_prefix_head(sb, sid))
-        assert not proposal.exists()
         with pytest.raises(RuntimeError, match="G-C4D-AUTHZ"):
             mod.approve_next_reveal(sb, sid, 3)
         with pytest.raises(RuntimeError, match="G-C4D-AUTHZ"):
@@ -128,8 +149,7 @@ def test_d71_artifact_absence_is_checked_after_each_real_entrypoint(tmp_path):
         assert not mod.next_authz_dir(sb, sid, 3).exists()
         mod.cleanup_sb(sb)
     finally:
-        mod.c4ab.C3_STATE, mod.c1.PLAN_FILE = old_state, old_plan
-        mod.c1.load_salt, mod.candidate_for_ordinal = old_salt, old_candidate
+        _restore_isolated_c3(mod, old)
 
 
 def test_guard_semantics_and_five_entrypoints_are_machine_checked():

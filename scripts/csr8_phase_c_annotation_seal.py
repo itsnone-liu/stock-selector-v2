@@ -1242,7 +1242,11 @@ def chain_has_legal_seal(sb, sid):
     except RuntimeError:
         return None, False
     seals = [e for e in lg.events if e['event_type'] == c2.SEAL]
-    return (seals[-1] if seals else None), True
+    # Only a terminal SEAL closes the current lifecycle ordinal.  Historical
+    # seals remain valid pair evidence, but a later open REVEAL must derive
+    # from the active receipt/approval state rather than stale S1 metadata.
+    terminal = seals[-1] if seals and lg.events[-1] is seals[-1] else None
+    return terminal, True
 
 
 def finalize_complete(sb, sid, seal_ev):
@@ -1283,6 +1287,11 @@ def derive_state(sb, sid):
     dom = annot_dom(sb, sid)
     has_packet = bool(dom.exists() and (dom / 'packet').exists()
                       and any((dom / 'packet').iterdir()))
+    # A later open REVEAL leaves the previous sealed pair as the derived
+    # lifecycle state until the new annotation workspace is materialized.
+    # Preserve that historical SEALED fact for authorization guards.
+    if any(e['event_type'] == c2.SEAL for e in chain_events(sb, sid)) and not has_packet:
+        return 'SEALED', {'ordinal': ordinal}
     # FIX3-R7: derive from the COMPLETE published-attempt history, not
     # only the current/live attempt. This proves revoked artifacts remain
     # valid immutable evidence and that the live-attempt invariant holds.
@@ -1376,10 +1385,11 @@ def semantic_replay(sb, sid, events=None):
         c2translate(lg.verify, False)
         evs = list(events)
     seals = [e for e in evs if e['event_type'] == c2.SEAL]
-    if len(seals) != 1:
-        fail(f'{G_REP}: expected exactly one SEAL for replay here, found '
-             f'{len(seals)}')
-    s1 = seals[0]
+    if not seals:
+        fail(f'{G_REP}: expected a SEAL for replay here, found none')
+    # Replay the terminal sealed pair; earlier pairs are independently
+    # checked by their own historical window proofs.
+    s1 = seals[-1]
     # FIX6: pair the SEAL with the REVEAL it actually CLOSES — the last
     # REVEAL strictly before the SEAL — never the chain's last REVEAL.
     # On [R1,S1,R2] the proof of S1 stays anchored to R1/ordinal-1; the
@@ -1428,8 +1438,8 @@ def semantic_replay(sb, sid, events=None):
 def post_seal_final(sb, sid):
     """§6.3 POST_SEAL_FINAL — only valid AFTER cleanup."""
     evs = chain_events(sb, sid)
-    if [e['event_type'] for e in evs] != [c2.REVEAL, c2.SEAL]:
-        fail(f'{G_REP}: POST_SEAL_FINAL expects [REVEAL, SEAL], got '
+    if not evs or evs[-1]['event_type'] != c2.SEAL:
+        fail(f'{G_REP}: POST_SEAL_FINAL expects a terminal SEAL, got '
              f'{[e["event_type"] for e in evs]}')
     # FIX3-R7: finalization must prove historical attempt integrity too;
     # cleanup alone is not evidence that revoked immutable artifacts remain
@@ -1470,12 +1480,13 @@ def seal_transaction(sb, sid, stop_after=None, payload_override=None,
         if stop_after == name:
             raise CrashSim(name)
 
-    # (1) production verify; chain == [REVEAL r1]
+    # (1) production verify; the active packet is the final open REVEAL.
+    # Earlier REVEAL/SEAL pairs are immutable history and are allowed.
     lg = c2.SealingLog(log_path(sb, sid), head_path(sb, sid))
     c2translate(lg.load().verify, True)
     evs = lg.events
-    if [e['event_type'] for e in evs] != [c2.REVEAL]:
-        fail(f'{G_PRE}: seal precondition — chain must be exactly one '
+    if not evs or evs[-1]['event_type'] != c2.REVEAL:
+        fail(f'{G_PRE}: seal precondition — chain must end in an open '
              f'REVEAL, got {[e["event_type"] for e in evs]}')
     r1 = evs[-1]
     stop('after_verify')
@@ -1483,9 +1494,9 @@ def seal_transaction(sb, sid, stop_after=None, payload_override=None,
     state, info = derive_state(sb, sid)
     if state == 'FORENSIC':
         fail(f'{G_PRE}: derived state FORENSIC — seal refused')
-    if state != 'SEAL_AUTHORIZED':
-        fail(f'{G_PRE}: state must be SEAL_AUTHORIZED for seal '
-             f'(derived={state})')
+    if state not in ('SEAL_AUTHORIZED', 'SEAL_PENDING_FINALIZE'):
+        fail(f'{G_PRE}: state must be SEAL_AUTHORIZED or the active '
+             f'ordinal must be SEAL_PENDING_FINALIZE (derived={state})')
     ordinal, attempt = info['ordinal'], info['attempt']
     stop('after_derive')
     if after_derive_hook is not None:
@@ -1962,17 +1973,11 @@ def prove_next_reveal_eligible(sb, sid, ordinal):
                      for e in reveals]
     if len(set(revealed_keys)) != len(revealed_keys):
         fail(f'{G_AUTHZ}: next-reveal prerequisite — revealed set has duplicates')
-    try:
-        frozen = candidate_total_order()
-        frozen_keys = [(e['opaque_case_id'], e['T']) for e in frozen]
-        if all(k in frozen_keys for k in revealed_keys):
-            if revealed_keys != frozen_keys[:n]:
-                fail(f'{G_AUTHZ}: next-reveal prerequisite — revealed set '
-                     f'is not the frozen candidate total-order prefix')
-    except (RuntimeError, ValueError, KeyError):
-        # A synthetic sandbox is allowed to carry a local C4-D packet universe;
-        # its chain uniqueness/order proof above remains mandatory.
-        pass
+    frozen = candidate_total_order()
+    frozen_keys = [(e['opaque_case_id'], e['T']) for e in frozen]
+    if revealed_keys != frozen_keys[:n]:
+        fail(f'{G_AUTHZ}: next-reveal prerequisite — revealed set '
+             f'is not the frozen candidate total-order prefix')
 
     # Match the immediately preceding reveal to exactly one SEAL in its
     # ordinal window, then replay that sealed pair from persisted artifacts.
