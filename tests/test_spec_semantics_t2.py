@@ -17,6 +17,7 @@ from stock_selector.freshness import check_daily_freshness, check_quote_freshnes
 from stock_selector.models import Decision, Quote
 from stock_selector.pipeline import SelectorPipeline
 from stock_selector.strategies.buy import daily_buy
+from stock_selector.strategies.bottom import bottom_volume_signal
 from stock_selector.strategies.risk import check_risk_filters
 from stock_selector.strategies.surge import weekly_surge
 from stock_selector.strategies.trend import monthly_trend, weekly_trend
@@ -602,3 +603,143 @@ def test_strategies_deterministic_with_nan_close_input(config):
 def test_realtime_volume_unit_default_is_hand_to_share(config):
     """腾讯行情默认手→股换算系数100（系统内部单位为股）。"""
     assert TencentQuoteProvider().volume_multiplier == 100.0
+
+
+def test_tencent_valid_quote_converts_hands_to_shares(config):
+    """有效腾讯报文：1234手 必须解析为 123400股（数值断言，非配置断言）。"""
+    fields = ["1", "测试", "600001", "10.20", "10.00", "10.10", "1234", *["0"] * 22, "20260915100000"]
+    quotes, errors = _provider_with(fields).fetch(["600001"], datetime(2026, 9, 15, 10, 0))
+    assert errors == {}
+    quote = quotes["600001"]
+    assert quote.volume == 123400
+    assert quote.price == 10.20
+    assert quote.previous_close == 10.00
+    assert quote.open == 10.10
+
+
+# ---- SPEC §6 第三类：放量阴线否决的独立类与优先级 ----
+
+
+def test_surge_veto_priority_over_current_week_direction(config):
+    """放量阴线否决是独立类别：即使当前周为阳线且高于上周收盘，仍优先否决。"""
+    daily = make_daily(periods=480, end="2026-09-11", drift=0.01)
+    daily.iloc[-5:, daily.columns.get_loc("open")] = daily["close"].iloc[-5:] + 0.5  # 上周阴线
+    baseline = daily["amount"].iloc[-10:-5].mean()
+    daily.iloc[-5:, daily.columns.get_loc("amount")] = baseline * 2  # 放量2倍
+    prev_close = float(daily.iloc[-1]["close"])
+    quote = Quote(
+        "600001",
+        price=prev_close * 1.03,  # 当前周强势阳线
+        open=prev_close,
+        previous_close=prev_close,
+        volume=1_000_000,
+        timestamp=datetime(2026, 9, 14, 10, 30),
+    )
+    result = weekly_surge(daily, datetime(2026, 9, 14, 10, 30), config, quote)
+    assert result.decision == Decision.REJECT
+    assert result.reason == "bearish_heavy_turnover_veto"
+    assert result.metrics["veto_metric"] in {"amount", "volume"}
+    assert result.metrics["veto_ratio"] >= 1.5
+
+
+# ---- SPEC §8：板块模式的统一数据闸门 ----
+
+
+def _board_diagnostics(pipeline, daily_end, asof, realtime=False, quotes=None):
+    pool = pd.DataFrame({"代码": ["600001"], "名称": ["正常公司"]})
+    paths = pipeline._run_signal_pipeline(pool, asof, quotes or {}, {}, realtime=realtime, skip_surge=True)
+    return paths, __import__("json").loads(Path(paths["diagnostics"]).read_text(encoding="utf-8"))
+
+
+def test_board_mode_blocks_stale_daily_before_buy(config, tmp_path):
+    pipeline = _bare_pipeline(config, make_daily(periods=260, end="2026-09-01"), tmp_path)
+    paths, diagnostics = _board_diagnostics(pipeline, None, datetime(2026, 9, 15, 15, 10))
+    assert diagnostics["freshness"]["reasons"].get("daily_data_stale") == 1
+    assert diagnostics["buy"]["total"] == 0  # 未进入买点
+    rejections = pd.read_csv(paths["rejections"], dtype={"代码": str})
+    assert (rejections["阶段"] == "freshness").sum() == 1
+
+
+def test_board_mode_blocks_future_daily_before_buy(config, tmp_path):
+    pipeline = _bare_pipeline(config, make_daily(periods=260, end="2026-09-16"), tmp_path)
+    paths, diagnostics = _board_diagnostics(pipeline, None, datetime(2026, 9, 15, 15, 10))
+    assert diagnostics["freshness"]["reasons"].get("future_daily_bar") == 1
+    assert diagnostics["buy"]["total"] == 0
+
+
+def test_board_mode_realtime_blocks_missing_and_stale_quote(config, tmp_path):
+    # 缺失实时报价：quote 阶段直接跳过，不进入买点
+    pipeline = _bare_pipeline(config, make_daily(periods=260, end="2026-09-15"), tmp_path)
+    _, diagnostics = _board_diagnostics(pipeline, None, datetime(2026, 9, 15, 10, 30), realtime=True, quotes={})
+    assert diagnostics["surge"]["reasons"].get("missing_realtime_quote") == 1
+    assert diagnostics["buy"]["total"] == 0
+    # 过期报价：freshness 阶段 quote_stale 拦截
+    stale_quote = {"600001": Quote("600001", 10.0, 10.0, 9.9, 1_000_000, timestamp=datetime(2026, 9, 15, 8, 0))}
+    _, diagnostics = _board_diagnostics(pipeline, None, datetime(2026, 9, 15, 10, 30), realtime=True, quotes=stale_quote)
+    assert diagnostics["freshness"]["reasons"].get("quote_stale") == 1
+    assert diagnostics["buy"]["total"] == 0
+
+
+# ---- SPEC §9：底部三倍量观察池（日线形态语义） ----
+
+
+def _bottom_daily(volume_multiple: float = 4.0, final_close: float = 6.6, final_open: float = 6.15) -> pd.DataFrame:
+    n = 300
+    idx = pd.bdate_range(end="2026-09-15", periods=n)
+    close = np.concatenate([np.full(60, 10.0), np.linspace(10, 6.2, 40), np.full(200, 6.2)])
+    open_ = close * 0.999
+    high = np.concatenate([np.full(60, 10.2), np.linspace(10.2, 6.3, 40), np.full(200, 6.3)])
+    low = close * 0.99
+    vol = np.full(n, 1_000_000.0)
+    close[-1], open_[-1], low[-1], high[-1] = final_close, final_open, 6.1, 6.65
+    vol[-1] = volume_multiple * 1_000_000.0
+    return pd.DataFrame(
+        {"open": open_, "high": high, "low": low, "close": close, "volume": vol, "amount": close * vol},
+        index=idx,
+    )
+
+
+def test_bottom_volume_launch_positive(config):
+    result = bottom_volume_signal(_bottom_daily(), config)
+    assert result.passed
+    assert result.reason == "bottom_volume_launch"
+    assert result.signals == ["bottom_launch"]
+    assert result.metrics["volume_multiple"] >= 3.0
+    assert result.metrics["drawdown_pct"] <= -30.0
+
+
+def test_bottom_volume_rejects_low_multiple_and_non_yang(config):
+    assert bottom_volume_signal(_bottom_daily(volume_multiple=2.0), config).reason == "volume_multiple_too_low"
+    assert bottom_volume_signal(_bottom_daily(final_close=6.0), config).reason == "not_yang"
+    assert bottom_volume_signal(make_daily(periods=100), config).reason == "insufficient_daily_bars"
+
+
+# ---- 输出归档与研究边界 ----
+
+
+def test_run_archive_preserves_previous_results(config, tmp_path):
+    """两次运行的 runs/ 归档各自独立，既有归档不被覆盖。"""
+    pipeline = _bare_pipeline(config, make_daily(periods=260, end="2026-09-15"), tmp_path)
+    pool = pd.DataFrame({"代码": ["600001"], "名称": ["正常公司"]})
+    first = pipeline._run_signal_pipeline(pool, datetime(2026, 9, 15, 15, 10), {}, {}, realtime=False, skip_surge=True)
+    second = pipeline._run_signal_pipeline(pool, datetime(2026, 9, 15, 15, 20), {}, {}, realtime=False, skip_surge=True)
+    archive1, archive2 = Path(first["run_archive"]), Path(second["run_archive"])
+    assert archive1 != archive2
+    assert (archive1 / "diagnostics.json").exists()
+    assert (archive2 / "diagnostics.json").exists()
+    d1 = __import__("json").loads((archive1 / "diagnostics.json").read_text(encoding="utf-8"))
+    assert d1["surge"]["reasons"].get("board_mode_skips_surge") == 1  # 第一次归档未被第二次覆盖
+
+
+def test_scores_are_ranking_only_and_rules_never_consume_backtest(config):
+    """排序分非概率、规则判定不消费回测：可执行的静态契约检查。"""
+    import stock_selector.strategies
+
+    strategies_dir = Path(list(stock_selector.strategies.__path__[0:1])[0])
+    for module in strategies_dir.glob("*.py"):
+        assert "backtest" not in module.read_text(encoding="utf-8"), f"{module.name} 不允许引用回测模块"
+    pipeline_src = (Path(strategies_dir).parent / "pipeline.py").read_text(encoding="utf-8")
+    output_src = (Path(strategies_dir).parent / "output.py").read_text(encoding="utf-8")
+    for src, name in ((pipeline_src, "pipeline.py"), (output_src, "output.py")):
+        assert "概率" not in src, f"{name} 不得出现概率表述"
+    assert "综合评分" in pipeline_src  # 输出列名明确为评分而非概率

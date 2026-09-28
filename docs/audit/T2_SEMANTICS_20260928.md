@@ -1,10 +1,24 @@
 # T2 Rule & Data Semantics Audit Evidence (Run audit_20260928055411432)
 
 - Task: stock-selector-v2 formal audit, frozen task packet hash 3ed7f3bc098d
-- Run: audit_20260928055411432 (stage T2, iteration 2)
+- Run: audit_20260928055411432 (stage T2, iteration 3)
 - Date: 2026-09-28
-- Suite: `tests/test_spec_semantics_t2.py` (47 deterministic tests, no network), plus the
-  pre-existing repo suite re-run in full.
+- Suite: `tests/test_spec_semantics_t2.py` (56 deterministic tests, no network), plus the
+  pre-existing repo suite re-run in full; machine-verifiable post-commit log in
+  `docs/audit/T2_TESTLOG_20260928.md`.
+
+## Iteration-3 mapping (REVISE testsRequired → added tests)
+
+| 评审要求 | 迭代3补充 |
+| --- | --- |
+| 第三类形态独立正向用例 + reason/signals 断言 | `test_surge_veto_priority_over_current_week_direction`（SPEC §6 恰有两类 PASS 形态——阴转阳/双阳均有独立正例；第三类结果=放量阴线否决，本测试断言其独立类与优先级：当前周强势阳线仍被否决，`veto_ratio>=1.5`；SPEC 未定义第三种 PASS 形态，故不发明） |
+| 有效腾讯报文 1234手→123400股 数值断言 | `test_tencent_valid_quote_converts_hands_to_shares`（`Quote.volume==123400`，price/previous_close/open 全断言） |
+| 板块模式过期/未来日线与过期/缺失报价闸门 | `test_board_mode_blocks_stale_daily_before_buy`, `test_board_mode_blocks_future_daily_before_buy`, `test_board_mode_realtime_blocks_missing_and_stale_quote`（全部断言 `buy.total==0`） |
+| 底部观察池确定性测试 | `test_bottom_volume_launch_positive`（reason/signals/量倍/回撤断言）, `test_bottom_volume_rejects_low_multiple_and_non_yang`, 既有 `insufficient_daily_bars` 反例 |
+| 输出归档不覆盖既有结果 | `test_run_archive_preserves_previous_results`（两次运行归档独立、首次归档内容存活） |
+| 排序分非概率、回测不参与规则判定 | `test_scores_are_ranking_only_and_rules_never_consume_backtest`（strategies/* 禁止引用 backtest；pipeline/output 无“概率”字样；输出列名为“综合评分”） |
+| 提交后重跑 + 机器可核验记录 + READY_FOR_AUDIT | `docs/audit/T2_TESTLOG_20260928.md`（命令/退出码/通过数）+ 最终 HEAD 上复跑后在 marker TESTS 行给出同源数据 |
+
 
 ## Frozen item → test mapping (SPEC §1-8, iteration 2 complete)
 
@@ -13,7 +27,7 @@
 | 显式 asof 驱动已完成周/当前周切分 | `test_asof_explicitly_drives_week_partition`, `test_completed_week_excludes_current_week_on_monday`, `test_empty_frame_week_partition_returns_empty` |
 | 真实涨幅不外推（盘中只用 开盘→现价） | `test_realtime_change_not_extrapolated`（断言 3.0% 而非外推值 60%，并断言周内进度 0.05） |
 | 成交量周内进度（实时/盘后两种口径） | `test_elapsed_week_fraction_progress_semantics`（0.05/0.55/0.6/周末不计盘中）、`test_realtime_change_not_extrapolated` 中的 `projected_volume_ratio==1.0` |
-| 腾讯手→股 | `test_realtime_volume_unit_default_is_hand_to_share` + `tests/test_realtime.py::test_tencent_volume_is_normalized_from_hands_to_shares` |
+| 腾讯手→股 | `test_tencent_valid_quote_converts_hands_to_shares`（1234手→123400股 数值断言）, `test_realtime_volume_unit_default_is_hand_to_share` |
 | 历史新鲜度闸门（未来/过期/盘后宽限） | `test_future_daily_bar_is_error`, `test_stale_realtime_daily_data_is_skipped`, `test_after_close_allows_at_most_one_business_day_lag` |
 | 实时报价闸门 | `test_quote_without_timestamp_is_skipped`, `test_stale_quote_is_skipped` |
 | 零价零量处理 | `test_zero_price_quote_rejected_as_invalid`, `test_zero_open_or_volume_rejected_as_halted` |
