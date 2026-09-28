@@ -15,8 +15,13 @@ def clamp_range(values, lo, hi):
         return []
     if lo > hi:
         return []
-    kept = {
-        v for v in values
-        if not (isinstance(v, float) and math.isnan(v)) and lo <= v <= hi
-    }
+    kept = set()
+    for v in values:
+        try:
+            if math.isnan(v):
+                continue
+        except (TypeError, ValueError):
+            pass
+        if lo <= v <= hi:
+            kept.add(v)
     return sorted(kept)

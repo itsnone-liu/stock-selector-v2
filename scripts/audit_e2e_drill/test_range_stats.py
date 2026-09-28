@@ -1,6 +1,7 @@
 """unittest coverage for clamp_range (frozen task packet aa0eaf122ba0, stage T1)."""
 
 import unittest
+from decimal import Decimal
 
 from range_stats import clamp_range
 
@@ -18,6 +19,9 @@ class ClampRangeTests(unittest.TestCase):
 
     def test_all_nan_excluded(self):
         self.assertEqual(clamp_range([float('nan'), float('nan')], 0, 10), [])
+
+    def test_decimal_nan_excluded(self):
+        self.assertEqual(clamp_range([Decimal('NaN'), Decimal('1.5')], Decimal('0'), Decimal('2')), [Decimal('1.5')])
 
     def test_lo_greater_than_hi_returns_empty(self):
         self.assertEqual(clamp_range([1, 5, 9], 10, 0), [])
