@@ -151,6 +151,18 @@ extension):
       injection point; the fixture tampers history INSIDE the same
       transaction after the early derive passed, proving the
       commit-time whole-history barrier itself refuses the append
+
+C4-D-SYNTH-AUDIT-FIX7 (after the user's re-audit of 8b08f26 — the
+LAST blocker; design text UNCHANGED; NO lifecycle extension):
+  next-reveal prerequisite: prove_next_reveal_eligible derives the
+      authorization precondition ONLY from the trusted production
+      chain (full C2 verify with head, last committed event must be a
+      SEAL — no open REVEAL — and the requested ordinal must equal
+      reveals+1). It is enforced at proposal creation, approval,
+      permit materialization and the consumption-side re-proof, so
+      [R1,S1,R2] can never pre-persist ordinal-3 artifacts even though
+      derive_state still reports the old sealed pair as SEALED (D71;
+      positive control: [R1,S1] -> ordinal-2 still allowed)
 """
 
 import contextlib
@@ -1902,12 +1914,40 @@ def _guard_or_create_proposal_domain(sb, sid, ordinal):
     od.mkdir(mode=0o700)
 
 
+def prove_next_reveal_eligible(sb, sid, ordinal):
+    """FIX7: authorization-layer prerequisite proof derived ONLY from the
+    trusted production chain (user audit of 8b08f26, final blocker):
+    the committed prefix must be CLOSED — full C2 verify with the
+    trusted head, no open REVEAL (last committed event is a SEAL), and
+    the requested ordinal is exactly reveals+1. This deliberately does
+    NOT extend the R2-era lifecycle naming (deferred design); it only
+    proves 'previous packet sealed' at authorization time, so a chain
+    like [R1,S1,R2] can never pre-authorize ordinal-3 artifacts even
+    though derive_state still reports the old pair as SEALED."""
+    lg = c2.SealingLog(log_path(sb, sid), head_path(sb, sid))
+    c2translate(lg.load().verify, True)
+    evs = lg.events
+    reveals = sum(1 for e in evs if e['event_type'] == c2.REVEAL)
+    if ordinal != reveals + 1:
+        fail(f'{G_AUTHZ}: next-reveal prerequisite — requested ordinal '
+             f'{ordinal} but the committed chain has {reveals} REVEAL(s); '
+             f'only ordinal {reveals + 1} may be authorized')
+    if not evs or evs[-1]['event_type'] != c2.SEAL:
+        fail(f'{G_AUTHZ}: next-reveal prerequisite — last committed event '
+             f'is not a SEAL (previous packet not sealed / open REVEAL) — '
+             f'authorization forbidden')
+
+
 def build_next_reveal_proposal(sb, sid, ordinal, sealed_prefix_head,
                                cand=None):
     state, _ = derive_state(sb, sid)
     if state != 'SEALED':
         fail(f'{G_AUTHZ}: ordinal-{ordinal} proposal requires first packet '
              f'SEALED (derived={state})')
+    # FIX7: chain-derived closure proof BEFORE any proposal artifact is
+    # persisted (derive_state alone cannot distinguish [R1,S1] from
+    # [R1,S1,R2]).
+    prove_next_reveal_eligible(sb, sid, ordinal)
     _guard_or_create_proposal_domain(sb, sid, ordinal)
     if cand is None:
         cand = candidate_for_ordinal(ordinal)
@@ -2056,6 +2096,8 @@ def _check_approval_permit(sb, sid, ordinal, proposal, pbytes):
 
 
 def approve_next_reveal(sb, sid, ordinal):
+    # FIX7: same chain-closure prerequisite at every authorization entry.
+    prove_next_reveal_eligible(sb, sid, ordinal)
     proposal, pbytes = _check_proposal(sb, sid, ordinal)
     _ensure_authz_domain(sb, sid, ordinal)
     ad = next_authz_dir(sb, sid, ordinal)
@@ -2080,6 +2122,8 @@ def materialize_next_permit(sb, sid, ordinal):
     file mode, schema, canonical bytes, every semantic binding) BEFORE
     the O_EXCL permit write — pre-write fail-closed, not verify-later.
     The failing path performs NO write (no domain creation)."""
+    # FIX7: same chain-closure prerequisite at every authorization entry.
+    prove_next_reveal_eligible(sb, sid, ordinal)
     proposal, pbytes = _check_proposal(sb, sid, ordinal)
     _check_reveal_approval(sb, sid, ordinal, proposal, pbytes)
     ad = next_authz_dir(sb, sid, ordinal)
@@ -2101,6 +2145,10 @@ def _current_prefix_head(sb, sid):
 def verify_next_authorization_chain(sb, sid, ordinal):
     """Authorization layer re-proof immediately before append: proposal
     + approval + permit all re-proven from persisted bytes."""
+    # FIX7: the chain-closure prerequisite is part of the final
+    # consumption re-proof as well (an open REVEAL never consumes a
+    # next-reveal authorization).
+    prove_next_reveal_eligible(sb, sid, ordinal)
     proposal, pbytes = _check_proposal(sb, sid, ordinal)
     _check_approval_permit(sb, sid, ordinal, proposal, pbytes)
     return proposal
@@ -3745,6 +3793,35 @@ def d70():
     assert derive_state(sb, sid)[0] != 'FORENSIC'
     cleanup_sb(sb)
     print('PASS D70')
+
+
+@fixture('D71', 'open R2 blocks ordinal-3 authorization ([R1,S1,R2])')
+def d71():
+    # Positive control: [R1,S1] -> ordinal-2 proposal is still allowed.
+    sb, sid = prepared_sealed()
+    build_next_reveal_proposal(sb, sid, 2, _current_prefix_head(sb, sid))
+    assert proposal_path(sb, sid, 2).exists()
+    cleanup_sb(sb)
+    # [R1,S1,R2]: derive_state still says SEALED (old pair, by design),
+    # but the chain-closure prerequisite must refuse ordinal-3 at every
+    # authorization entry BEFORE any artifact is persisted (FIX7).
+    sb, sid = prepared_sealed()
+    build_next_reveal_proposal(sb, sid, 2, _current_prefix_head(sb, sid))
+    approve_next_reveal(sb, sid, 2)
+    materialize_next_permit(sb, sid, 2)
+    reveal_transaction(sb, sid, 2)               # chain -> [R1,S1,R2]
+    assert derive_state(sb, sid)[0] == 'SEALED'  # old pair proof intact
+    expect_exact_gate(lambda: build_next_reveal_proposal(
+        sb, sid, 3, _current_prefix_head(sb, sid)), G_AUTHZ)
+    expect_exact_gate(lambda: approve_next_reveal(sb, sid, 3), G_AUTHZ)
+    expect_exact_gate(lambda: materialize_next_permit(sb, sid, 3), G_AUTHZ)
+    assert not proposal_path(sb, sid, 3).exists()
+    assert not next_authz_dir(sb, sid, 3).exists()
+    # and consumption-side re-proof equally refuses on the open chain
+    expect_exact_gate(lambda: verify_next_authorization_chain(sb, sid, 2),
+                      G_AUTHZ)
+    cleanup_sb(sb)
+    print('PASS D71')
 
 
 # --------------------------------------------------------------------------
