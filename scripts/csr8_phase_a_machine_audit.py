@@ -42,18 +42,37 @@ def main():
         m.candidate_total_order = lambda: list(order)
         m.candidate_for_ordinal = lambda n: dict(order[n - 1])
         m.verify_candidate_gates = lambda: {"size": 2, "ordinal1_matches_frozen_first": True, "revealed_prefix": 1}
+        # Execute the frozen C4-C regression as a subprocess and require its
+        # real pre/post production fingerprint claim in machine output.
+        import subprocess, sys
+        c4c = subprocess.run([sys.executable, str(ROOT / "scripts/csr8_phase_c_first_reveal.py"), "synthetic"], cwd=ROOT, capture_output=True, text=True, timeout=900)
+        if c4c.returncode != 0 or "C4-C SYNTHETIC PASS" not in c4c.stdout or "content fingerprints unchanged" not in c4c.stdout:
+            raise RuntimeError("C4-C regression integration gate failed")
         seen = []
         for name, _desc, fn in m.FIXTURES:
             fn(); seen.append(name)
         if seen != [f"D{i:02d}" for i in range(1, 72)]:
             raise RuntimeError("D01-D71 registry/order mismatch")
+        # Restore the module's real C1/C3 bindings before the production
+        # integration gate.  The isolated fixture must never contaminate the
+        # real module globals used by live_preflight/candidate gates.
+        (m.c4ab.C3_STATE, m.c1.PLAN_FILE, m.c1.load_salt,
+         m.c4ab.first_candidate, m.candidate_total_order,
+         m.candidate_for_ordinal, m.verify_candidate_gates) = old
+        m.live_preflight()
+        before = m.fingerprint_real()
+        gates = m.verify_candidate_gates()
+        if gates["ordinal1_matches_frozen_first"] is not True or gates["revealed_prefix"] < 1:
+            raise RuntimeError("candidate gates integration proof failed")
+        if m.fingerprint_real() != before:
+            raise RuntimeError("real fingerprint changed during integration run")
         state = json.loads((m.PUBLIC_DIR / "c4d_phase_a_public_state.json").read_text())
         assert state["production"]["event_types"] == ["REVEAL_PACKET"]
         assert state["production"]["reveal_count"] == 1
         assert state["production"]["seal_count"] == 0
         public = " ".join(p.read_text() for p in m.PUBLIC_DIR.glob("*.json"))
         assert not any(x in public for x in ("opaque_case_id", "packet_id", "case_key", "secret_salt", "outcome"))
-        print(json.dumps({"D01_D71":"PASS", "C4D":"PASS", "candidate_snapshot":"PASS", "blindness":"PASS", "production_snapshot":"REVEAL=1 SEAL=0"}, separators=(",", ":")))
+        print(json.dumps({"D01_D71":"PASS", "C4D":"PASS", "candidate_snapshot":"PASS", "blindness":"PASS", "production_snapshot":"REVEAL=1 SEAL=0", "integration":"PASS"}, separators=(",", ":")))
     finally:
         (m.c4ab.C3_STATE, m.c1.PLAN_FILE, m.c1.load_salt,
          m.c4ab.first_candidate, m.candidate_total_order,
