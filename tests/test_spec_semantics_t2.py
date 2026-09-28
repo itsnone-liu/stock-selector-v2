@@ -20,7 +20,7 @@ from stock_selector.strategies.buy import daily_buy
 from stock_selector.strategies.risk import check_risk_filters
 from stock_selector.strategies.surge import weekly_surge
 from stock_selector.strategies.trend import monthly_trend, weekly_trend
-from stock_selector.calendar import completed_week_rows, current_week_rows
+from stock_selector.calendar import aggregate_weekly, completed_week_rows, current_week_rows, elapsed_week_fraction
 
 
 def make_bearish_daily(periods: int = 480, end: str = "2026-09-15", decay: float = 0.05) -> pd.DataFrame:
@@ -74,6 +74,41 @@ def test_completed_week_excludes_current_week_on_monday(config):
     completed = completed_week_rows(frame, at)
     assert max(pd.Timestamp(x).date() for x in completed.index) <= pd.Timestamp("2026-09-11").date()
     assert any(pd.Timestamp(x).date() == pd.Timestamp("2026-09-14").date() for x in current_week_rows(frame, at).index)
+
+
+def test_asof_explicitly_drives_week_partition(config):
+    """同一份数据，asof 决定已完成周/当前周切分，而不是数据自身的新旧。"""
+    frame = make_daily(periods=260, end="2026-09-15")
+    early = completed_week_rows(frame, datetime(2026, 9, 8, 10, 0))
+    late = completed_week_rows(frame, datetime(2026, 9, 15, 10, 0))
+    assert max(pd.Timestamp(x).date() for x in early.index) == pd.Timestamp("2026-09-04").date()
+    assert max(pd.Timestamp(x).date() for x in late.index) == pd.Timestamp("2026-09-11").date()
+
+
+def test_realtime_change_not_extrapolated(config):
+    """盘中真实涨幅只按 当日开盘→现价 计算，绝不按周内进度外推。"""
+    daily = make_daily(periods=480, end="2026-09-11", drift=0.12)
+    prev_close = float(daily.iloc[-1]["close"])
+    at = datetime(2026, 9, 14, 10, 30)  # 周一盘中，fraction=0.05
+    quote = Quote("600001", price=prev_close * 1.03, open=prev_close, previous_close=prev_close, volume=250_000, timestamp=at)
+    result = weekly_surge(daily, at, config, quote)
+    assert result.passed
+    assert abs(result.metrics["current_change_pct"] - 3.0) < 1e-6
+    assert abs(result.metrics["current_change_pct"] - 3.0 / 0.05) > 1  # 不是外推值60
+    assert abs(result.metrics["projected_volume_ratio"] - 1.0) < 1e-6  # 250k/0.05/5e6
+    assert abs(result.metrics["elapsed_week_fraction"] - 0.05) < 1e-6
+
+
+def test_elapsed_week_fraction_progress_semantics(config):
+    frame = pd.DataFrame({"close": [1, 1, 1]}, index=pd.to_datetime(["2026-09-14", "2026-09-15", "2026-09-16"]))
+    # 周一10:30：(0个完成日 + 60/240) / 5 = 0.05
+    assert elapsed_week_fraction(frame, datetime(2026, 9, 14, 10, 30), realtime=True) == 0.05
+    # 周三14:00：(2个完成日 + 180/240) / 5 = 0.55
+    assert elapsed_week_fraction(frame, datetime(2026, 9, 16, 14, 0), realtime=True) == 0.55
+    # 盘后模式只按本周已有交易日：3/5 = 0.6
+    assert elapsed_week_fraction(frame, datetime(2026, 9, 16, 14, 0), realtime=False) == 0.6
+    # 周末实时模式不计当日盘中进度
+    assert elapsed_week_fraction(frame, datetime(2026, 9, 19, 11, 0), realtime=True) == 0.6
 
 
 # ---- SPEC §2：数据闸门（未来/过期/零价零量/报价时效） ----
@@ -223,6 +258,51 @@ def test_weekly_uptrend_signal_or_reject_is_deterministic(config):
         assert result.reason == "weekly_trend_not_passed"
 
 
+def _weekly_frame(closes: list[float] | np.ndarray) -> pd.DataFrame:
+    idx = pd.date_range("2025-06-02", periods=len(closes), freq="7D")
+    close = np.asarray(closes, dtype=float)
+    return pd.DataFrame(
+        {
+            "open": close * 0.995,
+            "high": close * 1.01,
+            "low": close * 0.99,
+            "close": close,
+            "volume": np.full(len(close), 1_000_000.0),
+            "amount": close * 100_000_000,
+        },
+        index=idx,
+    )
+
+
+def test_weekly_signal_ma_bull(config):
+    result = weekly_trend(_weekly_frame(np.linspace(20, 100, 50)), config)
+    assert result.passed
+    assert result.reason == "ma_bull"
+
+
+def test_weekly_signal_macd_cross(config):
+    steps = np.arange(60)
+    decline = 100 - (steps / 59) ** 1.8 * 70  # 加速下跌至30
+    w = np.concatenate([decline, np.linspace(30, 39, 2)])  # 2周强反弹恰在最后一根金叉
+    result = weekly_trend(_weekly_frame(w), config)
+    assert result.passed
+    assert result.reason == "macd_cross"
+
+
+def test_weekly_signal_macd_stabilizing(config):
+    w = np.concatenate(
+        [
+            np.linspace(100, 58.7, 35),  # 主跌段
+            np.linspace(58.7, 66.2, 8),  # 反弹
+            np.linspace(66.2, 52.48, 7),  # 二次回落（柱体转负）
+            [55.18],  # 柱体拐头向上但仍<0，DIF≈DEA
+        ]
+    )
+    result = weekly_trend(_weekly_frame(w), config)
+    assert result.passed
+    assert result.reason == "macd_stabilizing"
+
+
 def test_weekly_downtrend_rejected(config):
     assert weekly_trend(make_accelerating_decline_daily(), config).reason == "weekly_trend_not_passed"
 
@@ -265,6 +345,80 @@ def test_surge_current_week_not_bullish_rejected(config):
     result = weekly_surge(daily, datetime(2026, 9, 15, 11, 30), config, quote)
     assert result.decision == Decision.REJECT
     assert result.reason == "current_week_not_bullish"
+
+
+def _monday_quote(prev_close: float, change: float, volume: float) -> Quote:
+    return Quote(
+        "600001",
+        price=prev_close * (1 + change),
+        open=prev_close,
+        previous_close=prev_close,
+        volume=volume,
+        timestamp=datetime(2026, 9, 14, 10, 30),
+    )
+
+
+def test_surge_dual_yang_efficiency_pass(config):
+    """双阳形态：当前周阳线+高于上周收盘+投影量比达标+效率提升。"""
+    daily = make_daily(periods=480, end="2026-09-11", drift=0.12)
+    prev_close = float(daily.iloc[-1]["close"])
+    result = weekly_surge(daily, datetime(2026, 9, 14, 10, 30), config, quote=_monday_quote(prev_close, 0.03, 250_000))
+    assert result.passed
+    assert result.reason == "dual_yang_efficiency"
+    assert result.signals == ["dual_yang_efficiency"]
+
+
+def test_surge_bearish_to_bullish_reversal_pass(config):
+    """阴转阳形态：上一完成周为阴线，当前周阳线且高于上周收盘。"""
+    daily = make_daily(periods=480, end="2026-09-11", drift=0.01)
+    daily.iloc[-5:, daily.columns.get_loc("open")] = daily["close"].iloc[-5:] + 0.5  # 上周整体阴线
+    prev_close = float(daily.iloc[-1]["close"])
+    quote = Quote(
+        "600001",
+        price=prev_close * 1.02,
+        open=prev_close * 0.99,
+        previous_close=prev_close,
+        volume=1_000_000,
+        timestamp=datetime(2026, 9, 14, 10, 30),
+    )
+    result = weekly_surge(daily, datetime(2026, 9, 14, 10, 30), config, quote=quote)
+    assert result.passed
+    assert result.reason == "bearish_to_bullish_reversal"
+
+
+def test_surge_not_up_vs_previous_close_rejected(config):
+    daily = make_daily(periods=480, end="2026-09-11", drift=0.12)
+    prev_close = float(daily.iloc[-1]["close"])
+    quote = Quote(
+        "600001",
+        price=prev_close * 0.995,  # 高于周内开盘但低于上周收盘
+        open=prev_close * 0.99,
+        previous_close=prev_close,
+        volume=250_000,
+        timestamp=datetime(2026, 9, 14, 10, 30),
+    )
+    result = weekly_surge(daily, datetime(2026, 9, 14, 10, 30), config, quote=quote)
+    assert result.decision == Decision.REJECT
+    assert result.reason == "not_up_vs_previous_close"
+
+
+def test_surge_weekly_efficiency_not_improved_rejected(config):
+    daily = make_daily(periods=480, end="2026-09-11", drift=0.12)
+    prev_close = float(daily.iloc[-1]["close"])
+    # 大量低效：投影量比4.0 → 效率 3/4=0.75 < 上周0.79
+    result = weekly_surge(daily, datetime(2026, 9, 14, 10, 30), config, quote=_monday_quote(prev_close, 0.03, 1_000_000))
+    assert result.decision == Decision.REJECT
+    assert result.reason == "weekly_efficiency_not_improved"
+
+
+def test_surge_projected_volume_too_low_rejected(config):
+    daily = make_daily(periods=480, end="2026-09-11", drift=0.12)
+    prev_close = float(daily.iloc[-1]["close"])
+    # 5万/0.05=100万 投影量，远低于上周500万 → 量比0.2
+    result = weekly_surge(daily, datetime(2026, 9, 14, 10, 30), config, quote=_monday_quote(prev_close, 0.03, 50_000))
+    assert result.decision == Decision.REJECT
+    assert result.reason == "projected_volume_too_low"
+    assert result.metrics["volume_ratio"] < 0.8
 
 
 # ---- SPEC §7：日线买点（含同刻快照缺失回退与优先级） ----
@@ -352,6 +506,49 @@ def test_buy_pullback_has_priority_over_two_day_acceleration(config):
     assert result.reason == "pullback_holds"
 
 
+def test_buy_shrinking_volume_acceleration_passes_intraday_same_time(config):
+    daily = make_daily(periods=120, end="2026-09-14", drift=0.01)
+    previous_close = float(daily.iloc[-1]["close"])
+    quote = Quote(
+        "600001",
+        price=previous_close * 1.015,
+        open=previous_close,
+        previous_close=previous_close,
+        volume=30_000_000,
+        timestamp=datetime(2026, 9, 15, 11, 30),
+    )
+    result = daily_buy(daily, datetime(2026, 9, 15, 11, 30), config, quote=quote, same_time_reference_volume=60_000_000)
+    assert result.passed
+    assert result.reason == "shrinking_volume_acceleration"
+    assert result.metrics["volume_method"] == "same_time"
+
+
+def test_buy_two_day_acceleration_passes_after_close(config):
+    daily = make_daily(periods=260, end="2026-09-15", drift=0.35)
+    daily.iloc[-1, daily.columns.get_loc("close")] += 0.8
+    daily.iloc[-1, daily.columns.get_loc("volume")] = 2_000_000.0
+    result = daily_buy(daily, datetime(2026, 9, 15, 15, 10), config)
+    assert result.passed
+    assert result.reason == "two_day_acceleration"
+
+
+def test_buy_shrinking_has_priority_over_two_day_acceleration(config):
+    """缩量加速与两日加速同时满足时，优先判定缩量加速。"""
+    daily = make_daily(periods=120, end="2026-09-14", drift=0.35)
+    previous_close = float(daily.iloc[-1]["close"])
+    quote = Quote(
+        "600001",
+        price=previous_close * 1.015,
+        open=previous_close,
+        previous_close=previous_close,
+        volume=20_000_000,
+        timestamp=datetime(2026, 9, 15, 11, 30),
+    )
+    result = daily_buy(daily, datetime(2026, 9, 15, 11, 30), config, quote=quote, same_time_reference_volume=40_000_000)
+    assert result.passed
+    assert result.reason == "shrinking_volume_acceleration"
+
+
 # ---- SPEC §8：板块模式跳过surge但保留闸门与买点 ----
 
 
@@ -375,3 +572,33 @@ def test_board_mode_skips_surge_but_keeps_gates_and_buy(config, tmp_path):
     assert diagnostics["buy"]["total"] == 1  # ST被拦后仅正常公司进入买点
     rejections = pd.read_csv(paths["rejections"], dtype={"代码": str})
     assert (rejections["阶段"] == "surge").sum() == 0  # surge未被当作淘汰阶段
+
+
+# ---- NaN 输入与聚合语义 ----
+
+
+def test_weekly_aggregation_close_is_last_available_close(config):
+    """周收盘取周内最后一个可得收盘（缺失日按可得值聚合，不编造、不崩溃）。"""
+    daily = make_daily(periods=40, end="2026-09-11")
+    thursday_close = float(daily.iloc[-2]["close"])
+    daily.iloc[-1, daily.columns.get_loc("close")] = float("nan")  # 周五缺失
+    weekly = aggregate_weekly(daily)
+    assert not weekly.empty
+    assert abs(float(weekly.iloc[-1]["close"]) - thursday_close) < 1e-9
+
+
+def test_strategies_deterministic_with_nan_close_input(config):
+    nan_daily = make_daily(periods=480, end="2026-09-15", drift=0.12)
+    nan_daily.iloc[-1, nan_daily.columns.get_loc("close")] = float("nan")
+    monthly = monthly_trend(nan_daily, config)
+    weekly = weekly_trend(nan_daily, config)
+    buy = daily_buy(nan_daily, datetime(2026, 9, 15, 15, 10), config)
+    for result in (monthly, weekly, buy):
+        assert result.decision in {Decision.PASS, Decision.REJECT, Decision.SKIP}  # 不抛异常且判定确定
+    assert buy.decision == Decision.REJECT
+    assert buy.reason == "daily_buy_pattern_not_passed"
+
+
+def test_realtime_volume_unit_default_is_hand_to_share(config):
+    """腾讯行情默认手→股换算系数100（系统内部单位为股）。"""
+    assert TencentQuoteProvider().volume_multiplier == 100.0

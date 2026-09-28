@@ -1,50 +1,47 @@
 # T2 Rule & Data Semantics Audit Evidence (Run audit_20260928055411432)
 
 - Task: stock-selector-v2 formal audit, frozen task packet hash 3ed7f3bc098d
-- Run: audit_20260928055411432 (stage T2, iteration 1)
+- Run: audit_20260928055411432 (stage T2, iteration 2)
 - Date: 2026-09-28
+- Suite: `tests/test_spec_semantics_t2.py` (47 deterministic tests, no network), plus the
+  pre-existing repo suite re-run in full.
 
-## SPEC §1-8 item-by-item verification
+## Frozen item → test mapping (SPEC §1-8, iteration 2 complete)
 
-- §1 explicit asof / completed-vs-current week split: `calendar.current_week_rows` /
-  `completed_week_rows` verified for empty input and the Monday boundary
-  (completed weeks end at the previous Friday; the current Monday row belongs to the
-  current week only).
-- §2 data gates: future daily bar → `ERROR future_daily_bar`; realtime stale history →
-  `SKIP daily_data_stale`; after-close tolerance is at most 1 business day; quote without
-  timestamp → `quote_timestamp_missing`; aged quote → `quote_stale`; zero price →
-  `invalid_zero_quote`; zero open or zero volume → `halted_or_preopen_quote`.
-- §3 risk filters: B-share (`900`/`200`) excluded, ST/退市 names excluded, short listing
-  history rejected, low 20d-median amount rejected when configured.
-- §4 monthly trend: <20 bars → skip; MA5>MA10>MA20 ordering enforced; >8% last-month
-  drop rejected; bullish ordering passes with the `MA5>MA10>MA20` signal.
-- §5 weekly trend: <35 weekly bars → skip; uptrend resolves to one of the three allowed
-  signals (ma_bull / macd_cross / macd_stabilizing); accelerating decline →
-  `weekly_trend_not_passed`.
-- §6 weekly short-term pattern: <5 completed weeks → skip; no current-week rows without a
-  quote → skip; bearish week with ≥1.5× turnover vs prior 4-week mean →
-  `bearish_heavy_turnover_veto` fires before the current-week check; non-bullish current
-  week → `current_week_not_bullish`.
-- §7 daily buy points: <60 bars → skip; missing same-time snapshot falls back with
-  `volume_method=projected_full_day`; fallback disabled → `same_time_reference_missing`;
-  pre-open → `market_not_started`; pullback has priority over two-day acceleration when
-  both qualify.
-- §8 board mode: `skip_surge` records `board_mode_skips_surge` instead of evaluating the
-  surge stage, while freshness, risk filters and the unified daily buy point still run
-  (an ST name is still rejected in board mode).
+| 冻结必测语义 | 测试 |
+| --- | --- |
+| 显式 asof 驱动已完成周/当前周切分 | `test_asof_explicitly_drives_week_partition`, `test_completed_week_excludes_current_week_on_monday`, `test_empty_frame_week_partition_returns_empty` |
+| 真实涨幅不外推（盘中只用 开盘→现价） | `test_realtime_change_not_extrapolated`（断言 3.0% 而非外推值 60%，并断言周内进度 0.05） |
+| 成交量周内进度（实时/盘后两种口径） | `test_elapsed_week_fraction_progress_semantics`（0.05/0.55/0.6/周末不计盘中）、`test_realtime_change_not_extrapolated` 中的 `projected_volume_ratio==1.0` |
+| 腾讯手→股 | `test_realtime_volume_unit_default_is_hand_to_share` + `tests/test_realtime.py::test_tencent_volume_is_normalized_from_hands_to_shares` |
+| 历史新鲜度闸门（未来/过期/盘后宽限） | `test_future_daily_bar_is_error`, `test_stale_realtime_daily_data_is_skipped`, `test_after_close_allows_at_most_one_business_day_lag` |
+| 实时报价闸门 | `test_quote_without_timestamp_is_skipped`, `test_stale_quote_is_skipped` |
+| 零价零量处理 | `test_zero_price_quote_rejected_as_invalid`, `test_zero_open_or_volume_rejected_as_halted` |
+| B股/ST/退市/上市时间/低流动性 | `test_excludes_b_shares`/`test_sz_b_share_prefix_rejected`（900/200）, `test_excludes_st`/`test_delisting_name_rejected`, `test_short_listing_history_rejected`, `test_low_liquidity_rejected_when_configured` |
+| 月线 MA5>MA10>MA20 | `test_monthly_bull_passes_with_ma_ordering`, `test_monthly_ma_not_bull_rejected`, `test_monthly_last_month_drop_rejected`, `test_monthly_insufficient_bars_skipped` |
+| 周线三类信号（各自可复现） | `test_weekly_signal_ma_bull`, `test_weekly_signal_macd_cross`（加速下跌+2周反弹恰在末根金叉）, `test_weekly_signal_macd_stabilizing`（二次回落后柱体负值拐头）, `test_weekly_downtrend_rejected`, `test_weekly_insufficient_bars_skipped` |
+| 放量阴线否决 | `test_surge_bearish_heavy_turnover_veto` |
+| 当前周阳线 + 三类形态 | `test_surge_dual_yang_efficiency_pass`, `test_surge_bearish_to_bullish_reversal_pass`, `test_surge_current_week_not_bullish_rejected`, `test_surge_not_up_vs_previous_close_rejected`, `test_surge_weekly_efficiency_not_improved_rejected`, `test_surge_projected_volume_too_low_rejected` |
+| 日线三类买点 + 优先级 + 投影回退标记 | `test_buy_pullback_has_priority_over_two_day_acceleration`, `test_buy_shrinking_has_priority_over_two_day_acceleration`, `test_buy_two_day_acceleration_passes_after_close`, `test_buy_shrinking_volume_acceleration_passes_intraday_same_time`, `test_buy_missing_same_time_snapshot_falls_back_to_projected`, `test_buy_same_time_reference_missing_when_fallback_disabled`, `test_buy_preopen_projected_unavailable` |
+| 板块跳过 weeksurge 但保留闸门与买点 | `test_board_mode_skips_surge_but_keeps_gates_and_buy` |
+| 空数据/短历史 | `test_empty_frame_week_partition_returns_empty`, `test_monthly_insufficient_bars_skipped`, `test_weekly_insufficient_bars_skipped`, `test_surge_insufficient_completed_weeks_skipped`, `test_buy_insufficient_daily_bars_skipped`, `test_short_listing_history_rejected` |
+| NaN 输入 | `test_weekly_aggregation_close_is_last_available_close`（周五缺失→周收盘=周四收盘，确定且不崩溃）, `test_strategies_deterministic_with_nan_close_input`（月/周/买点均确定性判定，NaN当日收盘→REJECT pattern_not_passed） |
 
-## Boundary coverage added
+## Verified semantics summary
 
-Empty frames, short history, future data, stale data, zero price/volume/open, Monday and
-intraday boundaries, volume units (hands→shares normalization re-verified in
-`test_realtime.py`), and the missing-same-time-snapshot fallback are all covered
-deterministically with no network access.
+- asof 显式切周：同一数据在 asof=09-08 与 09-15 下完成周分别止于 09-04 / 09-11。
+- 盘中真实涨幅只用 当日开盘→现价；周内进度仅用于投影成交量（250k/0.05/500万=1.0 精确验证）。
+- 实时周进度=（完成日+盘中片段）/5（周一10:30→0.05、周三14:00→0.55）；盘后=已有交易日/5；周末不计盘中。
+- 周线三类信号各自构造数据可复现：MA多头 / 末根DIF上穿DEA / 负值区柱体拐头+DIF≈DEA。
+- 三类买点优先级：回踩不破 > 缩量加速 > 两日加速（两组优先级测试）。
+- 同刻快照缺失回退链：same_time → projected_full_day →（禁用时）same_time_reference_missing；未开盘 market_not_started。
+- 板块模式：surge 记 board_mode_skips_surge，新鲜度/风险过滤/买点照常（ST 仍被拦截）。
+- NaN：聚合取周内最后可得收盘；策略对 NaN 输入给出确定判定不抛异常。
 
 ## Result
 
-- New suite: `tests/test_spec_semantics_t2.py` (30 tests, all passing).
-- No SPEC §1-8 semantic defect found requiring source changes; the gaps were missing
-  deterministic boundary tests, which this stage adds.
-- Backtest results are not used as evidence of rule correctness anywhere in this suite,
-  and scores are treated as ranking only (SPEC §7/§10 semantics).
+- No SPEC §1-8 semantic defect requiring source changes was found; the frozen-mandatory
+  semantics are now each pinned by at least one named deterministic test.
+- Scores are treated as ranking only; no backtest result is used as rule-correctness
+  evidence anywhere in this suite.
 - No `data/` raw data, credentials, or unrelated projects modified.
