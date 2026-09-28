@@ -1288,10 +1288,14 @@ def derive_state(sb, sid):
     has_packet = bool(dom.exists() and (dom / 'packet').exists()
                       and any((dom / 'packet').iterdir()))
     # A later open REVEAL leaves the previous sealed pair as the derived
-    # lifecycle state until the new annotation workspace is materialized.
-    # Preserve that historical SEALED fact for authorization guards.
-    if any(e['event_type'] == c2.SEAL for e in chain_events(sb, sid)) and not has_packet:
-        return 'SEALED', {'ordinal': ordinal}
+    # lifecycle state until a new annotation draft is materialized. Preserve
+    # that historical SEALED fact for the authorization boundary; once a new
+    # draft exists, ordinary active-ordinal derivation resumes.
+    latest = chain_events(sb, sid)[-1]
+    if latest['event_type'] == c2.REVEAL and not (dom / 'draft').exists():
+        prior = chain_events(sb, sid)[:-1]
+        if prior and prior[-1]['event_type'] == c2.SEAL:
+            return 'SEALED', {'ordinal': ordinal}
     # FIX3-R7: derive from the COMPLETE published-attempt history, not
     # only the current/live attempt. This proves revoked artifacts remain
     # valid immutable evidence and that the live-attempt invariant holds.
@@ -1441,6 +1445,8 @@ def post_seal_final(sb, sid):
     if not evs or evs[-1]['event_type'] != c2.SEAL:
         fail(f'{G_REP}: POST_SEAL_FINAL expects a terminal SEAL, got '
              f'{[e["event_type"] for e in evs]}')
+    # Historical pairs are retained; finalization is valid for the terminal
+    # pair only and must not erase earlier replay obligations.
     # FIX3-R7: finalization must prove historical attempt integrity too;
     # cleanup alone is not evidence that revoked immutable artifacts remain
     # valid and ineligible.
