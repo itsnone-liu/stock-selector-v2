@@ -1,12 +1,12 @@
 # T2 Rule & Data Semantics Audit Evidence (Run audit_20260928055411432)
 
 - Task: stock-selector-v2 formal audit, frozen task packet hash 3ed7f3bc098d
-- Run: audit_20260928055411432 (stage T2, iteration 4)
+- Run: audit_20260928055411432 (stage T2, iteration 5)
 - Date: 2026-09-28
-- Suite: `tests/test_spec_semantics_t2.py` (62 deterministic tests, no network), plus the
-  pre-existing repo suite re-run in full; machine-verifiable post-commit log in
-  `docs/audit/T2_TESTLOG_20260928.md` with raw output artifact
-  `docs/audit/T2_PYTEST_OUT_20260928.txt`.
+- Suite: `tests/test_spec_semantics_t2.py` (64 deterministic tests, no network) +
+  `tests/test_audit_target_binding.py` (2 execution-binding tests), plus the
+  pre-existing repo suite re-run in full; raw output artifact with provenance header in
+  `docs/audit/T2_PYTEST_OUT_20260928.txt`, narrative in `docs/audit/T2_TESTLOG_20260928.md`.
 
 ## Iteration-3 mapping (REVISE testsRequired → added tests)
 
@@ -28,6 +28,15 @@
 | 关键未来数据边界 | `current_week_rows` 截断到 asof 当日（含）——`test_current_week_rows_excludes_future_days`；盘后周进度只数已完成日——`test_week_fraction_never_counts_future_days_after_close`（3/5 而非 5/5）；`daily_buy` 入口截断——`test_daily_buy_ignores_future_rows`（与截断帧完全等价：同判定/同reason/同"今天"价格） |
 | 归档碰撞边界 | `pipeline.py` 同秒同 suffix 归档追加 `-2` 序号；`test_run_archive_same_second_collision_appends_suffix`（同秒两次运行→两个归档、首个保留） |
 | 测试证据须为可信执行证据而非自述 | 原始 pytest 输出以命令重定向落盘并入库：`docs/audit/T2_PYTEST_OUT_20260928.txt`（exit 0, 428 passed, 逐字未编辑），`T2_TESTLOG_20260928.md` 更新为指向该原始产物 |
+
+## Iteration-5 mapping (REVISE testsRequired → changes)
+
+| 评审要求 | 迭代5落地 |
+| --- | --- |
+| 可信的 TARGET_COMMIT 测试执行记录（非仅 Git 文件内容） | 新增 `tests/test_audit_target_binding.py`：在目标提交上断言 ①`git status --porcelain` 为空（被测代码=提交内容）②`HEAD~1 == f98447e…`（固定父提交，绑定迭代5目标提交）③T2 语义套件收集数冻结为 64。评审者 checkout 目标提交运行该文件即可机器复核"套件在该提交上执行"是否成立；原始产物 `T2_PYTEST_OUT_20260928.txt` 头部记录 parent/HEAD-at-run/干净状态/命令/退出码 |
+| asof 当日时间索引边界 | `current_week_rows`/`daily_buy` 截断改为全时间戳比较（`行时间 <= asof`）：asof 当日日期戳行与当日早于 asof 时刻的行允许，当日晚于 asof 时刻（盘中未来）与之后日期排除——`test_current_week_rows_asof_day_time_index_boundary`（含 09:00/14:30 双向断言） |
+| 实时未来时间戳边界 | `check_quote_freshness` 新增未来拒绝分支：超出时钟偏差（`max_quote_future_seconds` 默认30s）的未来戳 → SKIP `quote_from_future`（独立确定性 reason），偏差内未来戳仍 `quote_fresh`——`test_future_quote_timestamp_rejected`（900s→拒绝；10s→新鲜） |
+
 
 
 

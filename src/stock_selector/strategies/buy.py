@@ -59,9 +59,9 @@ def daily_buy(
 ) -> RuleResult:
     if daily is None or len(daily) < 60:
         return RuleResult(Decision.SKIP, "buy", "insufficient_daily_bars")
-    # 前视防护：盘后语义下只允许 asof 当日（含）之前的日线参与计算，
-    # 防止误同步的未来日线被当作“今天”。
-    daily = daily[pd.to_datetime(daily.index).date <= asof.date()]
+    # 前视防护：盘后语义下只允许 asof 时刻（含）之前的日线参与计算，
+    # 防止误同步的未来日线被当作“今天”（asof 当日更早时刻的行允许）。
+    daily = daily[pd.to_datetime(daily.index) <= pd.Timestamp(asof)]
     if len(daily) < 60:
         return RuleResult(Decision.SKIP, "buy", "insufficient_daily_bars")
     cfg = config["buy"]

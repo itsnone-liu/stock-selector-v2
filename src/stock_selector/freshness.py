@@ -31,7 +31,12 @@ def check_daily_freshness(daily: pd.DataFrame, asof: datetime, config: dict, rea
 def check_quote_freshness(quote: Quote, asof: datetime, config: dict) -> RuleResult:
     if quote.timestamp is None:
         return RuleResult(Decision.SKIP, "freshness", "quote_timestamp_missing")
-    age = abs((asof - quote.timestamp).total_seconds())
+    skew = (asof - quote.timestamp).total_seconds()
+    future_allowance = float(config["freshness"].get("max_quote_future_seconds", 30))
+    if skew < -future_allowance:
+        # 报价时间戳在未来（超出允许的时钟偏差）→ 数据无效，不参与任何判定。
+        return RuleResult(Decision.SKIP, "freshness", "quote_from_future", metrics={"quote_future_seconds": round(-skew, 1)})
+    age = abs(skew)
     maximum = float(config["freshness"].get("max_quote_age_seconds", 180))
     if age > maximum:
         return RuleResult(Decision.SKIP, "freshness", "quote_stale", metrics={"quote_age_seconds": age})

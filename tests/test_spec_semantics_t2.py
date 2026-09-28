@@ -787,6 +787,41 @@ def test_current_week_rows_excludes_future_days(config):
     assert set(pd.to_datetime(rows_mon.index).date) == {date(2026, 9, 14)}
 
 
+def test_current_week_rows_asof_day_time_index_boundary(config):
+    """asof 当日时间索引边界：日期戳当日行允许；当日早于 asof 时刻的行允许；
+    当日晚于 asof 时刻的行（盘中未来）与次日行一律排除。"""
+    idx = pd.to_datetime(
+        ["2026-09-14 00:00", "2026-09-15 00:00", "2026-09-16 00:00", "2026-09-16 09:00", "2026-09-16 14:30", "2026-09-17 00:00"]
+    )
+    frame = pd.DataFrame(
+        {"open": 10.0, "high": 10.5, "low": 9.5, "close": 10.0, "volume": 1e6, "amount": 1e7},
+        index=idx,
+    )
+    rows = current_week_rows(frame, datetime(2026, 9, 16, 10, 30))
+    assert list(pd.to_datetime(rows.index)) == [
+        pd.Timestamp("2026-09-14 00:00"),
+        pd.Timestamp("2026-09-15 00:00"),
+        pd.Timestamp("2026-09-16 00:00"),
+        pd.Timestamp("2026-09-16 09:00"),
+    ]
+
+
+def test_future_quote_timestamp_rejected(config):
+    """实时未来时间戳：超出时钟偏差的未来报价 → SKIP quote_from_future；
+    偏差内（30秒）的未来戳不触发该拒绝。"""
+    fresh = Quote("600001", 10.0, 10.0, 9.9, 1_000_000, timestamp=datetime(2026, 9, 16, 10, 30))
+    asof = datetime(2026, 9, 16, 10, 30)
+    future = Quote("600001", 10.0, 10.0, 9.9, 1_000_000, timestamp=datetime(2026, 9, 16, 10, 45))
+    result = check_quote_freshness(future, asof, config)
+    assert result.decision == Decision.SKIP
+    assert result.reason == "quote_from_future"
+    assert result.metrics["quote_future_seconds"] == 900.0
+    within_skew = Quote("600001", 10.0, 10.0, 9.9, 1_000_000, timestamp=datetime(2026, 9, 16, 10, 30, 10))
+    result = check_quote_freshness(within_skew, asof, config)
+    assert result.passed
+    assert result.reason == "quote_fresh"
+
+
 def test_week_fraction_never_counts_future_days_after_close(config):
     """盘后周进度只统计 asof（含）之前已完成的交易日，未来行不计入。"""
     frame = make_daily(periods=40, end="2026-09-18")  # 误同步含周四/周五数据
