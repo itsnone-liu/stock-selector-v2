@@ -12,7 +12,7 @@ def clamp_range(values, lo, hi):
       c) lo > hi must return [].
     """
     if values is None or len(values) == 0:
-        return None  # PLANTED-DEFECT (drill round 1): R2a violation, must be []
+        return []
     if lo > hi:
         return []
     kept = {
