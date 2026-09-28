@@ -93,4 +93,5 @@
 - `bottom_new_events_YYYYMMDD.csv`：当日新增底部事件；
 - `rejections_*`：逐票、逐阶段的最终淘汰原因；
 - `diagnostics_*`：阶段计数、报价错误、同刻量参考覆盖数；
-- `output/runs/<timestamp>/`：每次运行不可覆盖的归档。
+- `output/runs/<timestamp>/`：每次运行不可覆盖的归档，`trends`/`bottom_scan`/各信号通道各有子目录；同一秒重复运行追加序号（`-2`、`-3`……），绝不覆盖既有归档。
+- 固定名（`monthly_pool.csv`、`weekly_pool.csv`、`*_close.csv` 等）与 `bottom_new_events_YYYYMMDD.csv` 是“最新指针”，可被下次运行替换；逐次不可覆盖的证据只在 `runs/` 归档内。归档目录名由该次运行的 `asof` 决定。
