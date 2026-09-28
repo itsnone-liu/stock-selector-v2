@@ -1,22 +1,34 @@
 {
-  "goal": "正式审计 stock-selector-v2：依据 SPEC.md、README.md、EVALUATION.md 和现有测试，验证统一选股系统的规则语义、数据闸门、风险过滤、周/月/日线管线、板块与底部观察池、输出归档及回测研究边界；发现问题后由 DSH 在同一 session 修复，并经 GitHub remote gate 与独立 Web reviewer 逐轮复审，直到所有阶段通过。审计不得把研究性结论误写成实盘保证，不得修改 data/ 中的原始数据，不得泄露或提交凭据。",
-  "approvedPlan": "分四阶段执行正式审计。T1 基线与契约：运行完整 pytest，检查 CLI/配置/模型/输出归档的基本可用性，核对 README、SPEC 与实现是否一致；修复阻断性测试、导入、路径、配置和输出契约问题。T2 规则与数据语义：逐项核对显式 asof、已完成周/当前周切分、周内成交量进度、腾讯手到股换算、数据新鲜度、实时报价闸门、B股/ST/退市/上市时间/流动性过滤、月周趋势、周线形态、日线买点和板块模式；补充或修复可复现的边界测试。T3 专项通道与研究边界：核对底部三倍量观察池状态机、小金叉通道、盘后/盘中/板块输出、rejections/diagnostics、同刻量快照、不可覆盖运行归档、回测统计及研究结论与生产语义的隔离；修复发现的问题并验证不破坏主流程。T4 最终回归与交付：运行全量测试和必要的本地端到端/CLI dry-run，检查 git diff 仅包含本审计允许的代码、测试、文档或配置修复，不修改 data/ 原始数据和凭据；形成最终证据摘要，确认所有 P0/P1 已清零或明确进入 NEED_USER。每一轮必须先测试再提交，输出 READY_FOR_AUDIT；Web reviewer 只能依据 GitHub remote commit、diff、测试报告和 verified evidence bundle 独立裁决。",
+  "goal": "CSR-8 / Phase C 基础建设收尾：将现有核心协议与审计底座收口为可持续、可重复、可独立审计的生产基础设施闭环；严格遵守任务书 HARD STOP，未通过独立审计不得宣布 PRODUCTION INFRA FINAL FROZEN。任务书原文：.feishu-files/20260928140115-CSR8_PHASE_C_PRODUCTION_INFRA_FINAL_TASKBOOK.md；源文件 SHA256：9aeb636e2cf9dc8e1b59674e62e9b326e78929384cc5a4e03dd72b4d8a5427c7。",
+  "approvedPlan": "执行任务书第16节：A1 先审当前 HEAD 与 8b08f26 之后的实际状态；A2 完成 next-reveal prerequisite guard + D71；A3 运行 full synthetic、C4-C regression、real fingerprint，并核对禁止真实域、anchor 字节和生产状态；A4 只提交当前 Phase A 变更并暂停；A5 等待独立审计宣布 C4-D SYNTHETIC FINAL FROZEN。严禁自动进入 Phase B；任何真实 annotation、receipt、approval、SEAL、ordinal-2 production proposal、第二次 production REVEAL 或 outcome 解盲均属于后续阶段且当前禁止。",
   "stages": [
     {
-      "id": "T1",
-      "requirements": "1) 必须运行项目完整测试命令（优先使用项目声明的环境/解释器与 pytest -q），记录命令、通过数、失败数和跳过项；2) 检查所有模块可导入，CLI 的 help/config 路径可用，默认配置可加载；3) 核对 README、SPEC、EVALUATION 与当前实现的关键契约，尤其是 output/runs 不覆盖、诊断/拒绝输出和研究结论非实盘保证；4) 修复发现的阻断性问题并补最小回归测试；5) 不修改 data/ 原始数据、密钥或无关项目；6) 只有全量基线测试通过且证据写入提交后才能 READY_FOR_AUDIT。"
+      "id": "A",
+      "requirements": "CSR-8 Phase A / C4-D synthetic final closeout。仅执行 A1-A4：核对当前 HEAD 与 8b08f26 之后的实际变更；实现统一 next-reveal prerequisite guard（至少证明 C2 full verify(check_head=True)、requested ordinal == reveal_count+1、last event=SEAL_ANNOTATION、open_reveals=0、revealed set 为 candidate total-order prefix、前次合法 matched SEAL、前次 sealed pair semantic replay PASS），并接入 proposal 创建前、approval、permit、authorization-chain verify 和真正 append REVEAL 前；新增 D71：在 [R1,S1,R2] 下 ordinal-3 proposal 必须得到 G-C4D-AUTHZ 且 proposal/approval/permit 均 absent；保留 [R1,S1]→ordinal-2 proposal 正向控制。运行 D01-D71 全部 synthetic、C4-C regression、candidate gates、blindness output scan、real fingerprint before==after；确认真实生产仍 REVEAL=1/SEAL=0、禁止真实域不存在、c4c_anchor.json exact bytes 未改变。不得创建真实 annotator/c4d_receipts/c4d_proposals/annotation draft/receipt/seal approval，不得 production SEAL、ordinal-2 production approval/permit、第二次 production REVEAL、outcome 读取/解盲，不得修改 C4-C executor 或 c4c_anchor.json。完成后创建本地 commit 并输出 READY_FOR_AUDIT，随后 HARD STOP 等待独立审计；不得进入 B。"
     },
     {
-      "id": "T2",
-      "requirements": "1) 逐项验证 SPEC 第1-8节：显式 asof 与已完成周/当前周边界、真实涨幅不外推、成交量周内进度、腾讯手→股、历史/实时新鲜度闸门、零价零量处理、B股/ST/退市/上市时间/低流动性过滤、月线 MA5>MA10>MA20、周线三类信号、放量阴线否决、当前周阳线及三类形态、日线三类买点优先级与投影回退标记、板块跳过 weeksurge 但保留统一数据闸门和买点；2) 对发现的缺口补充确定性单元/语义测试并修复；3) 测试必须覆盖空数据、短历史、NaN、过期数据、未来数据、周一/盘中边界、成交量单位和缺少同刻快照等边界；4) 不能以回测结果替代规则正确性，不能把排序分解释为概率；5) 提交后再次运行相关测试并输出 READY_FOR_AUDIT。"
+      "id": "B",
+      "requirements": "任务书 Phase B Real Cycle-1：仅在 Phase A 独立审计宣布 C4-D SYNTHETIC FINAL FROZEN 后，按 B1-B7 分独立授权点执行；每个授权点 HARD STOP。当前不得执行。"
     },
     {
-      "id": "T3",
-      "requirements": "1) 核对底部三倍量观察池的事件定义、active/invalidated/expired/converted 状态机、60交易日过期、跌破事件日低点失效以及 --select 专用通道；2) 核对盘后、盘中、板块、bottom-volume、backtest 的输出字段和模式隔离；3) 核对 rejections_*、diagnostics_*、bottom_pool_active、bottom_new_events、intraday_volume_snapshots 与 output/runs 时间归档的可追溯性和不可覆盖性；4) 核对研究脚本的分区/断点/资源限制与生产数据边界，不能提交 data/ 生成物或凭据；5) 运行专项测试和至少一个不改数据的 dry-run/fixture 端到端验证；6) 修复后全量回归并输出 READY_FOR_AUDIT。"
+      "id": "C",
+      "requirements": "任务书 Phase C Real Cycle-2：仅在 Phase B 完成并独立审计后执行；当前不得执行。"
     },
     {
-      "id": "T4",
-      "requirements": "1) 运行完整 pytest 和本审计新增的全部回归测试，必须 0 失败；2) 对主要 CLI 入口执行 help 或 fixture/dry-run 验证，不得因真实外部行情不可用而伪造通过；3) 检查 git diff、测试报告、提交范围和 remote tip，确认没有修改 data/ 原始数据、凭据、定时任务或旧系统；4) README/SPEC/EVALUATION 若因修复需要更新，必须同步说明边界和证据，不得无证据扩大结论；5) P0/P1 问题必须清零，无法由执行者安全决定的策略改变必须 NEED_USER；6) 形成最终审计摘要，包含每阶段 commit、测试命令与结果、修复项、残余风险和可复现验证方式，并输出 READY_FOR_AUDIT。"
+      "id": "D",
+      "requirements": "任务书 ordinal-N progressive loop 泛化；仅在前置阶段冻结后执行；当前不得执行。"
+    },
+    {
+      "id": "E",
+      "requirements": "任务书 production runner + recovery/watchdog；仅在前置阶段冻结后执行；当前不得执行。"
+    },
+    {
+      "id": "F",
+      "requirements": "任务书 analysis-ready bridge + audit package；仅在前置阶段冻结后执行；当前不得执行。"
+    },
+    {
+      "id": "G",
+      "requirements": "任务书最终 PRODUCTION INFRA FINAL FROZEN gate；只有独立审计确认全部 Gate 通过才允许宣布；当前不得执行。"
     }
   ]
 }
