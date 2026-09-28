@@ -163,6 +163,24 @@ LAST blocker; design text UNCHANGED; NO lifecycle extension):
       [R1,S1,R2] can never pre-persist ordinal-3 artifacts even though
       derive_state still reports the old sealed pair as SEALED (D71;
       positive control: [R1,S1] -> ordinal-2 still allowed)
+
+C4-D SYNTHETIC FINAL FROZEN (user ruling after source-level re-audit
+of adfbb61, 2026-09-28):
+  Design frozen:            034d152
+  Implementation closure:   adfbb61
+  Fix chain:                dc6e5eb -> e4819a8 -> 8479170 -> e022383
+                            -> 8074cc7 -> 8b08f26 -> adfbb61
+  Synthetic:                D01–D71 = PASS
+  Regression:               C4-C = PASS
+  Real production:          UNCHANGED — REVEAL=1 / SEAL=0,
+                            forbidden domains absent,
+                            c4c_anchor unchanged
+  Open C4-D blockers:       NONE
+
+  R2-era lifecycle naming remains intentionally unextended per frozen
+  design; FIX7 closes authorization eligibility directly from the
+  trusted committed chain and does not redefine lifecycle state
+  semantics.
 """
 
 import contextlib
@@ -3898,6 +3916,8 @@ def cmd_synthetic():
         'mode': 'synthetic only; real chain/domains untouched',
         'design': 'PHASE_C_C4D_ANNOTATION_SEAL_DESIGN v1.0 FINAL FROZEN '
                   '@ 034d152',
+        'closure': 'C4-D SYNTHETIC FINAL FROZEN @ adfbb61 '
+                   '(user ruling 2026-09-28; open blockers: NONE)',
         'fixtures': f'D01–D{len(FIXTURES):02d} ({len(FIXTURES)} PASS)',
         'candidate_gates': {'candidate_order_verified': True,
                             'ordinal1_matches_frozen_first':
