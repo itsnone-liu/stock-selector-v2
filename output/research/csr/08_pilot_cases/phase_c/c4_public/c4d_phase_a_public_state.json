@@ -1,0 +1,1 @@
+{"candidate_gates":{"ordinal1_matches_frozen_first":true,"revealed_prefix":1,"size":1717},"production":{"event_types":["REVEAL_PACKET"],"production_head_hash":"b5ec0ba1d485219fd7a2198b23e7ac0f979c23d4dd0cced16faa80d8f19437d5","seal_count":0,"reveal_count":1},"scope":"public non-sensitive Phase A invariant snapshot"}
