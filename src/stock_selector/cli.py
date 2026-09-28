@@ -15,16 +15,15 @@ def _parse_asof(value: str | None) -> datetime | None:
     return datetime.fromisoformat(value) if value else None
 
 
-class _RealtimeRequiresSelect(argparse.Action):
-    """bottom-volume --realtime 的跨参数校验：仅 --select（小金叉通道）有效。
+def validate_args(parser: argparse.ArgumentParser, args: argparse.Namespace) -> None:
+    """跨参数校验（全部选项解析完成后执行，与书写顺序无关）。
 
-    fail loud：盘后扫描静默忽略 --realtime 会让用户误以为拿到了实时语义。
+    fail loud：`bottom-volume --realtime` 若不带 `--select`，盘后扫描静默忽略
+    --realtime 会让用户误以为拿到了实时语义。此处不能依赖 argparse Action 的
+    解析期检查——`--realtime --select` 顺序下 Action 执行时 select 尚未置位。
     """
-
-    def __call__(self, parser, namespace, values, option_string=None):
-        if not getattr(namespace, "select", False):
-            parser.error("bottom-volume --realtime 仅在 --select（小金叉通道）下有效；盘后扫描无实时模式")
-        setattr(namespace, self.dest, True)
+    if args.command == "bottom-volume" and getattr(args, "realtime", False) and not getattr(args, "select", False):
+        parser.error("bottom-volume --realtime 仅在 --select（小金叉通道）下有效；盘后扫描无实时模式")
 
 
 def _print_paths(paths: dict[str, Path]) -> None:
@@ -61,7 +60,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     bottom = sub.add_parser("bottom-volume", help="底部三倍量事件池：默认盘后扫描更新；--select运行小金叉通道")
     bottom.add_argument("--select", action="store_true", help="对活跃池运行小金叉通道（周线趋势+形态+日线买点）")
-    bottom.add_argument("--realtime", nargs=0, action=_RealtimeRequiresSelect, help="通道使用实时行情（仅--select时有效）")
+    bottom.add_argument("--realtime", action="store_true", help="通道使用实时行情（仅--select时有效）")
     bottom.add_argument("--asof", help="ISO时间；默认当前时间")
 
     backtest = sub.add_parser("backtest", help="回测日线买点的后续收益")
@@ -90,7 +89,9 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
-    args = build_parser().parse_args(argv)
+    parser = build_parser()
+    args = parser.parse_args(argv)
+    validate_args(parser, args)  # 跨参数校验在完整解析后执行，与选项书写顺序无关
     logging.basicConfig(level=getattr(logging, args.log_level), format="%(asctime)s %(levelname)s %(name)s: %(message)s")
     config = load_config(args.config)
     pipeline = SelectorPipeline(config)

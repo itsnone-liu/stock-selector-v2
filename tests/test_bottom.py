@@ -146,13 +146,33 @@ def test_pool_refresh_expires_only_on_bars_visible_at_asof(tmp_path):
 
 
 def test_cli_rejects_bottom_realtime_without_select(capsys):
-    """T3：--realtime 仅在 --select（小金叉通道）下有效，缺 --select 时解析期即报错（fail loud）。"""
-    from stock_selector.cli import build_parser
+    """T3：--realtime 仅在 --select（小金叉通道）下有效，缺 --select 时校验即报错（fail loud）。
 
+    校验在完整解析后执行（validate_args），与选项书写顺序无关：
+    `--select --realtime` 与 `--realtime --select` 必须同被接受且解析结果一致。
+    """
+    from stock_selector.cli import build_parser, validate_args
+
+    def run(argv):
+        parser = build_parser()
+        args = parser.parse_args(argv)
+        validate_args(parser, args)
+        return args
+
+    # 缺 --select：exit 2，报错指明用法
+    parser = build_parser()
+    args = parser.parse_args(["bottom-volume", "--realtime"])
     with pytest.raises(SystemExit) as exc:
-        build_parser().parse_args(["bottom-volume", "--realtime"])
+        validate_args(parser, args)
     assert exc.value.code == 2
     assert "--select" in capsys.readouterr().err
 
-    args = build_parser().parse_args(["bottom-volume", "--select", "--realtime"])
-    assert args.select is True and args.realtime is True
+    # 两种书写顺序都必须通过且解析结果一致
+    a = run(["bottom-volume", "--select", "--realtime"])
+    b = run(["bottom-volume", "--realtime", "--select"])
+    assert a.select is True and a.realtime is True
+    assert (a.select, a.realtime) == (b.select, b.realtime)
+
+    # 纯盘后扫描不受影响
+    c = run(["bottom-volume"])
+    assert c.select is False and c.realtime is False

@@ -2,6 +2,28 @@
 
 任务书 hash `3ed7f3bc098d`，T3 六项要求逐条核对。
 
+## 迭代 1 审核反馈修复（REVISE i1 → 本节）
+
+审核员 REVISE 指出两类 P0，均已修复并以机器可复现测试入库：
+
+1. **参数顺序缺陷**（`cli.py::_RealtimeRequiresSelect` 解析期读 `namespace.select`，
+   `bottom-volume --realtime --select` 顺序下 `--select` 尚未置位而错误退出）。
+   修复：删除解析期 Action，改为 `validate_args(parser, args)` 在**完整解析后**执行的
+   跨参数校验，与书写顺序无关。回归
+   `test_cli_rejects_bottom_realtime_without_select`：`--select --realtime` 与
+   `--realtime --select` 均通过且解析结果一致；`--realtime` 单独出现 exit 2 且报错
+   指明 `--select` 用法（子进程冒烟复验 exit=2）。
+2. **fixture 端到端未入库**（此前仅有会话内 heredoc 演示，非机器可复现证据）。
+   修复：新增 `tests/test_bottom_e2e_t3.py`（2 个 pytest 用例，只用 tmp_path 与
+   fixture 帧，零网络零 TDX）：
+   - `test_bottom_scan_channel_fixture_e2e`：扫描落池（active）→ 诊断计数
+     `bottom_volume_launch=1` → `--select` 通道拒绝逐票可见（rejections_bottom_close.csv）
+     → 同秒重扫归档 `bottom_scan-2` 且首次归档逐字节不变 → 同日重扫池不重复 →
+     **仓库 data/ 树 mtime 快照前后全等（不写原始数据）**。
+   - `test_scan_and_channel_outputs_are_mode_isolated`：扫描归档目录内容集合与通道
+     `diagnostics_bottom_*` 后缀互不重叠（模式隔离）。
+3. **READY_FOR_AUDIT 精确标记**（审核员要求提交内含标记）：见文末。
+
 ## 1) 底部三倍量观察池
 
 - 事件定义（`strategies/bottom.py::bottom_volume_signal`）：深回撤≥30%（250日高点）、
@@ -74,12 +96,29 @@
 
 ## 6) 全量回归
 
-`PYTHONPATH=src ... -m pytest -q --junitxml=/tmp/t3-full.xml`
-→ **454 passed / 0 failed / 0 errors / 0 skipped**（T2 基线 451 + 本轮新增 3）。
+- 迭代 1 初版：`PYTHONPATH=src ... -m pytest -q --junitxml=/tmp/t3-full.xml`
+  → **454 passed / 0 failed / 0 errors / 0 skipped**（T2 基线 451 + 本轮新增 3）。
+- 迭代 1 REVISE 修复后：`PYTHONPATH=src ... -m pytest -q --junitxml=/tmp/t3-full2.xml`
+  → **456 passed / 0 failed / 0 errors / 0 skipped**（+2 fixture e2e）。
+  专项：`test_bottom.py`(7) + `test_bottom_e2e_t3.py`(2) + `test_pipeline_archives_t3.py`(12)
+  + `test_snapshots.py`(2) = 23 passed / 0 failed。
 
 ## 改动范围
 
 - `src/stock_selector/bottom_pool.py`：refresh 显式 asof 边界。
-- `src/stock_selector/cli.py`：--realtime 跨参数校验（fail loud）。
+- `src/stock_selector/cli.py`：--realtime 跨参数校验（解析后执行，顺序无关，fail loud）。
 - `tests/test_bottom.py`：+3 回归。
+- `tests/test_bottom_e2e_t3.py`：+2 机器可复现 fixture e2e。
 未触碰 `data/`、凭据、无关模块。
+
+## READY_FOR_AUDIT 标记
+
+[DSH-AUDIT]
+STATE: READY_FOR_AUDIT
+RUN_ID: audit_20260928115358315
+HOST_ID: RainYun-c438TDGn
+STAGE: T3
+ITERATION: 2
+HEAD: <本提交哈希，见 git log>
+SUMMARY: T3六项核对+迭代1审核反馈修复：池刷新绑定显式asof；--realtime校验顺序无关化；fixture e2e入库（tmp_path、不写data/、归档防覆盖、模式隔离）
+TESTS: 专项23/0；全量456 passed/0 failed/0 errors/0 skipped
