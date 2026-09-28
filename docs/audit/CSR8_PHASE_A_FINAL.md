@@ -1,4 +1,6 @@
-# CSR-8 / Phase A — C4-D Synthetic Final Closeout
+# CSR-8 / Phase A — C4-D Synthetic Audit Evidence (HARD STOP)
+
+> This file is an evidence index only. It does not declare `FINAL FROZEN`; that declaration belongs to the independent audit.
 
 冻结任务书：`CSR8_PHASE_C_PRODUCTION_INFRA_FINAL_TASKBOOK.md`
 任务书 SHA256：`9aeb636e2cf9dc8e1b59674e62e9b326e78929384cc5a4e03dd72b4d8a5427c7`
@@ -81,12 +83,6 @@ afe7baa5888b973382b534d722492b69fbb8840d24d208984f03b377fd8aeff5
 
 独立审计确认前，不宣布 `C4-D SYNTHETIC FINAL FROZEN`，不进入 Phase B。
 
-[DSH-AUDIT]
-STATE: READY_FOR_AUDIT
-RUN_ID: audit_20260928142305936
-HOST_ID: RainYun-c438TDGn
-STAGE: A
-ITERATION: 2
-HEAD: <本提交哈希由本轮 marker 精确指认>
-SUMMARY: Phase A A1-A4：独立机器证据测试绑定核心 runner、D71、D01-D71、C4-C regression、candidate gates、真实生产不变量与 anchor 字节不变；HARD STOP
-TESTS: full pytest 473 passed/0 failed/0 errors/0 skipped；独立 Phase A 证据 2/2；synthetic D01-D71 71 PASS
+## Machine-evidence boundary
+
+The authoritative bridge command is the committed pytest suite. It executes `scripts/csr8_phase_a_machine_audit.py`, which runs the isolated D01-D71 matrix and then restores the real bindings before C4-C regression, live preflight, candidate gates, blindness scan, production snapshot, and real fingerprint equality. This file does not declare `FINAL FROZEN`; independent audit remains required.
