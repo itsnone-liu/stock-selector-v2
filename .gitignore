@@ -12,7 +12,7 @@ output/research/
 state/*
 !output/.gitkeep
 !state/.gitkeep
-data/csr8_phase_c/secret/
-data/csr8_phase_c/c3_preflight/
-data/csr8_phase_c/production/
-data/csr8_phase_c/c4c_proposals/
+# CSR-8 / research runtime data tree — never tracked (real production
+# chain, secrets, ingest pools, market-data caches). The one tracked file
+# data/t4/sector_map/csrc_industry_snapshot.json stays tracked.
+data/
