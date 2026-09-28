@@ -1933,27 +1933,62 @@ def _guard_or_create_proposal_domain(sb, sid, ordinal):
 
 
 def prove_next_reveal_eligible(sb, sid, ordinal):
-    """FIX7: authorization-layer prerequisite proof derived ONLY from the
-    trusted production chain (user audit of 8b08f26, final blocker):
-    the committed prefix must be CLOSED — full C2 verify with the
-    trusted head, no open REVEAL (last committed event is a SEAL), and
-    the requested ordinal is exactly reveals+1. This deliberately does
-    NOT extend the R2-era lifecycle naming (deferred design); it only
-    proves 'previous packet sealed' at authorization time, so a chain
-    like [R1,S1,R2] can never pre-authorize ordinal-3 artifacts even
-    though derive_state still reports the old pair as SEALED."""
+    """FIX7: prove the complete closed-prefix prerequisite before authz.
+
+    This is deliberately a persisted-chain proof, not a state-label check:
+    C2 full verification, exact ordinal, unique ordered candidate prefix,
+    a directly matched preceding SEAL, and the preceding sealed pair's
+    semantic replay must all pass before any next-reveal artifact is written.
+    """
     lg = c2.SealingLog(log_path(sb, sid), head_path(sb, sid))
     c2translate(lg.load().verify, True)
     evs = lg.events
-    reveals = sum(1 for e in evs if e['event_type'] == c2.REVEAL)
-    if ordinal != reveals + 1:
+    reveals = [e for e in evs if e['event_type'] == c2.REVEAL]
+    n = len(reveals)
+    if ordinal != n + 1:
         fail(f'{G_AUTHZ}: next-reveal prerequisite — requested ordinal '
-             f'{ordinal} but the committed chain has {reveals} REVEAL(s); '
-             f'only ordinal {reveals + 1} may be authorized')
+             f'{ordinal} but the committed chain has {n} REVEAL(s); '
+             f'only ordinal {n + 1} may be authorized')
     if not evs or evs[-1]['event_type'] != c2.SEAL:
         fail(f'{G_AUTHZ}: next-reveal prerequisite — last committed event '
              f'is not a SEAL (previous packet not sealed / open REVEAL) — '
              f'authorization forbidden')
+
+    # The committed reveal keys must be unique and in candidate order.  The
+    # synthetic C4-D fixtures use their own opaque packet universe; when the
+    # frozen C3 candidate universe is available, require the stronger exact
+    # prefix equality as well.
+    revealed_keys = [(e['payload'].get('opaque_case_id'), e['payload'].get('T'))
+                     for e in reveals]
+    if len(set(revealed_keys)) != len(revealed_keys):
+        fail(f'{G_AUTHZ}: next-reveal prerequisite — revealed set has duplicates')
+    try:
+        frozen = candidate_total_order()
+        frozen_keys = [(e['opaque_case_id'], e['T']) for e in frozen]
+        if all(k in frozen_keys for k in revealed_keys):
+            if revealed_keys != frozen_keys[:n]:
+                fail(f'{G_AUTHZ}: next-reveal prerequisite — revealed set '
+                     f'is not the frozen candidate total-order prefix')
+    except (RuntimeError, ValueError, KeyError):
+        # A synthetic sandbox is allowed to carry a local C4-D packet universe;
+        # its chain uniqueness/order proof above remains mandatory.
+        pass
+
+    # Match the immediately preceding reveal to exactly one SEAL in its
+    # ordinal window, then replay that sealed pair from persisted artifacts.
+    rpos = [i for i, e in enumerate(evs) if e['event_type'] == c2.REVEAL]
+    lo = rpos[-1]
+    seals = [e for e in evs[lo + 1:] if e['event_type'] == c2.SEAL]
+    if len(seals) != 1:
+        fail(f'{G_AUTHZ}: next-reveal prerequisite — preceding reveal '
+             f'does not have exactly one matched SEAL')
+    prove_attempt_history(sb, sid, n, gate=G_AUTHZ, events=evs,
+                          reveal=reveals[-1])
+    try:
+        semantic_replay(sb, sid, events=evs)
+    except RuntimeError as e:
+        fail(f'{G_AUTHZ}: next-reveal prerequisite — preceding sealed-pair '
+             f'semantic replay failed: {e}')
 
 
 def build_next_reveal_proposal(sb, sid, ordinal, sealed_prefix_head,

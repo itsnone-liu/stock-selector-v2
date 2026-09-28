@@ -140,7 +140,7 @@ def test_guard_semantics_and_five_entrypoints_are_machine_checked():
     call_text = {ast.unparse(n) for n in calls}
     assert "c2translate(lg.load().verify, True)" in call_text
     assert any("event_type" in ast.unparse(n) and "c2.SEAL" in ast.unparse(n) for n in ast.walk(guard))
-    assert any("ordinal != reveals + 1" in ast.unparse(n) for n in ast.walk(guard))
+    assert any("ordinal != n + 1" in ast.unparse(n) for n in ast.walk(guard))
     for name in ("build_next_reveal_proposal", "approve_next_reveal",
                  "materialize_next_permit", "verify_next_authorization_chain",
                  "reveal_transaction"):
