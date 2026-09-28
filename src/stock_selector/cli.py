@@ -31,6 +31,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     trends = sub.add_parser("trends", help="运行月线和周线趋势池")
     trends.add_argument("--pool", help="可选输入股票池CSV；默认扫描本地TDX全市场")
+    trends.add_argument("--asof", help="ISO时间；决定数据新鲜度闸门与归档时间戳，默认当前时间")
 
     after_close = sub.add_parser("after-close", help="在已有周线池上运行盘后周线形态和日线买点")
     after_close.add_argument("--pool", default="output/weekly_pool.csv")
@@ -91,7 +92,7 @@ def main(argv: list[str] | None = None) -> int:
         return 0
     if args.command == "trends":
         pool = load_pool(args.pool) if args.pool else None
-        _print_paths(pipeline.run_trends(pool))
+        _print_paths(pipeline.run_trends(pool, _parse_asof(args.asof)))
         return 0
     if args.command == "after-close":
         _print_paths(pipeline.run_after_close(load_pool(args.pool), _parse_asof(args.asof)))

@@ -117,13 +117,15 @@ def weekly_surge(daily: pd.DataFrame, asof: datetime, config: dict, quote: Quote
         return RuleResult(Decision.REJECT, "surge", "projected_volume_too_low", metrics={"volume_ratio": volume_ratio})
 
     current_efficiency = abs(current_change) / volume_ratio if volume_ratio > 0 else 0.0
-    previous_efficiency = abs(previous_change)
+    previous_week = completed.iloc[-2]
+    previous_volume_ratio = float(previous["volume"]) / float(previous_week["volume"]) if float(previous_week["volume"]) > 0 else 0.0
+    previous_efficiency = abs(previous_change) / previous_volume_ratio if previous_volume_ratio > 0 else 0.0
     if pattern == "dual_yang_efficiency" and current_efficiency <= previous_efficiency * float(cfg.get("efficiency_improvement_ratio", 1.0)):
         return RuleResult(
             Decision.REJECT,
             "surge",
             "weekly_efficiency_not_improved",
-            metrics={"current_efficiency": current_efficiency, "previous_efficiency": previous_efficiency},
+            metrics={"current_efficiency": current_efficiency, "previous_efficiency": previous_efficiency, "previous_volume_ratio": previous_volume_ratio},
         )
     score = min(abs(current_change) / 2, 10) + min((current_efficiency / max(previous_efficiency, 0.1)) * 5, 10)
     if pattern == "bearish_to_bullish_reversal":
@@ -137,6 +139,7 @@ def weekly_surge(daily: pd.DataFrame, asof: datetime, config: dict, quote: Quote
         "elapsed_week_fraction": round(fraction, 4),
         "current_efficiency": round(current_efficiency, 3),
         "previous_efficiency": round(previous_efficiency, 3),
+        "previous_volume_ratio": round(previous_volume_ratio, 3),
     }
     if pattern == "bullish_engulfing":
         metrics["engulfing_body"] = True

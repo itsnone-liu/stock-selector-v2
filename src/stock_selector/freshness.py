@@ -13,7 +13,7 @@ def business_day_lag(last_date, asof_date) -> int:
     return max(0, len(pd.bdate_range(pd.Timestamp(last_date) + pd.Timedelta(days=1), pd.Timestamp(asof_date))))
 
 
-def check_daily_freshness(daily: pd.DataFrame, asof: datetime, config: dict, realtime: bool) -> RuleResult:
+def check_daily_freshness(daily: pd.DataFrame | None, asof: datetime, config: dict, realtime: bool) -> RuleResult:
     if daily is None or daily.empty:
         return RuleResult(Decision.SKIP, "freshness", "missing_daily_data")
     # 未来数据按完整时间戳判定：未排序帧取索引最大值；asof 当日更晚时刻戳的行

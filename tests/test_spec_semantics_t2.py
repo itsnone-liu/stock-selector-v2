@@ -370,6 +370,40 @@ def test_surge_dual_yang_efficiency_pass(config):
     assert result.signals == ["dual_yang_efficiency"]
 
 
+def _set_completed_week_volume_ratio(daily: pd.DataFrame, ratio: float) -> pd.DataFrame:
+    """使上一完成周/再前一完成周成交量比为 ratio。"""
+    out = daily.copy()
+    idx = pd.to_datetime(out.index)
+    last_week = (idx >= pd.Timestamp("2026-09-07")) & (idx <= pd.Timestamp("2026-09-11"))
+    prior_week = (idx >= pd.Timestamp("2026-09-01")) & (idx <= pd.Timestamp("2026-09-04"))
+    out.loc[prior_week, "volume"] = 1_000_000.0
+    out.loc[last_week, "volume"] = 1_000_000.0 * ratio
+    if "amount" in out.columns:
+        out.loc[prior_week, "amount"] = out.loc[prior_week, "close"] * 1_000_000.0
+        out.loc[last_week, "amount"] = out.loc[last_week, "close"] * 1_000_000.0 * ratio
+    return out
+
+
+def test_surge_dual_yang_uses_previous_volume_ratio_above_one(config):
+    """上一周量比>1时，上一周对应效率必须除以上周量比并可通过。"""
+    daily = _set_completed_week_volume_ratio(make_daily(periods=480, end="2026-09-11", drift=0.12), 2.0)
+    result = weekly_surge(daily, datetime(2026, 9, 14, 10, 30), config, quote=_monday_quote(float(daily.iloc[-1]["close"]), 0.03, 1_000_000))
+    assert result.passed
+    assert result.reason == "dual_yang_efficiency"
+    assert result.metrics["previous_volume_ratio"] == 2.0
+    assert result.metrics["previous_efficiency"] > 0
+
+
+def test_surge_dual_yang_uses_previous_volume_ratio_below_one(config):
+    """上一周量比<1时，修正后的上一周对应效率升高，必须拒绝当前低效信号。"""
+    daily = _set_completed_week_volume_ratio(make_daily(periods=480, end="2026-09-11", drift=0.12), 0.5)
+    result = weekly_surge(daily, datetime(2026, 9, 14, 10, 30), config, quote=_monday_quote(float(daily.iloc[-1]["close"]), 0.05, 1_000_000))
+    assert result.decision == Decision.REJECT
+    assert result.reason == "weekly_efficiency_not_improved"
+    assert result.metrics["previous_volume_ratio"] == 0.5
+    assert result.metrics["previous_efficiency"] > result.metrics["current_efficiency"]
+
+
 def test_surge_bearish_to_bullish_reversal_pass(config):
     """阴转阳形态：上一完成周为阴线，当前周阳线且高于上周收盘。"""
     daily = make_daily(periods=480, end="2026-09-11", drift=0.01)
@@ -630,6 +664,35 @@ def _bare_pipeline(config, daily: pd.DataFrame, tmp_path: Path) -> SelectorPipel
     cache = {"600001": daily, "600002": daily}
     pipeline._daily = lambda code: cache.get(str(code).zfill(6))
     return pipeline
+
+
+def test_run_trends_freshness_gate_blocks_stale_future_and_hidden_unsorted(config, tmp_path, monkeypatch):
+    """趋势入口显式 asof，并在月线策略前执行统一历史闸门。"""
+    import stock_selector.pipeline as pipeline_module
+    asof = datetime(2026, 9, 15, 10, 30)
+    pool = pd.DataFrame({"代码": ["600001"], "名称": ["正常公司"]})
+    cases = [(make_daily(periods=260, end="2026-09-01"), "daily_data_stale"), (make_daily(periods=260, end="2026-09-16"), "future_daily_bar"), (_unsorted_frame_with_hidden_future_row(), "future_daily_bar")]
+    for daily, reason in cases:
+        pipeline = _bare_pipeline(config, daily, tmp_path / reason)
+        called = []
+        monkeypatch.setattr(pipeline_module, "monthly_trend", lambda *args: called.append(True) or RuleResult(Decision.PASS, "monthly", "should_not_run"))
+        result = pipeline.run_trends(pool, asof=asof)
+        assert called == []
+        diagnostics = __import__("json").loads(Path(result["diagnostics"]).read_text(encoding="utf-8"))
+        assert diagnostics["monthly"]["freshness"]["reasons"].get(reason) == 1
+        assert diagnostics["monthly"]["total"] == 1
+        assert diagnostics["weekly"]["total"] == 0
+
+
+def test_run_trends_same_timestamp_archives_do_not_overwrite(config, tmp_path):
+    pipeline = _bare_pipeline(config, make_daily(periods=260, end="2026-09-15"), tmp_path)
+    pool = pd.DataFrame({"代码": ["600001"], "名称": ["正常公司"]})
+    at = datetime(2026, 9, 15, 15, 10)
+    first = pipeline.run_trends(pool, asof=at)
+    second = pipeline.run_trends(pool, asof=at)
+    assert first["run_archive"] != second["run_archive"]
+    assert Path(first["run_archive"], "diagnostics.json").exists()
+    assert Path(second["run_archive"], "diagnostics.json").exists()
 
 
 def test_board_mode_skips_surge_but_keeps_gates_and_buy(config, tmp_path):

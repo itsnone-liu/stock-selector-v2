@@ -12,7 +12,7 @@ from stock_selector.data.realtime import TencentQuoteProvider
 from stock_selector.data.tdx import TdxStore, load_name_map
 from stock_selector.freshness import check_daily_freshness, check_quote_freshness
 from stock_selector.models import Decision, DiagnosticCounter, Quote, RuleResult
-from stock_selector.output import write_csv, write_json
+from stock_selector.output import reserve_run_dir, write_csv, write_json
 from stock_selector.snapshots import VolumeSnapshotStore
 from stock_selector.bottom_pool import BottomPoolStore
 from stock_selector.strategies.bottom import bottom_volume_signal
@@ -73,38 +73,63 @@ class SelectorPipeline:
         codes = self.store.list_codes(self.config["universe"].get("include_b_share", False))
         return pd.DataFrame({"代码": codes, "名称": [self._name(code) for code in codes]})
 
-    def _run_stage(self, pool: pd.DataFrame, stage: str, evaluator) -> tuple[pd.DataFrame, pd.DataFrame, dict]:
+    def _run_stage(self, pool: pd.DataFrame, stage: str, evaluator, asof: datetime) -> tuple[pd.DataFrame, pd.DataFrame, dict]:
+        """单一阶段筛选：任何策略之前先过统一数据闸门。
+
+        拦截顺序（与 `_run_signal_pipeline` 同一套 `check_daily_freshness` 语义）：
+        空数据/缺失 → 过期 → 未来数据（含未排序帧里藏起来的未来行、asof 当日
+        更晚时刻戳的行）→ 风险过滤 → 策略。闸门未通过的行绝不进入 evaluator。
+        """
         accepted: list[dict] = []
         rejected: list[dict] = []
         counter = DiagnosticCounter()
+        freshness_counter = DiagnosticCounter()
+        at = pd.Timestamp(asof)
         for row in pool.to_dict("records"):
             code = str(row["代码"]).zfill(6)
             name = self._name(code, row.get("名称", ""))
             daily = self._daily(code)
-            if daily is None:
-                result = RuleResult(Decision.SKIP, stage, "missing_daily_data")
+            freshness = check_daily_freshness(daily, asof, self.config, realtime=False)
+            freshness_counter.add(freshness)
+            if not freshness.passed:
+                result = RuleResult(freshness.decision, stage, freshness.reason, metrics=freshness.metrics)
             else:
-                risk = check_risk_filters(code, name, daily, self.config)
-                result = evaluator(daily, row) if risk.passed else risk
+                # 前视硬闸：即使闸门以任何方式放行，策略也只能看到 asof 时刻（含）之前的日线。
+                visible = daily[pd.to_datetime(daily.index) <= at]
+                risk = check_risk_filters(code, name, visible, self.config)
+                result = evaluator(visible, row) if risk.passed else risk
             counter.add(result)
             payload = {"代码": code, "名称": name, "阶段": stage, "判定": result.decision.value, "原因": result.reason, "评分": result.score, **result.metrics}
             if result.passed:
                 accepted.append({**row, **payload, "信号": "、".join(result.signals)})
             else:
                 rejected.append(payload)
-        return pd.DataFrame(accepted), pd.DataFrame(rejected), vars(counter)
+        diagnostics = vars(counter)
+        diagnostics["freshness"] = vars(freshness_counter)
+        return pd.DataFrame(accepted), pd.DataFrame(rejected), diagnostics
 
-    def run_trends(self, pool: pd.DataFrame | None = None) -> dict[str, Path]:
+    def run_trends(self, pool: pd.DataFrame | None = None, asof: datetime | None = None) -> dict[str, Path]:
+        """月线/周线趋势池。`asof` 显式决定数据新鲜度闸门与归档时间戳。"""
+        at = asof or datetime.now()
         base = pool if pool is not None else self.universe()
-        monthly, monthly_reject, monthly_diag = self._run_stage(base, "monthly", lambda daily, row: monthly_trend(daily, self.config))
-        weekly, weekly_reject, weekly_diag = self._run_stage(monthly, "weekly", lambda daily, row: weekly_trend(daily, self.config))
-        paths = {
-            "monthly": write_csv(monthly, self.output_dir / "monthly_pool.csv"),
-            "weekly": write_csv(weekly, self.output_dir / "weekly_pool.csv"),
-            "monthly_rejections": write_csv(monthly_reject, self.output_dir / "monthly_rejections.csv"),
-            "weekly_rejections": write_csv(weekly_reject, self.output_dir / "weekly_rejections.csv"),
-            "diagnostics": write_json({"monthly": monthly_diag, "weekly": weekly_diag}, self.output_dir / "trend_diagnostics.json"),
+        monthly, monthly_reject, monthly_diag = self._run_stage(base, "monthly", lambda daily, row: monthly_trend(daily, self.config), at)
+        weekly, weekly_reject, weekly_diag = self._run_stage(monthly, "weekly", lambda daily, row: weekly_trend(daily, self.config), at)
+        diagnostics = {"asof": at.isoformat(), "monthly": monthly_diag, "weekly": weekly_diag}
+        # 固定文件名（monthly_pool.csv/weekly_pool.csv）是 SPEC §12 契约与下游
+        # `after-close --pool` 的默认输入，必须保持；逐次不可覆盖的证据在 runs/ 归档。
+        frames = {
+            "monthly": ("monthly_pool.csv", monthly),
+            "weekly": ("weekly_pool.csv", weekly),
+            "monthly_rejections": ("monthly_rejections.csv", monthly_reject),
+            "weekly_rejections": ("weekly_rejections.csv", weekly_reject),
         }
+        paths = {key: write_csv(frame, self.output_dir / filename) for key, (filename, frame) in frames.items()}
+        paths["diagnostics"] = write_json(diagnostics, self.output_dir / "trend_diagnostics.json")
+        run_dir = reserve_run_dir(self.output_dir / "runs", at.strftime("%Y%m%d_%H%M%S"), "trends")
+        for filename, frame in frames.values():
+            write_csv(frame, run_dir / filename)
+        write_json(diagnostics, run_dir / "diagnostics.json")
+        paths["run_archive"] = run_dir
         return paths
 
     def run_realtime(self, pool: pd.DataFrame, asof: datetime | None = None) -> dict[str, Path]:
@@ -140,22 +165,25 @@ class SelectorPipeline:
         return self._run_signal_pipeline(pool, at, quotes, errors, realtime=realtime, skip_surge=True, same_time_volumes=references)
 
     def run_bottom_scan(self, asof: datetime | None = None) -> dict[str, object]:
-        """盘后扫描全市场底部三倍量事件，并刷新池内既有事件状态。"""
+        """盘后扫描全市场底部三倍量事件，并刷新池内既有事件状态。
+
+        统一数据闸门在 `bottom_volume_signal` 之前拦截空/过期/未来日线；输出既写
+        固定名最新指针，也写 `runs/<timestamp>/bottom_scan` 不可覆盖归档。
+        """
         at = asof or datetime.now()
         expiry = int(self.config.get("bottom_volume", {}).get("expiry_trading_days", 60))
         refresh_counts = self.bottom_pool.refresh(self._daily, at, expiry)
         counter = DiagnosticCounter()
+        freshness_counter = DiagnosticCounter()
         new_events: list[dict] = []
         for row in self.universe().to_dict("records"):
             code = str(row["代码"]).zfill(6)
             name = self._name(code, row.get("名称", ""))
             daily = self._daily(code)
-            if daily is None:
-                counter.add(RuleResult(Decision.SKIP, "bottom_volume", "missing_daily_data"))
-                continue
             freshness = check_daily_freshness(daily, at, self.config, realtime=False)
+            freshness_counter.add(freshness)
             if not freshness.passed:
-                counter.add(RuleResult(Decision.SKIP, "bottom_volume", freshness.reason))
+                counter.add(RuleResult(freshness.decision, "bottom_volume", freshness.reason, metrics=freshness.metrics))
                 continue
             risk = check_risk_filters(code, name, daily, self.config)
             if not risk.passed:
@@ -182,15 +210,21 @@ class SelectorPipeline:
             )
         self.bottom_pool.append(new_events)
         stamp = at.strftime("%Y%m%d")
+        new_events_frame = pd.DataFrame(new_events)
+        active_frame = self.bottom_pool.active()
+        diagnostics: dict[str, object] = {**vars(counter), "freshness": vars(freshness_counter), "refresh": refresh_counts, "asof": at.isoformat()}
+        # 固定/日期名文件是“最新指针”（同日重跑可被替换），逐次不可覆盖的证据在 runs/ 归档。
         paths: dict[str, object] = {
             "events_state": self.bottom_pool.path,
-            "active_pool": write_csv(self.bottom_pool.active(), self.output_dir / "bottom_pool_active.csv"),
-            "new_events": write_csv(pd.DataFrame(new_events), self.output_dir / f"bottom_new_events_{stamp}.csv"),
-            "diagnostics": write_json(
-                {**vars(counter), "refresh": refresh_counts, "asof": at.isoformat()},
-                self.output_dir / f"bottom_scan_diagnostics_{stamp}.json",
-            ),
+            "active_pool": write_csv(active_frame, self.output_dir / "bottom_pool_active.csv"),
+            "new_events": write_csv(new_events_frame, self.output_dir / f"bottom_new_events_{stamp}.csv"),
+            "diagnostics": write_json(diagnostics, self.output_dir / f"bottom_scan_diagnostics_{stamp}.json"),
         }
+        run_dir = reserve_run_dir(self.output_dir / "runs", at.strftime("%Y%m%d_%H%M%S"), "bottom_scan")
+        write_csv(new_events_frame, run_dir / "new_events.csv")
+        write_csv(active_frame, run_dir / "bottom_pool_active.csv")
+        write_json(diagnostics, run_dir / "diagnostics.json")
+        paths["run_archive"] = run_dir
         return paths
 
     def run_bottom_channel(self, asof: datetime | None = None, realtime: bool = False) -> dict[str, Path]:
@@ -334,13 +368,8 @@ class SelectorPipeline:
             for key, frame in frames.items()
         }
         paths["diagnostics"] = write_json(diagnostics, self.output_dir / f"diagnostics_{suffix}.json")
-        stamp_dir = self.output_dir / "runs" / at.strftime("%Y%m%d_%H%M%S")
         # 归档碰撞防护：同一秒同一 suffix 的重复运行追加序号，绝不覆盖既有归档。
-        run_dir = stamp_dir / str(suffix)
-        n = 2
-        while run_dir.exists():
-            run_dir = stamp_dir / f"{suffix}-{n}"
-            n += 1
+        run_dir = reserve_run_dir(self.output_dir / "runs", at.strftime("%Y%m%d_%H%M%S"), str(suffix))
         for key, frame in frames.items():
             write_csv(frame, run_dir / f"{key}.csv")
         write_json(diagnostics, run_dir / "diagnostics.json")
