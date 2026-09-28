@@ -269,6 +269,9 @@ class SelectorPipeline:
             if not freshness.passed:
                 rejections.append({"代码": code, "名称": name, "阶段": "freshness", "原因": freshness.reason, **freshness.metrics})
                 continue
+            # 前视硬闸：即使闸门以任何方式放行，下游阶段（风险/趋势/形态/买点）
+            # 也只能看到 asof 时刻（含）之前的日线。
+            daily = daily[pd.to_datetime(daily.index) <= pd.Timestamp(at)]
             risk = check_risk_filters(code, name, daily, self.config)
             counters["risk"].add(risk)
             if not risk.passed:

@@ -822,6 +822,34 @@ def test_future_quote_timestamp_rejected(config):
     assert result.reason == "quote_fresh"
 
 
+def _unsorted_frame_with_hidden_future_row() -> pd.DataFrame:
+    """可复现遗漏构造：未来行藏在帧中间，末行是过去日期（未排序索引）。"""
+    base = make_daily(periods=260, end="2026-09-14")
+    future_row = base.iloc[-1].copy()
+    future_row.name = pd.Timestamp("2026-09-20")
+    frame = pd.concat([base.iloc[[-1]].copy(), future_row.to_frame().T, base.iloc[[-3]]])
+    assert pd.to_datetime(frame.index)[-1] < pd.Timestamp("2026-09-20")  # 末行确非未来
+    return frame
+
+
+def test_future_row_hidden_in_unsorted_frame_is_error(config):
+    """未来历史数据闸门按索引最大日期判定：未排序帧中间藏未来行也必须 ERROR。"""
+    frame = _unsorted_frame_with_hidden_future_row()
+    result = check_daily_freshness(frame, datetime(2026, 9, 15, 10, 0), config, realtime=True)
+    assert result.decision == Decision.ERROR
+    assert result.reason == "future_daily_bar"
+
+
+def test_pipeline_blocks_unsorted_future_frame_before_buy(config, tmp_path):
+    """管线层复现同一遗漏：未排序帧中的隐藏未来行在 freshness 阶段被拦截，不进入买点。"""
+    pipeline = _bare_pipeline(config, _unsorted_frame_with_hidden_future_row(), tmp_path)
+    paths, diagnostics = _board_diagnostics(pipeline, None, datetime(2026, 9, 15, 15, 10))
+    assert diagnostics["freshness"]["reasons"].get("future_daily_bar") == 1
+    assert diagnostics["buy"]["total"] == 0
+    rejections = pd.read_csv(paths["rejections"], dtype={"代码": str})
+    assert (rejections["阶段"] == "freshness").sum() == 1
+
+
 def test_week_fraction_never_counts_future_days_after_close(config):
     """盘后周进度只统计 asof（含）之前已完成的交易日，未来行不计入。"""
     frame = make_daily(periods=40, end="2026-09-18")  # 误同步含周四/周五数据

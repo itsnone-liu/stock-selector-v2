@@ -16,7 +16,8 @@ def business_day_lag(last_date, asof_date) -> int:
 def check_daily_freshness(daily: pd.DataFrame, asof: datetime, config: dict, realtime: bool) -> RuleResult:
     if daily is None or daily.empty:
         return RuleResult(Decision.SKIP, "freshness", "missing_daily_data")
-    last_date = pd.Timestamp(daily.index[-1]).date()
+    # 未排序帧也必须以索引最大日期判定：未来行无论藏在哪个位置都构成未来数据。
+    last_date = pd.to_datetime(daily.index).max().date()
     if config["freshness"].get("reject_future_daily_bar", True) and last_date > asof.date():
         return RuleResult(Decision.ERROR, "freshness", "future_daily_bar", metrics={"last_date": last_date})
     max_lag = int(config["freshness"].get("max_daily_data_business_day_lag", 5))
