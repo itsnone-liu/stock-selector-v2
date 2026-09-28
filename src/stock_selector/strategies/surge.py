@@ -43,11 +43,22 @@ def _weekly_bar(rows: pd.DataFrame, quote: Quote | None = None) -> dict[str, flo
     return result
 
 
+def _veto_metric(completed: pd.DataFrame, lookback: int) -> str:
+    """SPEC §6：否决用成交额，无成交额（列缺失或所需窗口值缺失/非正）时用成交量。"""
+    for metric in ("amount", "volume"):
+        if metric not in completed.columns:
+            continue
+        values = pd.to_numeric(completed.iloc[-lookback - 1 :][metric], errors="coerce")
+        if len(values) == lookback + 1 and values.notna().all() and (values > 0).all():
+            return metric
+    return "volume"
+
+
 def _bearish_turnover_veto(completed: pd.DataFrame, cfg: dict) -> tuple[bool, dict]:
     lookback = int(cfg.get("bearish_turnover_lookback", 4))
     if len(completed) < lookback + 1:
         return False, {}
-    metric = "amount" if "amount" in completed.columns else "volume"
+    metric = _veto_metric(completed, lookback)
     latest = completed.iloc[-1]
     previous = completed.iloc[-lookback - 1 : -1]
     baseline = float(previous[metric].mean())

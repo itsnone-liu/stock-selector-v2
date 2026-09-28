@@ -848,6 +848,51 @@ def test_future_row_hidden_in_unsorted_frame_is_error(config):
     assert result.reason == "future_daily_bar"
 
 
+def test_same_day_later_timestamp_row_is_future(config):
+    """未来闸门按完整时间戳判定：asof 当日更晚时刻戳的行属于未来数据 → ERROR；
+    同帧在 asof 晚于该时刻时正常通过。"""
+    frame = make_daily(periods=260, end="2026-09-15")
+    idx = list(frame.index)
+    idx[-1] = pd.Timestamp("2026-09-15 14:30")  # 当日更晚时刻戳
+    frame.index = pd.DatetimeIndex(idx)
+    result = check_daily_freshness(frame, datetime(2026, 9, 15, 10, 30), config, realtime=True)
+    assert result.decision == Decision.ERROR
+    assert result.reason == "future_daily_bar"
+    control = check_daily_freshness(frame, datetime(2026, 9, 15, 15, 10), config, realtime=True)
+    assert control.passed
+
+
+def test_surge_veto_falls_back_to_volume_without_amount(config):
+    """SPEC §6“无成交额时用成交量”：成交额列存在但值为 NaN/非正时按成交量否决，
+    成交额有效时按成交额否决。"""
+    daily = make_daily(periods=480, end="2026-09-11", drift=0.01)
+    daily.iloc[-5:, daily.columns.get_loc("open")] = daily["close"].iloc[-5:] + 0.5  # 上周阴线
+    quote = Quote(
+        "600001",
+        price=float(daily.iloc[-1]["close"]) * 1.03,
+        open=float(daily.iloc[-1]["close"]) * 0.99,
+        previous_close=float(daily.iloc[-1]["close"]),
+        volume=1_000_000,
+        timestamp=datetime(2026, 9, 14, 10, 30),
+    )
+    # 成交额有效 → amount 口径（显式放量2倍触发1.5倍否决）
+    amount_baseline = daily["amount"].iloc[-10:-5].mean()
+    daily.iloc[-5:, daily.columns.get_loc("amount")] = amount_baseline * 2
+    result = weekly_surge(daily, datetime(2026, 9, 14, 10, 30), config, quote=quote)
+    assert result.reason == "bearish_heavy_turnover_veto"
+    assert result.metrics["veto_metric"] == "amount"
+
+    # 成交额整列为 NaN（无成交额）→ 成交量口径，仍需满足1.5倍：直接放大上周量
+    no_amount = daily.copy()
+    no_amount["amount"] = float("nan")
+    baseline = no_amount["volume"].iloc[-10:-5].mean()
+    no_amount.iloc[-5:, no_amount.columns.get_loc("volume")] = baseline * 2
+    result = weekly_surge(no_amount, datetime(2026, 9, 14, 10, 30), config, quote=quote)
+    assert result.reason == "bearish_heavy_turnover_veto"
+    assert result.metrics["veto_metric"] == "volume"
+    assert result.metrics["veto_ratio"] >= 1.5
+
+
 def test_pipeline_blocks_unsorted_future_frame_before_buy(config, tmp_path):
     """管线层复现同一遗漏：未排序帧中的隐藏未来行在 freshness 阶段被拦截，不进入买点。"""
     pipeline = _bare_pipeline(config, _unsorted_frame_with_hidden_future_row(), tmp_path)

@@ -16,10 +16,17 @@ def business_day_lag(last_date, asof_date) -> int:
 def check_daily_freshness(daily: pd.DataFrame, asof: datetime, config: dict, realtime: bool) -> RuleResult:
     if daily is None or daily.empty:
         return RuleResult(Decision.SKIP, "freshness", "missing_daily_data")
-    # 未排序帧也必须以索引最大日期判定：未来行无论藏在哪个位置都构成未来数据。
-    last_date = pd.to_datetime(daily.index).max().date()
-    if config["freshness"].get("reject_future_daily_bar", True) and last_date > asof.date():
-        return RuleResult(Decision.ERROR, "freshness", "future_daily_bar", metrics={"last_date": last_date})
+    # 未来数据按完整时间戳判定：未排序帧取索引最大值；asof 当日更晚时刻戳的行
+    # 同样属于未来数据（日线正常为日期戳，asof 当日日期戳行不触发）。
+    max_ts = pd.to_datetime(daily.index).max()
+    last_date = max_ts.date()
+    if config["freshness"].get("reject_future_daily_bar", True) and max_ts > pd.Timestamp(asof):
+        return RuleResult(
+            Decision.ERROR,
+            "freshness",
+            "future_daily_bar",
+            metrics={"last_date": last_date, "max_timestamp": max_ts.isoformat()},
+        )
     max_lag = int(config["freshness"].get("max_daily_data_business_day_lag", 5))
     lag = business_day_lag(last_date, asof.date())
     # 盘中允许历史日线截至上一个交易日；盘后应包含当日，节假日配置缺失时保留可解释宽限。
