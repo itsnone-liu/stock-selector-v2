@@ -424,7 +424,8 @@ def test_surge_bullish_engulfing_positive(config):
 
 def test_surge_engulfing_counterexamples_fall_back_to_reversal(config):
     """反例1：上周阴线但收盘未反穿上周开盘 → 阴转阳（非反包）；
-    反例2：反包形态但 allow_bullish_engulfing=False → 阴转阳（配置关闭）。"""
+    反例2：反包形态但 allow_bullish_engulfing=False → 阴转阳（配置关闭）；
+    反例3：上周十字星（收盘=开盘）不属任何形态 → weekly_pattern_not_passed。"""
     daily = _bearish_last_week_daily()
     prev_close = float(daily.iloc[-1]["close"])
     non_engulfing = Quote(
@@ -446,6 +447,13 @@ def test_surge_engulfing_counterexamples_fall_back_to_reversal(config):
     assert result.passed
     assert result.reason == "bearish_to_bullish_reversal"
     assert "engulfing_body" not in result.metrics
+
+    doji = _bearish_last_week_daily()
+    monday_open = float(doji.iloc[-5]["open"])  # = 周一收盘 + 0.5（上周整体阴线构造）
+    doji.iloc[-1, doji.columns.get_loc("close")] = monday_open  # 周收盘=周开盘 → 周线十字星
+    result = weekly_surge(doji, datetime(2026, 9, 14, 10, 30), config, quote=_engulfing_quote(doji))
+    assert result.decision == Decision.REJECT
+    assert result.reason == "weekly_pattern_not_passed"
 
 
 def test_surge_not_up_vs_previous_close_rejected(config):

@@ -80,15 +80,15 @@ def weekly_surge(daily: pd.DataFrame, asof: datetime, config: dict, quote: Quote
     if cfg.get("require_current_week_up_vs_prev_close", True) and not up_vs_previous_close:
         return RuleResult(Decision.REJECT, "surge", "not_up_vs_previous_close")
 
-    previous_is_bearish = previous["close"] <= previous["open"]
+    # SPEC §6 严格阴线语义：收阴=收盘<开盘；十字星（收盘=开盘）不属于任何形态。
+    previous_is_bearish = previous["close"] < previous["open"]
     previous_is_bullish = previous["close"] > previous["open"]
-    previous_strictly_bearish = previous["close"] < previous["open"]
     # 阳包阴反包（第三类正向形态）：上周严格收阴，本周阳线实体反包上周实体
     # （本周收盘 > 上周开盘 且 本周开盘 <= 上周收盘）。判定先于阴转阳，
     # 未满足反包条件的上周阴线仍走 bearish_to_bullish_reversal。
     engulfs_body = current["close"] > float(previous["open"]) and current["open"] <= float(previous["close"])
     pattern = None
-    if cfg.get("allow_bullish_engulfing", True) and previous_strictly_bearish and week_up and engulfs_body:
+    if cfg.get("allow_bullish_engulfing", True) and previous_is_bearish and week_up and engulfs_body:
         pattern = "bullish_engulfing"
     elif cfg.get("allow_reversal", True) and previous_is_bearish:
         pattern = "bearish_to_bullish_reversal"
