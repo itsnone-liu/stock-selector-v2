@@ -195,6 +195,7 @@ def test_bridge_machine_audit_script_executes_complete_matrix():
     assert '"real_fingerprint":"UNCHANGED"' in result.stdout
     assert '"production_snapshot":"REVEAL=1 SEAL=0"' in result.stdout
     assert '"integration":"PASS"' in result.stdout
+    assert '"C4C_regression":"PASS"' in result.stdout
 
 
 def test_phase_a_machine_evidence_manifest_is_complete():
