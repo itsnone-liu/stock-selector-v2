@@ -61,11 +61,17 @@ class BottomPoolStore:
         self._write(combined)
 
     def refresh(self, daily_loader, asof: datetime, expiry_trading_days: int = 60) -> dict[str, int]:
-        """按最新数据更新各事件状态。daily_loader(code)->DataFrame|None。"""
+        """按最新数据更新各事件状态。daily_loader(code)->DataFrame|None。
+
+        显式 asof 边界：只允许事件日之后、asof（含）之前的日线参与失效/过期
+        判定（与信号管线同一约定）。数据源里 asof 之后的未来行不得驱动状态机——
+        否则一次提前更新的数据文件会把 active 事件错误判成 invalidated/expired。
+        """
         frame = self.load()
         if frame.empty:
             return {"checked": 0}
         counts = {"invalidated": 0, "expired": 0, "checked": 0}
+        asof_ts = pd.Timestamp(asof)
         for i, row in frame.iterrows():
             if row["状态"] != "active":
                 continue
@@ -73,7 +79,7 @@ class BottomPoolStore:
             daily = daily_loader(row["代码"])
             if daily is None or daily.empty:
                 continue
-            after = daily[daily.index > pd.Timestamp(row["事件日"])]
+            after = daily[(daily.index > pd.Timestamp(row["事件日"])) & (daily.index <= asof_ts)]
             event_low = float(row["事件日最低"])
             broken = after[after["close"] < event_low]
             if not broken.empty:

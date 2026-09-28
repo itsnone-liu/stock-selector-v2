@@ -2,6 +2,7 @@ from datetime import datetime
 
 import numpy as np
 import pandas as pd
+import pytest
 
 from stock_selector.bottom_pool import BottomPoolStore
 from stock_selector.models import Decision
@@ -105,3 +106,53 @@ def test_pool_state_machine(tmp_path):
     frame = store3.load()
     assert frame.iloc[0]["状态"] == "converted"
     assert frame.iloc[0]["转化日"] == "2026-09-15"
+
+
+def test_pool_refresh_ignores_future_bars_beyond_asof(tmp_path):
+    """T3：状态机刷新受显式 asof 约束——数据源里 asof 之后的未来行
+    （哪怕跌破事件日低点、哪怕超出过期天数）不得驱动 invalidated/expired。"""
+    store = BottomPoolStore(tmp_path / "events.csv")
+    store.append([{"代码": "000001", "名称": "测试", "事件日": "2026-09-10", "事件日最低": 9.5, "状态": "active"}])
+    # 帧里 2026-09-16（asof=2026-09-15 之后）出现破位阴线与超期长度，但 asof 之前走势完好
+    index = list(pd.bdate_range(end="2026-09-15", periods=4)) + [pd.Timestamp("2026-09-16"), pd.Timestamp("2026-09-17")]
+    daily = pd.DataFrame(
+        {"close": [10.0, 10.1, 10.2, 10.3, 9.0, 8.0], "volume": [1e6] * 6},
+        index=pd.DatetimeIndex(index),
+    )
+    counts = store.refresh(lambda code: daily, datetime(2026, 9, 15, 15, 0), 60)
+    assert counts == {"invalidated": 0, "expired": 0, "checked": 1}
+    assert store.active()["代码"].tolist() == ["000001"]
+    # asof 推进到未来行之后：同一帧正常失效
+    counts_later = store.refresh(lambda code: daily, datetime(2026, 9, 17, 15, 0), 60)
+    assert counts_later["invalidated"] == 1
+    assert store.active().empty
+
+
+def test_pool_refresh_expires_only_on_bars_visible_at_asof(tmp_path):
+    """T3：过期计数同样只数 asof（含）之前的交易日。"""
+    store = BottomPoolStore(tmp_path / "events.csv")
+    index = pd.bdate_range(end="2026-09-15", periods=70)
+    store.append(
+        [{"代码": "000002", "事件日": str(index[3].date()), "事件日最低": 10.0, "状态": "active"}]
+    )
+    rising = pd.DataFrame({"close": np.linspace(10.0, 17.0, 70), "volume": [1e6] * 70}, index=index)
+    # asof 截到第 64 根：事件后可见 60 根 → 仍 active（len(after)==60 未“超过”60）
+    asof = index[63]
+    counts = store.refresh(lambda code: rising, asof.to_pydatetime(), 60)
+    assert counts == {"invalidated": 0, "expired": 0, "checked": 1}
+    # asof 截到第 65 根：事件后可见 61 根 → expired
+    counts2 = store.refresh(lambda code: rising, index[64].to_pydatetime(), 60)
+    assert counts2["expired"] == 1
+
+
+def test_cli_rejects_bottom_realtime_without_select(capsys):
+    """T3：--realtime 仅在 --select（小金叉通道）下有效，缺 --select 时解析期即报错（fail loud）。"""
+    from stock_selector.cli import build_parser
+
+    with pytest.raises(SystemExit) as exc:
+        build_parser().parse_args(["bottom-volume", "--realtime"])
+    assert exc.value.code == 2
+    assert "--select" in capsys.readouterr().err
+
+    args = build_parser().parse_args(["bottom-volume", "--select", "--realtime"])
+    assert args.select is True and args.realtime is True
