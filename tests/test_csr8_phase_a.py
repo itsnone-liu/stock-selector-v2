@@ -183,6 +183,17 @@ def test_public_blindness_contract_and_anchor_are_machine_checked():
     assert not any(p.exists() for p in (mod.REAL_ANNOTATOR, mod.REAL_RECEIPTS, mod.REAL_PROPOSALS_C4D))
 
 
+def test_bridge_machine_audit_script_executes_complete_matrix():
+    import subprocess, sys
+    result = subprocess.run([sys.executable, str(ROOT / "scripts/csr8_phase_a_machine_audit.py")], cwd=ROOT, capture_output=True, text=True, timeout=900)
+    assert result.returncode == 0, result.stdout[-4000:] + result.stderr[-4000:]
+    assert '"D01_D71":"PASS"' in result.stdout
+    assert '"C4D":"PASS"' in result.stdout
+    assert '"candidate_snapshot":"PASS"' in result.stdout
+    assert '"blindness":"PASS"' in result.stdout
+    assert '"production_snapshot":"REVEAL=1 SEAL=0"' in result.stdout
+
+
 def test_phase_a_machine_evidence_manifest_is_complete():
     text = SCRIPT.read_text()
     for token in ("D71", "C4-C regression", "CANDIDATE GATES PASS",
