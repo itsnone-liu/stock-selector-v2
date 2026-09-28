@@ -7,10 +7,10 @@
 
 | 阶段 | 运行 | 审核结果 | 关键 commit（HEAD=通过时远端 tip） |
 |---|---|---|---|
-| T1 基线与契约 | audit_20260928010142066 / 053052504 | 通过（基线确立） | 基线 451 tests / 0 fail |
-| T2 规则与数据语义 | audit_20260928055411432 | **APPROVE** iter 9 | `748d7c9` 未来闸门按完整时间戳+量能回退；`2fdf9fd` 双阳量效率+趋势/底部新鲜度归档；`65d4991` 语义文档；`b6a4dc6` 可执行终验门证据；`346aeb0` 空数据走新鲜度诊断 |
-| T3 专项通道与研究边界 | audit_20260928115358315 | **APPROVE** iter 2 | `e779372` 池刷新绑定显式 asof + `--realtime` 守卫；`4f4b5d5` 顺序无关校验 + fixture e2e 入库；`91f2db8b` 最早终止事件语义（延迟刷新竞争） |
-| T4 最终回归与交付 | audit_20260928124829807 | 本次 | 本提交（SPEC §9 边界同步 + 本摘要） |
+| T1 基线与契约 | audit_20260928010142066 / 053052504 | 通过（基线确立） | `d33db24e79e81f033f4fa4c097c558c901c6cb7a`（451 tests / 0 fail 基线） |
+| T2 规则与数据语义 | audit_20260928055411432 | **APPROVE** iter 9 | `748d7c930c270cf8ca0807f38c71a9c8cc94539a` 未来闸门按完整时间戳+量能回退；`2fdf9fdc753396e366d9725d66a3a8051a700714` 双阳量效率+趋势/底部新鲜度归档；`65d4991679cc3fe971708f05094858eac24db423` 语义文档；`b6a4dc6f0b8033116648391bb0130c05a93a2373` 可执行终验门证据；`346aeb03141fff88c1883341e938189cbce3cd64` 空数据走新鲜度诊断 |
+| T3 专项通道与研究边界 | audit_20260928115358315 | **APPROVE** iter 2 | `e7793720a753febc762e96a015561e080e5ec574` 池刷新绑定显式 asof + `--realtime` 守卫；`4f4b5d52fe5d81cd3f537cba554558e4c25a18cb` 顺序无关校验 + fixture e2e 入库；`91f2db8b2e43075dfdb6cf551815e044bfdf8e41` 最早终止事件语义（延迟刷新竞争） |
+| T4 最终回归与交付 | audit_20260928124829807 | iteration 1 已提交，iteration 2 待复审 | `8a666d94a3898e62c9a6e1aee2dc23aa35c09994`（iteration 1 初版交付）；本轮新提交由本次 marker 的 HEAD 精确指认 |
 
 ## 修复项汇总（按严重度）
 
@@ -48,19 +48,9 @@
 
 ## 可复现验证方式
 
-1. 全量：`PYTHONPATH=src /root/.hermes/hermes-agent/venv/bin/python3 -m pytest -q`（459/0）；
+1. 全量：`PYTHONPATH=src /root/.hermes/hermes-agent/venv/bin/python3 -m pytest -q`（471/0，T4 i2）；
 2. 专项：`pytest tests/test_bottom.py tests/test_bottom_e2e_t3.py tests/test_pipeline_archives_t3.py tests/test_snapshots.py -q`（26/0，含状态竞争三例与离线 e2e 两例）；
-3. CLI：9 个子命令 `--help` 全部 exit 0；`bottom-volume --realtime`（无 `--select`）exit 2 并给出用法；
+3. **CLI 独立机器证据（T4 i2）**：`tests/test_cli_smoke_t4.py` 以 `subprocess` 真实调用 `python -m stock_selector.cli`；9 个子命令 `--help` 全部 exit 0；无 `--select` 的 `bottom-volume --realtime` exit 2 且 stderr 指明用法；两种选项顺序均不触发参数守卫。该测试由审计桥接器在目标 commit 的全量 pytest 独立执行，不依赖真实行情、不伪造数据成功；
 4. T2 语义回归：`tests/test_spec_semantics_t2.py`（72 例）。
 
-## READY_FOR_AUDIT
-
-[DSH-AUDIT]
-STATE: READY_FOR_AUDIT
-RUN_ID: audit_20260928124829807
-HOST_ID: RainYun-c438TDGn
-STAGE: T4
-ITERATION: 1
-HEAD: <本提交哈希>
-SUMMARY: T4最终回归：459全过；9个CLI入口help验证+realtime守卫冒烟；全链提交范围核查（无data/凭据/CI改动）；SPEC §9边界同步；最终审计摘要含各阶段commit/修复项/残余风险/复现方式
-TESTS: full 459 passed/0 failed/0 errors/0 skipped（/tmp/t4-full.xml）；专项26/0
+本摘要的阶段 commit 均为完整哈希；T4 iteration 2 的最终 HEAD 以本轮严格 marker 及其 remote tip 为唯一精确指认，文档不保留自引用哈希占位符。
