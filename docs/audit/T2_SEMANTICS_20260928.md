@@ -1,7 +1,7 @@
 # T2 Rule & Data Semantics Audit Evidence (Run audit_20260928055411432)
 
 - Task: stock-selector-v2 formal audit, frozen task packet hash 3ed7f3bc098d
-- Run: audit_20260928055411432 (stage T2, iteration 5)
+- Run: audit_20260928055411432 (stage T2, iteration 6)
 - Date: 2026-09-28
 - Suite: `tests/test_spec_semantics_t2.py` (64 deterministic tests, no network) +
   `tests/test_audit_target_binding.py` (2 execution-binding tests), plus the
@@ -79,3 +79,10 @@
 - Scores are treated as ranking only; no backtest result is used as rule-correctness
   evidence anywhere in this suite.
 - No `data/` raw data, credentials, or unrelated projects modified.
+
+## Iteration-6 mapping (REVISE testsRequired → changes)
+
+| 评审要求 | 迭代6落地 |
+| --- | --- |
+| 证据不得指向另一提交；绑定须唯一识别目标提交 | 两段式结构：代码提交 T0=ccc3250b（套件在干净树全量执行并逐字落盘）；目标提交=T0+仅证据增量（docs/audit/* + 绑定测试）。`tests/test_audit_target_binding.py` 断言：干净树 ∧ HEAD~1==T0 ∧ 目标对 T0 的 src/tests/SPEC 增量为空（除绑定文件）∧ T2 收集数冻结 66 —— 唯一识别目标且证明代码与运行记录完全一致；T0 未被 amend，可 checkout 复跑 |
+| 未来历史数据闸门可复现遗漏 | `check_daily_freshness` 改按索引最大日期判定：未排序帧中间藏未来行（末行为过去日期）仍 `future_daily_bar` ERROR —— `test_future_row_hidden_in_unsorted_frame_is_error`；管线层 `test_pipeline_blocks_unsorted_future_frame_before_buy`（freshness 拦截、buy.total==0）；另加闸门后硬截断 `daily <= asof` 纵深防御 |
