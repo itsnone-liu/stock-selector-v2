@@ -293,15 +293,11 @@ class SelectorPipeline:
             code = str(row["代码"]).zfill(6)
             name = self._name(code, row.get("名称", ""))
             daily = self._daily(code)
-            if daily is None:
-                result = RuleResult(Decision.SKIP, "risk", "missing_daily_data")
-                counters["risk"].add(result)
-                rejections.append({"代码": code, "名称": name, "阶段": "risk", "原因": result.reason})
-                continue
+            # 缺失/空帧也必须经过统一日线闸门；不能绕过 freshness 直接伪装成 risk。
             freshness = check_daily_freshness(daily, at, self.config, realtime)
-            counters["freshness"].add(freshness)
             if not freshness.passed:
-                rejections.append({"代码": code, "名称": name, "阶段": "freshness", "原因": freshness.reason, **freshness.metrics})
+                counters["freshness"].add(freshness)
+                rejections.append({"代码": code, "名称": name, "阶段": "freshness", "判定": freshness.decision.value, "原因": freshness.reason, **freshness.metrics})
                 continue
             # 前视硬闸：即使闸门以任何方式放行，下游阶段（风险/趋势/形态/买点）
             # 也只能看到 asof 时刻（含）之前的日线。

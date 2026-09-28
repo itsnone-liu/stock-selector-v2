@@ -783,6 +783,16 @@ def _board_diagnostics(pipeline, daily_end, asof, realtime=False, quotes=None):
     return paths, __import__("json").loads(Path(paths["diagnostics"]).read_text(encoding="utf-8"))
 
 
+def test_board_mode_routes_empty_daily_through_freshness_gate(config, tmp_path):
+    pipeline = _bare_pipeline(config, pd.DataFrame(), tmp_path)
+    paths, diagnostics = _board_diagnostics(pipeline, None, datetime(2026, 9, 15, 15, 10))
+    assert diagnostics["freshness"]["reasons"].get("missing_daily_data") == 1
+    assert diagnostics["risk"]["total"] == 0
+    rejections = pd.read_csv(paths["rejections"], dtype={"代码": str})
+    assert (rejections["阶段"] == "freshness").sum() == 1
+    assert (rejections["原因"] == "missing_daily_data").sum() == 1
+
+
 def test_board_mode_blocks_stale_daily_before_buy(config, tmp_path):
     pipeline = _bare_pipeline(config, make_daily(periods=260, end="2026-09-01"), tmp_path)
     paths, diagnostics = _board_diagnostics(pipeline, None, datetime(2026, 9, 15, 15, 10))
