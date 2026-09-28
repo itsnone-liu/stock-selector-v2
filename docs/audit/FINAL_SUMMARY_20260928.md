@@ -53,4 +53,14 @@
 3. **CLI 独立机器证据（T4 i2）**：`tests/test_cli_smoke_t4.py` 以 `subprocess` 真实调用 `python -m stock_selector.cli`；9 个子命令 `--help` 全部 exit 0；无 `--select` 的 `bottom-volume --realtime` exit 2 且 stderr 指明用法；两种选项顺序均不触发参数守卫。该测试由审计桥接器在目标 commit 的全量 pytest 独立执行，不依赖真实行情、不伪造数据成功；
 4. T2 语义回归：`tests/test_spec_semantics_t2.py`（72 例）。
 
-本摘要的阶段 commit 均为完整哈希；T4 iteration 2 的最终 HEAD 以本轮严格 marker 及其 remote tip 为唯一精确指认，文档不保留自引用哈希占位符。
+本摘要的阶段 commit 均为完整哈希；本轮新增的严格交付标记如下（标记所指的前一版交付 HEAD 为 `d3172539ecfe8e51365deeb774d9d699db15ee99`，本轮最终 commit 由会话 marker 精确指认）：
+
+[DSH-AUDIT]
+STATE: READY_FOR_AUDIT
+RUN_ID: audit_20260928124829807
+HOST_ID: RainYun-c438TDGn
+STAGE: T4
+ITERATION: 3
+HEAD: d3172539ecfe8e51365deeb774d9d699db15ee99
+SUMMARY: T4交付标记已纳入最终摘要；CLI独立机器证据与全阶段完整commit哈希均可复核
+TESTS: full 471 passed/0 failed/0 errors/0 skipped
