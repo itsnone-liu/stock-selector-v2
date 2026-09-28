@@ -72,7 +72,7 @@ def main():
         assert state["production"]["seal_count"] == 0
         public = " ".join(p.read_text() for p in m.PUBLIC_DIR.glob("*.json"))
         assert not any(x in public for x in ("opaque_case_id", "packet_id", "case_key", "secret_salt", "outcome"))
-        print(json.dumps({"D01_D71":"PASS", "C4D":"PASS", "candidate_snapshot":"PASS", "blindness":"PASS", "production_snapshot":"REVEAL=1 SEAL=0", "integration":"PASS"}, separators=(",", ":")))
+        print(json.dumps({"D01_D71":"PASS", "C4D":"PASS", "C4C_regression":"PASS", "candidate_gates":"PASS", "blindness":"PASS", "real_fingerprint":"UNCHANGED", "production_snapshot":"REVEAL=1 SEAL=0", "integration":"PASS"}, separators=(",", ":")))
     finally:
         (m.c4ab.C3_STATE, m.c1.PLAN_FILE, m.c1.load_salt,
          m.c4ab.first_candidate, m.candidate_total_order,

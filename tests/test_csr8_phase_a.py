@@ -189,8 +189,10 @@ def test_bridge_machine_audit_script_executes_complete_matrix():
     assert result.returncode == 0, result.stdout[-4000:] + result.stderr[-4000:]
     assert '"D01_D71":"PASS"' in result.stdout
     assert '"C4D":"PASS"' in result.stdout
-    assert '"candidate_snapshot":"PASS"' in result.stdout
+    assert '"C4C_regression":"PASS"' in result.stdout
+    assert '"candidate_gates":"PASS"' in result.stdout
     assert '"blindness":"PASS"' in result.stdout
+    assert '"real_fingerprint":"UNCHANGED"' in result.stdout
     assert '"production_snapshot":"REVEAL=1 SEAL=0"' in result.stdout
     assert '"integration":"PASS"' in result.stdout
 
