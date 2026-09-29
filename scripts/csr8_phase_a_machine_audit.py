@@ -25,6 +25,7 @@ ROOT = Path(__file__).resolve().parents[1]
 TARGET = ROOT / "scripts/csr8_phase_c_annotation_seal.py"
 B1_TARGET = ROOT / "scripts/csr8_phase_b1_real_handoff.py"
 B2_TARGET = ROOT / "scripts/csr8_phase_b2_real_annotation.py"
+B4_TARGET = ROOT / "scripts/csr8_phase_b4_human_approval.py"
 CERT_MANIFEST = ROOT / "config/audit/certified_live_inputs.json"
 # 阶段边界感知（run 2 / B1+）：annotator/ 自 B1 起合法，其 closed-world
 # 与泄漏 gate 由 csr8_phase_b1_real_handoff.py 机器实测；c4d_receipts/ 与
@@ -112,6 +113,15 @@ def verify_b1_annotator_domain():
     flat.update({k: v for k, v in res["gates"].items()})
     return flat
 
+def verify_b4_approval_domain():
+    spec = importlib.util.spec_from_file_location("c4d_b4", B4_TARGET)
+    b4 = importlib.util.module_from_spec(spec); spec.loader.exec_module(b4)
+    if not b4.APPROVAL.is_file():
+        return {"b4_approval": "ABSENT", "boundary": "pre-B4"}
+    res = b4.verify_b4()
+    return {"b4_approval": "PRESENT", **{
+        "G-B4-" + k.upper(): v for k, v in res["gates"].items()}}
+
 def verify_b3_receipt_domain():
     spec = importlib.util.spec_from_file_location("c4d_b3", ROOT / "scripts/csr8_phase_b3_real_receipt.py")
     b3 = importlib.util.module_from_spec(spec); spec.loader.exec_module(b3)
@@ -193,10 +203,12 @@ def main():
         b1res = verify_b1_annotator_domain()
         b2res = verify_b2_annotation_domain()
         b3res = verify_b3_receipt_domain()
+        b4res = verify_b4_approval_domain()
         out = {"certified_inputs": "VERIFIED", "certified_files": manifest["fileCount"], "certified_roots": len(manifest["roots"]), "D01_D71": "PASS", "C4D": "PASS", "C4C_regression": "PASS", "candidate_gates": "PASS", "blindness": "PASS", "real_fingerprint": "UNCHANGED", "production_snapshot": "REVEAL=1 SEAL=0", "integration": "PASS"}
         out.update(b1res)
         out.update(b2res)
         out.update(b3res)
+        out.update(b4res)
         print(json.dumps(out, separators=(",", ":")))
     finally:
         (m.c4ab.C3_STATE, m.c1.PLAN_FILE, m.c1.load_salt,

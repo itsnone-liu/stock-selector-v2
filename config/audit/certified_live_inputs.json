@@ -1,5 +1,5 @@
 {
- "fileCount": 10531,
+ "fileCount": 10532,
  "forbiddenPrefixes": [
   "c4d_proposals/"
  ],
@@ -105,7 +105,7 @@
      "path": "secret"
     }
    ],
-   "fileCount": 5290,
+   "fileCount": 5291,
    "files": [
     {
      "bytes": 816,
@@ -31764,6 +31764,12 @@
      "sha256": "85a224a3e748b569060a14aea8fe5fe353b62e8a804e0f43cfb4c51a18063aa6"
     },
     {
+     "bytes": 357,
+     "mode": 384,
+     "path": "c4d_receipts/c4-prod-0002/ordinal-0001/attempt-0001/seal_approval.json",
+     "sha256": "110e01d6709c08cac28dddf55bdaf8ab9f75f735ac11fb51cbbe8a69b0a9c0c9"
+    },
+    {
      "bytes": 196,
      "mode": 384,
      "path": "production/c4-prod-0001/SUPERSEDED.json",
@@ -31849,7 +31855,7 @@
     }
    ],
    "root": "data/csr8_phase_c",
-   "totalBytes": 349452600
+   "totalBytes": 349452957
   },
   {
    "dirCount": 1,
@@ -63312,6 +63318,6 @@
    "totalBytes": 463928909
   }
  ],
- "totalBytes": 813381509,
+ "totalBytes": 813381866,
  "version": 2
 }
