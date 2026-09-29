@@ -3910,9 +3910,10 @@ def live_preflight():
     if evs[0]['event_hash'] != LIVE_R1_EVENT_HASH:
         fail('live preflight: r1 event_hash drifted from the frozen '
              'b5ec0ba1… anchor')
-    for dom in (REAL_RECEIPTS, REAL_PROPOSALS_C4D):
-        if dom.exists():
-            fail(f'live preflight: forbidden real domain exists: {dom}')
+    # B3 creates and verifies the real receipt domain; proposals remain
+    # forbidden until the later authorization stage.
+    if REAL_PROPOSALS_C4D.exists():
+        fail(f'live preflight: forbidden real domain exists: {REAL_PROPOSALS_C4D}')
     if REAL_ANNOTATOR.exists() and not REAL_ANNOTATOR.is_dir():
         fail('live preflight: annotator path exists but is not a domain')
     if (PUBLIC_DIR / C4D_ANCHOR_NAME).exists():

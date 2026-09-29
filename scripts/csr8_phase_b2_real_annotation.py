@@ -101,8 +101,8 @@ def verify_b2(root=CSR):
     b1.verify_b1(root)
     r1, packet, registry = read_inputs(root)
     p = c4d.annot_dom(root, SID) / 'draft' / 'annotation_draft.json'
-    if not p.is_file() or b1.mode_of(p) != 0o600:
-        fail('draft artifact missing or mode is not 0600')
+    if not p.is_file() or b1.mode_of(p) not in (0o600, 0o400):
+        fail('draft artifact missing or mode is not 0600/0400')
     raw = p.read_bytes()
     try:
         draft = json.loads(raw)

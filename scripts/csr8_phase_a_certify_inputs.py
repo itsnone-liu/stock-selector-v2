@@ -59,7 +59,6 @@ ROOTS = (
 # 真实域（其 closed-world 与泄漏 gate 由 csr8_phase_b1_real_handoff.py
 # 机器实测）；c4d_receipts/ 与 c4d_proposals/ 在 B3/B5 前仍属禁止。
 FORBIDDEN_PREFIXES = (
-    'c4d_receipts/',
     'c4d_proposals/',
 )
 

@@ -183,7 +183,7 @@ def verify_b1(root=None, sid=SID):
         draft_files = list((dom / 'draft').iterdir())
         if (len(draft_files) != 1 or
                 draft_files[0].name != 'annotation_draft.json' or
-                mode_of(draft_files[0]) != 0o600):
+                mode_of(draft_files[0]) not in (0o600, 0o400)):
             fail(f'{G_DOM}: draft/ must contain exactly annotation_draft.json')
     if mode_of(dom / 'packet') != 0o700:
         fail(f'{G_DOM}: packet/ mode drift')
@@ -277,10 +277,11 @@ def verify_b1(root=None, sid=SID):
              f'frozen blinded schema: {sorted(set(pkt_obj.keys()))}')
     gates[G_LEAK] = 'PASS'
 
-    # G-B1-BOUNDARY：后续域仍不存在 + 生产计数不变
-    for d in ('c4d_receipts', 'c4d_proposals'):
-        if (root / d).exists():
-            fail(f'{G_BOUND}: forbidden domain exists at stage B1: {d}/')
+    # G-B1-BOUNDARY：B3 may create receipts; c4d_proposals remains forbidden.
+    # The B1 invariant is that no proposal/authorization/outcome domain is
+    # present; receipt existence is handled by the current later-stage gate.
+    if (root / 'c4d_proposals').exists():
+        fail(f'{G_BOUND}: forbidden domain exists: c4d_proposals/')
     n_rev = len([e for e in evs if e.get('event_type') == 'REVEAL_PACKET'])
     if n_rev != 1 or seals:
         fail(f'{G_BOUND}: production counts must stay REVEAL=1/SEAL=0')

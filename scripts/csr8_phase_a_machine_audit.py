@@ -29,7 +29,7 @@ CERT_MANIFEST = ROOT / "config/audit/certified_live_inputs.json"
 # 阶段边界感知（run 2 / B1+）：annotator/ 自 B1 起合法，其 closed-world
 # 与泄漏 gate 由 csr8_phase_b1_real_handoff.py 机器实测；c4d_receipts/ 与
 # c4d_proposals/ 在 B3/B5 前仍属禁止。
-FORBIDDEN_PREFIXES = ("c4d_receipts/", "c4d_proposals/")
+FORBIDDEN_PREFIXES = ("c4d_proposals/",)
 
 def load():
     import sys
@@ -112,6 +112,16 @@ def verify_b1_annotator_domain():
     flat.update({k: v for k, v in res["gates"].items()})
     return flat
 
+def verify_b3_receipt_domain():
+    spec = importlib.util.spec_from_file_location("c4d_b3", ROOT / "scripts/csr8_phase_b3_real_receipt.py")
+    b3 = importlib.util.module_from_spec(spec); spec.loader.exec_module(b3)
+    attempt = b3.c4d.attempt_dir(b3.CSR, b3.SID, b3.ORDINAL, b3.ATTEMPT)
+    if not attempt.is_dir():
+        return {"b3_receipt": "ABSENT", "boundary": "pre-B3"}
+    res = b3.verify_b3()
+    return {"b3_receipt": "PRESENT", **{
+        "G-B3-" + k.upper(): v for k, v in res["gates"].items()}}
+
 def verify_b2_annotation_domain():
     spec = importlib.util.spec_from_file_location("c4d_b2", B2_TARGET)
     b2 = importlib.util.module_from_spec(spec); spec.loader.exec_module(b2)
@@ -182,9 +192,11 @@ def main():
         assert not any(x in public for x in ("opaque_case_id", "packet_id", "case_key", "secret_salt", "outcome"))
         b1res = verify_b1_annotator_domain()
         b2res = verify_b2_annotation_domain()
+        b3res = verify_b3_receipt_domain()
         out = {"certified_inputs": "VERIFIED", "certified_files": manifest["fileCount"], "certified_roots": len(manifest["roots"]), "D01_D71": "PASS", "C4D": "PASS", "C4C_regression": "PASS", "candidate_gates": "PASS", "blindness": "PASS", "real_fingerprint": "UNCHANGED", "production_snapshot": "REVEAL=1 SEAL=0", "integration": "PASS"}
         out.update(b1res)
         out.update(b2res)
+        out.update(b3res)
         print(json.dumps(out, separators=(",", ":")))
     finally:
         (m.c4ab.C3_STATE, m.c1.PLAN_FILE, m.c1.load_salt,

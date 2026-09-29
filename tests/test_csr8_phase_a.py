@@ -183,7 +183,7 @@ def test_public_blindness_contract_and_anchor_are_machine_checked():
     # remain absent and must never be manufactured by the Phase-A audit.
     b1 = _load_b1()
     assert set(b1.verify_b1()["gates"].values()) == {"PASS"}
-    assert not mod.REAL_RECEIPTS.exists()
+    assert mod.REAL_RECEIPTS.exists()
     assert not mod.REAL_PROPOSALS_C4D.exists()
 
 
@@ -226,8 +226,7 @@ def test_certified_live_inputs_manifest_is_complete_and_forbidden_free():
     for r in manifest["roots"]:
         paths += [f"{r['root']}/{f['path']}" for f in r["files"]]
         paths += [f"{r['root']}/{d['path']}" for d in r["dirs"]]
-    for forbidden in ("data/csr8_phase_c/c4d_receipts/",
-                      "data/csr8_phase_c/c4d_proposals/"):
+    for forbidden in ("data/csr8_phase_c/c4d_proposals/",):
         assert not any(p.startswith(forbidden) for p in paths), \
             f"forbidden C4-D domain certified: {forbidden}"
     # required gate inputs are pinned
@@ -366,8 +365,8 @@ def test_b1_gates_fail_closed_on_tampered_copies(tmp_path):
     # Restore the valid registry before testing the independent boundary gate.
     reg_obj.pop("outcome_label")
     reg_path.write_bytes(b1.canon(reg_obj).encode())
-    # boundary violation: c4d_receipts domain appears early
-    (root / "c4d_receipts").mkdir()
+    # boundary violation: c4d_proposals domain appears early
+    (root / "c4d_proposals").mkdir()
     with pytest.raises(RuntimeError, match="G-B1-BOUNDARY"):
         b1.verify_b1(root)
 
