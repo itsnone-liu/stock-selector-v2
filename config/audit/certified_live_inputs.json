@@ -1,15 +1,26 @@
 {
- "fileCount": 10526,
+ "fileCount": 10528,
  "forbiddenPrefixes": [
-  "annotator/",
   "c4d_receipts/",
   "c4d_proposals/"
  ],
  "generator": "scripts/csr8_phase_a_certify_inputs.py",
  "roots": [
   {
-   "dirCount": 16,
+   "dirCount": 19,
    "dirs": [
+    {
+     "mode": 448,
+     "path": "annotator"
+    },
+    {
+     "mode": 448,
+     "path": "annotator/c4-prod-0002"
+    },
+    {
+     "mode": 448,
+     "path": "annotator/c4-prod-0002/packet"
+    },
     {
      "mode": 448,
      "path": "c3_preflight"
@@ -75,8 +86,20 @@
      "path": "secret"
     }
    ],
-   "fileCount": 5285,
+   "fileCount": 5287,
    "files": [
+    {
+     "bytes": 816,
+     "mode": 384,
+     "path": "annotator/c4-prod-0002/annotation_session_registry.json",
+     "sha256": "542649b928ef674328cc3f70ac46e982af5cfc356a00dda94a8bdea53ac654b0"
+    },
+    {
+     "bytes": 3002,
+     "mode": 384,
+     "path": "annotator/c4-prod-0002/packet/335f3213cce87fd482a06dab89ac9735de1967f5ee8b9703603cb0202b84aaed.json",
+     "sha256": "e9abcb4497e08bf5b1b4a412d23f1c79bf8f2ff5477b2cfdec3af1053852adc1"
+    },
     {
      "bytes": 1264,
      "mode": 384,
@@ -31789,7 +31812,7 @@
     }
    ],
    "root": "data/csr8_phase_c",
-   "totalBytes": 349443488
+   "totalBytes": 349447306
   },
   {
    "dirCount": 1,
@@ -63252,6 +63275,6 @@
    "totalBytes": 463928909
   }
  ],
- "totalBytes": 813372397,
+ "totalBytes": 813376215,
  "version": 2
 }

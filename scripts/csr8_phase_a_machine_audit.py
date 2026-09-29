@@ -23,8 +23,12 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 TARGET = ROOT / "scripts/csr8_phase_c_annotation_seal.py"
+B1_TARGET = ROOT / "scripts/csr8_phase_b1_real_handoff.py"
 CERT_MANIFEST = ROOT / "config/audit/certified_live_inputs.json"
-FORBIDDEN_PREFIXES = ("annotator/", "c4d_receipts/", "c4d_proposals/")
+# 阶段边界感知（run 2 / B1+）：annotator/ 自 B1 起合法，其 closed-world
+# 与泄漏 gate 由 csr8_phase_b1_real_handoff.py 机器实测；c4d_receipts/ 与
+# c4d_proposals/ 在 B3/B5 前仍属禁止。
+FORBIDDEN_PREFIXES = ("c4d_receipts/", "c4d_proposals/")
 
 def load():
     import sys
@@ -89,6 +93,24 @@ def verify_certified_tree():
         raise RuntimeError("certified live inputs mismatch: " + "; ".join(bad[:10]))
     return manifest
 
+def verify_b1_annotator_domain():
+    """B1 real annotator-domain gates (stage-boundary aware, run 2).
+
+    If the real annotator domain exists, ALL B1 gates must measure PASS
+    (exact-copy vs C2 archive, closed-world shape, opaque session id,
+    leak scans, boundary domains).  Absence is a Phase-A-boundary
+    condition (pre-B1) and is reported as such — never a silent skip.
+    """
+    spec = importlib.util.spec_from_file_location("c4d_b1", B1_TARGET)
+    b1 = importlib.util.module_from_spec(spec); spec.loader.exec_module(b1)
+    dom = b1.c4d.annot_dom(b1.REAL_CSR, b1.SID)
+    if not dom.is_dir():
+        return {"b1_annotator_domain": "ABSENT", "boundary": "pre-B1"}
+    res = b1.verify_b1()
+    flat = {"b1_annotator_domain": "PRESENT"}
+    flat.update({k: v for k, v in res["gates"].items()})
+    return flat
+
 def main():
     manifest = verify_certified_tree()
     m = load(); td = Path(tempfile.mkdtemp(prefix="csr8-audit-"))
@@ -147,7 +169,10 @@ def main():
         assert state["production"]["seal_count"] == 0
         public = " ".join(p.read_text() for p in m.PUBLIC_DIR.glob("*.json"))
         assert not any(x in public for x in ("opaque_case_id", "packet_id", "case_key", "secret_salt", "outcome"))
-        print(json.dumps({"certified_inputs": "VERIFIED", "certified_files": manifest["fileCount"], "certified_roots": len(manifest["roots"]), "D01_D71": "PASS", "C4D": "PASS", "C4C_regression": "PASS", "candidate_gates": "PASS", "blindness": "PASS", "real_fingerprint": "UNCHANGED", "production_snapshot": "REVEAL=1 SEAL=0", "integration": "PASS"}, separators=(",", ":")))
+        b1res = verify_b1_annotator_domain()
+        out = {"certified_inputs": "VERIFIED", "certified_files": manifest["fileCount"], "certified_roots": len(manifest["roots"]), "D01_D71": "PASS", "C4D": "PASS", "C4C_regression": "PASS", "candidate_gates": "PASS", "blindness": "PASS", "real_fingerprint": "UNCHANGED", "production_snapshot": "REVEAL=1 SEAL=0", "integration": "PASS"}
+        out.update(b1res)
+        print(json.dumps(out, separators=(",", ":")))
     finally:
         (m.c4ab.C3_STATE, m.c1.PLAN_FILE, m.c1.load_salt,
          m.c4ab.first_candidate, m.candidate_total_order,

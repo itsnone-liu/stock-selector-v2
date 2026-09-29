@@ -179,8 +179,12 @@ def test_public_blindness_contract_and_anchor_are_machine_checked():
         assert not any(word in text for word in forbidden), p
     state = json.loads((mod.PUBLIC_DIR / "c4d_phase_a_public_state.json").read_text())
     assert state["production"] == {"event_types": ["REVEAL_PACKET"], "production_head_hash": "b5ec0ba1d485219fd7a2198b23e7ac0f979c23d4dd0cced16faa80d8f19437d5", "seal_count": 0, "reveal_count": 1}
-    # The real-domain check is explicit and must never manufacture state.
-    assert not any(p.exists() for p in (mod.REAL_ANNOTATOR, mod.REAL_RECEIPTS, mod.REAL_PROPOSALS_C4D))
+    # Stage-boundary aware: B1 creates and verifies annotator; later domains
+    # remain absent and must never be manufactured by the Phase-A audit.
+    b1 = _load_b1()
+    assert set(b1.verify_b1()["gates"].values()) == {"PASS"}
+    assert not mod.REAL_RECEIPTS.exists()
+    assert not mod.REAL_PROPOSALS_C4D.exists()
 
 
 def test_bridge_machine_audit_script_executes_complete_matrix():
@@ -196,6 +200,13 @@ def test_bridge_machine_audit_script_executes_complete_matrix():
     assert '"real_fingerprint":"UNCHANGED"' in result.stdout
     assert '"production_snapshot":"REVEAL=1 SEAL=0"' in result.stdout
     assert '"integration":"PASS"' in result.stdout
+    # stage-boundary aware (run 2 / B1): real annotator domain gates are
+    # measured by the machine audit itself
+    assert '"b1_annotator_domain":"PRESENT"' in result.stdout
+    for gate in ("G-B1-CHAIN", "G-B1-ARCHIVE", "G-B1-DOMAIN",
+                 "G-B1-EXACTCOPY", "G-B1-REGISTRY", "G-B1-LEAK",
+                 "G-B1-BOUNDARY"):
+        assert f'"{gate}":"PASS"' in result.stdout, gate
 
 
 def test_certified_live_inputs_manifest_is_complete_and_forbidden_free():
@@ -215,8 +226,7 @@ def test_certified_live_inputs_manifest_is_complete_and_forbidden_free():
     for r in manifest["roots"]:
         paths += [f"{r['root']}/{f['path']}" for f in r["files"]]
         paths += [f"{r['root']}/{d['path']}" for d in r["dirs"]]
-    for forbidden in ("data/csr8_phase_c/annotator/",
-                      "data/csr8_phase_c/c4d_receipts/",
+    for forbidden in ("data/csr8_phase_c/c4d_receipts/",
                       "data/csr8_phase_c/c4d_proposals/"):
         assert not any(p.startswith(forbidden) for p in paths), \
             f"forbidden C4-D domain certified: {forbidden}"
@@ -228,9 +238,14 @@ def test_certified_live_inputs_manifest_is_complete_and_forbidden_free():
         "data/csr8_phase_c/secret/packet_plan.json",
         "data/csr8_phase_c/production/c4-prod-0002/sealing/sealing_log.jsonl",
         "data/csr8_phase_c/c4c_proposals/c4-prod-0002/first_reveal.proposal.json",
+        "data/csr8_phase_c/annotator/c4-prod-0002/annotation_session_registry.json",
         "data/adjustment_baostock/fetch_manifest.json",
     ):
         assert required in listed, f"gate input not certified: {required}"
+    annotator_files = [p for p in listed
+                       if p.startswith("data/csr8_phase_c/annotator/")]
+    assert len(annotator_files) == 2, \
+        "B1 annotator domain must pin exactly the packet copy + registry"
     # the local trees must equal the manifest exactly (bridge-certified
     # materialization or native live tree — either way, zero tolerance)
     spec = importlib.util.spec_from_file_location(
@@ -261,3 +276,113 @@ def test_phase_a_machine_evidence_manifest_is_complete():
                   "fingerprint_real() != before", "live_preflight()",
                   "C4-D SYNTHETIC AUDIT GREEN"):
         assert token in text
+
+
+# --------------------------------------------------------------------------
+# B1 real annotator handoff (run 2 stage B1, taskbook §5)
+# --------------------------------------------------------------------------
+
+B1_SCRIPT = ROOT / "scripts/csr8_phase_b1_real_handoff.py"
+
+
+def _load_b1():
+    import sys
+    sys.path.insert(0, str(B1_SCRIPT.parent))
+    spec = importlib.util.spec_from_file_location("csr8_b1_impl", B1_SCRIPT)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
+def test_b1_real_annotator_domain_gates_pass_on_live_tree():
+    """All seven B1 gates measure PASS against the real (or certified
+    materialized) tree: exact-copy vs C2 archive, closed-world domain,
+    opaque annotation_session_id, leak scans, boundary domains absent."""
+    b1 = _load_b1()
+    res = b1.verify_b1()
+    assert set(res["gates"].values()) == {"PASS"}
+    assert res["reveal_event_hash"] == b1.LIVE_R1
+    assert res["annotation_sessions"] == 1
+
+
+def test_b1_gates_fail_closed_on_tampered_copies(tmp_path):
+    """Every B1 gate is a real re-measurement: tampering a tmp copy of
+    the real domains must fail with the exact gate name."""
+    b1 = _load_b1()
+    real = b1.REAL_CSR
+    root = tmp_path / "csr8_phase_c"
+    root.mkdir()
+    import shutil
+    shutil.copytree(real / "production", root / "production")
+    shutil.copytree(real / "annotator", root / "annotator")
+    # baseline passes on the copy
+    assert set(b1.verify_b1(root)["gates"].values()) == {"PASS"}
+
+    sid = b1.SID
+    dom = b1.c4d.annot_dom(root, sid)
+    r1 = b1.read_chain(root, sid)[0]
+    pkt_file = dom / "packet" / f"{r1['payload']['packet_id']}.json"
+
+    # exact-copy violation: flip one byte of the handed-off packet
+    raw = bytearray(pkt_file.read_bytes())
+    raw[0] ^= 0x01
+    pkt_file.write_bytes(bytes(raw))
+    with pytest.raises(RuntimeError, match="G-B1-EXACTCOPY"):
+        b1.verify_b1(root)
+    pkt_file.write_bytes((real / "annotator" / sid / "packet" /
+                          f"{r1['payload']['packet_id']}.json").read_bytes())
+
+    # closed-world violation: stray file in the annotator domain
+    stray = dom / "notes.txt"
+    stray.write_text("x")
+    with pytest.raises(RuntimeError, match="G-B1-DOMAIN"):
+        b1.verify_b1(root)
+    stray.unlink()
+
+    # canonical-registry violation: reserialize with spaces
+    reg_path = b1.registry_path(root, sid)
+    reg_obj = json.loads(reg_path.read_text())
+    reg_path.write_text(json.dumps(reg_obj, indent=2))
+    with pytest.raises(RuntimeError, match="G-B1-REGISTRY"):
+        b1.verify_b1(root)
+    reg_path.write_bytes(b1.canon(reg_obj).encode())
+
+    # opaque-session-id violation: identity-shaped session id
+    reg_obj["annotation_sessions"][0]["annotation_session_id"] = \
+        "annotator-zhang-san-session"
+    reg_path.write_bytes(b1.canon(reg_obj).encode())
+    with pytest.raises(RuntimeError, match="G-B1-REGISTRY"):
+        b1.verify_b1(root)
+    reg_obj["annotation_sessions"][0]["annotation_session_id"] = \
+        secrets_hex = __import__("secrets").token_hex(16)
+    reg_path.write_bytes(b1.canon(reg_obj).encode())
+
+    # leak violation: outcome-labeled key smuggled into the registry
+    reg_obj["outcome_label"] = "OBSERVED"
+    reg_path.write_bytes(b1.canon(reg_obj).encode())
+    with pytest.raises(RuntimeError, match="G-B1-REGISTRY|G-B1-LEAK"):
+        b1.verify_b1(root)
+
+    # Restore the valid registry before testing the independent boundary gate.
+    reg_obj.pop("outcome_label")
+    reg_path.write_bytes(b1.canon(reg_obj).encode())
+    # boundary violation: c4d_receipts domain appears early
+    (root / "c4d_receipts").mkdir()
+    with pytest.raises(RuntimeError, match="G-B1-BOUNDARY"):
+        b1.verify_b1(root)
+
+
+def test_b1_do_handoff_refuses_duplicate_and_audits_itself(capsys):
+    """do_handoff is one-shot on the REAL domain (already executed at
+    B1): a second execution must refuse, and --verify measures green."""
+    import subprocess, sys as _sys
+    b1 = _load_b1()
+    with pytest.raises(RuntimeError, match="already executed"):
+        b1.do_handoff()
+    result = subprocess.run(
+        [_sys.executable, str(B1_SCRIPT), "--verify"],
+        cwd=ROOT, capture_output=True, text=True, timeout=300)
+    assert result.returncode == 0, result.stdout + result.stderr
+    out = json.loads(result.stdout.strip().splitlines()[-1])
+    assert out["b1"] == "VERIFIED"
+    assert set(out["gates"].values()) == {"PASS"}

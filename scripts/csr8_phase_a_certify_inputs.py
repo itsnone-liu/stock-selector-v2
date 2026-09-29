@@ -21,9 +21,11 @@ This script produces that certification, pinned inside the repo:
   preflight, secret) and ``data/adjustment_baostock`` (frozen price
   authority verified by the C4-C regression);
 * it refuses to certify if any forbidden C4-D domain exists under
-  ``data/csr8_phase_c`` (annotator/, c4d_receipts/, c4d_proposals/) —
-  so the committed manifest itself is machine-checkable proof that
-  those domains are absent from the real tree;
+  ``data/csr8_phase_c`` (c4d_receipts/, c4d_proposals/ — stage-boundary
+  aware as of run 2 B1: the annotator/ domain became a legal real
+  domain at B1 and its closed-world/leak gates are machine-verified by
+  scripts/csr8_phase_b1_real_handoff.py) — so the committed manifest
+  itself is machine-checkable proof of the stage boundary;
 * it writes ``config/audit/certified_live_inputs.json`` (version 2,
   multi-root).
 
@@ -53,9 +55,10 @@ ROOTS = (
     'data/adjustment_baostock',
 )
 
-# C4-D 禁止域：绝不允许出现在认证树里（Phase A HARD STOP 的一部分）。
+# C4-D 禁止域（阶段边界感知，run 2 / B1+）：annotator/ 自 B1 起为合法
+# 真实域（其 closed-world 与泄漏 gate 由 csr8_phase_b1_real_handoff.py
+# 机器实测）；c4d_receipts/ 与 c4d_proposals/ 在 B3/B5 前仍属禁止。
 FORBIDDEN_PREFIXES = (
-    'annotator/',
     'c4d_receipts/',
     'c4d_proposals/',
 )

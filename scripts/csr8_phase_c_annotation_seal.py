@@ -3897,7 +3897,11 @@ def d71():
 # --------------------------------------------------------------------------
 
 def live_preflight():
-    """Real chain still exactly [REVEAL r1]; no C4-D domain exists yet."""
+    """Real chain still exactly [REVEAL r1]; C4-D domain boundary is
+    STAGE-AWARE (run 2): the real annotator/ domain became legal at
+    stage B1 (its closed-world/leak gates are machine-verified by
+    scripts/csr8_phase_b1_real_handoff.py); c4d_receipts/ and
+    c4d_proposals/ stay forbidden until B3/B5."""
     c4c.assert_real_experiment_started()
     log = REAL_PRODUCTION / REAL_SESSION / 'sealing' / 'sealing_log.jsonl'
     evs = [json.loads(l) for l in log.read_text().splitlines() if l.strip()]
@@ -3906,9 +3910,11 @@ def live_preflight():
     if evs[0]['event_hash'] != LIVE_R1_EVENT_HASH:
         fail('live preflight: r1 event_hash drifted from the frozen '
              'b5ec0ba1… anchor')
-    for dom in (REAL_ANNOTATOR, REAL_RECEIPTS, REAL_PROPOSALS_C4D):
+    for dom in (REAL_RECEIPTS, REAL_PROPOSALS_C4D):
         if dom.exists():
             fail(f'live preflight: forbidden real domain exists: {dom}')
+    if REAL_ANNOTATOR.exists() and not REAL_ANNOTATOR.is_dir():
+        fail('live preflight: annotator path exists but is not a domain')
     if (PUBLIC_DIR / C4D_ANCHOR_NAME).exists():
         fail('live preflight: c4d_seal_anchor.json must not exist before '
              'the real SEAL')
@@ -3976,8 +3982,10 @@ def cmd_synthetic():
                             'revealed_prefix_verified':
                                 cand['revealed_prefix'] > 0},
         'c4c_regression': 'PASS',
-        'live_invariants': 'REVEAL=1 SEAL=0 annotation=0 '
-                           'c4d_domains=absent anchor=absent',
+        'live_invariants': 'REVEAL=1 SEAL=0 c4d_receipts/c4d_proposals '
+                           'absent anchor=absent (annotator domain: '
+                           'stage-aware, legal since B1, gated by '
+                           'csr8_phase_b1_real_handoff.py)',
     }
     print('C4-D SYNTHETIC AUDIT GREEN')
     print(canon(report))
