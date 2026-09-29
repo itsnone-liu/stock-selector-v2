@@ -244,8 +244,8 @@ def test_certified_live_inputs_manifest_is_complete_and_forbidden_free():
         assert required in listed, f"gate input not certified: {required}"
     annotator_files = [p for p in listed
                        if p.startswith("data/csr8_phase_c/annotator/")]
-    assert len(annotator_files) == 2, \
-        "B1 annotator domain must pin exactly the packet copy + registry"
+    assert len(annotator_files) == 3, \
+        "B2 annotator domain must pin packet, registry, and draft"
     # the local trees must equal the manifest exactly (bridge-certified
     # materialization or native live tree — either way, zero tolerance)
     spec = importlib.util.spec_from_file_location(
@@ -386,3 +386,42 @@ def test_b1_do_handoff_refuses_duplicate_and_audits_itself(capsys):
     out = json.loads(result.stdout.strip().splitlines()[-1])
     assert out["b1"] == "VERIFIED"
     assert set(out["gates"].values()) == {"PASS"}
+
+
+# B2 real blinded annotation draft
+B2_SCRIPT = ROOT / "scripts/csr8_phase_b2_real_annotation.py"
+
+
+def _load_b2():
+    import sys
+    sys.path.insert(0, str(B2_SCRIPT.parent))
+    spec = importlib.util.spec_from_file_location("csr8_b2_impl", B2_SCRIPT)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
+def test_b2_real_draft_generation_and_all_gates_pass():
+    b2 = _load_b2()
+    generated = b2.build_draft()
+    assert generated["annotation_attempt"] == 1
+    assert [j["hypothesis_id"] for j in generated["annotation"]["rt_judgments"]] == list(b2.c4d.HYPOTHESES)
+    result = b2.verify_b2()
+    assert set(result["gates"].values()) == {"PASS"}
+    assert result["annotation_session_id"] == generated["annotation_session_id"]
+
+
+def test_b2_draft_gate_rejects_invalid_pointer(tmp_path):
+    b2 = _load_b2()
+    import shutil
+    root = tmp_path / "csr8_phase_c"
+    root.mkdir()
+    shutil.copytree(b2.CSR / "production", root / "production")
+    shutil.copytree(b2.CSR / "annotator", root / "annotator")
+    assert set(b2.verify_b2(root)["gates"].values()) == {"PASS"}
+    p = b2.c4d.annot_dom(root, b2.SID) / "draft" / "annotation_draft.json"
+    draft = json.loads(p.read_text())
+    draft["annotation"]["rt_judgments"][0]["evidence_refs"] = ["/not/in/packet"]
+    p.write_text(json.dumps(draft, indent=2))
+    with pytest.raises(RuntimeError, match="G-B2-DRAFT"):
+        b2.verify_b2(root)

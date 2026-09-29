@@ -24,6 +24,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 TARGET = ROOT / "scripts/csr8_phase_c_annotation_seal.py"
 B1_TARGET = ROOT / "scripts/csr8_phase_b1_real_handoff.py"
+B2_TARGET = ROOT / "scripts/csr8_phase_b2_real_annotation.py"
 CERT_MANIFEST = ROOT / "config/audit/certified_live_inputs.json"
 # 阶段边界感知（run 2 / B1+）：annotator/ 自 B1 起合法，其 closed-world
 # 与泄漏 gate 由 csr8_phase_b1_real_handoff.py 机器实测；c4d_receipts/ 与
@@ -111,6 +112,16 @@ def verify_b1_annotator_domain():
     flat.update({k: v for k, v in res["gates"].items()})
     return flat
 
+def verify_b2_annotation_domain():
+    spec = importlib.util.spec_from_file_location("c4d_b2", B2_TARGET)
+    b2 = importlib.util.module_from_spec(spec); spec.loader.exec_module(b2)
+    draft = b2.DRAFT_PATH
+    if not draft.is_file():
+        return {"b2_annotation_draft": "ABSENT", "boundary": "pre-B2"}
+    res = b2.verify_b2()
+    return {"b2_annotation_draft": "PRESENT", **{
+        "G-B2-" + k.upper(): v for k, v in res["gates"].items()}}
+
 def main():
     manifest = verify_certified_tree()
     m = load(); td = Path(tempfile.mkdtemp(prefix="csr8-audit-"))
@@ -170,8 +181,10 @@ def main():
         public = " ".join(p.read_text() for p in m.PUBLIC_DIR.glob("*.json"))
         assert not any(x in public for x in ("opaque_case_id", "packet_id", "case_key", "secret_salt", "outcome"))
         b1res = verify_b1_annotator_domain()
+        b2res = verify_b2_annotation_domain()
         out = {"certified_inputs": "VERIFIED", "certified_files": manifest["fileCount"], "certified_roots": len(manifest["roots"]), "D01_D71": "PASS", "C4D": "PASS", "C4C_regression": "PASS", "candidate_gates": "PASS", "blindness": "PASS", "real_fingerprint": "UNCHANGED", "production_snapshot": "REVEAL=1 SEAL=0", "integration": "PASS"}
         out.update(b1res)
+        out.update(b2res)
         print(json.dumps(out, separators=(",", ":")))
     finally:
         (m.c4ab.C3_STATE, m.c1.PLAN_FILE, m.c1.load_salt,

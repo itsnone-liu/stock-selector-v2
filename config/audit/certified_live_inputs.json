@@ -1,5 +1,5 @@
 {
- "fileCount": 10528,
+ "fileCount": 10529,
  "forbiddenPrefixes": [
   "c4d_receipts/",
   "c4d_proposals/"
@@ -7,7 +7,7 @@
  "generator": "scripts/csr8_phase_a_certify_inputs.py",
  "roots": [
   {
-   "dirCount": 19,
+   "dirCount": 20,
    "dirs": [
     {
      "mode": 448,
@@ -16,6 +16,10 @@
     {
      "mode": 448,
      "path": "annotator/c4-prod-0002"
+    },
+    {
+     "mode": 448,
+     "path": "annotator/c4-prod-0002/draft"
     },
     {
      "mode": 448,
@@ -86,13 +90,19 @@
      "path": "secret"
     }
    ],
-   "fileCount": 5287,
+   "fileCount": 5288,
    "files": [
     {
      "bytes": 816,
      "mode": 384,
      "path": "annotator/c4-prod-0002/annotation_session_registry.json",
      "sha256": "542649b928ef674328cc3f70ac46e982af5cfc356a00dda94a8bdea53ac654b0"
+    },
+    {
+     "bytes": 1707,
+     "mode": 384,
+     "path": "annotator/c4-prod-0002/draft/annotation_draft.json",
+     "sha256": "79de988498fa657a3dcea40b59dec59576f9f421b74994a8471f492d8b6bd74a"
     },
     {
      "bytes": 3002,
@@ -31812,7 +31822,7 @@
     }
    ],
    "root": "data/csr8_phase_c",
-   "totalBytes": 349447306
+   "totalBytes": 349449013
   },
   {
    "dirCount": 1,
@@ -63275,6 +63285,6 @@
    "totalBytes": 463928909
   }
  ],
- "totalBytes": 813376215,
+ "totalBytes": 813377922,
  "version": 2
 }

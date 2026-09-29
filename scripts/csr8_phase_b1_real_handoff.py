@@ -169,10 +169,22 @@ def verify_b1(root=None, sid=SID):
         if e.name != sid:
             fail(f'{G_DOM}: unexpected entry in annotator/ top: {e.name}')
     entries = sorted(p.name for p in dom.iterdir())
-    if entries != sorted(['packet', REGISTRY_NAME]):
-        fail(f'{G_DOM}: closed-world violation — annotator domain must '
-             f'contain exactly packet/ + {REGISTRY_NAME} at stage B1, '
-             f'found {entries}')
+    allowed_entries = sorted(['packet', REGISTRY_NAME])
+    # B2 legitimately adds the blinded annotation draft/; B1 artifacts
+    # remain closed-world and no receipt/approval domain is admitted here.
+    if set(entries) - set(allowed_entries) - {'draft'}:
+        fail(f'{G_DOM}: closed-world violation — unexpected entries '
+             f'{sorted(set(entries) - set(allowed_entries) - {"draft"})}')
+    if not set(allowed_entries).issubset(entries):
+        fail(f'{G_DOM}: B1 artifacts missing from annotator domain: {entries}')
+    if 'draft' in entries:
+        if not (dom / 'draft').is_dir() or mode_of(dom / 'draft') != 0o700:
+            fail(f'{G_DOM}: draft/ mode drift')
+        draft_files = list((dom / 'draft').iterdir())
+        if (len(draft_files) != 1 or
+                draft_files[0].name != 'annotation_draft.json' or
+                mode_of(draft_files[0]) != 0o600):
+            fail(f'{G_DOM}: draft/ must contain exactly annotation_draft.json')
     if mode_of(dom / 'packet') != 0o700:
         fail(f'{G_DOM}: packet/ mode drift')
     pkts = list((dom / 'packet').iterdir())
