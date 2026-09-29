@@ -1,34 +1,66 @@
 {
-  "goal": "CSR-8 / Phase C 基础建设收尾：将现有核心协议与审计底座收口为可持续、可重复、可独立审计的生产基础设施闭环；严格遵守任务书 HARD STOP，未通过独立审计不得宣布 PRODUCTION INFRA FINAL FROZEN。任务书原文：.feishu-files/20260928140115-CSR8_PHASE_C_PRODUCTION_INFRA_FINAL_TASKBOOK.md；源文件 SHA256：9aeb636e2cf9dc8e1b59674e62e9b326e78929384cc5a4e03dd72b4d8a5427c7。",
-  "approvedPlan": "执行任务书第16节：A1 先审当前 HEAD 与 8b08f26 之后的实际状态；A2 完成 next-reveal prerequisite guard + D71；A3 运行 full synthetic、C4-C regression、real fingerprint，并核对禁止真实域、anchor 字节和生产状态；A4 只提交当前 Phase A 变更并暂停；A5 等待独立审计宣布 C4-D SYNTHETIC FINAL FROZEN。严禁自动进入 Phase B；任何真实 annotation、receipt、approval、SEAL、ordinal-2 production proposal、第二次 production REVEAL 或 outcome 解盲均属于后续阶段且当前禁止。",
+  "goal": "CSR-8 / Phase C 基础建设收尾（续 run audit_20260928142305936，授权链 v2）。前置事实（本 run 的既定前提，评审可直接核验）：Phase A / C4-D synthetic closeout 已于父 run 第 16 轮独立审计 APPROVE，目标提交 6f9c9af8c4fca7f36bd0bee0d349546f0304621f，机器证据 executor-tests-i16.json（桥隔离 worktree 认证物化 2 根/10526 文件零漂移，481 passed/0 failed/0 skipped/exit 0）；父 run 因线性阶段机把 B/C 槽位消耗于合规门槛记录而结构性僵局，由评审员 NEED_USER 裁决终止。本 run 以协议结构取代'宣告仪式'：任务书每个授权点独立成阶段（B1-B5、C1-C6、D、E、F、G），阶段边界即 HARD STOP 与独立审计点；未通过 G 阶段独立审计不得宣布 PRODUCTION INFRA FINAL FROZEN。任务书原文：.feishu-files/20260928140115-CSR8_PHASE_C_PRODUCTION_INFRA_FINAL_TASKBOOK.md；源文件 SHA256：9aeb636e2cf9dc8e1b59674e62e9b326e78929384cc5a4e03dd72b4d8a5427c7（未修改）。",
+  "approvedPlan": "按任务书 §5-§14 逐授权点执行：B1 真实 annotator handoff → B2 真实 annotation draft → B3 真实 receipt freeze → B4 人工 exact-hash 批准（绑定会话人类固定措辞）→ B5 真实 SEAL 事务与 Freeze Gate → C1 ordinal-2 proposal → C2 人工 NEXT_REVEAL_ONLY 批准 → C3 append R2 → C4 第二周期 annotation+receipt → C5 第二周期人工批准 → C6 S2 SEAL 与双周期最终 Gate → D ordinal-N 泛化 → E production runner/watchdog/recovery → F analysis-ready bridge + audit package → G 最终 PRODUCTION INFRA FINAL FROZEN gate。每阶段：完成即本地 commit + READY_FOR_AUDIT + HARD STOP。通用约束贯穿全 run：真实生产链起点 REVEAL=1/SEAL=0（唯一 REVEAL_PACKET 头哈希 b5ec0ba1d485219fd7a2198b23e7ac0f979c23d4dd0cced16faa80d8f19437d5）；不得修改 C4-C executor 与 c4c_anchor.json exact bytes（c4d_seal_anchor 等任务书明示新产物除外）；每个引入或变更 live 数据的阶段必须同步重新生成认证清单 config/audit/certified_live_inputs.json（全树哈希零漂移协议，桥按目标提交物化复验）；机器审计必须实测 gate（真实函数、真实事务、禁止静态快照自证、禁止硬编码 PASS、禁止静默跳过）；B4/C2/C5 的人工批准必须来自绑定会话的人类用户以任务书固定措辞发出的消息，执行者不得代批、不得以文档引用代替。",
   "stages": [
     {
-      "id": "A",
-      "requirements": "CSR-8 Phase A / C4-D synthetic final closeout。仅执行 A1-A4：核对当前 HEAD 与 8b08f26 之后的实际变更；实现统一 next-reveal prerequisite guard（至少证明 C2 full verify(check_head=True)、requested ordinal == reveal_count+1、last event=SEAL_ANNOTATION、open_reveals=0、revealed set 为 candidate total-order prefix、前次合法 matched SEAL、前次 sealed pair semantic replay PASS），并接入 proposal 创建前、approval、permit、authorization-chain verify 和真正 append REVEAL 前；新增 D71：在 [R1,S1,R2] 下 ordinal-3 proposal 必须得到 G-C4D-AUTHZ 且 proposal/approval/permit 均 absent；保留 [R1,S1]→ordinal-2 proposal 正向控制。运行 D01-D71 全部 synthetic、C4-C regression、candidate gates、blindness output scan、real fingerprint before==after；确认真实生产仍 REVEAL=1/SEAL=0、禁止真实域不存在、c4c_anchor.json exact bytes 未改变。不得创建真实 annotator/c4d_receipts/c4d_proposals/annotation draft/receipt/seal approval，不得 production SEAL、ordinal-2 production approval/permit、第二次 production REVEAL、outcome 读取/解盲，不得修改 C4-C executor 或 c4c_anchor.json。完成后创建本地 commit 并输出 READY_FOR_AUDIT，随后 HARD STOP 等待独立审计；不得进入 B。"
+      "id": "B1",
+      "requirements": "任务书 §5 B1 Real annotator handoff。仅允许：创建真实 annotator domain；对当前 R1 packet 做 exact-copy handoff；创建 annotation session registry。禁止 receipt / approval / SEAL / R2 proposal / outcome 读取。Gate（全部机器实测）：packet exact bytes == C2 archived R1 bytes；packet_sha256 == R1 payload hash；annotator domain closed-world（域内仅允许本步明示产物）；no identity leak / no future leak / no outcome leak；annotation_session_id opaque。真实域创建后必须重新生成并提交 config/audit/certified_live_inputs.json（含新域全量 sha256/mode inventory）；提交内测试的禁止域断言按本阶段边界更新为：annotator 域存在且满足上述 gate，c4d_receipts / c4d_proposals 域仍不存在；Phase A 断言（禁止域全不存在）调整为阶段边界感知。machine audit 输出必须含 annotator domain gate 实测结果。完成后本地 commit + READY_FOR_AUDIT，HARD STOP，不得进入 B2。"
     },
     {
-      "id": "B",
-      "requirements": "任务书 Phase B Real Cycle-1：仅在 Phase A 独立审计宣布 C4-D SYNTHETIC FINAL FROZEN 后，按 B1-B7 分独立授权点执行；每个授权点 HARD STOP。当前不得执行。"
+      "id": "B2",
+      "requirements": "任务书 §5 B2 Real annotation draft。生成真实 blinded annotation：contract 覆盖 rt_H01..rt_H06，observability ∈ {OBSERVABLE, UNOBSERVABLE}，support ∈ {SUPPORTED_STRONG, SUPPORTED_PARTIAL, MIXED, NOT_OBSERVED, CONTRADICTED}；规则 OBSERVABLE→support 必填闭集、UNOBSERVABLE→support=null；flags ∈ {DATA_QUALITY_ISSUE, EVIDENCE_INCOMPLETE_AT_T, PACKET_PARSE_ANOMALY, FLAGGED_FOR_REVIEW}；evidence_refs 必须是合法 JSON Pointer 且 resolve 到当前 packet。Gate（机器实测）：draft closed-world；annotation_contract_sha256 exact；no missing/duplicate hypotheses；canonical contract preimage re-check；annotation_session_id per-attempt unique；timestamps valid；no outcome access（annotator 视角盲态保持）。认证清单随 draft 落地重新生成提交；测试新增 draft gate 实测（真实生成路径，非夹具快照）。完成后本地 commit + READY_FOR_AUDIT，HARD STOP，不得进入 B3。"
     },
     {
-      "id": "C",
-      "requirements": "任务书 Phase C Real Cycle-2：仅在 Phase B 完成并独立审计后执行；当前不得执行。"
+      "id": "B3",
+      "requirements": "任务书 §5 B3 Real receipt freeze。事务顺序严格：read exact D → full validation → staging receipt + exact snapshot(D) → fsync files + staging dir → chmod active draft 0400 → reread == D → fsync draft + parent → RENAME_NOREPLACE → fsync ordinal parent。不变式（机器实测）：attempt exists ⇒ receipt + snapshot complete ⇒ draft locked 0400 ⇒ active draft bytes == snapshot；receipt.draft_sha256 = SHA256(exact draft_snapshot.bin)。崩溃安全语义（每步中断后状态一致）必须有测试构造证明。认证清单同步重新生成提交。完成后本地 commit + READY_FOR_AUDIT，HARD STOP，不得进入 B4。"
+    },
+    {
+      "id": "B4",
+      "requirements": "任务书 §5 B4 Human exact-hash approval。流程（人工授权点，评审即核对该流程痕迹）：执行者先在会话内只展示 receipt_sha256 并给出任务书固定措辞模板，等待绑定会话的人类用户回复固定措辞批准（本阶段允许执行者先发一次无 marker 的展示消息与用户交互）；收到人类批准消息后才允许持久化 seal_approval.json（O_EXCL / canonical / 0600 / fsync），批准记录必须绑定当前 session / reveal / attempt 的 exact receipt bytes，措辞中 hash 与 receipt_sha256 逐字符一致。禁止：执行者代批、以文档引用代替人类消息、批准措辞以外的授权扩张。提交内测试断言 seal_approval.json 与人类批准消息 hash 一致、权限位与 canonical 形态正确。认证清单同步更新。完成后本地 commit + READY_FOR_AUDIT，HARD STOP，不得进入 B5。"
+    },
+    {
+      "id": "B5",
+      "requirements": "任务书 §5 B5 Real SEAL transaction + Freeze Gate。提交前重新证明（全部机器实测）：trusted C2 prefix valid；whole attempt history valid；active attempt unique；receipt/snapshot exact；approval exact；active packet exact；active draft 0400 + exact；commit-time history proof PASS；commit-time receipt proof PASS；persisted receipt reread == proven rbytes。然后唯一允许 SEAL_ANNOTATION append once（payload.receipt_sha256 = SHA256(exact proven rbytes)，C2 content_bytes = same rbytes）。事务后：C2 full verify PASS、semantic replay PASS、SEAL_COMMITTED；c4d_seal_anchor durable、workspace cleanup、POST_SEAL_FINAL，得到 S1 SEALED。B5 Freeze Gate（机器实测全项）：chain == [R1,S1]；head == S1；receipt triple exact-byte equality PASS；approval consumed；attempt history PASS；active workspace empty；c4c_anchor unchanged（exact bytes）；c4d_seal_anchor exact；outcome untouched。生产计数变为 REVEAL=1/SEAL=1，认证清单与生产状态断言同步更新。完成后本地 commit + READY_FOR_AUDIT，HARD STOP，不得进入 C1。"
+    },
+    {
+      "id": "C1",
+      "requirements": "任务书 §6 C1 ordinal-2 proposal。前置直接从 committed chain 派生并机器实测：chain == [R1,S1]、open_reveals == 0、S1 replay PASS、candidate prefix == 1。生成 selector-only artifact ordinal-0002/next_reveal.proposal.json；人类仅看到 proposal_sha256（执行者在会话内展示 hash）。禁止：本阶段不生成 approval/permit、不 append R2。认证清单同步更新。测试断言 proposal 派生前置与 closed-world。完成后本地 commit + READY_FOR_AUDIT，HARD STOP，不得进入 C2。"
+    },
+    {
+      "id": "C2",
+      "requirements": "任务书 §6 C2 Human NEXT_REVEAL_ONLY approval（人工授权点，流程同 B4：执行者先展示 proposal_sha256 与固定措辞、等待绑定会话人类批准消息，允许一次无 marker 交互轮）。持久化 next_reveal.approval.json + next_reveal.permit.json，三方一致机器实测：proposal exact bytes == approved hash == permit exact bytes。禁止授权扩张（仅授权本次 NEXT_REVEAL_ONLY）。认证清单同步更新。完成后本地 commit + READY_FOR_AUDIT，HARD STOP，不得进入 C3。"
+    },
+    {
+      "id": "C3",
+      "requirements": "任务书 §6 C3 Append R2。前置证明后唯一允许 append，得到 chain == [R1,S1,R2]，并机器实测：C2 full verify PASS；authorization(2) == CONSUMED；S1↔R1 replay remains PASS；candidate prefix == 2。生产计数 REVEAL=2/SEAL=1，认证清单与状态断言同步更新。完成后本地 commit + READY_FOR_AUDIT，HARD STOP，不得进入 C4。"
+    },
+    {
+      "id": "C4",
+      "requirements": "任务书 §6 C4（拆分一：annotation2 + receipt2）：对 ordinal-0002/ 完整重复 B2-B3 —— R2 packet exact-copy handoff 进 annotator 域第二 session、真实 blinded annotation draft（contract/flags/evidence_refs 规则同 B2）、receipt freeze 事务与不变式同 B3，全部 artifact 进入 ordinal-0002/。Gate 机器实测同 B2/B3 对应项。认证清单同步更新。完成后本地 commit + READY_FOR_AUDIT，HARD STOP，不得进入 C5。"
+    },
+    {
+      "id": "C5",
+      "requirements": "任务书 §6 C4（拆分二：人工 approval2，流程同 B4）：执行者展示 ordinal-2 receipt_sha256 与任务书固定措辞，等待绑定会话人类批准消息后持久化 seal_approval（O_EXCL/canonical/0600/fsync，绑定 ordinal-2 session/reveal/attempt exact bytes）。禁止授权扩张。认证清单同步更新。完成后本地 commit + READY_FOR_AUDIT，HARD STOP，不得进入 C6。"
+    },
+    {
+      "id": "C6",
+      "requirements": "任务书 §6 C4（拆分三：S2 SEAL + 双周期最终 Gate）：提交前证明与事务语义同 B5（含 commit-time history/receipt proof），SEAL_ANNOTATION append once 得到 S2，chain == [R1,S1,R2,S2]。双周期最终 Gate 全项机器实测：R1↔S1 exact pairing PASS；R2↔S2 exact pairing PASS；ordinal-1 attempt history PASS；ordinal-2 attempt history PASS；authorization(1) consumed；authorization(2) consumed；open_reveals == 0；candidate revealed prefix == 2；两个 sealed pair 后续 replay 互不污染；crash/recovery semantics 在 ordinal-2 仍成立。生产计数 REVEAL=2/SEAL=2，c4c_anchor unchanged，outcome untouched。若 Gate 不通过不得宣称 loop 稳定。认证清单同步更新。完成后本地 commit + READY_FOR_AUDIT，HARD STOP，不得进入 D。"
     },
     {
       "id": "D",
-      "requirements": "任务书 ordinal-N progressive loop 泛化；仅在前置阶段冻结后执行；当前不得执行。"
+      "requirements": "任务书 §7 Phase D ordinal-N progressive loop 泛化（仅 C6 Freeze Gate 冻结后执行）：D1 general invariant（任意 ordinal 的 prerequisite/authorization/append/seal 不变式从 chain 派生，禁止硬编码 ordinal==2 特判）；D2 general recovery（任意中断点恢复语义测试，构造性崩溃用例）；D3 general history proof（任意前缀历史证明）。全部以真实函数与构造性 synthetic→real 渐进测试实测，禁止静态快照自证。不得触碰已冻结生产链语义（R1/S1/R2/S2 exact bytes 不变）。认证清单按需更新。完成后本地 commit + READY_FOR_AUDIT，HARD STOP，不得进入 E。"
     },
     {
       "id": "E",
-      "requirements": "任务书 production runner + recovery/watchdog；仅在前置阶段冻结后执行；当前不得执行。"
+      "requirements": "任务书 §8 Phase E production runner / resume / watchdog / recovery command（仅 D 冻结后执行）：runner 按授权点序列驱动完整 cycle 并在每个 HARD STOP 边界落盘可恢复状态；resume 从任意中断点幂等恢复（构造性崩溃测试）；watchdog 检测悬挂/超时并安全降级（不产生越权动作）；recovery command 只读诊断 + 显式修复路径。全部真实事务路径实测，禁止 mock 代替生产语义。不得改变已冻结链字节。完成后本地 commit + READY_FOR_AUDIT，HARD STOP，不得进入 F。"
     },
     {
       "id": "F",
-      "requirements": "任务书 analysis-ready bridge + audit package；仅在前置阶段冻结后执行；当前不得执行。"
+      "requirements": "任务书 §9 Phase F analysis-ready bridge + audit package（仅 E 冻结后执行）：9.1 immutable annotation corpus（annotator 域只读化+全量哈希账本）；9.2 blinding boundary（分析侧不可达 outcome/identity/future 的边界测试，负向渗透用例必须真实尝试并失败）；9.3 outcome join contract（join 键不泄漏 identity，删失语义显式）；9.4 audit package（一键导出：chain+receipts+approvals+gates+verdicts 全量可复验包，含 verdicts.jsonl 审计历史）。全部机器实测。完成后本地 commit + READY_FOR_AUDIT，HARD STOP，不得进入 G。"
     },
     {
       "id": "G",
-      "requirements": "任务书最终 PRODUCTION INFRA FINAL FROZEN gate；只有独立审计确认全部 Gate 通过才允许宣布；当前不得执行。"
+      "requirements": "任务书最终 PRODUCTION INFRA FINAL FROZEN gate：只有独立审计确认全部前置 Gate（B5 Freeze Gate、C6 双周期 Gate、D/E/F 各阶段 APPROVE）通过后才允许宣布。本阶段执行者产出最终机器审计：全链 replay、全 gate 重跑、认证清单最终态、生产计数 REVEAL=2/SEAL=2、anchor 双锚 exact、audit package 完整性；PRODUCTION INFRA FINAL FROZEN 的宣布属于独立审计裁决，执行者不得自行宣布。完成后本地 commit + READY_FOR_AUDIT，HARD STOP。"
     }
   ]
 }
