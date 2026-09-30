@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Phase E production runner: explicit root, durable journal, recovery CLI."""
-import argparse,json,os,sys,time,tempfile
+import argparse,json,os,sys,time,tempfile,threading
 from pathlib import Path
 sys.path.insert(0,str(Path(__file__).resolve().parent)); import csr8_phase_c_annotation_seal as c
 STOPS=('PREPARE','AUTHORIZED','after_verify','after_derive','after_precondition','after_append','after_fsync','after_replay_verify','after_replay','after_anchor','after_cleanup','SEALED')
@@ -15,15 +15,23 @@ def watchdog(start,timeout,root):
  s=read_state(root); s['heartbeat']=time.time()
  if time.monotonic()-start>timeout: s.update(status='SAFE_DEGRADED',watchdog={'reason':'TIMEOUT','writes':0,'append':False}); write_state(root,s)
  return s
+def _seal_worker(root,crash,result):
+ try: result.extend([('ok',c.seal_transaction(root,c.REAL_SESSION,stop_after=crash))])
+ except c.CrashSim as e: result.extend([('crash',str(e))])
+ except BaseException as e: result.extend([('error',repr(e))])
 def run(root,crash=None,timeout=300):
- root=Path(root); ev=events(root); types=[e['event_type'] for e in ev]
+ root=Path(root); types=[e['event_type'] for e in events(root)]
  if not types or types[-1]!='REVEAL_PACKET': raise RuntimeError('supplied root must end with an open production REVEAL')
  started=time.monotonic(); persist(root,'PREPARE'); persist(root,'AUTHORIZED')
- if watchdog(started,timeout,root).get('status')=='SAFE_DEGRADED': return read_state(root)
- try: result=c.seal_transaction(root,c.REAL_SESSION,stop_after=crash)
- except c.CrashSim:
-  persist(root,crash); return read_state(root)
- persist(root,'SEALED'); return result or read_state(root)
+ result=[]; t=threading.Thread(target=_seal_worker,args=(root,crash,result),daemon=True); t.start()
+ while t.is_alive():
+  watchdog(started,timeout,root)
+  if read_state(root).get('status')=='SAFE_DEGRADED': return read_state(root)
+  time.sleep(0.01)
+ t.join(); kind,value=result[0] if result else ('error','worker exited without result')
+ if kind=='crash': persist(root,value); return read_state(root)
+ if kind=='error': raise RuntimeError(value)
+ persist(root,'SEALED'); return value or read_state(root)
 def resume(root):
  s=read_state(root)
  if s.get('resumed') and s.get('status') in ('SEALED','SEAL_AUTHORIZED'): return s
