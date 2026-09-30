@@ -10,6 +10,12 @@
    "mode": 384,
    "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0001/attempt-0001/seal_approval.json",
    "sha256": "110e01d6709c08cac28dddf55bdaf8ab9f75f735ac11fb51cbbe8a69b0a9c0c9"
+  },
+  {
+   "bytes": 1238,
+   "mode": 384,
+   "path": "docs/audit/evidence/b4_unattended_approval.json",
+   "sha256": "721365f2cd726418946bcecc316c68cce7cf042cec6a13781d75857cbf154e41"
   }
  ],
  "roots": [

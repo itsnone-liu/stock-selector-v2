@@ -59,6 +59,7 @@ ROOTS = (
 # must be pinned explicitly rather than silently omitted from certification.
 PROTECTED_ARTIFACTS = (
     'data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0001/attempt-0001/seal_approval.json',
+    'docs/audit/evidence/b4_unattended_approval.json',
 )
 
 # C4-D 禁止域（阶段边界感知，run 2 / B1+）：annotator/ 自 B1 起为合法
