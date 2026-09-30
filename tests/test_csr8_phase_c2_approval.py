@@ -253,6 +253,16 @@ def test_c2_catches_authorization_domain_extra_entry(tmp_path):
         c2mod.verify_c2(*_tampered(tmp_path, "extra", tweak))
 
 
+def test_c2_cli_rejects_persist_and_verify_together(capsys):
+    """The transaction CLI modes are mutually exclusive: --persist
+    (writes) and --verify (read-only) cannot be combined — argparse
+    exits 2 before any code path runs."""
+    with pytest.raises(SystemExit) as ei:
+        c2mod.main(["--persist", "--verify"])
+    assert ei.value.code == 2
+    assert "mutually exclusive" in capsys.readouterr().err
+
+
 def test_c2_bound_object_is_proposal_not_receipt():
     """Iteration-2 interpretation ruling, pinned machine-side: the v2
     amendment's 'session / reveal / attempt exact receipt bytes' /

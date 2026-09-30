@@ -87,7 +87,13 @@ committed tests)
 (2 roots / 10534 files / +2: approval + permit); the run-side record and
 both chain-side artifacts are pinned as 0600 protected artifacts;
 `csr8_phase_a_machine_audit.py` additionally measures the G-C2 family
-from persisted bytes.
+from persisted bytes and surfaces the three-way binding hashes directly
+in its audit line (`approved_by=UNATTENDED_POLICY`,
+`scope=NEXT_REVEAL_ONLY`, `consumption=UNUSED`,
+`approved_proposal_sha256 == authorized_permit_sha256 ==
+d0457783…cecc578`, plus `authorized_artifact_sha256`), asserted by the
+machine-audit test; the C2 transaction CLI rejects `--persist` together
+with `--verify` (mutually exclusive modes, SystemExit 2, tested).
 
 ## Interpretation ruling (iteration 2) — v2 amendment wording
 
