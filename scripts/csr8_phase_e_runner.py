@@ -7,7 +7,9 @@ STOPS=('PREPARE','AUTHORIZED','after_verify','after_derive','after_precondition'
 def state_path(root): return Path(root)/'runner_state.json'
 def read_state(root): return json.loads(state_path(root).read_bytes()) if state_path(root).exists() else {'status':'NEW','journal':[]}
 def write_state(root,x):
- p=state_path(root); t=p.with_suffix('.tmp'); t.write_bytes(c.canon(x).encode()); os.replace(t,p); os.chmod(p,0o600)
+ p=state_path(root); t=p.with_suffix('.tmp'); t.write_bytes(c.canon(x).encode());
+ fd=os.open(t,os.O_RDONLY); os.fsync(fd); os.close(fd); os.replace(t,p); os.chmod(p,0o600)
+ fd=os.open(p.parent,os.O_RDONLY); os.fsync(fd); os.close(fd)
 def events(root): return [json.loads(x) for x in c.log_path(root,c.REAL_SESSION).read_text().splitlines() if x.strip()]
 def stop(root,name):
  s=read_state(root); s.update(status=name,chain_count=len(events(root))); s['journal'].append({'boundary':name,'events':[e['event_type'] for e in events(root)]}); write_state(root,s)
