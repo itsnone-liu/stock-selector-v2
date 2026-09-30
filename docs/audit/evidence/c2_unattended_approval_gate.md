@@ -232,3 +232,19 @@ consumption remained `UNUSED`. The exact three-way value remained
 This re-verification preserves the frozen C2 binding ruling: the authorized
 object is the ordinal-2 proposal exact bytes, not a later receipt or attempt.
 No C3 append, reveal transaction, or authorization expansion was performed.
+
+## Iteration-8 re-verification
+
+For `audit_20260930021152297` / C2 / iteration 8, the persisted authorization
+artifacts were re-verified in place without invoking C3 or entering C4. The
+machine verifier returned all eight G-C2 gates `PASS`; `approved_by` remained
+`UNATTENDED_POLICY`, `scope` remained `NEXT_REVEAL_ONLY`, and authorization
+consumption remained `UNUSED`. The exact three-way value remained
+`d045778390478d5cdc31bedcf44078fd9307c10fa08d0bc84a18df596cecc578`.
+
+This iteration applies the frozen owner ruling: the C2 binding contract is
+ordinal-2 proposal exact bytes, `approved_proposal_sha256`, and exact
+proposal/approval/permit agreement. The B4-template `receipt_sha256` wording
+is not a C2 receipt-binding requirement at this boundary, where the ordinal-2
+receipt and attempt do not yet exist. No C3 append, C4 action, reveal
+transaction, or authorization expansion was performed.
