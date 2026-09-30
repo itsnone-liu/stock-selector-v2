@@ -1,47 +1,55 @@
 #!/usr/bin/env python3
+"""Phase E production runner: explicit root, durable journal, recovery CLI."""
 import argparse,json,os,sys,time,tempfile
 from pathlib import Path
 sys.path.insert(0,str(Path(__file__).resolve().parent)); import csr8_phase_c_annotation_seal as c
 STOPS=('PREPARE','AUTHORIZED','after_verify','after_derive','after_precondition','after_append','after_fsync','after_replay_verify','after_replay','after_anchor','after_cleanup','SEALED')
 def state_path(root): return Path(root)/'runner_state.json'
 def read_state(root): return json.loads(state_path(root).read_bytes()) if state_path(root).exists() else {'status':'NEW','journal':[]}
-def write_state(root,x):
- p=state_path(root); t=p.with_suffix('.tmp'); t.write_bytes(c.canon(x).encode()); fd=os.open(t,os.O_RDONLY); os.fsync(fd); os.close(fd); os.replace(t,p); os.chmod(p,0o600); fd=os.open(p.parent,os.O_RDONLY); os.fsync(fd); os.close(fd)
+def write_state(root,obj):
+ p=state_path(root); p.parent.mkdir(parents=True,exist_ok=True); tmp=p.with_suffix('.tmp'); tmp.write_bytes(c.canon(obj).encode()); fd=os.open(tmp,os.O_RDONLY); os.fsync(fd); os.close(fd); os.replace(tmp,p); os.chmod(p,0o600); fd=os.open(p.parent,os.O_RDONLY); os.fsync(fd); os.close(fd)
 def events(root): return [json.loads(x) for x in c.log_path(root,c.REAL_SESSION).read_text().splitlines() if x.strip()]
-def stop(root,name):
- s=read_state(root); s.update(status=name,chain_count=len(events(root))); s['journal'].append({'boundary':name,'events':[e['event_type'] for e in events(root)]}); write_state(root,s)
+def persist(root,boundary):
+ s=read_state(root); s.update(status=boundary,chain_count=len(events(root)),heartbeat=time.time()); s['journal'].append({'boundary':boundary,'events':[e['event_type'] for e in events(root)]}); write_state(root,s); return s
 def watchdog(start,timeout,root):
  s=read_state(root); s['heartbeat']=time.time()
  if time.monotonic()-start>timeout: s.update(status='SAFE_DEGRADED',watchdog={'reason':'TIMEOUT','writes':0,'append':False}); write_state(root,s)
  return s
-def run(root,crash=None):
- root=Path(root); ev=events(root); started=time.monotonic()
- if [e['event_type'] for e in ev]!=['REVEAL_PACKET','SEAL_ANNOTATION']: raise RuntimeError('supplied root must be runnable pre-cycle')
- watchdog(started,999999,root); stop(root,'PREPARE'); stop(root,'AUTHORIZED')
- if crash:
-  try:c.seal_transaction(root,c.REAL_SESSION,stop_after=crash)
-  except c.CrashSim: stop(root,crash); return read_state(root)
- return resume(root)
+def run(root,crash=None,timeout=300):
+ root=Path(root); ev=events(root); types=[e['event_type'] for e in ev]
+ if not types or types[-1]!='REVEAL_PACKET': raise RuntimeError('supplied root must end with an open production REVEAL')
+ started=time.monotonic(); persist(root,'PREPARE'); persist(root,'AUTHORIZED')
+ if watchdog(started,timeout,root).get('status')=='SAFE_DEGRADED': return read_state(root)
+ try: result=c.seal_transaction(root,c.REAL_SESSION,stop_after=crash)
+ except c.CrashSim:
+  persist(root,crash); return read_state(root)
+ persist(root,'SEALED'); return result or read_state(root)
 def resume(root):
  s=read_state(root)
  if s.get('resumed') and s.get('status') in ('SEALED','SEAL_AUTHORIZED'): return s
- result=c.recover(root,c.REAL_SESSION); s.update(status=result,resumed=True); write_state(root,s); return s
+ result=c.recover(root,c.REAL_SESSION); s.update(status=result,resumed=True,recovery_count=s.get('recovery_count',0)+1); write_state(root,s); return s
+def diagnose(root): return {'mode':'READ_ONLY','state':read_state(root),'events':[e['event_type'] for e in events(root)]}
+def repair(root):
+ before=diagnose(root); result=c.recover(root,c.REAL_SESSION); return {'mode':'EXPLICIT_REPAIR','before':before,'result':result,'append':False}
 def evidence():
  sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'tests')); from csr8_preseal_sandbox import build_pre_seal_sandbox
  out=[]
- for p in STOPS[2:-1]:
-  with tempfile.TemporaryDirectory(prefix='csr8-e15-') as td:
-   root=build_pre_seal_sandbox(Path(td),through='B4').root; stop(root,'PREPARE'); stop(root,'AUTHORIZED')
-   try:c.seal_transaction(root,c.REAL_SESSION,stop_after=p)
-   except c.CrashSim: stop(root,p)
-   s=resume(root); want='SEAL_AUTHORIZED' if p in STOPS[2:5] else 'SEALED'
-   if s['status']!=want or resume(root)['status']!=want: raise RuntimeError(p)
-   out.append({'point':p,'status':s['status'],'journal':len(s['journal'])})
- w=watchdog(time.monotonic()-10,1,Path(tempfile.mkdtemp(prefix='csr8-watch-'))); assert w['status']=='SAFE_DEGRADED' and w['watchdog']['writes']==0 and not w['watchdog']['append']; return out
+ for point in STOPS[2:-1]:
+  with tempfile.TemporaryDirectory(prefix='csr8-e17-') as td:
+   root=build_pre_seal_sandbox(Path(td),through='B4').root
+   s=run(root,point); s=resume(root); want='SEAL_AUTHORIZED' if point in STOPS[2:5] else 'SEALED'
+   if s['status']!=want or resume(root)['status']!=want: raise RuntimeError(point)
+   out.append({'point':point,'status':s['status'],'journal':len(s['journal'])})
+ with tempfile.TemporaryDirectory(prefix='csr8-watch-') as td:
+  root=build_pre_seal_sandbox(Path(td),through='B4').root; w=watchdog(time.monotonic()-10,1,root)
+  assert w['status']=='SAFE_DEGRADED' and w['watchdog']['writes']==0 and not w['watchdog']['append']
+ return {'checkpoints':out,'watchdog':'SAFE_DEGRADED'}
 def main():
- a=argparse.ArgumentParser(); a.add_argument('--root',type=Path,default=c.REAL_CSR); a.add_argument('--run',action='store_true'); a.add_argument('--resume',action='store_true'); a.add_argument('--evidence',action='store_true'); args=a.parse_args()
- if args.evidence: print(json.dumps({'checkpoints':evidence()},sort_keys=True,separators=(',',':'))); return
+ a=argparse.ArgumentParser(); a.add_argument('--root',type=Path,default=c.REAL_CSR); a.add_argument('--run',action='store_true'); a.add_argument('--resume',action='store_true'); a.add_argument('--diagnose',action='store_true'); a.add_argument('--repair',action='store_true'); a.add_argument('--evidence',action='store_true'); args=a.parse_args()
+ if args.evidence: print(json.dumps(evidence(),sort_keys=True,separators=(',',':'))); return
  if args.run: print(json.dumps(run(args.root),sort_keys=True,separators=(',',':'))); return
  if args.resume: print(json.dumps(resume(args.root),sort_keys=True,separators=(',',':'))); return
+ if args.diagnose: print(json.dumps(diagnose(args.root),sort_keys=True,separators=(',',':'))); return
+ if args.repair: print(json.dumps(repair(args.root),sort_keys=True,separators=(',',':'))); return
  print(json.dumps({'runner':'READY','hard_stops':STOPS},sort_keys=True,separators=(',',':')))
 if __name__=='__main__': main()
