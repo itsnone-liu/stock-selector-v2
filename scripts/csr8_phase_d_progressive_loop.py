@@ -17,6 +17,21 @@ def prefix_history_matrix(ev):
         if not isinstance(h,dict) or not isinstance(h.get('published'),list): raise RuntimeError('D prefix proof malformed')
         out.append({'ordinal':n,'published':len(h['published']),'live':len(h['live'])})
     return out
+def ordinal_contract_matrix():
+    # Exercise the generic ordinal API over the complete frozen candidate
+    # order, and prove unsupported jumps fail closed on a real transaction
+    # sandbox rather than being represented by a synthetic PASS label.
+    order=c.candidate_total_order()
+    if not order: raise RuntimeError('D candidate order empty')
+    for n in range(1,len(order)+1):
+        got=c.candidate_for_ordinal(n)
+        if got != order[n-1]: raise RuntimeError(f'D candidate ordinal {n} drift')
+    sb,sid=c.prepared_sandbox()
+    for bad in (0,2,3,len(order)+1):
+        try: c.prove_next_reveal_eligible(sb,sid,bad)
+        except (RuntimeError,SystemExit): pass
+        else: raise RuntimeError(f'D accepted invalid next ordinal {bad}')
+    return {'candidate_ordinals':len(order),'invalid_jumps_rejected':4}
 def recovery_matrix():
     sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'tests'))
     from csr8_preseal_sandbox import build_pre_seal_sandbox
@@ -42,7 +57,8 @@ def verify():
     ev=events(); types=[e['event_type'] for e in ev]
     if types != ['REVEAL_PACKET','SEAL_ANNOTATION','REVEAL_PACKET','SEAL_ANNOTATION']: raise RuntimeError('D frozen production chain drift')
     prefixes=prefix_history_matrix(ev)
+    contract=ordinal_contract_matrix()
     c.semantic_replay(ROOT,SID)
     recovered=recovery_matrix()
-    return {'d':'PASS','prefixes':prefixes,'recovery_checkpoints':recovered,'recovery_count':len(recovered),'semantic_replay':'PASS','chain':types}
+    return {'d':'PASS','contract':contract,'prefixes':prefixes,'recovery_checkpoints':recovered,'recovery_count':len(recovered),'semantic_replay':'PASS','chain':types}
 if __name__=='__main__': print(json.dumps(verify(),sort_keys=True,separators=(',',':')))
