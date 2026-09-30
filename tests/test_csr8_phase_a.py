@@ -222,6 +222,10 @@ def test_certified_live_inputs_manifest_is_complete_and_forbidden_free():
     assert {r["root"] for r in manifest["roots"]} == {
         "data/csr8_phase_c", "data/adjustment_baostock"}
     assert manifest["fileCount"] == sum(len(r["files"]) for r in manifest["roots"])
+    protected = {x["path"]: x for x in manifest.get("protectedArtifacts", [])}
+    approval_rel = "docs/audit/evidence/b4_unattended_approval.json"
+    assert approval_rel in protected
+    assert protected[approval_rel]["mode"] == 0o600
     paths = []
     for r in manifest["roots"]:
         paths += [f"{r['root']}/{f['path']}" for f in r["files"]]

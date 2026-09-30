@@ -55,6 +55,12 @@ ROOTS = (
     'data/adjustment_baostock',
 )
 
+# Security-sensitive approval evidence is outside the live data roots, so it
+# must be pinned explicitly rather than silently omitted from certification.
+PROTECTED_ARTIFACTS = (
+    'docs/audit/evidence/b4_unattended_approval.json',
+)
+
 # C4-D 禁止域（阶段边界感知，run 2 / B1+）：annotator/ 自 B1 起为合法
 # 真实域（其 closed-world 与泄漏 gate 由 csr8_phase_b1_real_handoff.py
 # 机器实测）；c4d_receipts/ 与 c4d_proposals/ 在 B3/B5 前仍属禁止。
@@ -107,13 +113,32 @@ def inventory(root_rel):
             'dirs': dirs, 'files': files}
 
 
+def protected_inventory():
+    entries = []
+    for rel in PROTECTED_ARTIFACTS:
+        path = ROOT / rel
+        if not path.is_file():
+            print(f'FAIL: protected artifact missing: {rel}')
+            sys.exit(1)
+        st = path.lstat()
+        mode = stat.S_IMODE(st.st_mode)
+        if mode != 0o600:
+            print(f'FAIL: protected artifact must be 0600: {rel} (got {oct(mode)})')
+            sys.exit(1)
+        entries.append({'path': rel, 'sha256': sha256_file(path),
+                        'bytes': st.st_size, 'mode': mode})
+    return entries
+
+
 def main():
     roots = [inventory(r) for r in ROOTS]
+    protected = protected_inventory()
     manifest = {
         'version': 2,
         'generator': 'scripts/csr8_phase_a_certify_inputs.py',
         'forbiddenPrefixes': list(FORBIDDEN_PREFIXES),
         'roots': roots,
+        'protectedArtifacts': protected,
         'fileCount': sum(r['fileCount'] for r in roots),
         'totalBytes': sum(r['totalBytes'] for r in roots),
     }

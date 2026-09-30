@@ -4,6 +4,14 @@
   "c4d_proposals/"
  ],
  "generator": "scripts/csr8_phase_a_certify_inputs.py",
+ "protectedArtifacts": [
+  {
+   "bytes": 1238,
+   "mode": 384,
+   "path": "docs/audit/evidence/b4_unattended_approval.json",
+   "sha256": "721365f2cd726418946bcecc316c68cce7cf042cec6a13781d75857cbf154e41"
+  }
+ ],
  "roots": [
   {
    "dirCount": 24,

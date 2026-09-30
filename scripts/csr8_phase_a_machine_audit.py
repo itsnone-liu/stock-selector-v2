@@ -47,6 +47,19 @@ def verify_certified_tree():
             or not manifest["roots"]:
         raise RuntimeError("certified inputs manifest must be version 2 multi-root")
     bad = []
+    for entry in manifest.get("protectedArtifacts", []):
+        path = ROOT / entry["path"]
+        if not path.is_file():
+            bad.append(f"protected artifact missing: {entry['path']}")
+            continue
+        st = path.lstat()
+        if entry["mode"] != 0o600 or stat.S_IMODE(st.st_mode) != 0o600:
+            bad.append(f"protected artifact mode drift: {entry['path']}")
+        if entry["bytes"] != st.st_size:
+            bad.append(f"protected artifact size drift: {entry['path']}")
+        h = hashlib.sha256(path.read_bytes()).hexdigest()
+        if h != entry["sha256"]:
+            bad.append(f"protected artifact sha256 drift: {entry['path']}")
     for r in manifest["roots"]:
         live = ROOT / r["root"]
         if not live.is_dir():
