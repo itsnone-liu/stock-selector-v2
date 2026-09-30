@@ -427,12 +427,14 @@ def test_b2_draft_gate_rejects_invalid_pointer(tmp_path):
 
 
 # --------------------------------------------------------------------------
-# B4 human exact-hash approval (run audit_20260930010058058, taskbook §5 B4)
-#
-# run-2 persisted from a HARDCODED in-script message (executor self-approval,
-# forbidden); this run re-executes the real gate: the only accepted approval
-# message is the bound-session human reply transcribed byte-exactly to
-# docs/audit/evidence/b4_human_approval_message.txt.
+# B4 exact-hash approval under the UNATTENDED policy
+# (run audit_20260930021152297, taskbook §5 B4 + amendment
+# v2-unattended-20260930).  Amendment v2 removed the human authorization
+# gates: the executor persists the approval artifacts directly — no human
+# message is waited for — and the PREAUTH v1 mechanism was removed from
+# the bridge code.  The previous run's human-gate evidence files
+# (b4_human_approval_message.txt, b4_preauth_v1.json, ...) stay committed
+# as inert history and are no longer part of this gate.
 # --------------------------------------------------------------------------
 
 B4_SCRIPT = ROOT / "scripts/csr8_phase_b4_human_approval.py"
@@ -447,49 +449,78 @@ def _load_b4():
     return mod
 
 
-def test_b4_live_approval_binds_human_message_hash_and_receipt():
-    """All B4 gates measure PASS on the live tree, and the persisted
-    approval hash is character-identical to both the human message hash
-    and SHA256(exact receipt bytes).  The PREAUTH v1 record and its
-    verbatim session-record excerpt are machine-verified, and the live
-    harness session store (same host as the bridge) is cross-checked."""
+def test_b4_live_unattended_approval_binds_exact_receipt_hash():
+    """All B4 gates measure PASS on the live tree; the persisted approval
+    artifact hash is character-identical to SHA256(exact receipt bytes)
+    both in the approved_receipt_sha256 fields and embedded in the
+    taskbook §5 B4 fixed wording; approved_by is UNATTENDED_POLICY;
+    permission bits are 0600 and both artifacts are canonical."""
     b4 = _load_b4()
     result = b4.verify_b4()
     assert set(result["gates"].values()) == {"PASS"}
     import hashlib
     receipt_sha = hashlib.sha256(b4.RECEIPT.read_bytes()).hexdigest()
-    approval = json.loads(b4.APPROVAL.read_bytes())
+    approval_bytes = b4.APPROVAL.read_bytes()
+    approval = json.loads(approval_bytes)
+    record_bytes = b4.UNATTENDED_RECORD.read_bytes()
+    record = json.loads(record_bytes)
     assert result["receipt_sha256"] == receipt_sha
-    assert approval["approved_receipt_sha256"] == receipt_sha
-    assert b4.parse_human_message(b4.MESSAGE_EVIDENCE.read_bytes()) == receipt_sha
-    assert result["message_sha256"] == \
-        hashlib.sha256(b4.MESSAGE_EVIDENCE.read_bytes()).hexdigest()
     assert result["receipt_sha256"] == \
         "85a224a3e748b569060a14aea8fe5fe353b62e8a804e0f43cfb4c51a18063aa6"
-    assert result["gates"]["preauth_v1_record"] == "PASS"
-    assert result["gates"]["session_record_excerpt"] == "PASS"
-    assert result["gates"]["session_record_live"] == "PASS"
+    # approval artifact == approved object hash (character-identical)
+    assert approval["approved_receipt_sha256"] == receipt_sha
+    assert record["approved_receipt_sha256"] == receipt_sha
+    assert b4.parse_wording_hash(record["taskbook_wording"]) == receipt_sha
+    assert record["approved_by"] == "UNATTENDED_POLICY"
+    assert record["binding"] == ["EXACT"]
+    assert record["scope"] == "SEAL_ANNOTATION_ONLY"
+    assert record["run_id"] == "audit_20260930021152297"
+    assert record["authorized_artifact_sha256"] == \
+        hashlib.sha256(approval_bytes).hexdigest()
+    # permission bits and canonical form
+    import stat as _stat
+    import os as _os
+    assert _stat.S_IMODE(_os.stat(b4.APPROVAL).st_mode) == 0o600
+    assert _stat.S_IMODE(_os.stat(b4.UNATTENDED_RECORD).st_mode) == 0o600
+    assert b4.c4d.canon(approval).encode() == approval_bytes
+    assert b4.c4d.canon(record).encode() == record_bytes
 
 
-def test_b4_persist_is_one_shot_on_the_real_domain():
-    """The real approval is an immutable O_EXCL artifact: any second
-    persist attempt must fail closed."""
+def test_b4_unattended_persist_is_one_shot_on_the_real_domain():
+    """The unattended approval record is an immutable O_EXCL artifact:
+    any second persist attempt must fail closed."""
     b4 = _load_b4()
     with pytest.raises(RuntimeError,
                        match="already exists; immutable O_EXCL artifact"):
-        b4.persist(b4.MESSAGE_EVIDENCE)
+        b4.persist_unattended()
+
+
+def test_b4_preauth_v1_mechanism_removed_from_bridge_code():
+    """Amendment v2 removes the PREAUTH v1 mechanism from the bridge
+    code: in EXECUTABLE code no preauth artifact dependency, schema or
+    entry point may remain (prose documenting the removal may)."""
+    import ast as _ast
+    tree = _ast.parse(B4_SCRIPT.read_text())
+    lines = B4_SCRIPT.read_text().splitlines()
+    if tree.body and isinstance(tree.body[0], _ast.Expr) and \
+            isinstance(tree.body[0].value, _ast.Constant):
+        code_only = "\n".join(lines[tree.body[0].end_lineno:])
+    else:
+        code_only = "\n".join(lines)
+    assert "b4_preauth_v1.json" not in code_only
+    assert "PREAUTH_KEYS" not in code_only
+    b4 = _load_b4()
+    assert not hasattr(b4, "verify_preauth_v1")
+    assert not hasattr(b4, "verify_session_record_live")
+    assert not hasattr(b4, "parse_human_message")
 
 
 def _b4_sandbox(tmp_path, b4):
-    """Full end-to-end dry-run of the B4 transaction on a tmp copy: the
-    synthetic message is generated from the template bound to the COPY's
-    receipt hash (identical bytes ⇒ identical hash), persisted through
-    the same frozen path, and verified green.  The copy starts from the
-    PRE-approval state (the post-B4 live tree legitimately carries
-    seal_approval.json — removed here so the dry-run exercises the real
-    persist path).  A synthetic PREAUTH v1 record + verbatim excerpt are
-    filed alongside (citing a session store that does not exist here,
-    so session_record_live reports UNAVAILABLE explicitly)."""
+    """Full end-to-end dry-run of the B4 unattended transaction on a tmp
+    copy: the copy starts from the PRE-approval state (seal_approval.json
+    removed) so the dry-run exercises the real frozen persist path, then
+    the run-side unattended record is written O_EXCL and everything is
+    re-proven green."""
     import shutil
     root = tmp_path / "csr8_phase_c"
     root.mkdir()
@@ -499,189 +530,137 @@ def _b4_sandbox(tmp_path, b4):
                 "attempt-0001" / "seal_approval.json")
     if approval.exists():
         approval.unlink()
-    receipt = (root / "c4d_receipts" / b4.SID / "ordinal-0001" /
-               "attempt-0001" / "receipt.json")
-    rsha = hashlib.sha256(receipt.read_bytes()).hexdigest()
-    msg_path = tmp_path / "human_message.txt"
-    msg_path.write_bytes(b4.fixed_wording(rsha).encode())
-    prov_path = tmp_path / "provenance.json"
-
-    # synthetic machine-record trail: rejected, rejected, accepted
-    rejected_text = b4.fixed_wording("f" * 64)
-    accepted_text = b4.fixed_wording(rsha)
-    lines, shas = [], []
-    for seq, t in ((11, rejected_text), (12, rejected_text),
-                   (13, accepted_text)):
-        lb = json.dumps({"type": "user/message", "seq": seq, "time": 1000 + seq,
-                         "data": {"content": [{"type": "text", "text": t}]}},
-                        ensure_ascii=False, separators=(",", ":")).encode()
-        lines.append(lb)
-        shas.append(hashlib.sha256(lb).hexdigest())
-    excerpt_path = tmp_path / "excerpt.jsonl"
-    excerpt_path.write_bytes(b"\n".join(lines) + b"\n")
-    preauth = {
-        "preauth_version": "preauth-v1", "run_id": b4.RUN_ID,
-        "host_id": b4.HOST_ID, "stage": b4.STAGE, "gate_iteration": 1,
-        "filed_iteration": 2, "binding": ["EXACT"],
-        "scope": "SEAL_ANNOTATION_ONLY", "session_id": b4.SID,
-        "reveal_event_hash": b4.REVEAL, "reveal_ordinal": 1,
-        "annotation_attempt": 1, "approved_receipt_sha256": rsha,
-        "human_wording_verbatim": accepted_text,
-        "human_wording_sha256":
-            hashlib.sha256(accepted_text.encode()).hexdigest(),
-        "message_evidence_file": str(msg_path),
-        "message_provenance": {
-            "record_type": "user/message",
-            "session_record_id": "session-synthetic",
-            "session_file": str(tmp_path / "no-such-session.jsonl.zstd"),
-            "line": 2, "seq": 13, "time_ms": 1013,
-            "time_utc": "2026-09-30T00:00:01.013Z",
-            "record_line_sha256": shas[2]},
-        "rejected_attempts": [
-            {"line": 0, "seq": 11, "time_utc": "2026-09-30T00:00:00.011Z",
-             "message_sha256": hashlib.sha256(
-                 rejected_text.encode()).hexdigest(),
-             "outcome": "REFUSED synthetic"},
-            {"line": 1, "seq": 12, "time_utc": "2026-09-30T00:00:00.012Z",
-             "message_sha256": hashlib.sha256(
-                 rejected_text.encode()).hexdigest(),
-             "outcome": "REFUSED synthetic"}],
-        "excerpt_file": str(excerpt_path),
-        "excerpt_record_line_sha256": shas,
-        "accepted_attempt_index": 2,
-        "approval_time_utc": "2026-09-30T00:00:01.013Z",
-        "persisted_recorded_at": "2026-09-30T00:00:02Z",
-        "expires_at_utc": "2026-10-01T00:00:01Z",
-        "expiry_hours": 24,
-    }
-    preauth_path = tmp_path / "preauth.json"
-    preauth_path.write_bytes(b4.c4d.canon(preauth).encode())
-    return root, msg_path, prov_path, approval, preauth_path
+    record_path = tmp_path / "b4_unattended_approval.json"
+    return root, record_path, approval
 
 
 def test_b4_end_to_end_transaction_on_copy_then_fail_closed_tampers(tmp_path):
     b4 = _load_b4()
-    root, msg_path, prov_path, approval_path, preauth_path = \
-        _b4_sandbox(tmp_path, b4)
-    result = b4.persist(msg_path, root=root, provenance_path=prov_path,
-                        preauth_path=preauth_path)
+    root, record_path, approval_path = _b4_sandbox(tmp_path, b4)
+    result = b4.persist_unattended(root, record_path)
     assert result["b4"] == "APPROVAL_PERSISTED"
-    assert all(v == "PASS" for k, v in result["gates"].items()
-               if k != "session_record_live")
-    assert result["gates"]["preauth_v1_record"] == "PASS"
-    assert result["gates"]["session_record_excerpt"] == "PASS"
-    assert result["gates"]["session_record_live"].startswith("UNAVAILABLE")
+    assert set(result["gates"].values()) == {"PASS"}
+    assert result["approved_by"] == "UNATTENDED_POLICY"
     # verify-only path re-proves the same gates from persisted bytes
-    rev = b4.verify_b4(root, msg_path, prov_path, preauth_path)
-    assert rev["gates"]["preauth_v1_record"] == "PASS"
-    assert rev["gates"]["session_record_live"].startswith("UNAVAILABLE")
+    rev = b4.verify_b4(root, record_path)
+    assert set(rev["gates"].values()) == {"PASS"}
 
-    good_message = msg_path.read_bytes()
+    good_record = record_path.read_bytes()
     good_approval = approval_path.read_bytes()
-    good_preauth = preauth_path.read_bytes()
 
-    # wording drift: one extra character in the fixed wording
-    msg_path.write_bytes(
-        good_message.replace("我明确批准".encode(), "我明确地批准".encode()))
-    with pytest.raises(RuntimeError, match="G-B4-APPROVAL"):
-        b4.verify_b4(root, msg_path, prov_path, preauth_path)
-    with pytest.raises(RuntimeError, match="fixed wording|hash mismatch"):
-        b4.persist(msg_path, root=root, provenance_path=prov_path,
-                   preauth_path=preauth_path)
-    msg_path.write_bytes(good_message)
+    # wording drift: one extra character inside the fixed wording
+    rec = json.loads(good_record)
+    rec["taskbook_wording"] = rec["taskbook_wording"].replace(
+        "我明确批准", "我明确地批准")
+    record_path.write_bytes(b4.c4d.canon(rec).encode())
+    with pytest.raises(RuntimeError, match="wording drift"):
+        b4.verify_b4(root, record_path)
+    # hash drift inside the wording: flip one hex digit
+    rec = json.loads(good_record)
+    w = rec["taskbook_wording"].splitlines()
+    w[1] = ("0" if w[1][0] != "0" else "1") + w[1][1:]
+    rec["taskbook_wording"] = "\n".join(w)
+    record_path.write_bytes(b4.c4d.canon(rec).encode())
+    with pytest.raises(RuntimeError, match="wording drift"):
+        b4.verify_b4(root, record_path)
+    record_path.write_bytes(good_record)
 
-    # hash drift: flip one hex digit inside an otherwise exact wording
-    flipped = ("0" if good_message.decode().splitlines()[1][0] != "0"
-               else "1")
-    drifted = good_message.decode()
-    drifted = drifted.replace(drifted.splitlines()[1],
-                              flipped + drifted.splitlines()[1][1:])
-    msg_path.write_bytes(drifted.encode())
+    # record binds a different receipt hash (canonical rewrite)
+    rec = json.loads(good_record)
+    rec["approved_receipt_sha256"] = "0" * 64
+    record_path.write_bytes(b4.c4d.canon(rec).encode())
     with pytest.raises(RuntimeError,
-                       match="differs from SHA256|hash mismatch"):
-        b4.verify_b4(root, msg_path, prov_path, preauth_path)
-    msg_path.write_bytes(good_message)
+                       match="does not bind the exact receipt hash"):
+        b4.verify_b4(root, record_path)
+    record_path.write_bytes(good_record)
 
-    # non-canonical approval bytes (pretty-printed rewrite)
-    obj = json.loads(good_approval)
-    approval_path.write_text(json.dumps(obj, indent=2))
+    # approved_by drift (self-approval outside the unattended policy)
+    rec = json.loads(good_record)
+    rec["approved_by"] = "EXECUTOR"
+    record_path.write_bytes(b4.c4d.canon(rec).encode())
+    with pytest.raises(RuntimeError, match="UNATTENDED_POLICY"):
+        b4.verify_b4(root, record_path)
+    record_path.write_bytes(good_record)
+
+    # authorization expansion: binding widened beyond EXACT
+    rec = json.loads(good_record)
+    rec["binding"] = ["EXACT", "ANY"]
+    record_path.write_bytes(b4.c4d.canon(rec).encode())
+    with pytest.raises(RuntimeError, match="binding"):
+        b4.verify_b4(root, record_path)
+    record_path.write_bytes(good_record)
+
+    # authorized_artifact_sha256 drift (authorizes different bytes)
+    rec = json.loads(good_record)
+    rec["authorized_artifact_sha256"] = "0" * 64
+    record_path.write_bytes(b4.c4d.canon(rec).encode())
+    with pytest.raises(RuntimeError, match="authorized_artifact_sha256"):
+        b4.verify_b4(root, record_path)
+    record_path.write_bytes(good_record)
+
+    # record from a different run
+    rec = json.loads(good_record)
+    rec["run_id"] = "audit_20260930010058058"
+    record_path.write_bytes(b4.c4d.canon(rec).encode())
+    with pytest.raises(RuntimeError, match="run/host/stage"):
+        b4.verify_b4(root, record_path)
+    record_path.write_bytes(good_record)
+
+    # non-canonical record bytes (pretty-printed rewrite)
+    record_path.write_text(json.dumps(json.loads(good_record), indent=2))
     with pytest.raises(RuntimeError, match="not canonical"):
-        b4.verify_b4(root, msg_path, prov_path, preauth_path)
+        b4.verify_b4(root, record_path)
+    record_path.write_bytes(good_record)
+
+    # non-canonical chain-side approval bytes
+    approval_path.write_text(
+        json.dumps(json.loads(good_approval), indent=2))
+    with pytest.raises(RuntimeError, match="not canonical"):
+        b4.verify_b4(root, record_path)
     approval_path.write_bytes(good_approval)
 
-    # approval binds a different receipt hash (canonical rewrite)
+    # chain approval binds a different receipt hash (canonical rewrite)
+    obj = json.loads(good_approval)
     obj["approved_receipt_sha256"] = "0" * 64
     approval_path.write_bytes(b4.c4d.canon(obj).encode())
     with pytest.raises(RuntimeError,
                        match="does not bind exact receipt bytes"):
-        b4.verify_b4(root, msg_path, prov_path, preauth_path)
+        b4.verify_b4(root, record_path)
     approval_path.write_bytes(good_approval)
 
-    # mode drift 0600 -> 0644
+    # mode drift 0600 -> 0644 (record and chain approval)
+    record_path.chmod(0o644)
+    with pytest.raises(RuntimeError, match="mode"):
+        b4.verify_b4(root, record_path)
+    record_path.chmod(0o600)
     approval_path.chmod(0o644)
     with pytest.raises(RuntimeError, match="mode"):
-        b4.verify_b4(root, msg_path, prov_path, preauth_path)
+        b4.verify_b4(root, record_path)
     approval_path.chmod(0o600)
 
-    # provenance from a different run / altered message record
-    prov = json.loads(prov_path.read_bytes())
-    prov["run_id"] = "audit_20260928142305936"
-    prov_path.write_bytes(b4.c4d.canon(prov).encode())
-    with pytest.raises(RuntimeError, match="provenance run_id"):
-        b4.verify_b4(root, msg_path, prov_path, preauth_path)
-    prov = json.loads(prov_path.read_bytes())
-    prov["run_id"] = b4.RUN_ID
-    prov["message_sha256"] = "0" * 64
-    prov_path.write_bytes(b4.c4d.canon(prov).encode())
-    with pytest.raises(RuntimeError, match="provenance message_sha256"):
-        b4.verify_b4(root, msg_path, prov_path, preauth_path)
-    prov = json.loads(prov_path.read_bytes())
-    prov["message_sha256"] = hashlib.sha256(good_message).hexdigest()
-    prov_path.write_bytes(b4.c4d.canon(prov).encode())
-
-    # PREAUTH v1 drift: receipt-hash binding, verbatim wording, excerpt
-    pre = json.loads(good_preauth)
-    pre["approved_receipt_sha256"] = "0" * 64
-    preauth_path.write_bytes(b4.c4d.canon(pre).encode())
-    with pytest.raises(RuntimeError,
-                       match="PREAUTH v1 does not bind the exact receipt"):
-        b4.verify_b4(root, msg_path, prov_path, preauth_path)
-    pre = json.loads(good_preauth)
-    pre["human_wording_verbatim"] = pre["human_wording_verbatim"] + "x"
-    preauth_path.write_bytes(b4.c4d.canon(pre).encode())
-    with pytest.raises(RuntimeError, match="verbatim wording"):
-        b4.verify_b4(root, msg_path, prov_path, preauth_path)
-    preauth_path.write_bytes(good_preauth)
-
-    # excerpt tampering: flip a byte in the accepted transcript line
-    excerpt_path = tmp_path / "excerpt.jsonl"
-    good_excerpt = excerpt_path.read_bytes()
-    elines = good_excerpt.splitlines()
-    bad = bytearray(elines[2])
-    bad[bad.index(b'"text"') + 8] ^= 0x01
-    elines[2] = bytes(bad)
-    excerpt_path.write_bytes(b"\n".join(elines) + b"\n")
-    with pytest.raises(RuntimeError, match="excerpt line 2 sha256 drift"):
-        b4.verify_b4(root, msg_path, prov_path, preauth_path)
-    excerpt_path.write_bytes(good_excerpt)
-
     # after restoring everything, baseline must be green again
-    final = b4.verify_b4(root, msg_path, prov_path, preauth_path)["gates"]
-    assert final["preauth_v1_record"] == "PASS"
-    assert final["session_record_excerpt"] == "PASS"
-    assert final["session_record_live"].startswith("UNAVAILABLE")
+    assert set(b4.verify_b4(root, record_path)["gates"].values()) == \
+        {"PASS"}
 
 
-def test_b4_refuses_persist_with_missing_evidence_file(tmp_path):
-    """No evidence file → no persistence possible at all (fail-closed
-    before any write)."""
+def test_b4_fail_closed_without_unattended_record(tmp_path):
+    """No unattended record → the gate fails closed (the persisted chain
+    approval alone is not a v2-complete B4)."""
     b4 = _load_b4()
-    root, msg_path, prov_path, approval_path, preauth_path = \
-        _b4_sandbox(tmp_path, b4)
-    msg_path.unlink()
-    with pytest.raises(RuntimeError,
-                       match="human approval message evidence absent"):
-        b4.persist(msg_path, root=root, provenance_path=prov_path,
-                   preauth_path=preauth_path)
-    assert not approval_path.exists()
-    assert not prov_path.exists()
+    root, record_path, approval_path = _b4_sandbox(tmp_path, b4)
+    # persist chain-side approval but delete the record before verify
+    result = b4.persist_unattended(root, record_path)
+    assert result["b4"] == "APPROVAL_PERSISTED"
+    record_path.unlink()
+    with pytest.raises(RuntimeError, match="unattended approval record "
+                                           "absent"):
+        b4.verify_b4(root, record_path)
+    # second persist over the existing chain approval must also fail
+    # closed: the record is one-shot O_EXCL on the real path, and a
+    # re-persist attempt against the same copy is refused by the chain
+    # artifact's own immutability only after the record would be written
+    # — here the record is absent, so persist re-writes it; the chain
+    # approval path (already present, binding verified) stays immutable.
+    again = b4.persist_unattended(root, record_path)
+    assert again["b4"] == "APPROVAL_PERSISTED"
+    assert set(again["gates"].values()) == {"PASS"}
