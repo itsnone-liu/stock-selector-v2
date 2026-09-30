@@ -207,3 +207,15 @@ re-verified from persisted bytes with `csr8_phase_c2_next_reveal_approval.py
 The observed three-way value remained
 `d045778390478d5cdc31bedcf44078fd9307c10fa08d0bc84a18df596cecc578`.
 No C3 append or other stage action was performed.
+
+## Iteration-6 re-verification
+
+For `audit_20260930021152297` / C2 / iteration 6, the persisted C2
+artifacts were re-verified without entering C3. The machine audit returned
+all eight G-C2 gates `PASS`, with `approved_by=UNATTENDED_POLICY`,
+`scope=NEXT_REVEAL_ONLY`, and authorization consumption `UNUSED`.
+The proposal/approval/permit three-way value remained
+`d045778390478d5cdc31bedcf44078fd9307c10fa08d0bc84a18df596cecc578`.
+The C2 owner ruling in `.dsh-audit-task.json` was applied: C2 binds the
+ordinal-2 proposal exact bytes, not a later receipt/attempt. No C3 append or
+other stage action was performed.
