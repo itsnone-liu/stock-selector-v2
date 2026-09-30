@@ -240,6 +240,14 @@ def test_bridge_machine_audit_script_executes_complete_matrix():
     assert {"G-C1-CHAIN", "G-C1-CLOSED", "G-C1-REPLAY", "G-C1-PREFIX",
             "G-C1-ELIGIBLE", "G-C1-PROPOSAL", "G-C1-WORLD",
             "G-C1-BOUNDARY"} <= set(c1_gates)
+    # since C2 the machine audit also measures the approval gate
+    c2 = payload["c2"]
+    assert c2["c2_approval"] == "PASS"
+    c2_gates = {k: v for k, v in c2.items() if k.startswith("G-C2-")}
+    assert set(c2_gates.values()) == {"PASS"}, c2_gates
+    assert {"G-C2-STATE", "G-C2-PROPOSAL", "G-C2-APPROVAL", "G-C2-PERMIT",
+            "G-C2-THREEWAY", "G-C2-UNUSED", "G-C2-RECORD",
+            "G-C2-WORLD"} <= set(c2_gates)
 
 
 def test_certified_live_inputs_manifest_is_complete_and_forbidden_free():
@@ -268,6 +276,17 @@ def test_certified_live_inputs_manifest_is_complete_and_forbidden_free():
     # C1: the selector-only ordinal-2 proposal is a protected artifact
     assert proposal_rel in protected
     assert protected[proposal_rel]["mode"] == 0o600
+    # C2: the NEXT_REVEAL_ONLY approval+permit pair and the run-side
+    # unattended approval record are protected artifacts (all 0600)
+    for c2_rel in (
+        "data/csr8_phase_c/production/c4-prod-0002/authorization/"
+        "ordinal-0002/next_reveal.approval.json",
+        "data/csr8_phase_c/production/c4-prod-0002/authorization/"
+        "ordinal-0002/next_reveal.permit.json",
+        "docs/audit/evidence/c2_unattended_approval.json",
+    ):
+        assert c2_rel in protected, c2_rel
+        assert protected[c2_rel]["mode"] == 0o600
     paths = []
     for r in manifest["roots"]:
         paths += [f"{r['root']}/{f['path']}" for f in r["files"]]

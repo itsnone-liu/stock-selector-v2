@@ -40,9 +40,10 @@ Gate（verify_c1 全部机器实测，可对任意 root（含 tmp 副本）运�
   G-C1-WORLD     proposal 域 closed-world：c4d_proposals/ 下仅
                  ordinal-0002/next_reveal.proposal.json 一个文件；无
                  approval/permit 工件
-  G-C1-BOUNDARY  不 append R2（REVEAL 计数仍为 1）；authorization 域
-                 （production/…/authorization/）不存在；c4c anchor 字节
-                 未变（仍绑 R1）
+  G-C1-BOUNDARY  不 append R2（REVEAL 计数仍为 1）；c4c anchor 字节
+                 未变（仍绑 R1）。阶段感知：ordinal-2 authorization
+                 域自 C2 授权点起合法（恰一对 approval+permit，冻结
+                 链路全量复证，closed-world），其余仍禁止
 
 冻结模块（c1/c2/c4ab/c4c 与 C4-D synthetic executor）只读导入，不修改。
 """
@@ -157,25 +158,42 @@ def verify_c1(root=None):
             fail(f'{G_WORLD}: forbidden C1-stage artifact present: {name}')
     gates[G_WORLD] = 'PASS'
 
-    # G-BOUNDARY: 本阶段不 append R2、不生成 approval/permit。production
-    # 授权域里只有 Phase-A 冻结的 C4-C first-reveal 工件（R1 的既有授权，
-    # 已认证字节）；ordinal-2 的 next_reveal.approval/permit 是 C2 授权点。
+    # G-BOUNDARY: 本阶段(C1)不 append R2；不生成 approval/permit。阶段
+    # 感知（自 C2 授权点起）：authorization/ordinal-0002/ 域合法，但仅限
+    # 恰一对 next_reveal.approval.json + next_reveal.permit.json 且经冻结
+    # verify_next_authorization_chain 全量复证（closed-world）。production
+    # 授权域顶层仍只有 Phase-A 冻结的 C4-C first-reveal 工件。
     evs = chain_events(root)
     if len([e for e in evs if e['event_type'] == 'REVEAL_PACKET']) != 1:
         fail(f'{G_BOUND}: chain grew past [R1,S1] — R2 append is the C3 '
              f'authorization point, forbidden at C1')
-    if c4d.next_authz_dir(root, SID, ORDINAL).exists():
-        fail(f'{G_BOUND}: ordinal-2 authorization domain exists — '
-             f'approval/permit are the C2 authorization point, forbidden '
-             f'at C1')
+    ad = c4d.next_authz_dir(root, SID, ORDINAL)
+    if ad.exists():
+        try:
+            c4d.verify_next_authorization_chain(root, SID, ORDINAL)
+        except RuntimeError as e:
+            fail(f'{G_BOUND}: ordinal-2 authorization domain exists but '
+                 f'does not re-prove as the exact C2 approval+permit '
+                 f'pair: {e}')
+        entries = sorted(p.name for p in ad.rglob('*') if p.is_file())
+        if entries != ['next_reveal.approval.json',
+                       'next_reveal.permit.json']:
+            fail(f'{G_BOUND}: ordinal-2 authorization domain is not the '
+                 f'exact C2 pair (entries: {entries})')
+        if any(p.is_dir() for p in ad.rglob('*')):
+            fail(f'{G_BOUND}: unexpected subdirectory inside the '
+                 f'ordinal-2 authorization domain')
     authz = c4d.prod_dir(root, SID) / 'authorization'
     if authz.exists():
-        new_artifacts = sorted(
-            p.name for p in authz.rglob('*')
-            if p.is_file() and p.name not in FROZEN_FIRST_REVEAL_ARTIFACTS)
-        if new_artifacts:
-            fail(f'{G_BOUND}: unauthorized new approval/permit artifacts: '
-                 f'{new_artifacts}')
+        top_files = sorted(
+            p.name for p in authz.iterdir() if p.is_file())
+        if top_files != sorted(FROZEN_FIRST_REVEAL_ARTIFACTS):
+            fail(f'{G_BOUND}: unauthorized new approval/permit artifacts '
+                 f'in the production authorization domain: {top_files}')
+        top_dirs = sorted(p.name for p in authz.iterdir() if p.is_dir())
+        if top_dirs not in ([], [f'ordinal-{ORDINAL:04d}']):
+            fail(f'{G_BOUND}: unauthorized authorization subdomains: '
+                 f'{top_dirs}')
     c4c_bytes = (root / 'public' / 'c4c_anchor.json').read_bytes()
     anchor = json.loads(c4c_bytes)
     if anchor.get('production_head_hash') != LIVE_R1 or \

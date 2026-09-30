@@ -2,7 +2,7 @@
  "c4dProposalAllowlist": [
   "c4d_proposals/c4-prod-0002/ordinal-0002/next_reveal.proposal.json"
  ],
- "fileCount": 10532,
+ "fileCount": 10534,
  "forbiddenPrefixes": [],
  "generator": "scripts/csr8_phase_a_certify_inputs.py",
  "protectedArtifacts": [
@@ -19,15 +19,33 @@
    "sha256": "d045778390478d5cdc31bedcf44078fd9307c10fa08d0bc84a18df596cecc578"
   },
   {
+   "bytes": 358,
+   "mode": 384,
+   "path": "data/csr8_phase_c/production/c4-prod-0002/authorization/ordinal-0002/next_reveal.approval.json",
+   "sha256": "9f26b17096cffc4d96e2c19e86bb22d99497c54c7c5ab752f4bee427d9301ee1"
+  },
+  {
+   "bytes": 574,
+   "mode": 384,
+   "path": "data/csr8_phase_c/production/c4-prod-0002/authorization/ordinal-0002/next_reveal.permit.json",
+   "sha256": "d045778390478d5cdc31bedcf44078fd9307c10fa08d0bc84a18df596cecc578"
+  },
+  {
    "bytes": 1238,
    "mode": 384,
    "path": "docs/audit/evidence/b4_unattended_approval.json",
    "sha256": "721365f2cd726418946bcecc316c68cce7cf042cec6a13781d75857cbf154e41"
+  },
+  {
+   "bytes": 1486,
+   "mode": 384,
+   "path": "docs/audit/evidence/c2_unattended_approval.json",
+   "sha256": "f042a24a075794ae27eba94a4e96ca78e26c6645fe095937bc427c6ed352de16"
   }
  ],
  "roots": [
   {
-   "dirCount": 25,
+   "dirCount": 26,
    "dirs": [
     {
      "mode": 448,
@@ -107,6 +125,10 @@
     },
     {
      "mode": 448,
+     "path": "production/c4-prod-0002/authorization/ordinal-0002"
+    },
+    {
+     "mode": 448,
      "path": "production/c4-prod-0002/sealing"
     },
     {
@@ -130,7 +152,7 @@
      "path": "secret"
     }
    ],
-   "fileCount": 5291,
+   "fileCount": 5293,
    "files": [
     {
      "bytes": 1264,
@@ -31819,6 +31841,18 @@
      "sha256": "911d8b844da3a38467aecc0919ee22664484f87c9f49bf445a5a949b6245dc81"
     },
     {
+     "bytes": 358,
+     "mode": 384,
+     "path": "production/c4-prod-0002/authorization/ordinal-0002/next_reveal.approval.json",
+     "sha256": "9f26b17096cffc4d96e2c19e86bb22d99497c54c7c5ab752f4bee427d9301ee1"
+    },
+    {
+     "bytes": 574,
+     "mode": 384,
+     "path": "production/c4-prod-0002/authorization/ordinal-0002/next_reveal.permit.json",
+     "sha256": "d045778390478d5cdc31bedcf44078fd9307c10fa08d0bc84a18df596cecc578"
+    },
+    {
      "bytes": 327,
      "mode": 384,
      "path": "production/c4-prod-0002/first_candidate_record.json",
@@ -31880,7 +31914,7 @@
     }
    ],
    "root": "data/csr8_phase_c",
-   "totalBytes": 349450586
+   "totalBytes": 349451518
   },
   {
    "dirCount": 1,
@@ -63343,6 +63377,6 @@
    "totalBytes": 463928909
   }
  ],
- "totalBytes": 813379495,
+ "totalBytes": 813380427,
  "version": 2
 }

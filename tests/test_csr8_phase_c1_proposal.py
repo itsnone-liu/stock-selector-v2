@@ -112,23 +112,29 @@ def test_c1_live_gates_all_pass_with_hash_only_disclosure():
     assert entry["mode"] == 0o600
 
 
-def test_c1_live_boundary_no_c2_no_c3_state():
-    """C1 stops exactly at the proposal: no approval/permit anywhere, no
-    R2 append (production counts stay REVEAL=1/SEAL=1), authorization
-    domain holds only the frozen C4-C first-reveal artifacts, and the
-    c4c anchor bytes are untouched by C1."""
+def test_c1_live_boundary_no_c3_state():
+    """C1 stops at the proposal and C2 stops at approval+permit: the
+    ordinal-2 authorization domain holds EXACTLY the frozen-re-proven
+    pair, no R2 append (production stays REVEAL=1/SEAL=1), the
+    production authorization top level keeps only the frozen C4-C
+    first-reveal artifacts, and the c4c anchor bytes are untouched."""
     log = c4d.REAL_PRODUCTION / SID / "sealing" / "sealing_log.jsonl"
     events = [json.loads(l) for l in log.read_text().splitlines() if l.strip()]
     assert [e["event_type"] for e in events] == \
         ["REVEAL_PACKET", "SEAL_ANNOTATION"]          # no R2 append
-    assert not c4d.next_authz_dir(c4d.REAL_CSR, SID, 2).exists()
-    assert not (c4d.next_authz_dir(c4d.REAL_CSR, SID, 2) /
-                "next_reveal.approval.json").exists()
-    assert not (c4d.next_authz_dir(c4d.REAL_CSR, SID, 2) /
-                "next_reveal.permit.json").exists()
+    # C2 terminal shape: exactly the approval+permit pair, fully
+    # re-proven through the frozen authorization-chain proof.
+    ad = c4d.next_authz_dir(c4d.REAL_CSR, SID, 2)
+    assert sorted(p.name for p in ad.rglob("*") if p.is_file()) == \
+        ["next_reveal.approval.json", "next_reveal.permit.json"]
+    assert not any(p.is_dir() for p in ad.rglob("*"))
+    c4d.verify_next_authorization_chain(c4d.REAL_CSR, SID, 2)
+    permit = (ad / "next_reveal.permit.json").read_bytes()
+    proposal_bytes = (Path(c4d.REAL_CSR) / c1mod.PROPOSAL_REL).read_bytes()
+    assert permit == proposal_bytes                # three-way exact bytes
     authz = c4d.prod_dir(c4d.REAL_CSR, SID) / "authorization"
-    assert sorted(p.name for p in authz.rglob("*") if p.is_file()) == \
-        ["first_reveal.approval.json", "first_reveal.json"]
+    assert sorted(p.name for p in authz.iterdir()) == \
+        ["first_reveal.approval.json", "first_reveal.json", "ordinal-0002"]
     # selector-only mode discipline on the live proposal domain
     pdom = c4d.REAL_PROPOSALS_C4D
     for d in (pdom, pdom / SID, c4d.proposals_dom(c4d.REAL_CSR, SID, 2)):
@@ -136,6 +142,10 @@ def test_c1_live_boundary_no_c2_no_c3_state():
     assert stat.S_IMODE(
         (pdom / SID / "ordinal-0002" / "next_reveal.proposal.json")
         .lstat().st_mode) == 0o600
+    assert stat.S_IMODE((ad / "next_reveal.approval.json")
+                        .lstat().st_mode) == 0o600
+    assert stat.S_IMODE((ad / "next_reveal.permit.json")
+                        .lstat().st_mode) == 0o600
 
 
 def test_c1_do_propose_is_one_shot_on_live():

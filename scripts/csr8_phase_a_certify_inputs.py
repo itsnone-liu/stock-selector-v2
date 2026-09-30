@@ -59,13 +59,17 @@ ROOTS = (
 
 # Security-sensitive approval evidence is outside the live data roots, so it
 # must be pinned explicitly rather than silently omitted from certification.
-# The C1 ordinal-2 proposal is a selector-only 0600 artifact INSIDE the data
-# root (already inventory-pinned); listing it here additionally enforces its
-# 0600 mode through the bridge's protected-artifact materialization path.
+# The C1 ordinal-2 proposal and the C2 approval+permit pair are selector-only
+# 0600 artifacts INSIDE the data root (already inventory-pinned); listing
+# them here additionally enforces their 0600 mode through the bridge's
+# protected-artifact materialization path.
 PROTECTED_ARTIFACTS = (
     'data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0001/attempt-0001/seal_approval.json',
     'data/csr8_phase_c/c4d_proposals/c4-prod-0002/ordinal-0002/next_reveal.proposal.json',
+    'data/csr8_phase_c/production/c4-prod-0002/authorization/ordinal-0002/next_reveal.approval.json',
+    'data/csr8_phase_c/production/c4-prod-0002/authorization/ordinal-0002/next_reveal.permit.json',
     'docs/audit/evidence/b4_unattended_approval.json',
+    'docs/audit/evidence/c2_unattended_approval.json',
 )
 
 # C4-D 域阶段边界（C1 终态感知）：annotator/ 工作区在 B5 POST_SEAL_FINAL

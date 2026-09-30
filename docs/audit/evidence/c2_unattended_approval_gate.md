@@ -1,0 +1,89 @@
+# C2 NEXT_REVEAL_ONLY approval — UNATTENDED policy
+(run audit_20260930021152297, host RainYun-c438TDGn, stage C2, iteration 1)
+
+Governing requirement: taskbook §6 C2 as amended by
+**v2-unattended-20260930** (owner directive 2026-09-30 纯无人值守 —
+`.dsh-audit-task.json` amendments node). The executor waits for no human
+message and directly persists the authorization artifacts; the three-way
+exact-bytes contract and every binding remain machine-measured.
+
+## Bound object (character-identical hashes)
+
+- session `c4-prod-0002`, sealed prefix head `d8d37c38…` (S1), reveal
+  ordinal 2 (NEXT_REVEAL_ONLY)
+- `approved_proposal_sha256 = SHA256(exact proposal bytes) =
+  d045778390478d5cdc31bedcf44078fd9307c10fa08d0bc84a18df596cecc578`
+  — the exact C1 proposal bytes, unchanged.
+
+## Persisted this stage
+
+1. `production/c4-prod-0002/authorization/ordinal-0002/
+   next_reveal.approval.json` — frozen `c4d-reveal-approval-v1`
+   closed-world schema, driven verbatim by the frozen §7 builder
+   `c4d.approve_next_reveal` (O_EXCL / canonical / 0600 / fsync);
+   binds `approved_authorization_sha256` == the exact proposal hash;
+   sha256 of its exact bytes:
+   `9f26b17096cffc4d96e2c19e86bb22d99497c54c7c5ab752f4bee427d9301ee1`.
+2. `production/c4-prod-0002/authorization/ordinal-0002/
+   next_reveal.permit.json` — frozen `c4d.materialize_next_permit`
+   (O_EXCL / 0600 / fsync); **permit exact bytes == proposal exact
+   bytes** (`cmp` clean; same sha256
+   `d045778390478d5cdc31bedcf44078fd9307c10fa08d0bc84a18df596cecc578`).
+3. Run-side unattended approval record
+   `docs/audit/evidence/c2_unattended_approval.json`
+   (`c4d-c2-unattended-approval-v1`): O_EXCL / canonical / 0600 / fsync,
+   `approved_by=UNATTENDED_POLICY`, `binding=["EXACT"]`,
+   `scope=NEXT_REVEAL_ONLY`, run/host/stage/iteration +
+   session/sealed-prefix/reveal-ordinal bindings, the same
+   `approved_proposal_sha256` **and** the taskbook §6 C2 fixed wording
+   rendered with that exact hash (wording-embedded hash
+   character-identical, fullmatch re-parsed), plus
+   `authorized_artifact_sha256` / `authorized_permit_sha256` binding the
+   exact persisted artifact bytes; explicit no-expansion statement
+   (仅授权本次对应的 exact proposal bytes，NEXT_REVEAL_ONLY).
+
+## Three-way consistency (machine-measured)
+
+```text
+proposal exact bytes  == approved hash  == permit exact bytes
+d045778390478d5cdc31bedcf44078fd9307c10fa08d0bc84a18df596cecc578
+```
+
+## Machine-measured gates (`csr8_phase_c2_next_reveal_approval.py
+--verify`, re-measured by `csr8_phase_a_machine_audit.py` and the
+committed tests)
+
+| Gate | Result |
+|---|---|
+| G-C2-STATE — C1 post-state intact (stage-aware boundary) | PASS |
+| G-C2-PROPOSAL — frozen proposal re-proof | PASS |
+| G-C2-APPROVAL — frozen approval re-proof (binds exact proposal hash) | PASS |
+| G-C2-PERMIT — frozen permit re-proof (exact proposal bytes) | PASS |
+| G-C2-THREEWAY — proposal bytes == approved hash == permit bytes | PASS |
+| G-C2-UNUSED — authorization consumption UNUSED; chain still [R1,S1] | PASS |
+| G-C2-RECORD — unattended record full re-proof (schema/canonical/0600/policy/EXACT/scope/wording/artifact hashes) | PASS |
+| G-C2-WORLD — authorization domain closed-world (exactly the pair, 0700/0600; top level keeps only frozen first-reveal artifacts; c4c anchor unchanged) | PASS |
+
+## Boundary discipline (nothing beyond C2)
+
+- No R2 append: chain stays exactly [R1,S1] (REVEAL=1/SEAL=1); the
+  authorization remains chain-derived UNUSED — consumption is the C3
+  authorization point.
+- No SEAL/approve_seal, no other ordinal domains, no authorization
+  expansion (scope NEXT_REVEAL_ONLY, binding EXACT).
+- Tests: `tests/test_csr8_phase_c2_approval.py` (13 tests) re-executes
+  the real approval end-to-end on a transaction-derived sealed replica
+  (real B1→B4 + SEAL + C1 proposal + C2 approval) and fails closed on
+  approval-hash / permit-bytes / mode / wording-hash / policy / scope /
+  missing-record / closed-world tampering; `tests/csr8_preseal_sandbox
+  .py` rewinds the C2-era ordinal-2 authorization domain out of
+  pre-B5 replicas (a copied pair binds LIVE bytes and breaks replica
+  transactions).
+
+## Certification checklist sync
+
+`config/audit/certified_live_inputs.json` regenerated this stage
+(2 roots / 10534 files / +2: approval + permit); the run-side record and
+both chain-side artifacts are pinned as 0600 protected artifacts;
+`csr8_phase_a_machine_audit.py` additionally measures the G-C2 family
+from persisted bytes.

@@ -74,6 +74,13 @@ def _rewind_chain_to_r1(root):
                   "bytes" / "seal_annotation")
     if seal_bytes.exists():
         shutil.rmtree(seal_bytes)
+    # C2-stage artifact rewind: the ordinal-2 authorization domain
+    # (approval+permit for the NEXT reveal) postdates the pre-B5 state
+    # this builder reconstructs.  A copied pair would bind the LIVE
+    # proposal bytes and break the replica's own transactions.
+    authz2 = c4d.next_authz_dir(root, c4d.REAL_SESSION, 2)
+    if authz2.exists():
+        shutil.rmtree(authz2)
 
 
 def build_pre_seal_sandbox(tmp_path, through="B4"):

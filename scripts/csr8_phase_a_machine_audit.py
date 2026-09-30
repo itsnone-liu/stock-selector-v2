@@ -12,9 +12,13 @@ REVEAL=1/SEAL=1) from persisted live bytes via
 scripts/csr8_phase_b5_real_seal.py — no static snapshot self-attestation.
 Since stage C1 it additionally measures the ordinal-2 next-reveal
 proposal gate (chain-derived prerequisites, frozen-builder re-proof,
-closed-world c4d_proposals domain, no approval/permit, no R2 append)
-from persisted live bytes via
-scripts/csr8_phase_c1_ordinal2_proposal.py.
+closed-world c4d_proposals domain, stage-aware boundary) and since
+stage C2 the NEXT_REVEAL_ONLY approval gate (frozen approval/permit
+re-proof, three-way exact-bytes consistency, UNUSED consumption,
+unattended-policy record, closed-world authorization domain) from
+persisted live bytes via
+scripts/csr8_phase_c1_ordinal2_proposal.py and
+scripts/csr8_phase_c2_next_reveal_approval.py.
 
 The audit bridge executes this script in a detached worktree of the
 exact TARGET_COMMIT where gitignored data/ does not exist.  Per the
@@ -34,6 +38,7 @@ ROOT = Path(__file__).resolve().parents[1]
 TARGET = ROOT / "scripts/csr8_phase_c_annotation_seal.py"
 B5_TARGET = ROOT / "scripts/csr8_phase_b5_real_seal.py"
 C1_TARGET = ROOT / "scripts/csr8_phase_c1_ordinal2_proposal.py"
+C2_TARGET = ROOT / "scripts/csr8_phase_c2_next_reveal_approval.py"
 CERT_MANIFEST = ROOT / "config/audit/certified_live_inputs.json"
 # 阶段边界感知（C1 终态）：annotator/ 工作区已由 POST_SEAL_FINAL 按
 # 协议清理（终态不存在）；c4d_receipts/ 是 B3 起的合法冻结证据域；
@@ -171,9 +176,10 @@ def verify_b5_freeze_domain():
 def verify_c1_proposal_domain(manifest):
     """Measure the complete C1 ordinal-2 proposal gate from persisted
     bytes (chain-derived prerequisites + frozen-builder re-proof +
-    closed-world + no-C2/no-C3 boundary).  The manifest's allowlist must
-    equal the audit's own closed-world constant — no self-declared
-    widening."""
+    closed-world proposals domain + stage-aware boundary: the C2
+    approval+permit pair is legal once fully re-proven, no R2 append).
+    The manifest's allowlist must equal the audit's own closed-world
+    constant — no self-declared widening."""
     declared = tuple(manifest.get("c4dProposalAllowlist", ()))
     if declared != C4D_PROPOSAL_ALLOWLIST:
         raise RuntimeError(
@@ -185,6 +191,19 @@ def verify_c1_proposal_domain(manifest):
     c1 = importlib.util.module_from_spec(spec); spec.loader.exec_module(c1)
     result = c1.verify_c1()
     return {"c1_proposal": "PASS", **result["gates"]}
+
+
+def verify_c2_approval_domain():
+    """Measure the complete C2 NEXT_REVEAL_ONLY approval gate from
+    persisted bytes (frozen proposal/approval/permit re-proof, three-way
+    exact-bytes consistency, UNUSED consumption, unattended-policy
+    record, closed-world authorization domain)."""
+    import sys
+    sys.path.insert(0, str(TARGET.parent))
+    spec = importlib.util.spec_from_file_location("c4d_c2", C2_TARGET)
+    c2 = importlib.util.module_from_spec(spec); spec.loader.exec_module(c2)
+    result = c2.verify_c2()
+    return {"c2_approval": "PASS", **result["gates"]}
 
 
 def main():
@@ -200,8 +219,11 @@ def main():
     c1 = verify_c1_proposal_domain(manifest)
     if c1.get('c1_proposal') != 'PASS':
         raise RuntimeError('C1 proposal gate did not pass')
+    c2 = verify_c2_approval_domain()
+    if c2.get('c2_approval') != 'PASS':
+        raise RuntimeError('C2 approval gate did not pass')
     print(json.dumps({'certified_inputs': 'VERIFIED', 'certified_files': manifest['fileCount'],
-                      'certified_roots': len(manifest['roots']), 'b5': result, 'c1': c1,
+                      'certified_roots': len(manifest['roots']), 'b5': result, 'c1': c1, 'c2': c2,
                       'production_snapshot': 'REVEAL=1 SEAL=1'}, separators=(',', ':')))
 
 if __name__ == "__main__": main()
