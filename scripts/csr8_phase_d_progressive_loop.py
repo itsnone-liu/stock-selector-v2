@@ -49,6 +49,21 @@ def constructive_progressive_loop(count=3):
         if h['seal_bound'] is None: raise RuntimeError('D loop history not seal-bound')
         loops.append({'ordinal':i,'prerequisite':'PASS','authorization':'PASS','append':'PASS','seal':'PASS','history':'PASS'})
     return loops
+def same_chain_progressive_loop(count=3):
+    # Build one evolving chain, carrying each sealed prefix into the next
+    # ordinal. Every append is preceded by the generic eligibility gate; the
+    # synthetic pool is used only to supply opaque candidate bytes.
+    sb,sid=c.prepared_sealed(case='D-chain-1',T='2021-05-01')
+    trace=[]
+    for n in range(1,count+1):
+        ev=events(sb); h=c.prove_attempt_history(sb,sid,1,gate=f'G-D-CHAIN-{n}',events=ev,reveal=ev[0])
+        if h['seal_bound'] is None: raise RuntimeError('D chain seal binding missing')
+        if n < count:
+            # Real next-cycle prerequisite is measured from the sealed prefix.
+            if c.derive_state(sb,sid)[0] != 'SEALED': raise RuntimeError('D chain prefix not sealed')
+            trace.append({'ordinal':n,'prefix_events':len(ev),'prerequisite':'PASS','history':'PASS'})
+    trace.append({'ordinal':count,'prefix_events':len(events(sb)),'prerequisite':'PASS','history':'PASS'})
+    return trace
 def recovery_matrix():
     sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'tests'))
     from csr8_preseal_sandbox import build_pre_seal_sandbox
@@ -76,7 +91,8 @@ def verify():
     prefixes=prefix_history_matrix(ev)
     contract=ordinal_contract_matrix()
     loops=constructive_progressive_loop()
+    same_chain=same_chain_progressive_loop()
     c.semantic_replay(ROOT,SID)
     recovered=recovery_matrix()
-    return {'d':'PASS','contract':contract,'loops':loops,'prefixes':prefixes,'recovery_checkpoints':recovered,'recovery_count':len(recovered),'semantic_replay':'PASS','chain':types}
+    return {'d':'PASS','contract':contract,'loops':loops,'same_chain':same_chain,'prefixes':prefixes,'recovery_checkpoints':recovered,'recovery_count':len(recovered),'semantic_replay':'PASS','chain':types}
 if __name__=='__main__': print(json.dumps(verify(),sort_keys=True,separators=(',',':')))
