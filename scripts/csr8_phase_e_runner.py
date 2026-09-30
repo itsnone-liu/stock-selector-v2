@@ -12,8 +12,9 @@ def events(root): return [json.loads(x) for x in c.log_path(root,c.REAL_SESSION)
 def stop(root,name):
  s=read_state(root); s.update(status=name,chain_count=len(events(root))); s['journal'].append({'boundary':name,'events':[e['event_type'] for e in events(root)]}); write_state(root,s)
 def watchdog(start,timeout,root):
- s=read_state(root); s['heartbeat']=time.time();
- if time.monotonic()-start>timeout: s.update(status='SAFE_DEGRADED',watchdog={'reason':'TIMEOUT','writes':0,'append':False}); write_state(root,s)
+ s=read_state(root); now=time.monotonic(); s['heartbeat']=time.time()
+ if now-start>timeout:
+  s.update(status='SAFE_DEGRADED',watchdog={'reason':'TIMEOUT','writes':0,'append':False}); write_state(root,s)
  return s
 def run(root,crash=None):
  root=Path(root); ev=events(root)
@@ -26,8 +27,8 @@ def run(root,crash=None):
  return resume(root)
 def resume(root):
  s=read_state(root)
- if s.get('resumed'): return s
- result=c.recover(root,c.REAL_SESSION); s.update(status=result,resumed=True); write_state(root,s); return s
+ if s.get('resumed') and s.get('status') in ('SEALED','SEAL_AUTHORIZED'): return s
+ result=c.recover(root,c.REAL_SESSION); s.update(status=result,resumed=True,recovery_count=s.get('recovery_count',0)+1); write_state(root,s); return s
 def diagnose(root): return {'mode':'READ_ONLY','state':read_state(root),'events':[e['event_type'] for e in events(root)]}
 def repair(root): return {'mode':'EXPLICIT_REPAIR','result':c.recover(root,c.REAL_SESSION),'append':False}
 def evidence():
