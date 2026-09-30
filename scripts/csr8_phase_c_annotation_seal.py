@@ -3988,7 +3988,7 @@ def cmd_synthetic():
                             'revealed_prefix_verified':
                                 cand['revealed_prefix'] > 0},
         'c4c_regression': 'PASS',
-        'live_invariants': 'REVEAL=1 SEAL=0 c4d_receipts/c4d_proposals '
+        'live_invariants': 'REVEAL=1 SEAL=1 c4d_receipts/c4d_proposals '
                            'absent anchor=absent (annotator domain: '
                            'stage-aware, legal since B1, gated by '
                            'csr8_phase_b1_real_handoff.py)',
