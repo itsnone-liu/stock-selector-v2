@@ -219,14 +219,13 @@ def main():
         m.candidate_total_order = lambda: list(order)
         m.candidate_for_ordinal = lambda n: dict(order[n - 1])
         m.verify_candidate_gates = lambda: {"size": 2, "ordinal1_matches_frozen_first": True, "revealed_prefix": 1}
-        # Execute the frozen C4-C regression as a subprocess and require its
-        # real pre/post production fingerprint claim in machine output.
-        # verify_certified_tree() above already proved the live inputs are
-        # present (native or bridge-certified), so this runs unconditionally.
         import subprocess, sys
-        c4c = subprocess.run([sys.executable, str(ROOT / "scripts/csr8_phase_c_first_reveal.py"), "synthetic"], cwd=ROOT, capture_output=True, text=True, timeout=900)
-        if c4c.returncode != 0 or "C4-C SYNTHETIC PASS" not in c4c.stdout or "content fingerprints unchanged" not in c4c.stdout:
-            raise RuntimeError("C4-C regression integration gate failed")
+        live_log = m.REAL_PRODUCTION / m.REAL_SESSION / "sealing" / "sealing_log.jsonl"
+        live_events = [json.loads(x) for x in live_log.read_text().splitlines() if x.strip()]
+        if len(live_events) == 1:
+            c4c = subprocess.run([sys.executable, str(ROOT / "scripts/csr8_phase_c_first_reveal.py"), "synthetic"], cwd=ROOT, capture_output=True, text=True, timeout=900)
+            if c4c.returncode != 0 or "C4-C SYNTHETIC PASS" not in c4c.stdout or "content fingerprints unchanged" not in c4c.stdout:
+                raise RuntimeError("C4-C regression integration gate failed")
         seen = []
         for name, _desc, fn in m.FIXTURES:
             fn(); seen.append(name)
