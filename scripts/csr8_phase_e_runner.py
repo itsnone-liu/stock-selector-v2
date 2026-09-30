@@ -18,8 +18,10 @@ def watchdog(start,timeout,root):
  return s
 def run(root,crash=None):
  root=Path(root); ev=events(root)
- if [e['event_type'] for e in ev]!=['REVEAL_PACKET','SEAL_ANNOTATION','REVEAL_PACKET','SEAL_ANNOTATION']: raise RuntimeError('supplied root is not frozen production chain')
+ if [e['event_type'] for e in ev] not in (['REVEAL_PACKET','SEAL_ANNOTATION'],['REVEAL_PACKET','SEAL_ANNOTATION','REVEAL_PACKET']): raise RuntimeError('supplied root is not runnable transaction prefix')
  stop(root,'PREPARE'); stop(root,'AUTHORIZED')
+ if [e['event_type'] for e in ev]==['REVEAL_PACKET','SEAL_ANNOTATION','REVEAL_PACKET']:
+  raise RuntimeError('ordinal-2 root requires prepared annotation artifacts; refusing implicit construction')
  if crash:
   try:c.seal_transaction(root,c.REAL_SESSION,stop_after=crash)
   except c.CrashSim: stop(root,crash); return read_state(root)
