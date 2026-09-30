@@ -12,8 +12,9 @@ def events(root): return [json.loads(x) for x in c.log_path(root,c.REAL_SESSION)
 def persist(root,boundary):
  s=read_state(root); s.update(status=boundary,chain_count=len(events(root)),heartbeat=time.time()); s['journal'].append({'boundary':boundary,'events':[e['event_type'] for e in events(root)]}); write_state(root,s); return s
 def watchdog(start,timeout,root):
- s=read_state(root); s['heartbeat']=time.time()
- if time.monotonic()-start>timeout: s.update(status='SAFE_DEGRADED',watchdog={'reason':'TIMEOUT','writes':0,'append':False}); write_state(root,s)
+ s=read_state(root); s['heartbeat']=time.time(); s['watchdog_checks']=s.get('watchdog_checks',0)+1
+ if time.monotonic()-start>timeout:
+  s.update(status='SAFE_DEGRADED',watchdog={'reason':'TIMEOUT','writes':0,'append':False}); write_state(root,s)
  return s
 def _seal_worker(root,crash,result):
  try: result.extend([('ok',c.seal_transaction(root,c.REAL_SESSION,stop_after=crash))])
@@ -26,7 +27,8 @@ def run(root,crash=None,timeout=300):
  result=[]; t=threading.Thread(target=_seal_worker,args=(root,crash,result),daemon=True); t.start()
  while t.is_alive():
   watchdog(started,timeout,root)
-  if read_state(root).get('status')=='SAFE_DEGRADED': return read_state(root)
+  if read_state(root).get('status')=='SAFE_DEGRADED':
+   t.join(timeout=0.2); return read_state(root)
   time.sleep(0.01)
  t.join(); kind,value=result[0] if result else ('error','worker exited without result')
  if kind=='crash': persist(root,value); return read_state(root)
@@ -45,9 +47,9 @@ def evidence():
  for point in STOPS[2:-1]:
   with tempfile.TemporaryDirectory(prefix='csr8-e17-') as td:
    root=build_pre_seal_sandbox(Path(td),through='B4').root
-   s=run(root,point); s=resume(root); want='SEAL_AUTHORIZED' if point in STOPS[2:5] else 'SEALED'
-   if s['status']!=want or resume(root)['status']!=want: raise RuntimeError(point)
-   out.append({'point':point,'status':s['status'],'journal':len(s['journal'])})
+   s=run(root,point); journal_before=len(s['journal']); s=resume(root); want='SEAL_AUTHORIZED' if point in STOPS[2:5] else 'SEALED'
+   if s['status']!=want or resume(root)['status']!=want or journal_before<3: raise RuntimeError(point)
+   out.append({'point':point,'status':s['status'],'journal':len(s['journal']),'persisted_before_resume':journal_before})
  with tempfile.TemporaryDirectory(prefix='csr8-watch-') as td:
   root=build_pre_seal_sandbox(Path(td),through='B4').root; w=watchdog(time.monotonic()-10,1,root)
   assert w['status']=='SAFE_DEGRADED' and w['watchdog']['writes']==0 and not w['watchdog']['append']
