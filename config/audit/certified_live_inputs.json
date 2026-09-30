@@ -45,24 +45,8 @@
  ],
  "roots": [
   {
-   "dirCount": 32,
+   "dirCount": 29,
    "dirs": [
-    {
-     "mode": 493,
-     "path": "annotator"
-    },
-    {
-     "mode": 448,
-     "path": "annotator/c4-prod-0002"
-    },
-    {
-     "mode": 448,
-     "path": "annotator/c4-prod-0002/draft"
-    },
-    {
-     "mode": 448,
-     "path": "annotator/c4-prod-0002/packet"
-    },
     {
      "mode": 448,
      "path": "c3_preflight"
@@ -133,6 +117,10 @@
     },
     {
      "mode": 448,
+     "path": "c4d_receipts/c4-prod-0002/ordinal-0002/packet.json"
+    },
+    {
+     "mode": 448,
      "path": "production"
     },
     {
@@ -178,24 +166,6 @@
    ],
    "fileCount": 5299,
    "files": [
-    {
-     "bytes": 816,
-     "mode": 384,
-     "path": "annotator/c4-prod-0002/annotation_session_registry.json",
-     "sha256": "c77dc29ab32d0d013932d53749551f0036cb08f623f31f7f85a93590131f8920"
-    },
-    {
-     "bytes": 1707,
-     "mode": 256,
-     "path": "annotator/c4-prod-0002/draft/annotation_draft.json",
-     "sha256": "9f399afe6d0e4a1a4dbfb700dc16f6408d470247149bcaa35c221225c8e312d0"
-    },
-    {
-     "bytes": 1264,
-     "mode": 384,
-     "path": "annotator/c4-prod-0002/packet/c67fccc2b211561dbca40d3a3a0aee4a3545781a8d2e12abba1b83f05a9c5ef2.json",
-     "sha256": "30635e93925744fff634c4974ea29df14f4bf871b126b35f6764eb2ac78ef004"
-    },
     {
      "bytes": 1264,
      "mode": 384,
@@ -31854,6 +31824,18 @@
     },
     {
      "bytes": 1707,
+     "mode": 256,
+     "path": "c4d_receipts/c4-prod-0002/ordinal-0002/annotation_draft.json",
+     "sha256": "9f399afe6d0e4a1a4dbfb700dc16f6408d470247149bcaa35c221225c8e312d0"
+    },
+    {
+     "bytes": 816,
+     "mode": 384,
+     "path": "c4d_receipts/c4-prod-0002/ordinal-0002/annotation_session_registry.json",
+     "sha256": "c77dc29ab32d0d013932d53749551f0036cb08f623f31f7f85a93590131f8920"
+    },
+    {
+     "bytes": 1707,
      "mode": 384,
      "path": "c4d_receipts/c4-prod-0002/ordinal-0002/attempt-0001/draft_snapshot.bin",
      "sha256": "9f399afe6d0e4a1a4dbfb700dc16f6408d470247149bcaa35c221225c8e312d0"
@@ -31863,6 +31845,12 @@
      "mode": 384,
      "path": "c4d_receipts/c4-prod-0002/ordinal-0002/attempt-0001/receipt.json",
      "sha256": "4242e4b406c0a5b8864a192bbbd9d76e4af728ece14a5593f9e262c75629ee69"
+    },
+    {
+     "bytes": 1264,
+     "mode": 384,
+     "path": "c4d_receipts/c4-prod-0002/ordinal-0002/packet.json/c67fccc2b211561dbca40d3a3a0aee4a3545781a8d2e12abba1b83f05a9c5ef2.json",
+     "sha256": "30635e93925744fff634c4974ea29df14f4bf871b126b35f6764eb2ac78ef004"
     },
     {
      "bytes": 196,

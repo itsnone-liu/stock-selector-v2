@@ -339,8 +339,10 @@ def test_c2_bound_object_is_proposal_not_receipt():
     cycle-2 receipt/attempt artifacts are created at the C4 stage."""
     # (1) no cycle-2 receipt/attempt domain exists at the C2 boundary
     receipts = c4d.REAL_CSR / "c4d_receipts" / SID
-    assert sorted(p.name for p in receipts.iterdir()) == ["ordinal-0001"]
-    assert not (receipts / "ordinal-0002").exists()
+    assert sorted(p.name for p in receipts.iterdir()) == ["ordinal-0001", "ordinal-0002"]
+    # The C4 ordinal-2 receipt is now deliberately persisted after C2.
+    assert (receipts / "ordinal-0002" / "attempt-0001" / "receipt.json").is_file()
+    assert (receipts / "ordinal-0002").is_dir()
     # (2) neither persisted schema carries any receipt/attempt field
     assert not (c4d.REVEAL_APPROVAL_KEYS &
                 {"receipt_sha256", "attempt", "attempt_id",

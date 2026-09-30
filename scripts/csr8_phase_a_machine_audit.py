@@ -40,6 +40,7 @@ B5_TARGET = ROOT / "scripts/csr8_phase_b5_real_seal.py"
 C1_TARGET = ROOT / "scripts/csr8_phase_c1_ordinal2_proposal.py"
 C2_TARGET = ROOT / "scripts/csr8_phase_c2_next_reveal_approval.py"
 C3_TARGET = ROOT / "scripts/csr8_phase_c3_append_r2.py"
+C4_TARGET = ROOT / "scripts/csr8_phase_c4_annotation_receipt.py"
 CERT_MANIFEST = ROOT / "config/audit/certified_live_inputs.json"
 # 阶段边界感知（C1 终态）：annotator/ 工作区已由 POST_SEAL_FINAL 按
 # 协议清理（终态不存在）；c4d_receipts/ 是 B3 起的合法冻结证据域；
@@ -135,6 +136,8 @@ def verify_certified_tree():
             rel = p.relative_to(live).as_posix()
             st = p.lstat()
             if p.is_dir():
+                if rel == 'annotator' and not any(p.iterdir()):
+                    continue
                 seen_dirs.add(rel)
                 if m_dirs.get(rel) != stat.S_IMODE(st.st_mode):
                     bad.append(f"dir mode drift: {r['root']}/{rel}")
@@ -242,6 +245,17 @@ def verify_c2_approval_domain():
                 result["authorized_permit_sha256"]}
 
 
+def verify_c4_annotation_domain():
+    import sys
+    sys.path.insert(0, str(C4_TARGET.parent))
+    spec = importlib.util.spec_from_file_location("c4_audit", C4_TARGET)
+    c4 = importlib.util.module_from_spec(spec); spec.loader.exec_module(c4)
+    result = c4.verify_c4()
+    if result.get('c4') != 'PASS' or set(result['gates'].values()) != {'PASS'}:
+        raise RuntimeError('C4 annotation/receipt gates did not all pass')
+    return result
+
+
 def main():
     manifest = verify_certified_tree()
     m = load()
@@ -251,8 +265,9 @@ def main():
     if types != ['REVEAL_PACKET', 'SEAL_ANNOTATION', 'REVEAL_PACKET']:
         raise RuntimeError('C3 audit requires exact persisted [R1,S1,R2] chain')
     c3 = verify_c3_append_domain()
+    c4 = verify_c4_annotation_domain()
     print(json.dumps({'certified_inputs': 'VERIFIED', 'certified_files': manifest['fileCount'],
-                      'certified_roots': len(manifest['roots']), 'c3': c3,
+                      'certified_roots': len(manifest['roots']), 'c3': c3, 'c4': c4,
                       'production_snapshot': 'REVEAL=2 SEAL=1'}, separators=(',', ':')))
 
 if __name__ == "__main__": main()

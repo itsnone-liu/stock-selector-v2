@@ -130,6 +130,8 @@ def inventory(root_rel):
             # a pinned empty dir would ENOENT at materialization time
             # (audit_20260930021152297 i18 bridge record).  They are
             # skipped explicitly and reported — never silently pinned.
+            if rel == 'annotator' and not any(p.iterdir()):
+                continue
             if not any(p.iterdir()):
                 skipped_empty.append(rel)
                 continue
