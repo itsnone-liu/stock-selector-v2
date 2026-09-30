@@ -38,6 +38,35 @@ def load():
     spec = importlib.util.spec_from_file_location("c4d_audit_target", TARGET)
     m = importlib.util.module_from_spec(spec); spec.loader.exec_module(m); return m
 
+def materialize_certified_tree(source_root, target_root, manifest):
+    """Copy certified inputs and explicitly apply manifest modes.
+
+    ``git`` cannot represent 0600 (its index stores only the executable bit),
+    and generic copy operations may therefore materialize approval artifacts as
+    0644.  The bridge must use this materializer, which applies the pinned mode
+    before the independent zero-drift verifier runs; verification itself never
+    repairs a mismatch.
+    """
+    source_root, target_root = Path(source_root), Path(target_root)
+    for root_spec in manifest["roots"]:
+        src = source_root / root_spec["root"]
+        dst = target_root / root_spec["root"]
+        for d in root_spec["dirs"]:
+            out = dst / d["path"]
+            out.mkdir(parents=True, exist_ok=True)
+            out.chmod(d["mode"])
+        for f in root_spec["files"]:
+            src_file, dst_file = src / f["path"], dst / f["path"]
+            dst_file.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(src_file, dst_file)
+            dst_file.chmod(f["mode"])
+    for f in manifest.get("protectedArtifacts", []):
+        src_file, dst_file = source_root / f["path"], target_root / f["path"]
+        dst_file.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(src_file, dst_file)
+        dst_file.chmod(f["mode"])
+
+
 def verify_certified_tree():
     """Local data trees must equal the committed v2 manifest exactly."""
     if not CERT_MANIFEST.is_file():

@@ -257,6 +257,9 @@ def test_certified_live_inputs_manifest_is_complete_and_forbidden_free():
     spec.loader.exec_module(audit)
     checked = audit.verify_certified_tree()
     assert checked["fileCount"] == manifest["fileCount"]
+    import inspect
+    assert "dst_file.chmod(f[\"mode\"])" in inspect.getsource(
+        audit.materialize_certified_tree)
     # pinned chain links to the frozen anchor head
     mod = _load()
     csr_root = next(r for r in manifest["roots"]
