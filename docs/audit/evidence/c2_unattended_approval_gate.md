@@ -160,3 +160,9 @@ Terminal state at each of these commits is identical where it matters:
 8/8 G-C2 gates PASS, three-way hash chain intact
 (`d0457783…cecc578`), authorization UNUSED, chain [R1,S1], full suite
 green (539 passed / 0 failed at 80d2fe2 and later).
+
+Byte-identity machine-check (recorded at 30579ad):
+`git diff cd0571e..30579ad -- <approval> <permit> <unattended record>`
+is EMPTY — the three authorization artifacts are byte-identical across
+the whole iteration-2 chain; only gates, tests, and documentation
+moved.
