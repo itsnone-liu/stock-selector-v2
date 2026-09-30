@@ -139,3 +139,24 @@ exact-bytes contract**: `proposal exact bytes == approved hash
 exact bytes == d045778390478d5cdc31bedcf44078fd9307c10fa08d0bc84a18df
 596cecc578`. No receipt/attempt binding is due at this stage; none is
 missing.
+
+## Iteration-2 commit chain (stage-terminal consolidation)
+
+The authorization artifacts (approval / permit / unattended record) are
+byte-identical since cd0571e (iteration 1); every later commit is
+reviewer-facing hardening with no further state change:
+
+| commit | content |
+|---|---|
+| cd0571e | the C2 transaction: approval + permit + unattended record, tests, manifest, evidence (iteration 1) |
+| 4a7e39d | iteration-2 interpretation ruling (bound object = proposal, not receipt) + machine pinning test |
+| 460f151 | machine-audit c2 section surfaces the three-way binding hashes; C2 CLI mode mutual exclusion |
+| e295d14 | CLI mutual-exclusion test + audit-surface evidence note |
+| 80d2fe2 | fail-closed tests: premature R2 append, non-canonical record |
+| 1641e5b | evidence doc test-inventory sync (16 C2 tests) |
+| 97c0812 | module docstring records the bound-object ruling |
+
+Terminal state at each of these commits is identical where it matters:
+8/8 G-C2 gates PASS, three-way hash chain intact
+(`d0457783…cecc578`), authorization UNUSED, chain [R1,S1], full suite
+green (539 passed / 0 failed at 80d2fe2 and later).
