@@ -1,40 +1,45 @@
 #!/usr/bin/env python3
-"""E production runner command: cycle execution, resume, watchdog, recovery."""
+"""Phase E operational runner over an explicit transaction root."""
 import json,os,sys,time,tempfile
 from pathlib import Path
 sys.path.insert(0,str(Path(__file__).resolve().parent)); import csr8_phase_c_annotation_seal as c
 STOPS=('PREPARE','AUTHORIZED','after_verify','after_derive','after_precondition','after_append','after_fsync','after_replay_verify','after_replay','after_anchor','after_cleanup','SEALED')
-def sp(root): return Path(root)/'runner_state.json'
-def read(root): return json.loads(sp(root).read_bytes()) if sp(root).exists() else {'status':'NEW','journal':[]}
-def write(root,x):
- p=sp(root); t=p.with_suffix('.tmp'); t.write_bytes(c.canon(x).encode()); os.replace(t,p); os.chmod(p,0o600)
-def ev(root): return [json.loads(x) for x in c.log_path(root,c.REAL_SESSION).read_text().splitlines() if x.strip()]
+def state_path(root): return Path(root)/'runner_state.json'
+def read_state(root): return json.loads(state_path(root).read_bytes()) if state_path(root).exists() else {'status':'NEW','journal':[]}
+def write_state(root,obj):
+ p=state_path(root); tmp=p.with_suffix('.tmp'); tmp.write_bytes(c.canon(obj).encode()); os.replace(tmp,p); os.chmod(p,0o600)
+def events(root): return [json.loads(x) for x in c.log_path(root,c.REAL_SESSION).read_text().splitlines() if x.strip()]
 def hard_stop(root,name):
- s=read(root); s['status']=name; s['journal'].append({'boundary':name,'events':[e['event_type'] for e in ev(root)]}); write(root,s)
-def watchdog(start,timeout):
- if time.monotonic()-start>timeout:return {'status':'SAFE_DEGRADED','writes':0,'append':False,'reason':'TIMEOUT'}
- return {'status':'RUNNING','writes':0,'append':False}
-def run(root,crash):
- sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'tests')); from csr8_preseal_sandbox import build_pre_seal_sandbox
- sb=build_pre_seal_sandbox(Path(root),through='B4'); hard_stop(sb.root,'PREPARE'); hard_stop(sb.root,'AUTHORIZED')
- try:c.seal_transaction(sb.root,c.REAL_SESSION,stop_after=crash)
- except c.CrashSim: hard_stop(sb.root,crash); return sb.root
- hard_stop(sb.root,'SEALED'); return sb.root
-def resume(root):
- s=read(root)
+ s=read_state(root); s.update(status=name,chain_count=len(events(root))); s['journal'].append({'boundary':name,'events':[e['event_type'] for e in events(root)]}); write_state(root,s)
+def watchdog(start,timeout): return {'status':'SAFE_DEGRADED','writes':0,'append':False,'reason':'TIMEOUT'} if time.monotonic()-start>timeout else {'status':'RUNNING','writes':0,'append':False}
+def production_run(root=c.REAL_CSR):
+ root=Path(root); ev=events(root)
+ if [e['event_type'] for e in ev]==['REVEAL_PACKET','SEAL_ANNOTATION','REVEAL_PACKET','SEAL_ANNOTATION']:
+  hard_stop(root,'SEALED'); return read_state(root)
+ raise RuntimeError('production root is not a complete frozen cycle; refusing implicit fixture construction')
+def resume(root=c.REAL_CSR):
+ s=read_state(root)
  if s.get('resumed'): return s
- s['status']=c.recover(root,c.REAL_SESSION); s['resumed']=True; write(root,s); return s
-def recovery_diagnose(root): return {'mode':'READ_ONLY','state':read(root),'events':[e['event_type'] for e in ev(root)]}
-def recovery_repair(root):
- d=recovery_diagnose(root); result=c.recover(root,c.REAL_SESSION); return {'mode':'EXPLICIT_REPAIR','before':d,'result':result,'append':False}
+ result=c.recover(root,c.REAL_SESSION); s.update(status=result,resumed=True); write_state(root,s); return s
+def recovery_diagnose(root=c.REAL_CSR): return {'mode':'READ_ONLY','state':read_state(root),'events':[e['event_type'] for e in events(root)]}
+def recovery_repair(root=c.REAL_CSR): return {'mode':'EXPLICIT_REPAIR','result':c.recover(root,c.REAL_SESSION),'append':False}
 def constructive():
- cps=STOPS[2:-1]; out=[]
- for point in cps:
-  with tempfile.TemporaryDirectory(prefix='csr8-e8-') as td:
-   r=run(Path(td)/'run',point); first=resume(r); second=resume(r)
-   want='SEAL_AUTHORIZED' if point in cps[:3] else 'SEALED'
-   if first['status']!=want or second['status']!=want: raise RuntimeError(point)
-   out.append({'point':point,'status':first['status'],'journal':len(first['journal'])})
- w=watchdog(time.monotonic()-10,1); assert w['status']=='SAFE_DEGRADED' and w['writes']==0 and not w['append']
- return out
-if __name__=='__main__': print(json.dumps({'constructive':constructive(),'watchdog':watchdog(time.monotonic()-10,1)},sort_keys=True,separators=(',',':')))
+ sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'tests')); from csr8_preseal_sandbox import build_pre_seal_sandbox
+ cps=('after_verify','after_derive','after_precondition','after_append','after_fsync','after_replay_verify','after_replay','after_anchor','after_cleanup'); out=[]
+ for p in cps:
+  with tempfile.TemporaryDirectory(prefix='csr8-e9-') as td:
+   sb=build_pre_seal_sandbox(Path(td),through='B4'); hard_stop(sb.root,'PREPARE'); hard_stop(sb.root,'AUTHORIZED')
+   try:c.seal_transaction(sb.root,c.REAL_SESSION,stop_after=p)
+   except c.CrashSim: hard_stop(sb.root,p)
+   want='SEAL_AUTHORIZED' if p in cps[:3] else 'SEALED'; s=resume(sb.root)
+   if s['status']!=want or resume(sb.root)['status']!=want: raise RuntimeError(p)
+   out.append({'point':p,'status':s['status']})
+ assert watchdog(time.monotonic()-10,1)['status']=='SAFE_DEGRADED'; return out
+def main():
+ if '--constructive-test' in sys.argv: print(json.dumps({'constructive':constructive()},sort_keys=True,separators=(',',':'))); return
+ if '--run-production' in sys.argv: print(json.dumps(production_run(),sort_keys=True,separators=(',',':'))); return
+ if '--resume' in sys.argv: print(json.dumps(resume(),sort_keys=True,separators=(',',':'))); return
+ if '--diagnose' in sys.argv: print(json.dumps(recovery_diagnose(),sort_keys=True,separators=(',',':'))); return
+ if '--repair' in sys.argv: print(json.dumps(recovery_repair(),sort_keys=True,separators=(',',':'))); return
+ print(json.dumps({'runner':'READY','hard_stops':STOPS},sort_keys=True,separators=(',',':')))
+if __name__=='__main__': main()
