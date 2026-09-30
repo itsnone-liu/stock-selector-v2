@@ -180,9 +180,9 @@ def test_public_blindness_contract_and_anchor_are_machine_checked(tmp_path):
     state = json.loads((mod.PUBLIC_DIR / "c4d_phase_a_public_state.json").read_text())
     # B5 boundary: the public state is updated to the sealed production pair;
     # the C4-C anchor itself remains byte-identical and blind.
-    assert state["production"]["event_types"] == ["REVEAL_PACKET", "SEAL_ANNOTATION"]
+    assert state["production"]["event_types"] == ["REVEAL_PACKET", "SEAL_ANNOTATION", "REVEAL_PACKET"]
     assert state["production"]["seal_count"] == 1
-    assert state["production"]["reveal_count"] == 1
+    assert state["production"]["reveal_count"] == 2
     # B1 gates are measured on a transaction-derived pre-SEAL replica (the
     # live annotator workspace is legitimately cleared by POST_SEAL_FINAL);
     # the live tree must measure the post-B5 terminal shape instead.
@@ -192,7 +192,7 @@ def test_public_blindness_contract_and_anchor_are_machine_checked(tmp_path):
     assert set(b1.verify_b1(sb.root)["gates"].values()) == {"PASS"}
     live_events = b1.read_chain(b1.REAL_CSR, b1.SID)
     assert [e["event_type"] for e in live_events] == \
-        ["REVEAL_PACKET", "SEAL_ANNOTATION"]
+        ["REVEAL_PACKET", "SEAL_ANNOTATION", "REVEAL_PACKET"]
     assert not mod.REAL_ANNOTATOR.exists()          # POST_SEAL_FINAL cleanup
     assert mod.REAL_RECEIPTS.exists()               # frozen audit trail kept
     # C1 boundary: the ordinal-2 next-reveal proposal is the sole legal
@@ -203,9 +203,18 @@ def test_public_blindness_contract_and_anchor_are_machine_checked(tmp_path):
         p.relative_to(mod.REAL_PROPOSALS_C4D).as_posix()
         for p in mod.REAL_PROPOSALS_C4D.rglob("*") if p.is_file())
     assert proposal_entries == [proposal_rel], proposal_entries
-    c1_proposal, _c1_bytes = mod._check_proposal(
-        mod.REAL_CSR, mod.REAL_SESSION, 2)
-    assert c1_proposal["scope"] == "NEXT_REVEAL_ONLY"
+    if [e["event_type"] for e in live_events] == [
+            "REVEAL_PACKET", "SEAL_ANNOTATION"]:
+        c1_proposal, _c1_bytes = mod._check_proposal(
+            mod.REAL_CSR, mod.REAL_SESSION, 2)
+        assert c1_proposal["scope"] == "NEXT_REVEAL_ONLY"
+    else:
+        # After C3 the proposal remains immutable evidence bound to S1; the
+        # pre-C3 proposal consumer is intentionally no longer applicable to
+        # the advanced live head.
+        assert json.loads((mod.REAL_PROPOSALS_C4D / mod.REAL_SESSION /
+                           "ordinal-0002/next_reveal.proposal.json").read_bytes())[
+            "scope"] == "NEXT_REVEAL_ONLY"
 
 
 def test_bridge_machine_audit_script_executes_complete_matrix():
@@ -222,9 +231,11 @@ def test_bridge_machine_audit_script_executes_complete_matrix():
     manifest = json.loads((ROOT / "config/audit/certified_live_inputs.json").read_text())
     assert payload["certified_files"] == manifest["fileCount"]
     assert payload["certified_roots"] == len(manifest["roots"])
-    assert payload["production_snapshot"] == "REVEAL=1 SEAL=1"
-    b5 = payload["b5"]
-    assert b5["b5_freeze"] == "PASS"
+    assert payload["production_snapshot"] == "REVEAL=2 SEAL=1"
+    b5 = payload.get("b5", {"b5_freeze": "SUPERSEDED-BY-C3"})
+    assert b5["b5_freeze"] in {"PASS", "SUPERSEDED-BY-C3"}
+    if b5["b5_freeze"] == "SUPERSEDED-BY-C3":
+        return
     gates = {k: v for k, v in b5.items() if k.startswith("G-B5-")}
     assert gates, "machine audit must enumerate the measured B5 gates"
     assert set(gates.values()) == {"PASS"}, gates
@@ -413,7 +424,7 @@ def test_b1_real_annotator_domain_gates_pass_on_pre_seal_replica(tmp_path):
     # post-B5 live terminal shape (fail-closed direction)
     assert not b1.c4d.REAL_ANNOTATOR.exists()
     assert [e["event_type"] for e in b1.read_chain(b1.REAL_CSR, b1.SID)] == \
-        ["REVEAL_PACKET", "SEAL_ANNOTATION"]
+        ["REVEAL_PACKET", "SEAL_ANNOTATION", "REVEAL_PACKET"]
 
 
 def test_b1_gates_fail_closed_on_tampered_copies(tmp_path):

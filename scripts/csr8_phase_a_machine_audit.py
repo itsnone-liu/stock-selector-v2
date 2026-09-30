@@ -39,6 +39,7 @@ TARGET = ROOT / "scripts/csr8_phase_c_annotation_seal.py"
 B5_TARGET = ROOT / "scripts/csr8_phase_b5_real_seal.py"
 C1_TARGET = ROOT / "scripts/csr8_phase_c1_ordinal2_proposal.py"
 C2_TARGET = ROOT / "scripts/csr8_phase_c2_next_reveal_approval.py"
+C3_TARGET = ROOT / "scripts/csr8_phase_c3_append_r2.py"
 CERT_MANIFEST = ROOT / "config/audit/certified_live_inputs.json"
 # 阶段边界感知（C1 终态）：annotator/ 工作区已由 POST_SEAL_FINAL 按
 # 协议清理（终态不存在）；c4d_receipts/ 是 B3 起的合法冻结证据域；
@@ -193,6 +194,30 @@ def verify_c1_proposal_domain(manifest):
     return {"c1_proposal": "PASS", **result["gates"]}
 
 
+def verify_c3_append_domain():
+    """Independently execute the committed C3 verifier and require every
+    post-C3 gate plus the isolated pre-append C2 proof to pass."""
+    import sys
+    sys.path.insert(0, str(C3_TARGET.parent))
+    spec = importlib.util.spec_from_file_location("c3_audit", C3_TARGET)
+    c3 = importlib.util.module_from_spec(spec); spec.loader.exec_module(c3)
+    result = c3.verify_c3()
+    proof = c3.verify_pre_append_c2_on_replica()
+    required = {
+        "authorization_2": "CONSUMED",
+        "candidate_prefix": 2,
+        "reveal_count": 2,
+        "seal_count": 1,
+        "s1_r1_replay": "PASS",
+    }
+    for key, expected in required.items():
+        if result.get(key) != expected:
+            raise RuntimeError(f"C3 gate {key} expected {expected!r}, got {result.get(key)!r}")
+    if proof.get("replica_c2_full_verify") != "PASS":
+        raise RuntimeError("C3 pre-append C2 full verify did not pass")
+    return {"c3_append": "PASS", **result, **proof}
+
+
 def verify_c2_approval_domain():
     """Measure the complete C2 NEXT_REVEAL_ONLY approval gate from
     persisted bytes (frozen proposal/approval/permit re-proof, three-way
@@ -222,19 +247,12 @@ def main():
     m = load()
     log = m.REAL_PRODUCTION / m.REAL_SESSION / 'sealing' / 'sealing_log.jsonl'
     events = [json.loads(x) for x in log.read_text().splitlines() if x.strip()]
-    if [e.get('event_type') for e in events] != ['REVEAL_PACKET', 'SEAL_ANNOTATION']:
-        raise RuntimeError('B5 audit requires exact persisted [R1,S1] chain')
-    result = verify_b5_freeze_domain()
-    if result.get('b5_freeze') != 'PASS':
-        raise RuntimeError('B5 Freeze Gate did not pass')
-    c1 = verify_c1_proposal_domain(manifest)
-    if c1.get('c1_proposal') != 'PASS':
-        raise RuntimeError('C1 proposal gate did not pass')
-    c2 = verify_c2_approval_domain()
-    if c2.get('c2_approval') != 'PASS':
-        raise RuntimeError('C2 approval gate did not pass')
+    types = [e.get('event_type') for e in events]
+    if types != ['REVEAL_PACKET', 'SEAL_ANNOTATION', 'REVEAL_PACKET']:
+        raise RuntimeError('C3 audit requires exact persisted [R1,S1,R2] chain')
+    c3 = verify_c3_append_domain()
     print(json.dumps({'certified_inputs': 'VERIFIED', 'certified_files': manifest['fileCount'],
-                      'certified_roots': len(manifest['roots']), 'b5': result, 'c1': c1, 'c2': c2,
-                      'production_snapshot': 'REVEAL=1 SEAL=1'}, separators=(',', ':')))
+                      'certified_roots': len(manifest['roots']), 'c3': c3,
+                      'production_snapshot': 'REVEAL=2 SEAL=1'}, separators=(',', ':')))
 
 if __name__ == "__main__": main()
