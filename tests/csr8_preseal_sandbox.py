@@ -60,11 +60,16 @@ def _rewind_chain_to_r1(root):
     # C3 live state is [R1,S1,R2].  Rewind must discard the later reveal and
     # its ordinal-2 authorization so the replica is rebuilt from the exact
     # pre-B5 boundary rather than inheriting post-C3 artifacts.
-    if len(lines) not in (2, 3):
+    if len(lines) not in (2, 3, 4):
         raise RuntimeError(
             f"live production chain is not a supported [R1,S1] or "
             f"[R1,S1,R2] shape ({len(lines)} events) — refusing to build a "
             f"pre-SEAL sandbox from it")
+    if len(lines) == 4:
+        s2 = json.loads(lines[3])
+        if s2.get('event_type') != 'SEAL_ANNOTATION':
+            raise RuntimeError('post-C6 tail is not S2 seal')
+        lines = lines[:3]
     if len(lines) == 3:
         r2 = json.loads(lines[2])
         if r2.get("event_type") != "REVEAL_PACKET":

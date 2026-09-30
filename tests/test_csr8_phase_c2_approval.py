@@ -67,8 +67,9 @@ def _live_is_post_c3():
     events = [json.loads(l) for l in
               (c4d.REAL_PRODUCTION / SID / "sealing" /
                "sealing_log.jsonl").read_text().splitlines() if l.strip()]
-    return [e["event_type"] for e in events] == [
-        "REVEAL_PACKET", "SEAL_ANNOTATION", "REVEAL_PACKET"]
+    return [e["event_type"] for e in events] in ([
+        "REVEAL_PACKET", "SEAL_ANNOTATION", "REVEAL_PACKET"], [
+        "REVEAL_PACKET", "SEAL_ANNOTATION", "REVEAL_PACKET", "SEAL_ANNOTATION"])
 
 
 def test_c2_live_gates_all_pass_three_way_exact():
