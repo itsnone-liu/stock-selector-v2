@@ -2,7 +2,7 @@
  "c4dProposalAllowlist": [
   "c4d_proposals/c4-prod-0002/ordinal-0002/next_reveal.proposal.json"
  ],
- "fileCount": 10541,
+ "fileCount": 10542,
  "forbiddenPrefixes": [],
  "generator": "scripts/csr8_phase_a_certify_inputs.py",
  "protectedArtifacts": [
@@ -190,7 +190,7 @@
      "path": "secret"
     }
    ],
-   "fileCount": 5300,
+   "fileCount": 5301,
    "files": [
     {
      "bytes": 1264,
@@ -31816,7 +31816,7 @@
      "bytes": 223,
      "mode": 384,
      "path": "c4_public/c4d_seal_anchor.json",
-     "sha256": "ebae35d307f8a6c2f7ba7c11c8819b93400a0616ce95a9b0bc79475ea70aa694"
+     "sha256": "3ee3f51416da403acb2d1ed23dfcffca0921c81c8307ef4c1993cc66cf959959"
     },
     {
      "bytes": 477,
@@ -31951,16 +31951,22 @@
      "sha256": "85a224a3e748b569060a14aea8fe5fe353b62e8a804e0f43cfb4c51a18063aa6"
     },
     {
+     "bytes": 1880,
+     "mode": 420,
+     "path": "production/c4-prod-0002/sealing/bytes/seal_annotation/3.bin",
+     "sha256": "4242e4b406c0a5b8864a192bbbd9d76e4af728ece14a5593f9e262c75629ee69"
+    },
+    {
      "bytes": 90,
      "mode": 420,
      "path": "production/c4-prod-0002/sealing/sealing_log.head.json",
-     "sha256": "a135f7f5d2fea4391e23a0d3ae51151a1e150232b8b66cd90e707d02fe6f2bb7"
+     "sha256": "880d2b30723382ce3b0cde77cd8a53b8b220228ccbd69c29dfb997c2b76d4a9a"
     },
     {
-     "bytes": 2388,
+     "bytes": 2865,
      "mode": 420,
      "path": "production/c4-prod-0002/sealing/sealing_log.jsonl",
-     "sha256": "bcc71e45788802473df4de626fe4e2a1f9122f2e5c2be513cfa47b5ed3787e1b"
+     "sha256": "47d64f896f1d30127bfb6790e1405cd4927685bd7e2889d06335e47fac9ad094"
     },
     {
      "bytes": 1001,
@@ -31994,7 +32000,7 @@
     }
    ],
    "root": "data/csr8_phase_c",
-   "totalBytes": 349461517
+   "totalBytes": 349463874
   },
   {
    "dirCount": 1,
@@ -63457,6 +63463,6 @@
    "totalBytes": 463928909
   }
  ],
- "totalBytes": 813390426,
+ "totalBytes": 813392783,
  "version": 2
 }
