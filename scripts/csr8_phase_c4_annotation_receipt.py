@@ -37,6 +37,10 @@ def verify_c4(root=ROOT):
     js=ann['rt_judgments']
     if len(js)!=len(c4d.HYPOTHESES) or [j['hypothesis_id'] for j in js]!=list(c4d.HYPOTHESES): fail('hypothesis order/count gate')
     c4d.validate_draft(root,SID,dd,json.loads(raw),r1=e)
+    # Re-run the frozen receipt derivative proof: this checks the complete
+    # B3 invariant, including receipt field derivation from the exact snapshot,
+    # archived packet replay, and revocation/attempt history.
+    c4d._check_attempt_artifacts(root,SID,ORDINAL,1,e,'G-C4-B3')
     keys=set(); forbidden={'case_key','case_id','identity','symbol','ticker','code','stock_code','name','outcome','outcome_label','label','future','future_return','secret','secret_salt','salt','token'}
     def walk(x):
         if isinstance(x,dict):
