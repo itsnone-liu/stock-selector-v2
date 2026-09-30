@@ -201,6 +201,8 @@ def main():
     if [e.get('event_type') for e in live_events] == ['REVEAL_PACKET', 'SEAL_ANNOTATION']:
         if len(live_events) != 2:
             raise RuntimeError('post-SEAL witness requires exactly two persisted events')
+        if not (m.REAL_PRODUCTION / m.REAL_SESSION / 'sealing' / 'sealing_log.head.json').is_file():
+            raise RuntimeError('post-SEAL trusted head anchor is missing')
         b5 = verify_b5_freeze_domain()
         print(json.dumps({'certified_inputs': 'VERIFIED',
                           'certified_files': manifest['fileCount'],
