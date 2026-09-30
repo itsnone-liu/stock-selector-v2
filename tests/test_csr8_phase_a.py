@@ -424,3 +424,167 @@ def test_b2_draft_gate_rejects_invalid_pointer(tmp_path):
     p.write_text(json.dumps(draft, indent=2))
     with pytest.raises(RuntimeError, match="G-B2-DRAFT"):
         b2.verify_b2(root)
+
+
+# --------------------------------------------------------------------------
+# B4 human exact-hash approval (run audit_20260930010058058, taskbook §5 B4)
+#
+# run-2 persisted from a HARDCODED in-script message (executor self-approval,
+# forbidden); this run re-executes the real gate: the only accepted approval
+# message is the bound-session human reply transcribed byte-exactly to
+# docs/audit/evidence/b4_human_approval_message.txt.
+# --------------------------------------------------------------------------
+
+B4_SCRIPT = ROOT / "scripts/csr8_phase_b4_human_approval.py"
+
+
+def _load_b4():
+    import sys
+    sys.path.insert(0, str(B4_SCRIPT.parent))
+    spec = importlib.util.spec_from_file_location("csr8_b4_impl", B4_SCRIPT)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
+def test_b4_live_approval_binds_human_message_hash_and_receipt():
+    """All B4 gates measure PASS on the live tree, and the persisted
+    approval hash is character-identical to both the human message hash
+    and SHA256(exact receipt bytes)."""
+    b4 = _load_b4()
+    result = b4.verify_b4()
+    assert set(result["gates"].values()) == {"PASS"}
+    import hashlib
+    receipt_sha = hashlib.sha256(b4.RECEIPT.read_bytes()).hexdigest()
+    approval = json.loads(b4.APPROVAL.read_bytes())
+    assert result["receipt_sha256"] == receipt_sha
+    assert approval["approved_receipt_sha256"] == receipt_sha
+    assert b4.parse_human_message(b4.MESSAGE_EVIDENCE.read_bytes()) == receipt_sha
+    assert result["message_sha256"] == \
+        hashlib.sha256(b4.MESSAGE_EVIDENCE.read_bytes()).hexdigest()
+    assert result["receipt_sha256"] == \
+        "85a224a3e748b569060a14aea8fe5fe353b62e8a804e0f43cfb4c51a18063aa6"
+
+
+def test_b4_persist_is_one_shot_on_the_real_domain():
+    """The real approval is an immutable O_EXCL artifact: any second
+    persist attempt must fail closed."""
+    b4 = _load_b4()
+    with pytest.raises(RuntimeError,
+                       match="already exists; immutable O_EXCL artifact"):
+        b4.persist(b4.MESSAGE_EVIDENCE)
+
+
+def _b4_sandbox(tmp_path, b4):
+    """Full end-to-end dry-run of the B4 transaction on a tmp copy: the
+    synthetic message is generated from the template bound to the COPY's
+    receipt hash (identical bytes ⇒ identical hash), persisted through
+    the same frozen path, and verified green.  The copy starts from the
+    PRE-approval state (the post-B4 live tree legitimately carries
+    seal_approval.json — removed here so the dry-run exercises the real
+    persist path)."""
+    import shutil
+    root = tmp_path / "csr8_phase_c"
+    root.mkdir()
+    for d in ("production", "annotator", "c4d_receipts"):
+        shutil.copytree(b4.CSR / d, root / d)
+    approval = (root / "c4d_receipts" / b4.SID / "ordinal-0001" /
+                "attempt-0001" / "seal_approval.json")
+    if approval.exists():
+        approval.unlink()
+    receipt = (root / "c4d_receipts" / b4.SID / "ordinal-0001" /
+               "attempt-0001" / "receipt.json")
+    rsha = hashlib.sha256(receipt.read_bytes()).hexdigest()
+    msg_path = tmp_path / "human_message.txt"
+    msg_path.write_bytes(b4.fixed_wording(rsha).encode())
+    prov_path = tmp_path / "provenance.json"
+    return root, msg_path, prov_path, receipt.parent / "seal_approval.json"
+
+
+def test_b4_end_to_end_transaction_on_copy_then_fail_closed_tampers(tmp_path):
+    b4 = _load_b4()
+    root, msg_path, prov_path, approval_path = _b4_sandbox(tmp_path, b4)
+    result = b4.persist(msg_path, root=root, provenance_path=prov_path)
+    assert result["b4"] == "APPROVAL_PERSISTED"
+    assert set(result["gates"].values()) == {"PASS"}
+    # verify-only path re-proves the same gates from persisted bytes
+    assert set(b4.verify_b4(root, msg_path, prov_path)
+               ["gates"].values()) == {"PASS"}
+
+    good_message = msg_path.read_bytes()
+    good_approval = approval_path.read_bytes()
+
+    # wording drift: one extra character in the fixed wording
+    msg_path.write_bytes(
+        good_message.replace("我明确批准".encode(), "我明确地批准".encode()))
+    with pytest.raises(RuntimeError, match="G-B4-APPROVAL"):
+        b4.verify_b4(root, msg_path, prov_path)
+    with pytest.raises(RuntimeError, match="fixed wording|hash mismatch"):
+        b4.persist(msg_path, root=root, provenance_path=prov_path)
+    msg_path.write_bytes(good_message)
+
+    # hash drift: flip one hex digit inside an otherwise exact wording
+    flipped = ("0" if good_message.decode().splitlines()[1][0] != "0"
+               else "1")
+    drifted = good_message.decode()
+    drifted = drifted.replace(drifted.splitlines()[1],
+                              flipped + drifted.splitlines()[1][1:])
+    msg_path.write_bytes(drifted.encode())
+    with pytest.raises(RuntimeError,
+                       match="differs from SHA256|hash mismatch"):
+        b4.verify_b4(root, msg_path, prov_path)
+    msg_path.write_bytes(good_message)
+
+    # non-canonical approval bytes (pretty-printed rewrite)
+    obj = json.loads(good_approval)
+    approval_path.write_text(json.dumps(obj, indent=2))
+    with pytest.raises(RuntimeError, match="not canonical"):
+        b4.verify_b4(root, msg_path, prov_path)
+    approval_path.write_bytes(good_approval)
+
+    # approval binds a different receipt hash (canonical rewrite)
+    obj["approved_receipt_sha256"] = "0" * 64
+    approval_path.write_bytes(b4.c4d.canon(obj).encode())
+    with pytest.raises(RuntimeError,
+                       match="does not bind exact receipt bytes"):
+        b4.verify_b4(root, msg_path, prov_path)
+    approval_path.write_bytes(good_approval)
+
+    # mode drift 0600 -> 0644
+    approval_path.chmod(0o644)
+    with pytest.raises(RuntimeError, match="mode"):
+        b4.verify_b4(root, msg_path, prov_path)
+    approval_path.chmod(0o600)
+
+    # provenance from a different run / altered message record
+    prov = json.loads(prov_path.read_bytes())
+    prov["run_id"] = "audit_20260928142305936"
+    prov_path.write_bytes(b4.c4d.canon(prov).encode())
+    with pytest.raises(RuntimeError, match="provenance run_id"):
+        b4.verify_b4(root, msg_path, prov_path)
+    prov = json.loads(prov_path.read_bytes())
+    prov["run_id"] = b4.RUN_ID
+    prov["message_sha256"] = "0" * 64
+    prov_path.write_bytes(b4.c4d.canon(prov).encode())
+    with pytest.raises(RuntimeError, match="provenance message_sha256"):
+        b4.verify_b4(root, msg_path, prov_path)
+
+    # after restoring nothing, baseline must be green again
+    prov = json.loads(prov_path.read_bytes())
+    prov["message_sha256"] = hashlib.sha256(good_message).hexdigest()
+    prov_path.write_bytes(b4.c4d.canon(prov).encode())
+    assert set(b4.verify_b4(root, msg_path, prov_path)
+               ["gates"].values()) == {"PASS"}
+
+
+def test_b4_refuses_persist_with_missing_evidence_file(tmp_path):
+    """No evidence file → no persistence possible at all (fail-closed
+    before any write)."""
+    b4 = _load_b4()
+    root, msg_path, prov_path, approval_path = _b4_sandbox(tmp_path, b4)
+    msg_path.unlink()
+    with pytest.raises(RuntimeError,
+                       match="human approval message evidence absent"):
+        b4.persist(msg_path, root=root, provenance_path=prov_path)
+    assert not approval_path.exists()
+    assert not prov_path.exists()
