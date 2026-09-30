@@ -263,6 +263,40 @@ def test_c2_cli_rejects_persist_and_verify_together(capsys):
     assert "mutually exclusive" in capsys.readouterr().err
 
 
+def test_c2_catches_premature_r2_append(tmp_path):
+    """C3 boundary: appending ANY second reveal event (R2) to the
+    sealing log of an approved replica is refused before the
+    authorization can be consumed.  A malformed append crashes the
+    chain re-verification (missing required event fields — KeyError is
+    fail-closed, never accepted); growing the chain with a WELL-FORMED
+    R2 is only possible through the frozen C3 transaction machinery,
+    which C2 never invokes.  Either way verify_c2 cannot return PASS
+    on a chain longer than [R1,S1]."""
+    def tweak(root, record):
+        log = c4d.log_path(root, SID)
+        r2 = {"event_type": "REVEAL_PACKET", "event_hash": "a" * 64,
+              "payload": {}}
+        with log.open("a") as fh:
+            fh.write(json.dumps(r2, sort_keys=True,
+                                separators=(",", ":")) + "\n")
+    with pytest.raises((RuntimeError, KeyError)):
+        c2mod.verify_c2(*_tampered(tmp_path, "r2append", tweak))
+
+
+def test_c2_catches_noncanonical_record_bytes(tmp_path):
+    """The unattended record must persist as canonical bytes: an
+    equivalent-JSON but non-canonical rewrite (indent + sorted keys)
+    fails the record re-proof."""
+    def tweak(root, record):
+        rec = json.loads(record.read_bytes())
+        import os
+        os.chmod(record, 0o600)
+        record.write_bytes(json.dumps(rec, indent=2,
+                                      sort_keys=True).encode())
+    with pytest.raises(RuntimeError, match="not canonical"):
+        c2mod.verify_c2(*_tampered(tmp_path, "noncanon", tweak))
+
+
 def test_c2_bound_object_is_proposal_not_receipt():
     """Iteration-2 interpretation ruling, pinned machine-side: the v2
     amendment's 'session / reveal / attempt exact receipt bytes' /
