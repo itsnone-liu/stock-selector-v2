@@ -70,6 +70,31 @@ def append_r2():
     return result
 
 
+def verify_live_c2_binding_after_append():
+    """Verify the C2 authorization remains bound to the sealed S1 prefix.
+
+    C2's full pre-append verifier is executed on the isolated replica below;
+    after R2, the live chain is intentionally no longer a C1/C2 closed
+    prefix.  This live check therefore proves only the immutable C2 bytes and
+    their S1 prefix binding, never relabels a post-C3 chain as pre-C3.
+    """
+    events = _events()
+    s1 = events[1]
+    proposal_path = c4d.proposal_path(c4d.REAL_CSR, SID, ORDINAL)
+    proposal = c4d.read_json(proposal_path)
+    pbytes = proposal_path.read_bytes()
+    approval_path = c4d.next_authz_dir(c4d.REAL_CSR, SID, ORDINAL) / 'next_reveal.approval.json'
+    permit_path = c4d.next_authz_dir(c4d.REAL_CSR, SID, ORDINAL) / 'next_reveal.permit.json'
+    approval = c4d.read_json(approval_path)
+    if proposal['sealed_prefix_head'] != s1['event_hash']:
+        raise RuntimeError('G-C3-C2-BOUNDARY: proposal is not bound to S1')
+    if approval['approved_authorization_sha256'] != c4d.sha(pbytes):
+        raise RuntimeError('G-C3-C2-BOUNDARY: approval hash drift')
+    if permit_path.read_bytes() != pbytes:
+        raise RuntimeError('G-C3-C2-BOUNDARY: permit bytes drift')
+    return {'live_c2_prefix_binding': 'PASS', 'live_c2_approval_binding': 'PASS'}
+
+
 def verify_pre_append_c2_on_replica():
     """Rebuild the C2 boundary in an isolated replica and prove it before
     append.  This is the repeatable evidence path; it never mutates live
@@ -94,8 +119,8 @@ def main(argv=None):
     args = parser.parse_args(argv)
     if args.verify:
         result = verify_c3()
+        result.update(verify_live_c2_binding_after_append())
         result.update(verify_pre_append_c2_on_replica())
-        result['c2_full_verify_live_boundary'] = 'PASS'
         evidence = ROOT / 'docs/audit/evidence/c3_append_r2.json'
         evidence.parent.mkdir(parents=True, exist_ok=True)
         evidence.write_bytes(c4d.canon(result).encode())

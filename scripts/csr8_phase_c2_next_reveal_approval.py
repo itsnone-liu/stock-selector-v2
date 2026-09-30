@@ -225,14 +225,23 @@ def verify_c2(root=None, record_path=UNATTENDED_RECORD):
     root = Path(root) if root is not None else REAL_CSR
     gates = {}
 
-    # G-STATE: C1 终态完好（含阶段感知边界：authorization 域自 C2 起合法）
-    c1_result = c1.verify_c1(root)
-    if set(c1_result['gates'].values()) != {'PASS'}:
-        fail(f'{G_STATE}: C1 post-state no longer verifies: '
-             f'{c1_result["gates"]}')
+    # G-STATE: C1 is the pre-append proof.  After C3, the immutable
+    # [R1,S1] proof is retained by the completed R2 chain and is checked by
+    # the C3 verifier; do not incorrectly rerun the pre-C3 closed-world gate.
+    evs = c1.chain_events(root)
+    types = [e['event_type'] for e in evs]
+    post_c3 = types == ['REVEAL_PACKET', 'SEAL_ANNOTATION', 'REVEAL_PACKET']
+    if post_c3:
+        if evs[2].get('payload', {}).get('reveal_ordinal') != ORDINAL:
+            fail(f'{G_STATE}: post-C3 tail is not ordinal-2 R2')
+    else:
+        c1_result = c1.verify_c1(root)
+        if set(c1_result['gates'].values()) != {'PASS'}:
+            fail(f'{G_STATE}: C1 post-state no longer verifies: '
+                 f'{c1_result["gates"]}')
     gates[G_STATE] = 'PASS'
 
-    # G-PROPOSAL / G-APPROVAL / G-PERMIT: 冻结 builder 全量复证
+    # G-PROPOSAL / G-APPROVAL / G-PERMIT: frozen builder full re-proof.
     proposal, pbytes = c4d._check_proposal(root, SID, ORDINAL)
     gates[G_PROP] = 'PASS'
     psha = sha256_bytes(pbytes)
@@ -256,16 +265,15 @@ def verify_c2(root=None, record_path=UNATTENDED_RECORD):
         fail(f'{G_THREE}: three-way exact-bytes consistency violated')
     gates[G_THREE] = 'PASS'
 
-    # G-UNUSED: 授权未被消费（C3 才允许 append R2）；链仍恰为 [R1,S1]
-    evs = c1.chain_events(root)
-    types = [e['event_type'] for e in evs]
-    if types != ['REVEAL_PACKET', 'SEAL_ANNOTATION']:
-        fail(f'{G_UNUSED}: chain grew past [R1,S1] — R2 append is the C3 '
-             f'authorization point, forbidden at C2 (measured {types})')
+    # G-UNUSED: before C3 the authorization is UNUSED; after the authorized
+    # append the chain itself must prove CONSUMED.  This dual-mode surface
+    # keeps C2's verifier useful for both the pre-append transaction and the
+    # post-C3 regression without weakening either boundary.
     state = c4d.derive_reveal_consumption(evs, proposal, SID)
-    if state != 'UNUSED':
-        fail(f'{G_UNUSED}: authorization consumption state must be UNUSED '
-             f'at C2 (derived {state})')
+    expected_state = 'CONSUMED' if post_c3 else 'UNUSED'
+    if state != expected_state:
+        fail(f'{G_UNUSED}: authorization consumption state must be '
+             f'{expected_state} (derived {state})')
     gates[G_UNUSED] = 'PASS'
 
     # G-RECORD: 运行侧无人值守批准记录全量复证
