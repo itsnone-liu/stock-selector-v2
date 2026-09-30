@@ -628,14 +628,18 @@ def test_b4_end_to_end_transaction_on_copy_then_fail_closed_tampers(tmp_path):
         b4.verify_b4(root, record_path)
     approval_path.write_bytes(good_approval)
 
-    # mode drift 0600 -> 0644 (record and chain approval)
+    # mode drift 0600 -> 0644 (record and chain approval) must fail closed;
+    # verification must not repair or rewrite the tampered mode.
     record_path.chmod(0o644)
     with pytest.raises(RuntimeError, match="mode"):
         b4.verify_b4(root, record_path)
+    import stat as _stat
+    assert _stat.S_IMODE(record_path.stat().st_mode) == 0o644
     record_path.chmod(0o600)
     approval_path.chmod(0o644)
     with pytest.raises(RuntimeError, match="mode"):
         b4.verify_b4(root, record_path)
+    assert _stat.S_IMODE(approval_path.stat().st_mode) == 0o644
     approval_path.chmod(0o600)
 
     # after restoring everything, baseline must be green again
