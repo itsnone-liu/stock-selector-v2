@@ -24,6 +24,13 @@ audit_20260930021152297 阶段 C2，纯无人值守）。仅允许：
 三方一致（机器实测）：proposal exact bytes == approved hash ==
 permit exact bytes。
 
+绑定对象裁定（iteration 2，详见 docs/audit/evidence/
+c2_unattended_approval_gate.md「Interpretation ruling」节）：修订 v2
+段落中的「exact receipt bytes / receipt_sha256」措辞是 §5-B4 模板
+沿用；C2 的被绑定对象是 ordinal-2 proposal exact bytes，hash 字段是
+approved_proposal_sha256（C2 时点 cycle-2 receipt/attempt 尚不存在，
+由 C4 阶段创建）。
+
 禁止（本模块物理上不包含对应代码路径）：append R2（C3 授权点，授权
 保持 UNUSED）、SEAL/approve_seal（C4-C6 阶段）、outcome 读取、任何
 授权扩张（仅授权本次 NEXT_REVEAL_ONLY 对应的 exact bytes）。
