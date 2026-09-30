@@ -50,20 +50,24 @@ def constructive_progressive_loop(count=3):
         loops.append({'ordinal':i,'prerequisite':'PASS','authorization':'PASS','append':'PASS','seal':'PASS','history':'PASS'})
     return loops
 def same_chain_progressive_loop(count=3):
-    # Build one evolving chain, carrying each sealed prefix into the next
-    # ordinal. Every append is preceded by the generic eligibility gate; the
-    # synthetic pool is used only to supply opaque candidate bytes.
-    sb,sid=c.prepared_sealed(case='D-chain-1',T='2021-05-01')
-    trace=[]
-    for n in range(1,count+1):
-        ev=events(sb); h=c.prove_attempt_history(sb,sid,1,gate=f'G-D-CHAIN-{n}',events=ev,reveal=ev[0])
-        if h['seal_bound'] is None: raise RuntimeError('D chain seal binding missing')
-        if n < count:
-            # Real next-cycle prerequisite is measured from the sealed prefix.
-            if c.derive_state(sb,sid)[0] != 'SEALED': raise RuntimeError('D chain prefix not sealed')
-            trace.append({'ordinal':n,'prefix_events':len(ev),'prerequisite':'PASS','history':'PASS'})
-    trace.append({'ordinal':count,'prefix_events':len(events(sb)),'prerequisite':'PASS','history':'PASS'})
-    return trace
+    with tempfile.TemporaryDirectory(prefix='csr8-d-chain-') as td:
+        sb=Path(td)/'csr8_phase_c'; shutil.copytree(c.REAL_CSR,sb); sid=SID; trace=[]
+        for n in range(3,count+3):
+            ev=events(sb); prefix=c._current_prefix_head(sb,sid); cand=c.candidate_for_ordinal(n)
+            c.build_next_reveal_proposal(sb,sid,n,prefix,cand)
+            c.approve_next_reveal(sb,sid,n); c.materialize_next_permit(sb,sid,n); c.reveal_transaction(sb,sid,n)
+            pid=c.sha(f"{cand['opaque_case_id']}|{cand['T']}".encode()); pkt=(c.c4ab.C3_STATE/'packets'/f'{pid}.json').read_bytes()
+            c.handoff(sb,sid,cand['opaque_case_id'],cand['T'],bytes_override=pkt); pobj=json.loads(pkt); draft=c.sample_draft(sb,sid)
+            if not pobj.get('evidence'):
+                for j in draft['annotation']['rt_judgments']:
+                    j['observability']='UNOBSERVABLE'; j['support']=None; j['evidence_refs']=[]
+            c.write_draft(sb,sid,draft); c.make_receipt(sb,sid,ordinal=n); c.make_seal_approval(sb,sid,ordinal=n)
+            if c.seal_transaction(sb,sid).get('state') != 'SEALED': raise RuntimeError(f'D seal {n} failed')
+            ev=events(sb); reveals=[x for x in ev if x['event_type']==c.c2.REVEAL]
+            for k,r in enumerate(reveals,1):
+                if c.prove_attempt_history(sb,sid,k,gate=f'G-D-CHAIN-{n}-{k}',events=ev,reveal=r)['seal_bound'] is None: raise RuntimeError('D history missing')
+            trace.append({'ordinal':n,'prefix_events':len(ev),'prerequisite':'PASS','authorization':'PASS','append':'PASS','seal':'PASS','history_prefixes':n})
+        return trace
 def recovery_matrix():
     sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'tests'))
     from csr8_preseal_sandbox import build_pre_seal_sandbox
