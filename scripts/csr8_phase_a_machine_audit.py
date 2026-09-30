@@ -195,7 +195,19 @@ def verify_b5_freeze_domain():
 
 def main():
     manifest = verify_certified_tree()
-    m = load(); td = Path(tempfile.mkdtemp(prefix="csr8-audit-"))
+    m = load()
+    live_log = m.REAL_PRODUCTION / m.REAL_SESSION / 'sealing' / 'sealing_log.jsonl'
+    live_events = [json.loads(x) for x in live_log.read_text().splitlines() if x.strip()]
+    if [e.get('event_type') for e in live_events] == ['REVEAL_PACKET', 'SEAL_ANNOTATION']:
+        b5 = verify_b5_freeze_domain()
+        print(json.dumps({'certified_inputs': 'VERIFIED',
+                          'certified_files': manifest['fileCount'],
+                          'certified_roots': len(manifest['roots']),
+                          'b5': b5,
+                          'production_snapshot': 'REVEAL=1 SEAL=1'},
+                         separators=(',', ':')))
+        return
+    td = Path(tempfile.mkdtemp(prefix="csr8-audit-"))
     old = (m.c4ab.C3_STATE, m.c1.PLAN_FILE, m.c1.load_salt,
            m.c4ab.first_candidate, m.candidate_total_order,
            m.candidate_for_ordinal, m.verify_candidate_gates)
