@@ -194,9 +194,8 @@ def test_public_blindness_contract_and_anchor_are_machine_checked(tmp_path):
     assert [e["event_type"] for e in live_events] == \
         ["REVEAL_PACKET", "SEAL_ANNOTATION", "REVEAL_PACKET"]
     # C4 relocates the second-session artifacts into ordinal-0002; the
-    # top-level annotator may remain as an empty materialization root.
-    assert mod.REAL_ANNOTATOR.exists()
-    assert not any(mod.REAL_ANNOTATOR.rglob('*'))
+    # top-level annotator is absent because empty directories are not certified.
+    assert not mod.REAL_ANNOTATOR.exists()
     assert mod.REAL_RECEIPTS.exists()               # frozen audit trail kept
     # C1 boundary: the ordinal-2 next-reveal proposal is the sole legal
     # c4d_proposals entry (selector-only, frozen-builder re-proven);
@@ -429,8 +428,7 @@ def test_b1_real_annotator_domain_gates_pass_on_pre_seal_replica(tmp_path):
     assert res["reveal_event_hash"] == b1.LIVE_R1
     assert res["annotation_sessions"] == 1
     # post-B5 live terminal shape (fail-closed direction)
-    assert b1.c4d.REAL_ANNOTATOR.exists()
-    assert not any(b1.c4d.REAL_ANNOTATOR.rglob('*'))
+    assert not b1.c4d.REAL_ANNOTATOR.exists()
     assert [e["event_type"] for e in b1.read_chain(b1.REAL_CSR, b1.SID)] == \
         ["REVEAL_PACKET", "SEAL_ANNOTATION", "REVEAL_PACKET"]
 

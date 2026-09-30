@@ -150,9 +150,8 @@ def inventory(root_rel):
         else:
             print(f'FAIL: non-regular entry refused: {root_rel}/{rel}')
             sys.exit(1)
-    for rel in skipped_empty:
-        print(f'note: skipping empty (non-materializable) directory: '
-              f'{root_rel}/{rel}')
+    if skipped_empty:
+        raise RuntimeError(f'non-materializable empty directories in {root_rel}: {skipped_empty}')
     return {'root': root_rel, 'dirCount': len(dirs),
             'fileCount': len(files),
             'totalBytes': sum(f['bytes'] for f in files),
