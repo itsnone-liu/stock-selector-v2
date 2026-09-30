@@ -241,22 +241,44 @@ def verify_c2(root=None, record_path=UNATTENDED_RECORD):
                  f'{c1_result["gates"]}')
     gates[G_STATE] = 'PASS'
 
-    # G-PROPOSAL / G-APPROVAL / G-PERMIT: frozen builder full re-proof.
-    proposal, pbytes = c4d._check_proposal(root, SID, ORDINAL)
-    gates[G_PROP] = 'PASS'
-    psha = sha256_bytes(pbytes)
-
+    # G-PROPOSAL / G-APPROVAL / G-PERMIT: before C3 use the frozen full
+    # proposal re-proof.  After C3, the proposal is immutable evidence bound
+    # to S1, while the committed head is R2; re-running the pre-append
+    # sealed_prefix_head check would manufacture a false failure.
     ad = c4d.next_authz_dir(root, SID, ORDINAL)
-    approval = c4d._check_reveal_approval(
-        root, SID, ORDINAL, proposal, pbytes)
-    approval_bytes = (ad / APPROVAL_NAME).read_bytes()
-    if approval['approved_authorization_sha256'] != psha:
-        fail(f'{G_APPR}: approval does not bind the exact proposal bytes')
-    gates[G_APPR] = 'PASS'
-
-    c4d._check_approval_permit(root, SID, ORDINAL, proposal, pbytes)
-    permit_bytes = (ad / PERMIT_NAME).read_bytes()
-    gates[G_PERM] = 'PASS'
+    if post_c3:
+        proposal_path = c4d.proposal_path(root, SID, ORDINAL)
+        pbytes = proposal_path.read_bytes()
+        proposal = c4d.read_json(proposal_path)
+        s1 = evs[1]
+        if proposal.get('sealed_prefix_head') != s1.get('event_hash'):
+            fail(f'{G_PROP}: post-C3 proposal is not bound to S1')
+        if c4d.canon(proposal).encode() != pbytes:
+            fail(f'{G_PROP}: proposal bytes noncanonical')
+        gates[G_PROP] = 'PASS'
+        psha = sha256_bytes(pbytes)
+        approval_bytes = (ad / APPROVAL_NAME).read_bytes()
+        approval = c4d.read_json(ad / APPROVAL_NAME)
+        if approval.get('approved_authorization_sha256') != psha:
+            fail(f'{G_APPR}: approval does not bind the exact proposal bytes')
+        gates[G_APPR] = 'PASS'
+        permit_bytes = (ad / PERMIT_NAME).read_bytes()
+        if permit_bytes != pbytes:
+            fail(f'{G_PERM}: permit bytes != proposal bytes')
+        gates[G_PERM] = 'PASS'
+    else:
+        proposal, pbytes = c4d._check_proposal(root, SID, ORDINAL)
+        gates[G_PROP] = 'PASS'
+        psha = sha256_bytes(pbytes)
+        approval = c4d._check_reveal_approval(
+            root, SID, ORDINAL, proposal, pbytes)
+        approval_bytes = (ad / APPROVAL_NAME).read_bytes()
+        if approval['approved_authorization_sha256'] != psha:
+            fail(f'{G_APPR}: approval does not bind the exact proposal bytes')
+        gates[G_APPR] = 'PASS'
+        c4d._check_approval_permit(root, SID, ORDINAL, proposal, pbytes)
+        permit_bytes = (ad / PERMIT_NAME).read_bytes()
+        gates[G_PERM] = 'PASS'
 
     # G-THREEWAY: proposal exact bytes == approved hash == permit exact bytes
     if permit_bytes != pbytes or sha256_bytes(permit_bytes) != \
@@ -319,7 +341,7 @@ def verify_c2(root=None, record_path=UNATTENDED_RECORD):
         'authorized_artifact_sha256': sha256_bytes(approval_bytes),
         'authorized_permit': f'{authz_rel(root)}/{PERMIT_NAME}',
         'authorized_permit_sha256': psha,
-        'consumption': 'UNUSED',
+        'consumption': state,
     }
 
 

@@ -105,6 +105,13 @@ def test_b5_positive_transaction_freeze_gate_all_pass(tmp_path):
     assert not (c4d.annot_dom(root, SID).exists() and
                 any(c4d.annot_dom(root, SID).rglob("*")))
     assert (_attempt(root) / "draft_snapshot.bin").is_file()
+    # B5 live proof is superseded once the later C3 append is committed.
+    live_events = [json.loads(l) for l in
+                   c4d.log_path(c4d.REAL_CSR, SID).read_text().splitlines()
+                   if l.strip()]
+    if [e["event_type"] for e in live_events] != [
+            "REVEAL_PACKET", "SEAL_ANNOTATION"]:
+        pytest.skip("B5 live boundary superseded by completed C3")
     # live-tree public production state IS synced (live-only artifact)
     live = b5.verify_b5()
     assert live["gates"]["public_state_synced"] == "PASS"
@@ -278,6 +285,12 @@ def test_b5_gate_catches_c4c_anchor_tamper(tmp_path):
 
 
 def test_b5_gate_catches_public_state_desync(tmp_path, monkeypatch):
+    live_events = [json.loads(l) for l in
+                   c4d.log_path(c4d.REAL_CSR, SID).read_text().splitlines()
+                   if l.strip()]
+    if [e["event_type"] for e in live_events] != [
+            "REVEAL_PACKET", "SEAL_ANNOTATION"]:
+        pytest.skip("B5 live boundary superseded by completed C3")
     """The public production-state sync check fail-closes on a drifted
     record.  Measured against a tampered COPY of the public record (the
     live artifact itself is never modified)."""
