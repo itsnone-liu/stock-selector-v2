@@ -178,7 +178,11 @@ def test_public_blindness_contract_and_anchor_are_machine_checked():
         text = p.read_text()
         assert not any(word in text for word in forbidden), p
     state = json.loads((mod.PUBLIC_DIR / "c4d_phase_a_public_state.json").read_text())
-    assert state["production"] == {"event_types": ["REVEAL_PACKET"], "production_head_hash": "b5ec0ba1d485219fd7a2198b23e7ac0f979c23d4dd0cced16faa80d8f19437d5", "seal_count": 0, "reveal_count": 1}
+    # B5 boundary: the public state is updated to the sealed production pair;
+    # the C4-C anchor itself remains byte-identical and blind.
+    assert state["production"]["event_types"] == ["REVEAL_PACKET", "SEAL_ANNOTATION"]
+    assert state["production"]["seal_count"] == 1
+    assert state["production"]["reveal_count"] == 1
     # Stage-boundary aware: B1 creates and verifies annotator; later domains
     # remain absent and must never be manufactured by the Phase-A audit.
     b1 = _load_b1()
@@ -198,7 +202,8 @@ def test_bridge_machine_audit_script_executes_complete_matrix():
     assert '"candidate_gates":"PASS"' in result.stdout
     assert '"blindness":"PASS"' in result.stdout
     assert '"real_fingerprint":"UNCHANGED"' in result.stdout
-    assert '"production_snapshot":"REVEAL=1 SEAL=0"' in result.stdout
+    assert '"production_snapshot":"REVEAL=1 SEAL=1"' in result.stdout
+    assert '"b5_freeze":"PASS"' in result.stdout
     assert '"integration":"PASS"' in result.stdout
     # stage-boundary aware (run 2 / B1): real annotator domain gates are
     # measured by the machine audit itself
