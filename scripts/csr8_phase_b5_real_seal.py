@@ -55,8 +55,12 @@ def verify_b5():
         fail('receipt triple exact-byte equality failed')
     if s1['payload']['receipt_sha256'] != sha(rbytes) or approval['approved_receipt_sha256'] != sha(rbytes):
         fail('SEAL payload/approval receipt hash drift')
-    if stat.S_IMODE(adir.stat().st_mode) != 0o700 or stat.S_IMODE((adir/'receipt.json').stat().st_mode) != 0o600:
-        fail('receipt attempt permissions drift')
+    if stat.S_IMODE(adir.stat().st_mode) != 0o700 or any(
+            stat.S_IMODE((adir / name).stat().st_mode) != 0o600
+            for name in ('receipt.json', 'draft_snapshot.bin', 'seal_approval.json')):
+        fail('receipt/approval attempt permissions drift')
+    if c4d.canon(approval).encode() != (adir / 'seal_approval.json').read_bytes():
+        fail('seal approval is not canonical')
     # The transaction proved active packet/draft exactness before append; after
     # POST_SEAL_FINAL the active workspace is intentionally absent.  The
     # archived REVEAL bytes remain the exact packet proof above via C2 replay.
@@ -74,26 +78,29 @@ def verify_b5():
     c4d.semantic_replay(CSR, SID)
     b4._verify_chain_approval(CSR, rbytes, sha(rbytes))
     checks = {
-        'trusted_prefix': True,
+        'trusted_prefix': (log.verify(True) or True),
         'history_unique': history['live'] == [ATTEMPT],
         'receipt_snapshot_exact': draft.read_bytes() == snap,
         'approval_exact': approval['approved_receipt_sha256'] == sha(rbytes),
         'commit_time_receipt': s1['payload']['receipt_sha256'] == sha(rbytes),
         'persisted_receipt_reread': archived.read_bytes() == rbytes,
         'seal_append_once': len(events) == 2,
-        'c2_full_verify': True, 'semantic_replay': True, 'seal_committed': True,
+        'c2_full_verify': (log.verify(True) or True),
+        'semantic_replay': (c4d.semantic_replay(CSR, SID) or True),
+        'seal_committed': c4d.derive_state(CSR, SID)[0] in ('SEALED', 'SEAL_PENDING_FINALIZE'),
         'c4d_anchor_durable': anchor.is_file(),
         'workspace_cleanup': not (c4d.annot_dom(CSR, SID).exists() and any(c4d.annot_dom(CSR, SID).rglob('*'))),
         'post_seal_final': c4d.derive_state(CSR, SID)[0] == 'SEALED',
         'chain_r1_s1': [e['event_type'] for e in events] == ['REVEAL_PACKET', 'SEAL_ANNOTATION'],
         'head_s1': json.loads(c4d.head_path(CSR, SID).read_text())['head_hash'] == s1['event_hash'],
-        'receipt_triple_exact': archived.read_bytes() == rbytes,
+        'receipt_triple_exact': archived.read_bytes() == rbytes and draft.read_bytes() == snap,
         'approval_consumed': c4d.derive_state(CSR, SID)[0] == 'SEALED',
         'attempt_history': history['live'] == [ATTEMPT],
         'active_workspace_empty': not (c4d.annot_dom(CSR, SID).exists() and any(c4d.annot_dom(CSR, SID).rglob('*'))),
         'c4d_anchor_exact': ap.get('production_head_hash') == s1['event_hash'],
     }
-    if not all(checks.values()): fail('measured Freeze Gate checks failed')
+    if not all(checks.values()):
+        fail('measured Freeze Gate checks failed: ' + ','.join(k for k,v in checks.items() if not v))
     return {'gates': {k: 'PASS' for k in checks}, 'chain': ['REVEAL_PACKET', 'SEAL_ANNOTATION'], 'production': 'REVEAL=1 SEAL=1', 'head': s1['event_hash'], 'receipt_sha256': sha(rbytes)}
 
 def main():
