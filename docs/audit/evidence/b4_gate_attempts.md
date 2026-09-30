@@ -61,3 +61,25 @@ task-packet preauthorization clause.
 `csr8_phase_b4_human_approval.py --verify` re-proves everything from
 persisted bytes and additionally locates seq 31712 in the LIVE session
 store (gate `session_record_live`), failing closed on any drift.
+
+## Iteration-2 re-run gate (reviewer-directed re-confirmation)
+
+The reviewer required the human gate to be re-run before
+READY_FOR_AUDIT. Full machine-recorded exchange (same session store):
+
+| seq | UTC | msg sha256 | verdict |
+|---|---|---|---|
+| 54732 (line 4702) | 2026-09-30T01:55:41.046Z | `77f417cc…0a3` | REFUSED — reveal head hash `b5ec0ba1…` in receipt slot |
+| 55643 (line 4768) | 2026-09-30T01:56:01.881Z | `77f417cc…0a3` | REFUSED — byte-identical to the above |
+| 56405 (line 4841) | 2026-09-30T01:56:24.017Z | `3fcdd036…3caf` | ACCEPTED — re-confirmation |
+
+The re-confirmation message is byte-identical (289 bytes, sha256
+`3fcdd036301611c9419489d88e785fb682a6cc266213b65162ade59c72b03caf`)
+to the original accepted approval (seq 31712) and to
+`b4_human_approval_message.txt`; verbatim copy in
+`b4_gate_reconfirmation.txt`. Transcript record line sha256:
+`c5a2e7ff4490ee162f81a866ad65b204873d0feb06b772c12bdb915ec495b635`.
+The persisted `seal_approval.json` was NOT rewritten (immutable
+O_EXCL artifact; duplicate persist refused by design) — the
+re-confirmation re-satisfies the same EXACT binding
+receipt_sha256 `85a224a3e748b569060a14aea8fe5fe353b62e8a804e0f43cfb4c51a18063aa6`.
