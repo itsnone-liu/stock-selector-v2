@@ -31832,7 +31832,7 @@
     },
     {
      "bytes": 1707,
-     "mode": 384,
+     "mode": 256,
      "path": "c4d_receipts/c4-prod-0002/ordinal-0002/attempt-0001/draft_snapshot.bin",
      "sha256": "9f399afe6d0e4a1a4dbfb700dc16f6408d470247149bcaa35c221225c8e312d0"
     },
@@ -31844,7 +31844,7 @@
     },
     {
      "bytes": 1264,
-     "mode": 420,
+     "mode": 384,
      "path": "c4d_receipts/c4-prod-0002/ordinal-0002/packet.json",
      "sha256": "30635e93925744fff634c4974ea29df14f4bf871b126b35f6764eb2ac78ef004"
     },
