@@ -201,6 +201,8 @@ def main():
     if [e.get('event_type') for e in events] != ['REVEAL_PACKET', 'SEAL_ANNOTATION']:
         raise RuntimeError('B5 audit requires exact persisted [R1,S1] chain')
     result = verify_b5_freeze_domain()
+    if result.get('b5_freeze') != 'PASS':
+        raise RuntimeError('B5 Freeze Gate did not pass')
     print(json.dumps({'certified_inputs': 'VERIFIED', 'certified_files': manifest['fileCount'],
                       'certified_roots': len(manifest['roots']), 'b5': result,
                       'production_snapshot': 'REVEAL=1 SEAL=1'}, separators=(',', ':')))
