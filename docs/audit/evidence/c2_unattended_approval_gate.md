@@ -248,3 +248,17 @@ proposal/approval/permit agreement. The B4-template `receipt_sha256` wording
 is not a C2 receipt-binding requirement at this boundary, where the ordinal-2
 receipt and attempt do not yet exist. No C3 append, C4 action, reveal
 transaction, or authorization expansion was performed.
+
+## Iteration-9 re-verification
+
+For `audit_20260930021152297` / C2 / iteration 9, the persisted authorization
+artifacts were re-verified in place. The C2 verifier returned all eight G-C2
+gates `PASS`; `approved_by` remained `UNATTENDED_POLICY`, `scope` remained
+`NEXT_REVEAL_ONLY`, and authorization consumption remained `UNUSED`. The
+proposal/approval/permit three-way value remained
+`d045778390478d5cdc31bedcf44078fd9307c10fa08d0bc84a18df596cecc578`.
+
+The stage boundary remains unchanged: C2 authorizes only the exact ordinal-2
+proposal bytes and does not consume authorization or create a receipt/attempt.
+No C3 append, reveal transaction, C4 action, or authorization expansion was
+performed.
