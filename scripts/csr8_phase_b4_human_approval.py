@@ -271,6 +271,12 @@ def persist_unattended(root=CSR, record_path=UNATTENDED_RECORD):
     through the frozen make_seal_approval transaction when absent
     (O_EXCL / canonical / 0600 / fsync); the run-side unattended record
     is then written the same way and both are fully re-proven."""
+    # Check the run-side O_EXCL destination before touching the chain-side
+    # artifact.  This preserves one-shot semantics even after a crash or a
+    # retry: an already-filed record must never trigger a new chain mutation.
+    if Path(record_path).exists():
+        fail('unattended approval record already exists; immutable O_EXCL artifact')
+
     b3.verify_b3(root)                      # full B1-B3 proof first
     rsha = receipt_sha256(root)
     apath = c4d.attempt_dir(root, SID, ORDINAL, ATTEMPT) / 'seal_approval.json'
