@@ -197,3 +197,13 @@ permit exact bytes == proposal exact bytes
 存在会与阶段边界及冻结 approval schema 冲突。该裁定由
 `test_c2_bound_object_is_proposal_not_receipt`、冻结 schema 的闭世界校验、
 C2 的 G-C2-THREEWAY 及 machine audit 共同钉住。
+
+## Iteration-5 re-verification
+
+For `audit_20260930021152297` / C2 / iteration 5, the live transaction was
+re-verified from persisted bytes with `csr8_phase_c2_next_reveal_approval.py
+--verify`: all eight G-C2 gates passed, `approved_by=UNATTENDED_POLICY`,
+`scope=NEXT_REVEAL_ONLY`, and authorization consumption remained `UNUSED`.
+The observed three-way value remained
+`d045778390478d5cdc31bedcf44078fd9307c10fa08d0bc84a18df596cecc578`.
+No C3 append or other stage action was performed.
