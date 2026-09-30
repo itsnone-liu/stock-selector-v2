@@ -262,3 +262,23 @@ The stage boundary remains unchanged: C2 authorizes only the exact ordinal-2
 proposal bytes and does not consume authorization or create a receipt/attempt.
 No C3 append, reveal transaction, C4 action, or authorization expansion was
 performed.
+
+## Iteration-10 ownerRuling re-verification
+
+The taskbook now contains the explicit ownerRuling
+`v2-c2-binding-clarification-20261001`. It formally freezes the C2 contract as:
+
+```text
+proposal exact bytes
+  == SHA256(proposal exact bytes) == approved_proposal_sha256
+  == approved_authorization_sha256
+permit exact bytes == proposal exact bytes
+```
+
+The ownerRuling supersedes the copied B4 `receipt`/`attempt`/`receipt_sha256`
+wording in the v2 paragraph. C2 therefore binds only the ordinal-2 proposal
+exact bytes; cycle-2 receipt and attempt artifacts are produced at C4. The
+persisted artifacts and machine verification remain unchanged: all eight
+G-C2 gates pass, `approved_by=UNATTENDED_POLICY`, `scope=NEXT_REVEAL_ONLY`,
+and consumption is `UNUSED`. No C3 append, receipt generation, or
+authorization expansion was performed.
