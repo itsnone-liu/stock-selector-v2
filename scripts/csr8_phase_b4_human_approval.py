@@ -51,6 +51,7 @@ HOST_ID = 'RainYun-c438TDGn'
 STAGE, ITERATION = 'B4', 1
 MESSAGE_EVIDENCE = ROOT / 'docs/audit/evidence/b4_human_approval_message.txt'
 PROVENANCE = ROOT / 'docs/audit/evidence/b4_human_approval_provenance.json'
+PREAUTH = ROOT / 'docs/audit/evidence/b4_preauth_v1.json'
 G = 'G-B4-APPROVAL'
 
 # 任务书 §5 B4 固定批准措辞（逐字取自冻结任务书，不得改写）：
@@ -73,6 +74,25 @@ PROVENANCE_KEYS = {
     'session_id', 'reveal_event_hash', 'annotation_attempt',
     'recorded_at', 'recorded_by',
 }
+
+# PREAUTH v1（任务书 preauthorization 节：含人类逐字登记话术与消息溯源，
+# 桥验证通过即视为满足 B4 批准要求；binding=EXACT）
+PREAUTH_KEYS = {
+    'preauth_version', 'run_id', 'host_id', 'stage', 'gate_iteration',
+    'filed_iteration', 'binding', 'scope', 'session_id',
+    'reveal_event_hash', 'reveal_ordinal', 'annotation_attempt',
+    'approved_receipt_sha256', 'human_wording_verbatim',
+    'human_wording_sha256', 'message_evidence_file',
+    'message_provenance', 'rejected_attempts', 'excerpt_file',
+    'excerpt_record_line_sha256', 'accepted_attempt_index',
+    'approval_time_utc', 'persisted_recorded_at', 'expires_at_utc',
+    'expiry_hours',
+}
+PREAUTH_PROV_KEYS = {'record_type', 'session_record_id', 'session_file',
+                     'line', 'seq', 'time_ms', 'time_utc',
+                     'record_line_sha256'}
+PREAUTH_REJECTED_KEYS = {'line', 'seq', 'time_utc', 'message_sha256',
+                         'outcome'}
 
 
 def fail(msg):
@@ -150,8 +170,139 @@ def _expected_provenance(message_bytes, rsha, message_path=MESSAGE_EVIDENCE):
     }
 
 
+def _user_message_text(record, gate=G):
+    if not isinstance(record, dict):
+        fail(f'{gate}: transcript record is not an object')
+    d = record.get('data')
+    if not isinstance(d, dict) or not isinstance(d.get('content'), list):
+        fail(f'{gate}: transcript record lacks data.content[]')
+    return ''.join(c.get('text', '') for c in d['content']
+                   if isinstance(c, dict))
+
+
+def verify_preauth_v1(message_bytes, rsha, preauth_path=PREAUTH):
+    """Machine-verify the PREAUTH v1 record against the committed
+    verbatim session-record excerpt: closed-world canonical schema,
+    run/host/stage/binding/scope bindings, human verbatim wording ==
+    evidence bytes, receipt-hash binding, and per-line excerpt hashes
+    (rejected + accepted attempts).  Returns the two excerpt-bound
+    gates; raises on any drift."""
+    pb = Path(preauth_path).read_bytes()
+    try:
+        pre = json.loads(pb)
+    except json.JSONDecodeError:
+        fail('PREAUTH v1 record is not JSON')
+    if not isinstance(pre, dict) or set(pre) != PREAUTH_KEYS:
+        fail('PREAUTH v1 closed-world schema violation')
+    if c4d.canon(pre).encode() != pb:
+        fail('PREAUTH v1 record is not canonical')
+    if pre['preauth_version'] != 'preauth-v1' or pre['run_id'] != RUN_ID \
+            or pre['host_id'] != HOST_ID or pre['stage'] != STAGE:
+        fail('PREAUTH v1 run/host/stage binding drift')
+    if pre['binding'] != ['EXACT'] or pre['scope'] != 'SEAL_ANNOTATION_ONLY':
+        fail('PREAUTH v1 binding/scope drift')
+    if pre['session_id'] != SID or pre['reveal_event_hash'] != REVEAL \
+            or pre['annotation_attempt'] != ATTEMPT:
+        fail('PREAUTH v1 session/reveal/attempt binding drift')
+    if pre['approved_receipt_sha256'] != rsha:
+        fail('PREAUTH v1 does not bind the exact receipt hash')
+    if pre['human_wording_verbatim'].encode() != message_bytes:
+        fail('PREAUTH v1 verbatim wording != evidence message bytes')
+    if pre['human_wording_sha256'] != sha256_bytes(message_bytes):
+        fail('PREAUTH v1 wording hash drift')
+
+    prov = pre['message_provenance']
+    if not isinstance(prov, dict) or set(prov) != PREAUTH_PROV_KEYS:
+        fail('PREAUTH v1 provenance closed-world schema violation')
+    rejected = pre['rejected_attempts']
+    if not isinstance(rejected, list) or not rejected:
+        fail('PREAUTH v1 must cite at least one rejected attempt')
+    for r in rejected:
+        if not isinstance(r, dict) or set(r) != PREAUTH_REJECTED_KEYS:
+            fail('PREAUTH v1 rejected-attempt schema violation')
+
+    excerpt_rel = Path(pre['excerpt_file'])
+    excerpt_path = excerpt_rel if excerpt_rel.is_absolute() \
+        else ROOT / excerpt_rel
+    if not excerpt_path.is_file():
+        fail(f'PREAUTH v1 excerpt file absent: {pre["excerpt_file"]}')
+    elines = excerpt_path.read_bytes().splitlines()
+    if len(elines) != len(rejected) + 1:
+        fail('PREAUTH v1 excerpt line count != rejected+accepted')
+    if len(pre['excerpt_record_line_sha256']) != len(elines):
+        fail('PREAUTH v1 excerpt sha list length drift')
+    records = []
+    for i, (lb, want_sha) in enumerate(
+            zip(elines, pre['excerpt_record_line_sha256'])):
+        if sha256_bytes(lb) != want_sha:
+            fail(f'PREAUTH v1 excerpt line {i} sha256 drift')
+        try:
+            rec = json.loads(lb)
+        except json.JSONDecodeError:
+            fail(f'PREAUTH v1 excerpt line {i} is not JSON')
+        if rec.get('type') != prov['record_type']:
+            fail(f'PREAUTH v1 excerpt line {i} record-type drift')
+        records.append(rec)
+    for i, r in enumerate(rejected):
+        if sha256_bytes(_user_message_text(records[i]).encode()) != \
+                r['message_sha256']:
+            fail(f'PREAUTH v1 rejected attempt {i + 1} message hash drift')
+        if records[i].get('seq') != r['seq']:
+            fail(f'PREAUTH v1 rejected attempt {i + 1} seq drift')
+    acc = pre['accepted_attempt_index']
+    if not isinstance(acc, int) or not 0 <= acc < len(records) \
+            or acc != len(rejected):
+        fail('PREAUTH v1 accepted_attempt_index drift')
+    if _user_message_text(records[acc]).encode() != message_bytes:
+        fail('PREAUTH v1 accepted excerpt record != evidence message bytes')
+    if records[acc].get('seq') != prov['seq'] or \
+            records[acc].get('time') != prov['time_ms']:
+        fail('PREAUTH v1 accepted record seq/time drift vs provenance')
+    return {'preauth_v1_record': 'PASS', 'session_record_excerpt': 'PASS'}
+
+
+def verify_session_record_live(preauth_path=PREAUTH):
+    """Cross-check the PREAUTH citation against the LIVE harness session
+    store when it is present (same host as the audit bridge): locate the
+    cited user/message seq in the decompressed transcript and require the
+    recorded message bytes to hash exactly to human_wording_sha256.
+    Absent store (e.g. detached worktree without /root/.dsh) is reported
+    explicitly — the committed verbatim excerpt carries the proof and
+    the bridge owns the authoritative session record."""
+    pre = json.loads(Path(preauth_path).read_bytes())
+    prov = pre['message_provenance']
+    sfile = Path(prov['session_file'])
+    if not sfile.is_file():
+        return ('UNAVAILABLE: session store not present in this '
+                'environment; committed verbatim excerpt is the proof '
+                'and the bridge re-verifies against its own record')
+    import subprocess
+    raw = subprocess.run(['zstd', '-dc', str(sfile)], capture_output=True)
+    if raw.returncode != 0:
+        fail(f'PREAUTH v1 live session record undecompressable '
+             f'(rc={raw.returncode})')
+    hit = None
+    for lb in raw.stdout.splitlines():
+        try:
+            rec = json.loads(lb)
+        except json.JSONDecodeError:
+            continue
+        if rec.get('type') == prov['record_type'] and \
+                rec.get('seq') == prov['seq']:
+            hit = rec
+            break
+    if hit is None:
+        fail('PREAUTH v1 cited seq not found in live session record')
+    text = _user_message_text(hit)
+    if sha256_bytes(text.encode()) != pre['human_wording_sha256']:
+        fail('PREAUTH v1 live session message hash drift')
+    if hit.get('time') != prov['time_ms']:
+        fail('PREAUTH v1 live session message time drift')
+    return 'PASS'
+
+
 def verify_b4(root=CSR, message_path=MESSAGE_EVIDENCE,
-              provenance_path=PROVENANCE):
+              provenance_path=PROVENANCE, preauth_path=PREAUTH):
     """Re-prove the whole B4 gate from persisted bytes only."""
     b3.verify_b3(root)
     rbytes = (c4d.attempt_dir(root, SID, ORDINAL, ATTEMPT) /
@@ -224,19 +375,26 @@ def verify_b4(root=CSR, message_path=MESSAGE_EVIDENCE,
             fail(f'provenance {key} does not bind this run/message '
                  f'({prov.get(key)!r} != {expected[key]!r})')
 
-    return {'gates': {'human_fixed_phrase': 'PASS',
-                      'receipt_hash_exact': 'PASS',
-                      'message_provenance': 'PASS',
-                      'session_reveal_attempt': 'PASS',
-                      'closed_world_canonical': 'PASS',
-                      'frozen_reproof': 'PASS',
-                      'o_excl_0600_fsync': 'PASS'},
+    # --- PREAUTH v1: machine-recorded human approval + provenance ---
+    preauth_gates = verify_preauth_v1(message_bytes, rsha, preauth_path)
+    live_gate = verify_session_record_live(preauth_path)
+
+    gates = {'human_fixed_phrase': 'PASS',
+             'receipt_hash_exact': 'PASS',
+             'message_provenance': 'PASS',
+             'session_reveal_attempt': 'PASS',
+             'closed_world_canonical': 'PASS',
+             'frozen_reproof': 'PASS',
+             'o_excl_0600_fsync': 'PASS'}
+    gates.update(preauth_gates)
+    gates['session_record_live'] = live_gate
+    return {'gates': gates,
             'receipt_sha256': rsha, 'attempt': ATTEMPT,
             'message_sha256': sha256_bytes(message_bytes)}
 
 
 def persist(message_path=MESSAGE_EVIDENCE, root=CSR,
-            provenance_path=PROVENANCE):
+            provenance_path=PROVENANCE, preauth_path=PREAUTH):
     """Persist ONLY from a valid human message evidence file. No
     in-script message exists; approval cannot be self-fabricated here
     without leaving a mismatched, verifiable trace."""
@@ -259,7 +417,7 @@ def persist(message_path=MESSAGE_EVIDENCE, root=CSR,
                            receipt_sha=approved_sha)
     prov_obj = _expected_provenance(message_bytes, rsha, message_path)
     c4d.excl_write(Path(provenance_path), c4d.canon(prov_obj).encode())
-    result = verify_b4(root, message_path, provenance_path)
+    result = verify_b4(root, message_path, provenance_path, preauth_path)
     result['b4'] = 'APPROVAL_PERSISTED'
     return result
 

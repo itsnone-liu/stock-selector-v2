@@ -450,7 +450,9 @@ def _load_b4():
 def test_b4_live_approval_binds_human_message_hash_and_receipt():
     """All B4 gates measure PASS on the live tree, and the persisted
     approval hash is character-identical to both the human message hash
-    and SHA256(exact receipt bytes)."""
+    and SHA256(exact receipt bytes).  The PREAUTH v1 record and its
+    verbatim session-record excerpt are machine-verified, and the live
+    harness session store (same host as the bridge) is cross-checked."""
     b4 = _load_b4()
     result = b4.verify_b4()
     assert set(result["gates"].values()) == {"PASS"}
@@ -464,6 +466,9 @@ def test_b4_live_approval_binds_human_message_hash_and_receipt():
         hashlib.sha256(b4.MESSAGE_EVIDENCE.read_bytes()).hexdigest()
     assert result["receipt_sha256"] == \
         "85a224a3e748b569060a14aea8fe5fe353b62e8a804e0f43cfb4c51a18063aa6"
+    assert result["gates"]["preauth_v1_record"] == "PASS"
+    assert result["gates"]["session_record_excerpt"] == "PASS"
+    assert result["gates"]["session_record_live"] == "PASS"
 
 
 def test_b4_persist_is_one_shot_on_the_real_domain():
@@ -482,7 +487,9 @@ def _b4_sandbox(tmp_path, b4):
     the same frozen path, and verified green.  The copy starts from the
     PRE-approval state (the post-B4 live tree legitimately carries
     seal_approval.json — removed here so the dry-run exercises the real
-    persist path)."""
+    persist path).  A synthetic PREAUTH v1 record + verbatim excerpt are
+    filed alongside (citing a session store that does not exist here,
+    so session_record_live reports UNAVAILABLE explicitly)."""
     import shutil
     root = tmp_path / "csr8_phase_c"
     root.mkdir()
@@ -498,29 +505,89 @@ def _b4_sandbox(tmp_path, b4):
     msg_path = tmp_path / "human_message.txt"
     msg_path.write_bytes(b4.fixed_wording(rsha).encode())
     prov_path = tmp_path / "provenance.json"
-    return root, msg_path, prov_path, receipt.parent / "seal_approval.json"
+
+    # synthetic machine-record trail: rejected, rejected, accepted
+    rejected_text = b4.fixed_wording("f" * 64)
+    accepted_text = b4.fixed_wording(rsha)
+    lines, shas = [], []
+    for seq, t in ((11, rejected_text), (12, rejected_text),
+                   (13, accepted_text)):
+        lb = json.dumps({"type": "user/message", "seq": seq, "time": 1000 + seq,
+                         "data": {"content": [{"type": "text", "text": t}]}},
+                        ensure_ascii=False, separators=(",", ":")).encode()
+        lines.append(lb)
+        shas.append(hashlib.sha256(lb).hexdigest())
+    excerpt_path = tmp_path / "excerpt.jsonl"
+    excerpt_path.write_bytes(b"\n".join(lines) + b"\n")
+    preauth = {
+        "preauth_version": "preauth-v1", "run_id": b4.RUN_ID,
+        "host_id": b4.HOST_ID, "stage": b4.STAGE, "gate_iteration": 1,
+        "filed_iteration": 2, "binding": ["EXACT"],
+        "scope": "SEAL_ANNOTATION_ONLY", "session_id": b4.SID,
+        "reveal_event_hash": b4.REVEAL, "reveal_ordinal": 1,
+        "annotation_attempt": 1, "approved_receipt_sha256": rsha,
+        "human_wording_verbatim": accepted_text,
+        "human_wording_sha256":
+            hashlib.sha256(accepted_text.encode()).hexdigest(),
+        "message_evidence_file": str(msg_path),
+        "message_provenance": {
+            "record_type": "user/message",
+            "session_record_id": "session-synthetic",
+            "session_file": str(tmp_path / "no-such-session.jsonl.zstd"),
+            "line": 2, "seq": 13, "time_ms": 1013,
+            "time_utc": "2026-09-30T00:00:01.013Z",
+            "record_line_sha256": shas[2]},
+        "rejected_attempts": [
+            {"line": 0, "seq": 11, "time_utc": "2026-09-30T00:00:00.011Z",
+             "message_sha256": hashlib.sha256(
+                 rejected_text.encode()).hexdigest(),
+             "outcome": "REFUSED synthetic"},
+            {"line": 1, "seq": 12, "time_utc": "2026-09-30T00:00:00.012Z",
+             "message_sha256": hashlib.sha256(
+                 rejected_text.encode()).hexdigest(),
+             "outcome": "REFUSED synthetic"}],
+        "excerpt_file": str(excerpt_path),
+        "excerpt_record_line_sha256": shas,
+        "accepted_attempt_index": 2,
+        "approval_time_utc": "2026-09-30T00:00:01.013Z",
+        "persisted_recorded_at": "2026-09-30T00:00:02Z",
+        "expires_at_utc": "2026-10-01T00:00:01Z",
+        "expiry_hours": 24,
+    }
+    preauth_path = tmp_path / "preauth.json"
+    preauth_path.write_bytes(b4.c4d.canon(preauth).encode())
+    return root, msg_path, prov_path, approval, preauth_path
 
 
 def test_b4_end_to_end_transaction_on_copy_then_fail_closed_tampers(tmp_path):
     b4 = _load_b4()
-    root, msg_path, prov_path, approval_path = _b4_sandbox(tmp_path, b4)
-    result = b4.persist(msg_path, root=root, provenance_path=prov_path)
+    root, msg_path, prov_path, approval_path, preauth_path = \
+        _b4_sandbox(tmp_path, b4)
+    result = b4.persist(msg_path, root=root, provenance_path=prov_path,
+                        preauth_path=preauth_path)
     assert result["b4"] == "APPROVAL_PERSISTED"
-    assert set(result["gates"].values()) == {"PASS"}
+    assert all(v == "PASS" for k, v in result["gates"].items()
+               if k != "session_record_live")
+    assert result["gates"]["preauth_v1_record"] == "PASS"
+    assert result["gates"]["session_record_excerpt"] == "PASS"
+    assert result["gates"]["session_record_live"].startswith("UNAVAILABLE")
     # verify-only path re-proves the same gates from persisted bytes
-    assert set(b4.verify_b4(root, msg_path, prov_path)
-               ["gates"].values()) == {"PASS"}
+    rev = b4.verify_b4(root, msg_path, prov_path, preauth_path)
+    assert rev["gates"]["preauth_v1_record"] == "PASS"
+    assert rev["gates"]["session_record_live"].startswith("UNAVAILABLE")
 
     good_message = msg_path.read_bytes()
     good_approval = approval_path.read_bytes()
+    good_preauth = preauth_path.read_bytes()
 
     # wording drift: one extra character in the fixed wording
     msg_path.write_bytes(
         good_message.replace("我明确批准".encode(), "我明确地批准".encode()))
     with pytest.raises(RuntimeError, match="G-B4-APPROVAL"):
-        b4.verify_b4(root, msg_path, prov_path)
+        b4.verify_b4(root, msg_path, prov_path, preauth_path)
     with pytest.raises(RuntimeError, match="fixed wording|hash mismatch"):
-        b4.persist(msg_path, root=root, provenance_path=prov_path)
+        b4.persist(msg_path, root=root, provenance_path=prov_path,
+                   preauth_path=preauth_path)
     msg_path.write_bytes(good_message)
 
     # hash drift: flip one hex digit inside an otherwise exact wording
@@ -532,14 +599,14 @@ def test_b4_end_to_end_transaction_on_copy_then_fail_closed_tampers(tmp_path):
     msg_path.write_bytes(drifted.encode())
     with pytest.raises(RuntimeError,
                        match="differs from SHA256|hash mismatch"):
-        b4.verify_b4(root, msg_path, prov_path)
+        b4.verify_b4(root, msg_path, prov_path, preauth_path)
     msg_path.write_bytes(good_message)
 
     # non-canonical approval bytes (pretty-printed rewrite)
     obj = json.loads(good_approval)
     approval_path.write_text(json.dumps(obj, indent=2))
     with pytest.raises(RuntimeError, match="not canonical"):
-        b4.verify_b4(root, msg_path, prov_path)
+        b4.verify_b4(root, msg_path, prov_path, preauth_path)
     approval_path.write_bytes(good_approval)
 
     # approval binds a different receipt hash (canonical rewrite)
@@ -547,13 +614,13 @@ def test_b4_end_to_end_transaction_on_copy_then_fail_closed_tampers(tmp_path):
     approval_path.write_bytes(b4.c4d.canon(obj).encode())
     with pytest.raises(RuntimeError,
                        match="does not bind exact receipt bytes"):
-        b4.verify_b4(root, msg_path, prov_path)
+        b4.verify_b4(root, msg_path, prov_path, preauth_path)
     approval_path.write_bytes(good_approval)
 
     # mode drift 0600 -> 0644
     approval_path.chmod(0o644)
     with pytest.raises(RuntimeError, match="mode"):
-        b4.verify_b4(root, msg_path, prov_path)
+        b4.verify_b4(root, msg_path, prov_path, preauth_path)
     approval_path.chmod(0o600)
 
     # provenance from a different run / altered message record
@@ -561,30 +628,60 @@ def test_b4_end_to_end_transaction_on_copy_then_fail_closed_tampers(tmp_path):
     prov["run_id"] = "audit_20260928142305936"
     prov_path.write_bytes(b4.c4d.canon(prov).encode())
     with pytest.raises(RuntimeError, match="provenance run_id"):
-        b4.verify_b4(root, msg_path, prov_path)
+        b4.verify_b4(root, msg_path, prov_path, preauth_path)
     prov = json.loads(prov_path.read_bytes())
     prov["run_id"] = b4.RUN_ID
     prov["message_sha256"] = "0" * 64
     prov_path.write_bytes(b4.c4d.canon(prov).encode())
     with pytest.raises(RuntimeError, match="provenance message_sha256"):
-        b4.verify_b4(root, msg_path, prov_path)
-
-    # after restoring nothing, baseline must be green again
+        b4.verify_b4(root, msg_path, prov_path, preauth_path)
     prov = json.loads(prov_path.read_bytes())
     prov["message_sha256"] = hashlib.sha256(good_message).hexdigest()
     prov_path.write_bytes(b4.c4d.canon(prov).encode())
-    assert set(b4.verify_b4(root, msg_path, prov_path)
-               ["gates"].values()) == {"PASS"}
+
+    # PREAUTH v1 drift: receipt-hash binding, verbatim wording, excerpt
+    pre = json.loads(good_preauth)
+    pre["approved_receipt_sha256"] = "0" * 64
+    preauth_path.write_bytes(b4.c4d.canon(pre).encode())
+    with pytest.raises(RuntimeError,
+                       match="PREAUTH v1 does not bind the exact receipt"):
+        b4.verify_b4(root, msg_path, prov_path, preauth_path)
+    pre = json.loads(good_preauth)
+    pre["human_wording_verbatim"] = pre["human_wording_verbatim"] + "x"
+    preauth_path.write_bytes(b4.c4d.canon(pre).encode())
+    with pytest.raises(RuntimeError, match="verbatim wording"):
+        b4.verify_b4(root, msg_path, prov_path, preauth_path)
+    preauth_path.write_bytes(good_preauth)
+
+    # excerpt tampering: flip a byte in the accepted transcript line
+    excerpt_path = tmp_path / "excerpt.jsonl"
+    good_excerpt = excerpt_path.read_bytes()
+    elines = good_excerpt.splitlines()
+    bad = bytearray(elines[2])
+    bad[bad.index(b'"text"') + 8] ^= 0x01
+    elines[2] = bytes(bad)
+    excerpt_path.write_bytes(b"\n".join(elines) + b"\n")
+    with pytest.raises(RuntimeError, match="excerpt line 2 sha256 drift"):
+        b4.verify_b4(root, msg_path, prov_path, preauth_path)
+    excerpt_path.write_bytes(good_excerpt)
+
+    # after restoring everything, baseline must be green again
+    final = b4.verify_b4(root, msg_path, prov_path, preauth_path)["gates"]
+    assert final["preauth_v1_record"] == "PASS"
+    assert final["session_record_excerpt"] == "PASS"
+    assert final["session_record_live"].startswith("UNAVAILABLE")
 
 
 def test_b4_refuses_persist_with_missing_evidence_file(tmp_path):
     """No evidence file → no persistence possible at all (fail-closed
     before any write)."""
     b4 = _load_b4()
-    root, msg_path, prov_path, approval_path = _b4_sandbox(tmp_path, b4)
+    root, msg_path, prov_path, approval_path, preauth_path = \
+        _b4_sandbox(tmp_path, b4)
     msg_path.unlink()
     with pytest.raises(RuntimeError,
                        match="human approval message evidence absent"):
-        b4.persist(msg_path, root=root, provenance_path=prov_path)
+        b4.persist(msg_path, root=root, provenance_path=prov_path,
+                   preauth_path=preauth_path)
     assert not approval_path.exists()
     assert not prov_path.exists()
