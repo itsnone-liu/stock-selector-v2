@@ -196,92 +196,13 @@ def verify_b5_freeze_domain():
 def main():
     manifest = verify_certified_tree()
     m = load()
-    live_log = m.REAL_PRODUCTION / m.REAL_SESSION / 'sealing' / 'sealing_log.jsonl'
-    live_events = [json.loads(x) for x in live_log.read_text().splitlines() if x.strip()]
-    if [e.get('event_type') for e in live_events] == ['REVEAL_PACKET', 'SEAL_ANNOTATION']:
-        if len(live_events) != 2:
-            raise RuntimeError('post-SEAL witness requires exactly two persisted events')
-        if not (m.REAL_PRODUCTION / m.REAL_SESSION / 'sealing' / 'sealing_log.head.json').is_file():
-            raise RuntimeError('post-SEAL trusted head anchor is missing')
-        b5 = verify_b5_freeze_domain()
-        print(json.dumps({'certified_inputs': 'VERIFIED',
-                          'certified_files': manifest['fileCount'],
-                          'certified_roots': len(manifest['roots']),
-                          'b5': b5,
-                          'production_snapshot': 'REVEAL=1 SEAL=1'},
-                         separators=(',', ':')))
-        return
-    td = Path(tempfile.mkdtemp(prefix="csr8-audit-"))
-    old = (m.c4ab.C3_STATE, m.c1.PLAN_FILE, m.c1.load_salt,
-           m.c4ab.first_candidate, m.candidate_total_order,
-           m.candidate_for_ordinal, m.verify_candidate_gates)
-    try:
-        packets = td / "c3" / "packets"; packets.mkdir(parents=True)
-        m.c4ab.C3_STATE = packets.parent
-        m.c1.PLAN_FILE = td / "packet_plan.json"
-        m.c1.load_salt = lambda: "phase-a-machine-audit-salt"
-        ocid = m.c2.synth_ocid(m.SYNTH_CASE)
-        order = [{"opaque_case_id": ocid, "T": m.SYNTH_T,
-                  "t_rank": 0, "case_rank": 0},
-                 {"opaque_case_id": ocid, "T": "2099-01-03",
-                  "t_rank": 1, "case_rank": 0}]
-        key = "G1_complete_bull|" + m.SYNTH_CASE
-        m.c1.PLAN_FILE.write_text(json.dumps({"entries": [
-            {"case_key": key, "T": x["T"]} for x in order]}))
-        for x in order:
-            pid = hashlib.sha256(f'{x["opaque_case_id"]}|{x["T"]}'.encode()).hexdigest()
-            (packets / f"{pid}.json").write_bytes(m.synth_packet_bytes(m.SYNTH_CASE, x["T"]))
-        m.c4ab.first_candidate = lambda _: dict(order[0], digest="machine")
-        m.candidate_total_order = lambda: list(order)
-        m.candidate_for_ordinal = lambda n: dict(order[n - 1])
-        m.verify_candidate_gates = lambda: {"size": 2, "ordinal1_matches_frozen_first": True, "revealed_prefix": 1}
-        import subprocess, sys
-        live_log = m.REAL_PRODUCTION / m.REAL_SESSION / "sealing" / "sealing_log.jsonl"
-        live_events = [json.loads(x) for x in live_log.read_text().splitlines() if x.strip()]
-        if len(live_events) == 1:
-            c4c = subprocess.run([sys.executable, str(ROOT / "scripts/csr8_phase_c_first_reveal.py"), "synthetic"], cwd=ROOT, capture_output=True, text=True, timeout=900)
-            if c4c.returncode != 0 or "C4-C SYNTHETIC PASS" not in c4c.stdout or "content fingerprints unchanged" not in c4c.stdout:
-                raise RuntimeError("C4-C regression integration gate failed")
-        seen = []
-        for name, _desc, fn in m.FIXTURES:
-            fn(); seen.append(name)
-        if seen != [f"D{i:02d}" for i in range(1, 72)]:
-            raise RuntimeError("D01-D71 registry/order mismatch")
-        # Restore the module's real C1/C3 bindings before the production
-        # integration gate.  The isolated fixture must never contaminate the
-        # real module globals used by live_preflight/candidate gates.
-        (m.c4ab.C3_STATE, m.c1.PLAN_FILE, m.c1.load_salt,
-         m.c4ab.first_candidate, m.candidate_total_order,
-         m.candidate_for_ordinal, m.verify_candidate_gates) = old
-        m.live_preflight()
-        before = m.fingerprint_real()
-        gates = m.verify_candidate_gates()
-        b5 = verify_b5_freeze_domain()
-        if gates["ordinal1_matches_frozen_first"] is not True or gates["revealed_prefix"] < 1:
-            raise RuntimeError("candidate gates integration proof failed")
-        if m.fingerprint_real() != before:
-            raise RuntimeError("real fingerprint changed during integration run")
-        state = json.loads((m.PUBLIC_DIR / "c4d_phase_a_public_state.json").read_text())
-        assert state["production"]["event_types"] == ["REVEAL_PACKET"]
-        assert state["production"]["reveal_count"] == 1
-        assert state["production"]["seal_count"] == 1
-        public = " ".join(p.read_text() for p in m.PUBLIC_DIR.glob("*.json"))
-        assert not any(x in public for x in ("opaque_case_id", "packet_id", "case_key", "secret_salt", "outcome"))
-        b1res = verify_b1_annotator_domain()
-        b2res = verify_b2_annotation_domain()
-        b3res = verify_b3_receipt_domain()
-        b4res = verify_b4_approval_domain()
-        out = {"certified_inputs": "VERIFIED", "certified_files": manifest["fileCount"], "certified_roots": len(manifest["roots"]), "D01_D71": "PASS", "C4D": "PASS", "C4C_regression": "PASS", "candidate_gates": "PASS", "blindness": "PASS", "real_fingerprint": "UNCHANGED", "production_snapshot": "REVEAL=1 SEAL=1", "integration": "PASS"}
-        out.update(b1res)
-        out.update(b2res)
-        out.update(b3res)
-        out.update(b4res)
-        out.update(b5)
-        print(json.dumps(out, separators=(",", ":")))
-    finally:
-        (m.c4ab.C3_STATE, m.c1.PLAN_FILE, m.c1.load_salt,
-         m.c4ab.first_candidate, m.candidate_total_order,
-         m.candidate_for_ordinal, m.verify_candidate_gates) = old
-        shutil.rmtree(td, ignore_errors=True)
+    log = m.REAL_PRODUCTION / m.REAL_SESSION / 'sealing' / 'sealing_log.jsonl'
+    events = [json.loads(x) for x in log.read_text().splitlines() if x.strip()]
+    if [e.get('event_type') for e in events] != ['REVEAL_PACKET', 'SEAL_ANNOTATION']:
+        raise RuntimeError('B5 audit requires exact persisted [R1,S1] chain')
+    result = verify_b5_freeze_domain()
+    print(json.dumps({'certified_inputs': 'VERIFIED', 'certified_files': manifest['fileCount'],
+                      'certified_roots': len(manifest['roots']), 'b5': result,
+                      'production_snapshot': 'REVEAL=1 SEAL=1'}, separators=(',', ':')))
 
 if __name__ == "__main__": main()
