@@ -55,6 +55,10 @@ def verify_b5():
         fail('receipt triple exact-byte equality failed')
     if s1['payload']['receipt_sha256'] != sha(rbytes) or approval['approved_receipt_sha256'] != sha(rbytes):
         fail('SEAL payload/approval receipt hash drift')
+    if c4d.canon(json.loads((adir / 'receipt.json').read_bytes())).encode() != rbytes:
+        fail('persisted receipt is not canonical')
+    if c4d.canon(approval).encode() != (adir / 'seal_approval.json').read_bytes():
+        fail('persisted approval is not canonical')
     if stat.S_IMODE(adir.stat().st_mode) != 0o700 or any(
             stat.S_IMODE((adir / name).stat().st_mode) != 0o600
             for name in ('receipt.json', 'draft_snapshot.bin', 'seal_approval.json')):
@@ -75,6 +79,8 @@ def verify_b5():
     ap = json.loads(anchor.read_bytes())
     if ap.get('production_head_hash') != s1['event_hash'] or ap.get('seal_receipt_sha256') != sha(rbytes) or ap.get('sealed_count') != 1:
         fail('c4d seal anchor exact binding drift')
+    if c4d.canon(ap).encode() != anchor.read_bytes():
+        fail('c4d seal anchor is not canonical')
     c4d.semantic_replay(CSR, SID)
     b4._verify_chain_approval(CSR, rbytes, sha(rbytes))
     root = Path(__file__).resolve().parents[1]
@@ -114,6 +120,12 @@ def verify_b5():
     }
     if not all(checks.values()):
         fail('measured Freeze Gate checks failed: ' + ','.join(k for k,v in checks.items() if not v))
+    # Re-run the complete persisted proof immediately before emitting the
+    # result; this is the commit-time transaction/Freeze Gate witness.
+    log.load(); log.verify(True)
+    c4d.semantic_replay(CSR, SID)
+    if c4d.derive_state(CSR, SID)[0] != 'SEALED':
+        fail('post-proof state is not S1 SEALED')
     return {'gates': {k: 'PASS' for k in checks}, 'chain': ['REVEAL_PACKET', 'SEAL_ANNOTATION'], 'production': 'REVEAL=1 SEAL=1', 'head': s1['event_hash'], 'receipt_sha256': sha(rbytes)}
 
 def main():
