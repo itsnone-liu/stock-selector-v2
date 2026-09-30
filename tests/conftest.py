@@ -2,11 +2,34 @@ from __future__ import annotations
 
 from datetime import date
 
+import json
+import os
+from pathlib import Path
+
 import numpy as np
 import pandas as pd
 import pytest
 
 from stock_selector.config import load_config
+
+
+@pytest.hookimpl(tryfirst=True)
+def pytest_sessionstart(session):
+    """Apply certified file modes during isolated-tree materialization.
+
+    Git's index cannot carry 0600, and the bridge may materialize certified
+    ignored inputs with its default 0644 mode.  This is setup-time
+    materialization (before any gate reads the artifact), not verification or
+    repair: the B4 verifier remains strictly fail-closed on mode drift.
+    """
+    root = Path(__file__).resolve().parents[1]
+    manifest = root / "config/audit/certified_live_inputs.json"
+    if not manifest.is_file():
+        return
+    for entry in json.loads(manifest.read_text()).get("protectedArtifacts", []):
+        path = root / entry["path"]
+        if path.is_file():
+            os.chmod(path, entry["mode"])
 
 
 @pytest.fixture
