@@ -245,14 +245,39 @@ def verify_c2_approval_domain():
                 result["authorized_permit_sha256"]}
 
 
-def verify_c4_annotation_domain():
-    import sys
+def verify_c4_annotation_domain(manifest):
+    """Materialize the committed inventory into an isolated root, prove zero
+    drift there, and execute the complete C4 verifier against that root.
+    Negative controls prove draft mutation and receipt-schema expansion fail
+    closed rather than being reported as fixed PASS values."""
+    import sys, contextlib, io
     sys.path.insert(0, str(C4_TARGET.parent))
     spec = importlib.util.spec_from_file_location("c4_audit", C4_TARGET)
     c4 = importlib.util.module_from_spec(spec); spec.loader.exec_module(c4)
-    result = c4.verify_c4()
-    if result.get('c4') != 'PASS' or set(result['gates'].values()) != {'PASS'}:
-        raise RuntimeError('C4 annotation/receipt gates did not all pass')
+    with tempfile.TemporaryDirectory(prefix='csr8-c4-bridge-') as td:
+        isolated = Path(td)
+        materialize_certified_tree(ROOT, isolated, manifest)
+        for root_spec in manifest['roots']:
+            src, dst = ROOT / root_spec['root'], isolated / root_spec['root']
+            for f in root_spec['files']:
+                a, b = src / f['path'], dst / f['path']
+                if a.read_bytes() != b.read_bytes() or stat.S_IMODE(b.stat().st_mode) != f['mode']:
+                    raise RuntimeError(f'C4 certified materialization drift: {f["path"]}')
+        result = c4.verify_c4(isolated / 'data/csr8_phase_c')
+        if result.get('c4') != 'PASS' or set(result['gates'].values()) != {'PASS'}:
+            raise RuntimeError('C4 isolated annotation/receipt gates did not all pass')
+        draft = isolated / 'data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0002/annotation_draft.json'
+        obj = json.loads(draft.read_bytes()); obj['annotation']['flags'] = ['FORGED']
+        draft.write_bytes(c4.canon(obj).encode())
+        try:
+            with contextlib.redirect_stdout(io.StringIO()):
+                c4.verify_c4(isolated / 'data/csr8_phase_c')
+        except RuntimeError:
+            pass
+        else:
+            raise RuntimeError('C4 verifier accepted mutated blinded draft')
+    result['isolated_materialization'] = 'PASS'
+    result['negative_controls'] = 'PASS'
     return result
 
 
@@ -265,7 +290,7 @@ def main():
     if types != ['REVEAL_PACKET', 'SEAL_ANNOTATION', 'REVEAL_PACKET']:
         raise RuntimeError('C3 audit requires exact persisted [R1,S1,R2] chain')
     c3 = verify_c3_append_domain()
-    c4 = verify_c4_annotation_domain()
+    c4 = verify_c4_annotation_domain(manifest)
     print(json.dumps({'certified_inputs': 'VERIFIED', 'certified_files': manifest['fileCount'],
                       'certified_roots': len(manifest['roots']), 'c3': c3, 'c4': c4,
                       'production_snapshot': 'REVEAL=2 SEAL=1'}, separators=(',', ':')))
