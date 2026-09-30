@@ -26,6 +26,7 @@ TARGET = ROOT / "scripts/csr8_phase_c_annotation_seal.py"
 B1_TARGET = ROOT / "scripts/csr8_phase_b1_real_handoff.py"
 B2_TARGET = ROOT / "scripts/csr8_phase_b2_real_annotation.py"
 B4_TARGET = ROOT / "scripts/csr8_phase_b4_human_approval.py"
+B5_TARGET = ROOT / "scripts/csr8_phase_b5_real_seal.py"
 CERT_MANIFEST = ROOT / "config/audit/certified_live_inputs.json"
 # 阶段边界感知（run 2 / B1+）：annotator/ 自 B1 起合法，其 closed-world
 # 与泄漏 gate 由 csr8_phase_b1_real_handoff.py 机器实测；c4d_receipts/ 与
@@ -184,6 +185,14 @@ def verify_b2_annotation_domain():
     return {"b2_annotation_draft": "PRESENT", **{
         "G-B2-" + k.upper(): v for k, v in res["gates"].items()}}
 
+def verify_b5_freeze_domain():
+    spec = importlib.util.spec_from_file_location("c4d_b5", B5_TARGET)
+    b5 = importlib.util.module_from_spec(spec); spec.loader.exec_module(b5)
+    result = b5.verify_b5()
+    return {"b5_freeze": "PASS", **{
+        "G-B5-" + k.upper(): v for k, v in result["gates"].items()}}
+
+
 def main():
     manifest = verify_certified_tree()
     m = load(); td = Path(tempfile.mkdtemp(prefix="csr8-audit-"))
@@ -232,6 +241,7 @@ def main():
         m.live_preflight()
         before = m.fingerprint_real()
         gates = m.verify_candidate_gates()
+        b5 = verify_b5_freeze_domain()
         if gates["ordinal1_matches_frozen_first"] is not True or gates["revealed_prefix"] < 1:
             raise RuntimeError("candidate gates integration proof failed")
         if m.fingerprint_real() != before:
@@ -246,11 +256,12 @@ def main():
         b2res = verify_b2_annotation_domain()
         b3res = verify_b3_receipt_domain()
         b4res = verify_b4_approval_domain()
-        out = {"certified_inputs": "VERIFIED", "certified_files": manifest["fileCount"], "certified_roots": len(manifest["roots"]), "D01_D71": "PASS", "C4D": "PASS", "C4C_regression": "PASS", "candidate_gates": "PASS", "blindness": "PASS", "real_fingerprint": "UNCHANGED", "production_snapshot": "REVEAL=1 SEAL=0", "integration": "PASS"}
+        out = {"certified_inputs": "VERIFIED", "certified_files": manifest["fileCount"], "certified_roots": len(manifest["roots"]), "D01_D71": "PASS", "C4D": "PASS", "C4C_regression": "PASS", "candidate_gates": "PASS", "blindness": "PASS", "real_fingerprint": "UNCHANGED", "production_snapshot": "REVEAL=1 SEAL=1", "integration": "PASS"}
         out.update(b1res)
         out.update(b2res)
         out.update(b3res)
         out.update(b4res)
+        out.update(b5)
         print(json.dumps(out, separators=(",", ":")))
     finally:
         (m.c4ab.C3_STATE, m.c1.PLAN_FILE, m.c1.load_salt,
