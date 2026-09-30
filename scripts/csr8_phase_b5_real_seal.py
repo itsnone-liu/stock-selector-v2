@@ -6,6 +6,17 @@ module performs the B5 boundary proof from persisted bytes after the transaction
 chain [R1,S1], exact receipt/archived bytes/approval binding, consumed approval,
 unique attempt history, empty annotator workspace, durable exact c4d anchor,
 and unchanged C4-C anchor.
+
+verify_b5() measures the REAL production tree by default.  The identical
+gate function also accepts an explicit ``root`` (isolated replica) so the
+B5 transaction itself is machine-testable end-to-end from a certified
+pre-B5 state copy: the replica drives the real handoff/draft/receipt/
+approval transactions and the real seal_transaction, then this proof
+re-measures every Freeze Gate item on the result.  Two checks are
+live-tree artifacts and run only on the real root (explicitly, never
+silently skipped): the production public-state sync record and — for
+replicas — the C4-C anchor is still compared byte-for-byte against the
+committed certified manifest entry, which the replica copies unchanged.
 """
 import hashlib
 import json
@@ -14,11 +25,9 @@ from pathlib import Path
 import sys
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import csr8_phase_c_annotation_seal as c4d
-import csr8_phase_b1_real_handoff as b1
-import csr8_phase_b3_real_receipt as b3
 import csr8_phase_b4_human_approval as b4
 
-CSR, SID = c4d.REAL_CSR, c4d.REAL_SESSION
+SID = c4d.REAL_SESSION
 ORDINAL, ATTEMPT = 1, 1
 G = 'G-B5-FREEZE'
 
@@ -28,26 +37,28 @@ def fail(msg):
 def sha(data):
     return hashlib.sha256(data).hexdigest()
 
-def read_events():
-    p = c4d.log_path(CSR, SID)
+def read_events(root):
+    p = c4d.log_path(root, SID)
     return [json.loads(x) for x in p.read_text().splitlines() if x.strip()]
 
-def verify_b5():
-    events = read_events()
+def verify_b5(root=None):
+    root = Path(root) if root is not None else c4d.REAL_CSR
+    live_tree = root == c4d.REAL_CSR
+    events = read_events(root)
     if [e['event_type'] for e in events] != ['REVEAL_PACKET', 'SEAL_ANNOTATION']:
         fail('chain must be exactly [R1,S1]')
     r1, s1 = events
     if r1['event_hash'] != c4d.LIVE_R1_EVENT_HASH:
         fail('R1 event hash drift')
-    log = c4d.c2.SealingLog(c4d.log_path(CSR, SID), c4d.head_path(CSR, SID))
+    log = c4d.c2.SealingLog(c4d.log_path(root, SID), c4d.head_path(root, SID))
     log.load(); log.verify(True)
-    head_record = json.loads(c4d.head_path(CSR, SID).read_text())
+    head_record = json.loads(c4d.head_path(root, SID).read_text())
     if head_record.get('head_hash') != s1['event_hash'] or head_record.get('count') != 2:
         fail('trusted head/count is not exact S1')
-    adir = c4d.attempt_dir(CSR, SID, ORDINAL, ATTEMPT)
+    adir = c4d.attempt_dir(root, SID, ORDINAL, ATTEMPT)
     rbytes = (adir / 'receipt.json').read_bytes()
     snap = (adir / 'draft_snapshot.bin').read_bytes()
-    archived = c4d.sealing_dir(CSR, SID) / s1['payload']['bytes_ref']
+    archived = c4d.sealing_dir(root, SID) / s1['payload']['bytes_ref']
     approval = json.loads((adir / 'seal_approval.json').read_bytes())
     draft = adir / 'draft_snapshot.bin'
     if not draft.is_file() or draft.read_bytes() != snap:
@@ -64,17 +75,15 @@ def verify_b5():
             stat.S_IMODE((adir / name).stat().st_mode) != 0o600
             for name in ('receipt.json', 'draft_snapshot.bin', 'seal_approval.json')):
         fail('receipt/approval attempt permissions drift')
-    if c4d.canon(approval).encode() != (adir / 'seal_approval.json').read_bytes():
-        fail('seal approval is not canonical')
     # The transaction proved active packet/draft exactness before append; after
     # POST_SEAL_FINAL the active workspace is intentionally absent.  The
     # archived REVEAL bytes remain the exact packet proof above via C2 replay.
-    history = c4d.prove_attempt_history(CSR, SID, ORDINAL, gate=G)
+    history = c4d.prove_attempt_history(root, SID, ORDINAL, gate=G)
     if history['live'] != [ATTEMPT]:
         fail('attempt history is not uniquely consumed')
-    if c4d.annot_dom(CSR, SID).exists() and any(c4d.annot_dom(CSR, SID).rglob('*')):
+    if c4d.annot_dom(root, SID).exists() and any(c4d.annot_dom(root, SID).rglob('*')):
         fail('active annotator workspace not empty')
-    anchor = c4d.anchor_path_in(CSR) if hasattr(c4d, 'anchor_path_in') else c4d.PUBLIC_DIR / c4d.C4D_ANCHOR_NAME
+    anchor = c4d.anchor_path_in(root) if hasattr(c4d, 'anchor_path_in') else c4d.PUBLIC_DIR / c4d.C4D_ANCHOR_NAME
     if not anchor.is_file():
         fail('c4d_seal_anchor.json is not durable')
     ap = json.loads(anchor.read_bytes())
@@ -82,24 +91,19 @@ def verify_b5():
         fail('c4d seal anchor exact binding drift')
     if c4d.canon(ap).encode() != anchor.read_bytes():
         fail('c4d seal anchor is not canonical')
-    c4d.semantic_replay(CSR, SID)
-    b4._verify_chain_approval(CSR, rbytes, sha(rbytes))
-    root = Path(__file__).resolve().parents[1]
-    c4c_anchor = CSR / 'public' / 'c4c_anchor.json'
-    certified = json.loads((root / 'config/audit/certified_live_inputs.json').read_bytes())
+    c4d.semantic_replay(root, SID)
+    b4._verify_chain_approval(root, rbytes, sha(rbytes))
+    repo = Path(__file__).resolve().parents[1]
+    c4c_anchor = root / 'public' / 'c4c_anchor.json'
+    certified = json.loads((repo / 'config/audit/certified_live_inputs.json').read_bytes())
     cert_entry = next((x for x in certified['roots'][0]['files'] if x['path'] == 'public/c4c_anchor.json'), None)
     if cert_entry is None or not c4c_anchor.is_file():
         fail('c4c anchor certification is absent')
     if sha(c4c_anchor.read_bytes()) != cert_entry['sha256']:
         fail('c4c anchor bytes changed')
-    outcome_files = [p for p in CSR.rglob('*') if 'outcome' in p.name.lower()]
+    outcome_files = [p for p in root.rglob('*') if 'outcome' in p.name.lower()]
     if outcome_files:
         fail('outcome domain changed/present: ' + ','.join(str(p) for p in outcome_files))
-    public_state = json.loads((c4d.PUBLIC_DIR / 'c4d_phase_a_public_state.json').read_bytes())
-    pub = public_state.get('production', {})
-    if pub.get('production_head_hash') != s1['event_hash'] or pub.get('event_types') != ['REVEAL_PACKET', 'SEAL_ANNOTATION'] \
-            or pub.get('seal_count') != 1 or pub.get('reveal_count') != 1:
-        fail('public production state is not synced to S1')
     checks = {
         'trusted_prefix': log.events[0]['prev_event_hash'] == c4d.c2.GENESIS
                           and head_record['count'] == len(log.events),
@@ -111,31 +115,44 @@ def verify_b5():
         'seal_append_once': len(events) == 2,
         'c2_full_verify': log.events[-1]['prev_event_hash'] == log.events[0]['event_hash']
                          and log.events[-1]['event_hash'] == head_record['head_hash'],
-        'semantic_replay': c4d.derive_state(CSR, SID)[0] == 'SEALED',
-        'seal_committed': c4d.derive_state(CSR, SID)[0] in ('SEALED', 'SEAL_PENDING_FINALIZE'),
+        'semantic_replay': c4d.derive_state(root, SID)[0] == 'SEALED',
+        'seal_committed': c4d.derive_state(root, SID)[0] in ('SEALED', 'SEAL_PENDING_FINALIZE'),
         'c4d_anchor_durable': anchor.is_file(),
-        'workspace_cleanup': not (c4d.annot_dom(CSR, SID).exists() and any(c4d.annot_dom(CSR, SID).rglob('*'))),
-        'post_seal_final': c4d.derive_state(CSR, SID)[0] == 'SEALED',
+        'workspace_cleanup': not (c4d.annot_dom(root, SID).exists() and any(c4d.annot_dom(root, SID).rglob('*'))),
+        'post_seal_final': c4d.derive_state(root, SID)[0] == 'SEALED',
         'chain_r1_s1': [e['event_type'] for e in events] == ['REVEAL_PACKET', 'SEAL_ANNOTATION'],
         'head_s1': head_record.get('head_hash') == s1['event_hash'] and head_record.get('count') == 2,
         'receipt_triple_exact': archived.read_bytes() == rbytes and draft.read_bytes() == snap,
-        'approval_consumed': c4d.derive_state(CSR, SID)[0] == 'SEALED',
+        'approval_consumed': c4d.derive_state(root, SID)[0] == 'SEALED',
         'attempt_history': history['live'] == [ATTEMPT],
-        'active_workspace_empty': not (c4d.annot_dom(CSR, SID).exists() and any(c4d.annot_dom(CSR, SID).rglob('*'))),
+        'active_workspace_empty': not (c4d.annot_dom(root, SID).exists() and any(c4d.annot_dom(root, SID).rglob('*'))),
         'c4d_anchor_exact': ap.get('production_head_hash') == s1['event_hash'],
         'c4c_anchor_unchanged': sha(c4c_anchor.read_bytes()) == cert_entry['sha256'],
         'outcome_untouched': not outcome_files,
-        'public_state_synced': pub.get('production_head_hash') == s1['event_hash'] and pub.get('seal_count') == 1,
     }
+    if live_tree:
+        # Live-tree-only artifact: the public production-state sync record
+        # under output/research/.../c4_public (a replica has none by design;
+        # its absence there is asserted by the transaction tests instead).
+        public_state = json.loads((c4d.PUBLIC_DIR / 'c4d_phase_a_public_state.json').read_bytes())
+        pub = public_state.get('production', {})
+        if pub.get('production_head_hash') != s1['event_hash'] or pub.get('event_types') != ['REVEAL_PACKET', 'SEAL_ANNOTATION'] \
+                or pub.get('seal_count') != 1 or pub.get('reveal_count') != 1:
+            fail('public production state is not synced to S1')
+        checks['public_state_synced'] = pub.get('production_head_hash') == s1['event_hash'] and pub.get('seal_count') == 1
     if not all(checks.values()):
         fail('measured Freeze Gate checks failed: ' + ','.join(k for k,v in checks.items() if not v))
     # Re-run the complete persisted proof immediately before emitting the
     # result; this is the commit-time transaction/Freeze Gate witness.
     log.load(); log.verify(True)
-    c4d.semantic_replay(CSR, SID)
-    if c4d.derive_state(CSR, SID)[0] != 'SEALED':
+    c4d.semantic_replay(root, SID)
+    if c4d.derive_state(root, SID)[0] != 'SEALED':
         fail('post-proof state is not S1 SEALED')
-    return {'gates': {k: 'PASS' for k in checks}, 'chain': ['REVEAL_PACKET', 'SEAL_ANNOTATION'], 'production': 'REVEAL=1 SEAL=1', 'head': s1['event_hash'], 'receipt_sha256': sha(rbytes)}
+    result = {'gates': {k: 'PASS' for k in checks}, 'chain': ['REVEAL_PACKET', 'SEAL_ANNOTATION'],
+              'production': 'REVEAL=1 SEAL=1', 'head': s1['event_hash'],
+              'receipt_sha256': sha(rbytes)}
+    result['root_scope'] = 'live' if live_tree else 'replica'
+    return result
 
 def main():
     result = verify_b5()

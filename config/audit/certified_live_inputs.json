@@ -20,12 +20,8 @@
  ],
  "roots": [
   {
-   "dirCount": 23,
+   "dirCount": 22,
    "dirs": [
-    {
-     "mode": 448,
-     "path": "annotator"
-    },
     {
      "mode": 448,
      "path": "c3_preflight"

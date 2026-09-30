@@ -62,9 +62,10 @@ PROTECTED_ARTIFACTS = (
     'docs/audit/evidence/b4_unattended_approval.json',
 )
 
-# C4-D 禁止域（阶段边界感知，run 2 / B1+）：annotator/ 自 B1 起为合法
-# 真实域（其 closed-world 与泄漏 gate 由 csr8_phase_b1_real_handoff.py
-# 机器实测）；c4d_receipts/ 与 c4d_proposals/ 在 B3/B5 前仍属禁止。
+# C4-D 禁止域（阶段边界感知，post-B5 终态）：annotator/ 工作区在 B5
+# POST_SEAL_FINAL 后已按协议清理（终态不存在，审计线索在 C2 归档 +
+# draft_snapshot.bin）；c4d_receipts/ 自 B3 起为合法冻结证据域并保留至
+# 终态；c4d_proposals/ 在授权阶段（C2）之前始终禁止。
 FORBIDDEN_PREFIXES = (
     'c4d_proposals/',
 )
@@ -83,7 +84,7 @@ def inventory(root_rel):
     if not root.is_dir():
         print(f'FAIL: live root missing: {root}')
         sys.exit(1)
-    dirs, files = [], []
+    dirs, files, skipped_empty = [], [], []
     for p in sorted(root.rglob('*')):
         rel = p.relative_to(root).as_posix()
         st = p.lstat()
@@ -96,6 +97,15 @@ def inventory(root_rel):
                 print(f'FAIL: forbidden C4-D domain present: '
                       f'{root_rel}/{rel}')
                 sys.exit(1)
+            # Empty directories are NOT certifiable: the bridge
+            # materializes certified inputs file-by-file into a detached
+            # git worktree (git cannot represent an empty directory), so
+            # a pinned empty dir would ENOENT at materialization time
+            # (audit_20260930021152297 i18 bridge record).  They are
+            # skipped explicitly and reported — never silently pinned.
+            if not any(p.iterdir()):
+                skipped_empty.append(rel)
+                continue
             dirs.append({'path': rel, 'mode': stat.S_IMODE(st.st_mode)})
         elif p.is_file():
             if any(rel.startswith(fp) for fp in FORBIDDEN_PREFIXES):
@@ -108,6 +118,9 @@ def inventory(root_rel):
         else:
             print(f'FAIL: non-regular entry refused: {root_rel}/{rel}')
             sys.exit(1)
+    for rel in skipped_empty:
+        print(f'note: skipping empty (non-materializable) directory: '
+              f'{root_rel}/{rel}')
     return {'root': root_rel, 'dirCount': len(dirs),
             'fileCount': len(files),
             'totalBytes': sum(f['bytes'] for f in files),

@@ -169,7 +169,7 @@ def test_guard_semantics_and_five_entrypoints_are_machine_checked():
         assert "prove_next_reveal_eligible(sb, sid, ordinal)" in body, name
 
 
-def test_public_blindness_contract_and_anchor_are_machine_checked():
+def test_public_blindness_contract_and_anchor_are_machine_checked(tmp_path):
     mod = _load()
     anchor = mod.PUBLIC_DIR / "c4c_anchor.json"
     assert anchor.read_bytes() == b'{"authorization_sha256":"911d8b844da3a38467aecc0919ee22664484f87c9f49bf445a5a949b6245dc81","production_head_hash":"b5ec0ba1d485219fd7a2198b23e7ac0f979c23d4dd0cced16faa80d8f19437d5"}'
@@ -183,35 +183,45 @@ def test_public_blindness_contract_and_anchor_are_machine_checked():
     assert state["production"]["event_types"] == ["REVEAL_PACKET", "SEAL_ANNOTATION"]
     assert state["production"]["seal_count"] == 1
     assert state["production"]["reveal_count"] == 1
-    # Stage-boundary aware: B1 creates and verifies annotator; later domains
-    # remain absent and must never be manufactured by the Phase-A audit.
+    # B1 gates are measured on a transaction-derived pre-SEAL replica (the
+    # live annotator workspace is legitimately cleared by POST_SEAL_FINAL);
+    # the live tree must measure the post-B5 terminal shape instead.
+    from csr8_preseal_sandbox import build_pre_seal_sandbox
+    sb = build_pre_seal_sandbox(tmp_path, through="B1")
     b1 = _load_b1()
-    assert set(b1.verify_b1()["gates"].values()) == {"PASS"}
-    assert mod.REAL_RECEIPTS.exists()
+    assert set(b1.verify_b1(sb.root)["gates"].values()) == {"PASS"}
+    live_events = b1.read_chain(b1.REAL_CSR, b1.SID)
+    assert [e["event_type"] for e in live_events] == \
+        ["REVEAL_PACKET", "SEAL_ANNOTATION"]
+    assert not mod.REAL_ANNOTATOR.exists()          # POST_SEAL_FINAL cleanup
+    assert mod.REAL_RECEIPTS.exists()               # frozen audit trail kept
     assert not mod.REAL_PROPOSALS_C4D.exists()
 
 
 def test_bridge_machine_audit_script_executes_complete_matrix():
+    """The B5-authoritative machine audit: certified closure + the complete
+    Freeze Gate measured from persisted bytes (the Phase-A-era D01_D71 /
+    C4D / C4C_regression / candidate_gates / blindness / real_fingerprint /
+    integration fields were the iteration-17 contract and are now measured
+    by the committed pytest suite directly — see the D01-D71 matrix tests)."""
     import subprocess, sys
     result = subprocess.run([sys.executable, str(ROOT / "scripts/csr8_phase_a_machine_audit.py")], cwd=ROOT, capture_output=True, text=True, timeout=1200)
     assert result.returncode == 0, result.stdout[-4000:] + result.stderr[-4000:]
-    assert '"certified_inputs":"VERIFIED"' in result.stdout
-    assert '"D01_D71":"PASS"' in result.stdout
-    assert '"C4D":"PASS"' in result.stdout
-    assert '"C4C_regression":"PASS"' in result.stdout
-    assert '"candidate_gates":"PASS"' in result.stdout
-    assert '"blindness":"PASS"' in result.stdout
-    assert '"real_fingerprint":"UNCHANGED"' in result.stdout
-    assert '"production_snapshot":"REVEAL=1 SEAL=1"' in result.stdout
-    assert '"b5_freeze":"PASS"' in result.stdout
-    assert '"integration":"PASS"' in result.stdout
-    # stage-boundary aware (run 2 / B1): real annotator domain gates are
-    # measured by the machine audit itself
-    assert '"b1_annotator_domain":"PRESENT"' in result.stdout
-    for gate in ("G-B1-CHAIN", "G-B1-ARCHIVE", "G-B1-DOMAIN",
-                 "G-B1-EXACTCOPY", "G-B1-REGISTRY", "G-B1-LEAK",
-                 "G-B1-BOUNDARY"):
-        assert f'"{gate}":"PASS"' in result.stdout, gate
+    payload = json.loads(result.stdout.strip().splitlines()[-1])
+    assert payload["certified_inputs"] == "VERIFIED"
+    manifest = json.loads((ROOT / "config/audit/certified_live_inputs.json").read_text())
+    assert payload["certified_files"] == manifest["fileCount"]
+    assert payload["certified_roots"] == len(manifest["roots"])
+    assert payload["production_snapshot"] == "REVEAL=1 SEAL=1"
+    b5 = payload["b5"]
+    assert b5["b5_freeze"] == "PASS"
+    gates = {k: v for k, v in b5.items() if k.startswith("G-B5-")}
+    assert gates, "machine audit must enumerate the measured B5 gates"
+    assert set(gates.values()) == {"PASS"}, gates
+    # the audit measures the whole Freeze Gate family, live-only sync included
+    assert "G-B5-PUBLIC_STATE_SYNCED" in gates
+    assert "G-B5-C4C_ANCHOR_UNCHANGED" in gates
+    assert "G-B5-OUTCOME_UNTOUCHED" in gates
 
 
 def test_certified_live_inputs_manifest_is_complete_and_forbidden_free():
@@ -248,15 +258,34 @@ def test_certified_live_inputs_manifest_is_complete_and_forbidden_free():
         "data/csr8_phase_c/secret/secret_salt",
         "data/csr8_phase_c/secret/packet_plan.json",
         "data/csr8_phase_c/production/c4-prod-0002/sealing/sealing_log.jsonl",
+        "data/csr8_phase_c/production/c4-prod-0002/sealing/sealing_log.head.json",
+        "data/csr8_phase_c/production/c4-prod-0002/sealing/bytes/seal_annotation/1.bin",
+        "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0001/attempt-0001/receipt.json",
+        "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0001/attempt-0001/draft_snapshot.bin",
+        "data/csr8_phase_c/c4_public/c4d_seal_anchor.json",
+        "data/csr8_phase_c/public/c4c_anchor.json",
         "data/csr8_phase_c/c4c_proposals/c4-prod-0002/first_reveal.proposal.json",
-        "data/csr8_phase_c/annotator/c4-prod-0002/annotation_session_registry.json",
         "data/adjustment_baostock/fetch_manifest.json",
     ):
         assert required in listed, f"gate input not certified: {required}"
-    annotator_files = [p for p in listed
-                       if p.startswith("data/csr8_phase_c/annotator/")]
-    assert len(annotator_files) == 3, \
-        "B2 annotator domain must pin packet, registry, and draft"
+    # post-B5 terminal shape: the annotator workspace is cleaned by
+    # POST_SEAL_FINAL and must NOT be certified (its audit trail is the C2
+    # archive + draft_snapshot.bin above)
+    annotator_entries = [p for p in paths
+                         if p.startswith("data/csr8_phase_c/annotator")]
+    assert annotator_entries == [], annotator_entries
+    # materializability: every certified directory has at least one
+    # certified file descendant (git and a files-only certified
+    # materializer cannot recreate an empty dir — the i18 bridge ENOENT
+    # regression class)
+    file_paths = [f"{r['root']}/{f['path']}" for r in manifest["roots"]
+                  for f in r["files"]]
+    dir_paths = [f"{r['root']}/{d['path']}" for r in manifest["roots"]
+                 for d in r["dirs"]]
+    assert dir_paths and all(
+        any(fp.startswith(d + "/") for fp in file_paths) for d in dir_paths
+    ), [d for d in dir_paths
+        if not any(fp.startswith(d + "/") for fp in file_paths)]
     # the local trees must equal the manifest exactly (bridge-certified
     # materialization or native live tree — either way, zero tolerance)
     spec = importlib.util.spec_from_file_location(
@@ -308,43 +337,50 @@ def _load_b1():
     return mod
 
 
-def test_b1_real_annotator_domain_gates_pass_on_live_tree():
-    """All seven B1 gates measure PASS against the real (or certified
-    materialized) tree: exact-copy vs C2 archive, closed-world domain,
-    opaque annotation_session_id, leak scans, boundary domains absent."""
+def test_b1_real_annotator_domain_gates_pass_on_pre_seal_replica(tmp_path):
+    """All seven B1 gates measure PASS against a transaction-derived
+    pre-SEAL replica (real do_handoff on a certified production copy
+    rewound to the exact committed R1 line): exact-copy vs C2 archive,
+    closed-world domain, opaque annotation_session_id, leak scans,
+    boundary domains absent.  The live tree itself must measure the
+    post-B5 terminal shape instead (annotator cleaned, chain [R1,S1])."""
+    from csr8_preseal_sandbox import build_pre_seal_sandbox
     b1 = _load_b1()
-    res = b1.verify_b1()
+    sb = build_pre_seal_sandbox(tmp_path, through="B1")
+    res = b1.verify_b1(sb.root)
     assert set(res["gates"].values()) == {"PASS"}
     assert res["reveal_event_hash"] == b1.LIVE_R1
     assert res["annotation_sessions"] == 1
+    # post-B5 live terminal shape (fail-closed direction)
+    assert not b1.c4d.REAL_ANNOTATOR.exists()
+    assert [e["event_type"] for e in b1.read_chain(b1.REAL_CSR, b1.SID)] == \
+        ["REVEAL_PACKET", "SEAL_ANNOTATION"]
 
 
 def test_b1_gates_fail_closed_on_tampered_copies(tmp_path):
-    """Every B1 gate is a real re-measurement: tampering a tmp copy of
-    the real domains must fail with the exact gate name."""
+    """Every B1 gate is a real re-measurement: tampering a tmp copy of a
+    transaction-derived pre-SEAL replica must fail with the exact gate
+    name."""
+    from csr8_preseal_sandbox import build_pre_seal_sandbox
     b1 = _load_b1()
-    real = b1.REAL_CSR
-    root = tmp_path / "csr8_phase_c"
-    root.mkdir()
-    import shutil
-    shutil.copytree(real / "production", root / "production")
-    shutil.copytree(real / "annotator", root / "annotator")
-    # baseline passes on the copy
+    sb = build_pre_seal_sandbox(tmp_path, through="B1")
+    root = sb.root
+    # baseline passes on the replica
     assert set(b1.verify_b1(root)["gates"].values()) == {"PASS"}
 
     sid = b1.SID
     dom = b1.c4d.annot_dom(root, sid)
     r1 = b1.read_chain(root, sid)[0]
     pkt_file = dom / "packet" / f"{r1['payload']['packet_id']}.json"
+    pristine = pkt_file.read_bytes()
 
     # exact-copy violation: flip one byte of the handed-off packet
-    raw = bytearray(pkt_file.read_bytes())
+    raw = bytearray(pristine)
     raw[0] ^= 0x01
     pkt_file.write_bytes(bytes(raw))
     with pytest.raises(RuntimeError, match="G-B1-EXACTCOPY"):
         b1.verify_b1(root)
-    pkt_file.write_bytes((real / "annotator" / sid / "packet" /
-                          f"{r1['payload']['packet_id']}.json").read_bytes())
+    pkt_file.write_bytes(pristine)
 
     # closed-world violation: stray file in the annotator domain
     stray = dom / "notes.txt"
@@ -386,20 +422,28 @@ def test_b1_gates_fail_closed_on_tampered_copies(tmp_path):
         b1.verify_b1(root)
 
 
-def test_b1_do_handoff_refuses_duplicate_and_audits_itself(capsys):
-    """do_handoff is one-shot on the REAL domain (already executed at
-    B1): a second execution must refuse, and --verify measures green."""
+def test_b1_do_handoff_refuses_duplicate_and_audits_itself(tmp_path):
+    """do_handoff is one-shot: re-running on a domain that already holds
+    the handoff refuses, and re-running against the post-B5 live terminal
+    state (chain [R1,S1], workspace cleaned) refuses at the chain gate —
+    the verifier itself is re-measured by the replica tests above."""
     import subprocess, sys as _sys
+    from csr8_preseal_sandbox import build_pre_seal_sandbox
     b1 = _load_b1()
+    # one-shot on a fresh replica: first run succeeds, second refuses
+    sb = build_pre_seal_sandbox(tmp_path, through="B1")
     with pytest.raises(RuntimeError, match="already executed"):
+        b1.do_handoff(sb.root)
+    # the live tree is past B5: any handoff attempt must refuse at G-CHAIN
+    with pytest.raises(RuntimeError, match="G-B1-CHAIN"):
         b1.do_handoff()
+    # and the CLI verifier fail-closes loudly on the post-B5 live tree
+    # (annotator domain legitimately absent — never a silent PASS)
     result = subprocess.run(
         [_sys.executable, str(B1_SCRIPT), "--verify"],
         cwd=ROOT, capture_output=True, text=True, timeout=300)
-    assert result.returncode == 0, result.stdout + result.stderr
-    out = json.loads(result.stdout.strip().splitlines()[-1])
-    assert out["b1"] == "VERIFIED"
-    assert set(out["gates"].values()) == {"PASS"}
+    assert result.returncode != 0
+    assert "G-B1-" in (result.stdout + result.stderr)
 
 
 # B2 real blinded annotation draft
@@ -415,23 +459,28 @@ def _load_b2():
     return mod
 
 
-def test_b2_real_draft_generation_and_all_gates_pass():
+def test_b2_real_draft_generation_and_all_gates_pass(tmp_path):
+    """The real blinded-draft generation runs on a transaction-derived
+    pre-SEAL replica (B1 state) and every B2 gate measures PASS on the
+    persisted result."""
+    from csr8_preseal_sandbox import build_pre_seal_sandbox
     b2 = _load_b2()
-    generated = b2.build_draft()
+    sb = build_pre_seal_sandbox(tmp_path, through="B1")
+    generated = b2.build_draft(sb.root)
     assert generated["annotation_attempt"] == 1
     assert [j["hypothesis_id"] for j in generated["annotation"]["rt_judgments"]] == list(b2.c4d.HYPOTHESES)
-    result = b2.verify_b2()
+    created = b2.create(sb.root)               # real persist transaction
+    assert created["b2"] == "DRAFT_CREATED"
+    result = b2.verify_b2(sb.root)
     assert set(result["gates"].values()) == {"PASS"}
     assert result["annotation_session_id"] == generated["annotation_session_id"]
 
 
 def test_b2_draft_gate_rejects_invalid_pointer(tmp_path):
+    from csr8_preseal_sandbox import build_pre_seal_sandbox
     b2 = _load_b2()
-    import shutil
-    root = tmp_path / "csr8_phase_c"
-    root.mkdir()
-    shutil.copytree(b2.CSR / "production", root / "production")
-    shutil.copytree(b2.CSR / "annotator", root / "annotator")
+    sb = build_pre_seal_sandbox(tmp_path, through="B2")
+    root = sb.root
     assert set(b2.verify_b2(root)["gates"].values()) == {"PASS"}
     p = b2.c4d.annot_dom(root, b2.SID) / "draft" / "annotation_draft.json"
     draft = json.loads(p.read_text())
@@ -464,23 +513,27 @@ def _load_b4():
     return mod
 
 
-def test_b4_live_unattended_approval_binds_exact_receipt_hash():
-    """All B4 gates measure PASS on the live tree; the persisted approval
-    artifact hash is character-identical to SHA256(exact receipt bytes)
-    both in the approved_receipt_sha256 fields and embedded in the
-    taskbook §5 B4 fixed wording; approved_by is UNATTENDED_POLICY;
-    permission bits are 0600 and both artifacts are canonical."""
+def test_b4_live_unattended_approval_binds_exact_receipt_hash(tmp_path):
+    """The live artifacts keep their exact-hash bindings (measured from
+    the persisted bytes), and the FULL B4 gate stack re-measures green on
+    a transaction-derived pre-SEAL replica — the live tree itself is past
+    B5 (annotator cleaned), so the full stack no longer applies to it."""
+    from csr8_preseal_sandbox import build_pre_seal_sandbox
     b4 = _load_b4()
-    result = b4.verify_b4()
+    # full gate stack on the replica (same real code path)
+    sb = build_pre_seal_sandbox(tmp_path, through="B4")
+    result = b4.verify_b4(sb.root, sb.record_path)
     assert set(result["gates"].values()) == {"PASS"}
+    assert result["approved_by"] == "UNATTENDED_POLICY"
+    # live persisted artifacts: every exact-hash binding still holds
     import hashlib
     receipt_sha = hashlib.sha256(b4.RECEIPT.read_bytes()).hexdigest()
     approval_bytes = b4.APPROVAL.read_bytes()
     approval = json.loads(approval_bytes)
     record_bytes = b4.UNATTENDED_RECORD.read_bytes()
     record = json.loads(record_bytes)
-    assert result["receipt_sha256"] == receipt_sha
-    assert result["receipt_sha256"] == \
+    assert result["receipt_sha256"] != receipt_sha  # replica ≠ live receipt
+    assert receipt_sha == \
         "85a224a3e748b569060a14aea8fe5fe353b62e8a804e0f43cfb4c51a18063aa6"
     # approval artifact == approved object hash (character-identical)
     assert approval["approved_receipt_sha256"] == receipt_sha
@@ -531,20 +584,18 @@ def test_b4_preauth_v1_mechanism_removed_from_bridge_code():
 
 
 def _b4_sandbox(tmp_path, b4):
-    """Full end-to-end dry-run of the B4 unattended transaction on a tmp
-    copy: the copy starts from the PRE-approval state (seal_approval.json
-    removed) so the dry-run exercises the real frozen persist path, then
-    the run-side unattended record is written O_EXCL and everything is
-    re-proven green."""
-    import shutil
-    root = tmp_path / "csr8_phase_c"
-    root.mkdir()
-    for d in ("production", "annotator", "c4d_receipts"):
-        shutil.copytree(b4.CSR / d, root / d)
+    """Full end-to-end dry-run base for the B4 unattended transaction: a
+    transaction-derived pre-approval replica (real B1->B3 transactions on
+    a certified production copy — annotator domain present, receipt
+    frozen, NO seal_approval yet), so the dry-run exercises the real
+    frozen persist path; the run-side unattended record is then written
+    O_EXCL and everything is re-proven green."""
+    from csr8_preseal_sandbox import build_pre_seal_sandbox
+    sb = build_pre_seal_sandbox(tmp_path, through="B3")
+    root = sb.root
     approval = (root / "c4d_receipts" / b4.SID / "ordinal-0001" /
                 "attempt-0001" / "seal_approval.json")
-    if approval.exists():
-        approval.unlink()
+    assert not approval.exists()      # pre-approval state, by construction
     record_path = tmp_path / "b4_unattended_approval.json"
     return root, record_path, approval
 

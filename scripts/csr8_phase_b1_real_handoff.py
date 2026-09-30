@@ -293,9 +293,14 @@ def verify_b1(root=None, sid=SID):
             'annotation_session_id': sessions[-1]['annotation_session_id']}
 
 
-def do_handoff():
-    """真实执行 B1（一次性）。任何 gate 前置不过 → 不写任何字节。"""
-    evs = read_chain(REAL_CSR, SID)
+def do_handoff(root=REAL_CSR):
+    """真实执行 B1（一次性）。任何 gate 前置不过 → 不写任何字节。
+
+    ``root`` 默认真实生产域；测试可传入隔离副本根（同一真实事务
+    代码路径，B5 后置状态回归/夹具用——真实域本身已由 POST_SEAL_FINAL
+    清理，不再是可执行 B1 的状态）。"""
+    root = Path(root)
+    evs = read_chain(root, SID)
     reveals = [e for e in evs if e.get('event_type') == 'REVEAL_PACKET']
     if len(reveals) != 1 or any(
             e.get('event_type') == 'SEAL_ANNOTATION' for e in evs):
@@ -303,16 +308,16 @@ def do_handoff():
     r1 = reveals[0]
     if r1['event_hash'] != LIVE_R1:
         fail(f'{G_CHAIN}: real R1 head != frozen anchor — refusing')
-    dom = c4d.annot_dom(REAL_CSR, SID)
+    dom = c4d.annot_dom(root, SID)
     if dom.exists():
         fail('B1 already executed (annotator domain exists) — '
              'use --verify')
-    arch = c4d.sealing_dir(REAL_CSR, SID) / r1['payload']['bytes_ref']
+    arch = c4d.sealing_dir(root, SID) / r1['payload']['bytes_ref']
     ab = arch.read_bytes()
     if sha(ab) != r1['payload']['packet_sha256']:
         fail(f'{G_ARCH}: archive binding broken — refusing to hand off')
 
-    sid_dir = REAL_CSR / 'annotator'
+    sid_dir = root / 'annotator'
     sid_dir.mkdir(parents=True, exist_ok=True, mode=0o700)
     if mode_of(sid_dir) != 0o700:
         os.chmod(sid_dir, 0o700)
@@ -320,7 +325,7 @@ def do_handoff():
     c4d.fsync_dir(sid_dir)
     (dom / 'packet').mkdir(mode=0o700)
     c4d.fsync_dir(dom)
-    target = c4d.packet_path(REAL_CSR, SID, r1['payload']['packet_id'])
+    target = c4d.packet_path(root, SID, r1['payload']['packet_id'])
     c4d.excl_write(target, ab)          # O_EXCL 0600 + fsync(file, parent)
     c4d.fsync_dir(dom / 'packet')
     now = _dt.datetime.now(_dt.timezone.utc).strftime(TS_FMT)
@@ -340,9 +345,9 @@ def do_handoff():
             'reveal_event_hash': LIVE_R1,
         }],
     }
-    c4d.excl_write(registry_path(REAL_CSR, SID), canon(reg).encode())
+    c4d.excl_write(registry_path(root, SID), canon(reg).encode())
     c4d.fsync_dir(dom)
-    result = verify_b1()
+    result = verify_b1(root)
     result['b1'] = 'HANDOFF_DONE'
     return result
 

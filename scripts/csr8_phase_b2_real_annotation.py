@@ -154,15 +154,22 @@ def verify_b2(root=CSR):
             'annotation_attempt': draft['annotation_attempt']}
 
 
-def create():
-    draft = build_draft()
-    dom = c4d.annot_dom(CSR, SID) / 'draft'
+def create(root=CSR):
+    """Persist the real blinded draft through the frozen transaction.
+
+    ``root`` defaults to the real production domain; tests may pass an
+    isolated replica root (same real code path — post-B5 the real
+    annotator workspace is cleaned and no longer a B2-executable state)."""
+    root = Path(root)
+    draft = build_draft(root)
+    dom = c4d.annot_dom(root, SID) / 'draft'
     dom.mkdir(mode=0o700, parents=True, exist_ok=True)
-    if DRAFT_PATH.exists():
+    out = dom / 'annotation_draft.json'
+    if out.exists():
         fail('annotation draft already exists; refusing overwrite')
-    b1.c4d.excl_write(DRAFT_PATH, c4d.canon(draft).encode())
-    b1.c4d.fsync_dir(dom)
-    result = verify_b2()
+    c4d.excl_write(out, c4d.canon(draft).encode())
+    c4d.fsync_dir(dom)
+    result = verify_b2(root)
     result['b2'] = 'DRAFT_CREATED'
     return result
 

@@ -1,11 +1,15 @@
 #!/usr/bin/env python3
-"""Bridge-executable Phase-A machine audit (iteration 17 contract).
+"""Bridge-executable CSR-8 machine audit (B5-authoritative contract).
 
-Synthetic gates (D01-D71 matrix, guard semantics) run self-contained in
-tmp sandboxes.  The REAL production gates (C4-C regression subprocess,
-live preflight, candidate gates, blindness scan, production
-REVEAL=1/SEAL=0, forbidden-domain absence, real fingerprint
-before==after) read live state under data/csr8_phase_c.
+The synthetic Phase-A matrix (D01–D71, guard semantics, C4-C regression)
+is executed and asserted by the committed pytest suite directly; this
+script is the B5 boundary's authoritative machine audit: it re-verifies
+the certified-input closure and then measures the COMPLETE B5 Freeze
+Gate (chain [R1,S1], receipt triple exact-byte equality, consumed
+approval, unique attempt history, cleared workspace, durable exact
+c4d/c4c anchors, untouched outcome domain, public production state
+REVEAL=1/SEAL=1) from persisted live bytes via
+scripts/csr8_phase_b5_real_seal.py — no static snapshot self-attestation.
 
 The audit bridge executes this script in a detached worktree of the
 exact TARGET_COMMIT where gitignored data/ does not exist.  Per the
@@ -23,14 +27,11 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 TARGET = ROOT / "scripts/csr8_phase_c_annotation_seal.py"
-B1_TARGET = ROOT / "scripts/csr8_phase_b1_real_handoff.py"
-B2_TARGET = ROOT / "scripts/csr8_phase_b2_real_annotation.py"
-B4_TARGET = ROOT / "scripts/csr8_phase_b4_human_approval.py"
 B5_TARGET = ROOT / "scripts/csr8_phase_b5_real_seal.py"
 CERT_MANIFEST = ROOT / "config/audit/certified_live_inputs.json"
-# 阶段边界感知（run 2 / B1+）：annotator/ 自 B1 起合法，其 closed-world
-# 与泄漏 gate 由 csr8_phase_b1_real_handoff.py 机器实测；c4d_receipts/ 与
-# c4d_proposals/ 在 B3/B5 前仍属禁止。
+# 阶段边界感知（post-B5 终态）：annotator/ 工作区已由 POST_SEAL_FINAL 按
+# 协议清理（终态不存在）；c4d_receipts/ 是 B3 起的合法冻结证据域；
+# c4d_proposals/ 在 C2 授权阶段之前始终禁止。
 FORBIDDEN_PREFIXES = ("c4d_proposals/",)
 
 def load():
@@ -137,53 +138,6 @@ def verify_certified_tree():
     if bad:
         raise RuntimeError("certified live inputs mismatch: " + "; ".join(bad[:10]))
     return manifest
-
-def verify_b1_annotator_domain():
-    """B1 real annotator-domain gates (stage-boundary aware, run 2).
-
-    If the real annotator domain exists, ALL B1 gates must measure PASS
-    (exact-copy vs C2 archive, closed-world shape, opaque session id,
-    leak scans, boundary domains).  Absence is a Phase-A-boundary
-    condition (pre-B1) and is reported as such — never a silent skip.
-    """
-    spec = importlib.util.spec_from_file_location("c4d_b1", B1_TARGET)
-    b1 = importlib.util.module_from_spec(spec); spec.loader.exec_module(b1)
-    dom = b1.c4d.annot_dom(b1.REAL_CSR, b1.SID)
-    if not dom.is_dir():
-        return {"b1_annotator_domain": "ABSENT", "boundary": "pre-B1"}
-    res = b1.verify_b1()
-    flat = {"b1_annotator_domain": "PRESENT"}
-    flat.update({k: v for k, v in res["gates"].items()})
-    return flat
-
-def verify_b4_approval_domain():
-    spec = importlib.util.spec_from_file_location("c4d_b4", B4_TARGET)
-    b4 = importlib.util.module_from_spec(spec); spec.loader.exec_module(b4)
-    if not b4.APPROVAL.is_file():
-        return {"b4_approval": "ABSENT", "boundary": "pre-B4"}
-    res = b4.verify_b4()
-    return {"b4_approval": "PRESENT", **{
-        "G-B4-" + k.upper(): v for k, v in res["gates"].items()}}
-
-def verify_b3_receipt_domain():
-    spec = importlib.util.spec_from_file_location("c4d_b3", ROOT / "scripts/csr8_phase_b3_real_receipt.py")
-    b3 = importlib.util.module_from_spec(spec); spec.loader.exec_module(b3)
-    attempt = b3.c4d.attempt_dir(b3.CSR, b3.SID, b3.ORDINAL, b3.ATTEMPT)
-    if not attempt.is_dir():
-        return {"b3_receipt": "ABSENT", "boundary": "pre-B3"}
-    res = b3.verify_b3()
-    return {"b3_receipt": "PRESENT", **{
-        "G-B3-" + k.upper(): v for k, v in res["gates"].items()}}
-
-def verify_b2_annotation_domain():
-    spec = importlib.util.spec_from_file_location("c4d_b2", B2_TARGET)
-    b2 = importlib.util.module_from_spec(spec); spec.loader.exec_module(b2)
-    draft = b2.DRAFT_PATH
-    if not draft.is_file():
-        return {"b2_annotation_draft": "ABSENT", "boundary": "pre-B2"}
-    res = b2.verify_b2()
-    return {"b2_annotation_draft": "PRESENT", **{
-        "G-B2-" + k.upper(): v for k, v in res["gates"].items()}}
 
 def verify_b5_freeze_domain():
     spec = importlib.util.spec_from_file_location("c4d_b5", B5_TARGET)

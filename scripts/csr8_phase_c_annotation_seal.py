@@ -1,17 +1,31 @@
 #!/usr/bin/env python3
-"""CSR-8 Phase C4-D — annotation + SEAL synthetic executor (SYNTHETIC ONLY).
+"""CSR-8 Phase C4-D — annotation + SEAL synthetic executor.
 
 Implements the FROZEN design
-  PHASE_C_C4D_ANNOTATION_SEAL_DESIGN.md v1.0 FINAL FROZEN @ 034d152
+  PHASE_C_C4D_ANNOTATION_SEAL_DESIGN.md v1.0 FINAL FROZEN @ 034d152.
+
+Run-1 (Phase A / C4-D synthetic closeout, approved @ 6f9c9af) operated
 under the user's synthetic-only authorization:
 
   ALLOWED : synthetic code, sandbox construction, D01-D46 target-aware
             fixtures, recovery/crash matrix, C4-C regression, deterministic
             candidate tests.
-  FORBIDDEN: real annotator / c4d_receipts / c4d_proposals domains, real
-            draft/receipt/approval, production SEAL, ordinal-2 proposal on
-            the real chain, a second real REVEAL, modifying the frozen C4-C
+  FORBIDDEN (run-1 boundary, superseded where the run-2 taskbook grants
+            the explicit authorization point): real annotator /
+            c4d_receipts / c4d_proposals domains, real draft/receipt/
+            approval, production SEAL, ordinal-2 proposal on the real
+            chain, a second real REVEAL, modifying the frozen C4-C
             executor or c4c_anchor.json.
+
+Run 2 (CSR-8 Phase C infra final, taskbook 20260928140115 as amended
+v2-unattended-20260930) authorized the REAL authorization points B1-B5
+on this chain: B1 handoff, B2 draft, B3 receipt, B4 approval and the B5
+real S1 SEAL have been executed and machine-audited; the annotator
+workspace is cleared by POST_SEAL_FINAL and its audit trail lives in the
+C2 archive + draft_snapshot.bin.  The frozen C4-C executor
+(csr8_phase_c_first_reveal.py) and public/c4c_anchor.json remain exact
+byte-frozen; the real production terminal state is REVEAL=1/SEAL=1
+(chain [R1,S1], stage-aware live_preflight below proves it).
 
 Frozen modules are IMPORTED read-only (c1 / c2 / c4ab / c4c); nothing in
 them is modified. Every operation here takes an explicit sandbox root;
@@ -3902,26 +3916,61 @@ def d71():
 # --------------------------------------------------------------------------
 
 def live_preflight():
-    """Real chain still exactly [REVEAL r1]; C4-D domain boundary is
-    STAGE-AWARE (run 2): the real annotator/ domain became legal at
-    stage B1 (its closed-world/leak gates are machine-verified by
-    scripts/csr8_phase_b1_real_handoff.py); c4d_receipts/ and
-    c4d_proposals/ stay forbidden until B3/B5."""
-    c4c.assert_real_experiment_started()
+    """Real-chain live guard (read-only, stage-aware).
+
+    Run 2 boundaries, both proven from persisted bytes:
+      * reveal phase (pre-B5): chain exactly [REVEAL r1] — the full frozen
+        C4-C reveal-phase proof (assert_real_experiment_started) holds;
+      * sealed phase (post-B5): chain exactly [R1,S1] — the frozen C4-C
+        reveal-phase invariant (exactly 0 SEALs) is superseded by the
+        taskbook-authorized S1 append; the sealed boundary is proven by
+        the C4-D semantic replay, SEALED derivation, exact durable c4d
+        seal anchor, byte-unchanged c4c anchor and cleared annotator
+        workspace (the complete Freeze Gate is machine-measured by
+        scripts/csr8_phase_b5_real_seal.py).
+    c4d_proposals/ stays forbidden until the ordinal-2 authorization
+    stage in either phase."""
     log = REAL_PRODUCTION / REAL_SESSION / 'sealing' / 'sealing_log.jsonl'
     evs = [json.loads(l) for l in log.read_text().splitlines() if l.strip()]
-    if [e['event_type'] for e in evs] != ['REVEAL_PACKET']:
-        fail('live preflight: production must hold exactly one REVEAL')
-    if evs[0]['event_hash'] != LIVE_R1_EVENT_HASH:
-        fail('live preflight: r1 event_hash drifted from the frozen '
-             'b5ec0ba1… anchor')
+    types = [e['event_type'] for e in evs]
+    if not evs or evs[0]['event_hash'] != LIVE_R1_EVENT_HASH \
+            or evs[0].get('event_type') != 'REVEAL_PACKET':
+        fail('live preflight: production must start with the frozen '
+             'b5ec0ba1… REVEAL')
+    if types == ['REVEAL_PACKET']:
+        c4c.assert_real_experiment_started()
+    elif types == ['REVEAL_PACKET', 'SEAL_ANNOTATION']:
+        s1 = evs[1]
+        if s1.get('prev_event_hash') != evs[0]['event_hash']:
+            fail('live preflight: S1 does not chain onto the frozen R1')
+        if derive_state(REAL_CSR, REAL_SESSION)[0] != 'SEALED':
+            fail('live preflight: sealed chain must derive SEALED')
+        semantic_replay(REAL_CSR, REAL_SESSION)
+        anchor = read_json(anchor_path_in(REAL_CSR))
+        expected = {'production_head_hash': s1['event_hash'],
+                    'seal_receipt_sha256': s1['payload']['receipt_sha256'],
+                    'sealed_count': 1, 'experiment_started': True}
+        if anchor != expected:
+            fail('live preflight: c4d seal anchor is not the exact '
+                 'chain-derived S1 binding')
+        c4c_anchor = read_json(c4c.anchor_path())
+        if c4c_anchor.get('production_head_hash') != LIVE_R1_EVENT_HASH \
+                or c4c_anchor.get('authorization_sha256') != \
+                evs[0]['payload'].get('authorization_sha256'):
+            fail('live preflight: c4c anchor bytes must stay the frozen '
+                 'reveal-phase binding (unchanged by the SEAL)')
+        dom = annot_dom(REAL_CSR, REAL_SESSION)
+        if dom.exists() and any(dom.rglob('*')):
+            fail('live preflight: POST_SEAL_FINAL workspace not cleared')
+    else:
+        fail(f'live preflight: illegal live chain shape {types}')
     # B3 creates and verifies the real receipt domain; proposals remain
     # forbidden until the later authorization stage.
     if REAL_PROPOSALS_C4D.exists():
         fail(f'live preflight: forbidden real domain exists: {REAL_PROPOSALS_C4D}')
     if REAL_ANNOTATOR.exists() and not REAL_ANNOTATOR.is_dir():
         fail('live preflight: annotator path exists but is not a domain')
-    if (PUBLIC_DIR / C4D_ANCHOR_NAME).exists():
+    if types == ['REVEAL_PACKET'] and (PUBLIC_DIR / C4D_ANCHOR_NAME).exists():
         fail('live preflight: c4d_seal_anchor.json must not exist before '
              'the real SEAL')
     return True
@@ -3939,6 +3988,10 @@ def fingerprint_real():
 def cmd_synthetic():
     verify_contract_constant()
     live_preflight()
+    _live = REAL_PRODUCTION / REAL_SESSION / 'sealing' / 'sealing_log.jsonl'
+    _types = [json.loads(l)['event_type'] for l in
+              _live.read_text().splitlines() if l.strip()]
+    sealed = _types == ['REVEAL_PACKET', 'SEAL_ANNOTATION']
     before = fingerprint_real()
     cand = verify_candidate_gates()
     print(f"CANDIDATE GATES PASS: order_size={cand['size']} "
@@ -3962,18 +4015,42 @@ def cmd_synthetic():
     for name, desc, fn in FIXTURES:
         fn()
         print(f'[{name}] PASS — {desc}')
-    reg = subprocess.run(
-        [sys.executable,
-         str(ROOT / 'scripts' / 'csr8_phase_c_first_reveal.py'),
-         'synthetic'],
-        capture_output=True, text=True)
-    if reg.returncode != 0:
-        print(reg.stdout[-2000:])
-        print(reg.stderr[-2000:])
-        fail('C4-C regression FAILED — frozen executor selftest must pass')
+    if sealed:
+        # The frozen C4-C reveal-phase executor's own live invariant
+        # (exactly 1 REVEAL / 0 SEAL) is superseded by the taskbook §5 B5
+        # authorized S1 append; running its synthetic regression against
+        # the sealed live chain would fail closed by design.  The sealed
+        # boundary is instead proven by the B5 Freeze Gate
+        # (scripts/csr8_phase_b5_real_seal.py).  Explicitly reported —
+        # never silently skipped.
+        c4c_regression = ('SUPERSEDED-BY-B5-SEAL: frozen C4-C reveal-phase '
+                          'invariant requires 0 SEALs; real chain is '
+                          '[R1,S1] and the B5 Freeze Gate is the '
+                          'authoritative sealed-boundary proof')
+    else:
+        reg = subprocess.run(
+            [sys.executable,
+             str(ROOT / 'scripts' / 'csr8_phase_c_first_reveal.py'),
+             'synthetic'],
+            capture_output=True, text=True)
+        if reg.returncode != 0:
+            print(reg.stdout[-2000:])
+            print(reg.stderr[-2000:])
+            fail('C4-C regression FAILED — frozen executor selftest must pass')
+        c4c_regression = 'PASS'
     if fingerprint_real() != before:
         fail('REAL PRODUCTION OR C4C ANCHOR MUTATED — fail-closed')
     live_preflight()
+    if sealed:
+        live_invariants = ('REVEAL=1 SEAL=1 c4d_proposals absent '
+                           'c4d_seal_anchor exact(S1) c4c_anchor '
+                           'unchanged annotator workspace cleared '
+                           '(POST_SEAL_FINAL)')
+    else:
+        live_invariants = ('REVEAL=1 SEAL=0 c4d_proposals absent '
+                           'c4d_seal_anchor absent (annotator domain: '
+                           'stage-aware, legal since B1, gated by '
+                           'csr8_phase_b1_real_handoff.py)')
     report = {
         'mode': 'synthetic only; real chain/domains untouched',
         'design': 'PHASE_C_C4D_ANNOTATION_SEAL_DESIGN v1.0 FINAL FROZEN '
@@ -3987,11 +4064,8 @@ def cmd_synthetic():
                             'order_size': cand['size'],
                             'revealed_prefix_verified':
                                 cand['revealed_prefix'] > 0},
-        'c4c_regression': 'PASS',
-        'live_invariants': 'REVEAL=1 SEAL=1 c4d_receipts/c4d_proposals '
-                           'absent anchor=absent (annotator domain: '
-                           'stage-aware, legal since B1, gated by '
-                           'csr8_phase_b1_real_handoff.py)',
+        'c4c_regression': c4c_regression,
+        'live_invariants': live_invariants,
     }
     print('C4-D SYNTHETIC AUDIT GREEN')
     print(canon(report))
