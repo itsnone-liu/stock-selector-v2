@@ -2,7 +2,7 @@
  "c4dProposalAllowlist": [
   "c4d_proposals/c4-prod-0002/ordinal-0002/next_reveal.proposal.json"
  ],
- "fileCount": 10540,
+ "fileCount": 10541,
  "forbiddenPrefixes": [],
  "generator": "scripts/csr8_phase_a_certify_inputs.py",
  "protectedArtifacts": [
@@ -190,7 +190,7 @@
      "path": "secret"
     }
    ],
-   "fileCount": 5299,
+   "fileCount": 5300,
    "files": [
     {
      "bytes": 1264,
@@ -31873,6 +31873,12 @@
      "sha256": "4242e4b406c0a5b8864a192bbbd9d76e4af728ece14a5593f9e262c75629ee69"
     },
     {
+     "bytes": 357,
+     "mode": 384,
+     "path": "c4d_receipts/c4-prod-0002/ordinal-0002/attempt-0001/seal_approval.json",
+     "sha256": "1ee4fdd0adc177c4aa8b08c55054e0740d419afa9ff03d626675de1d7d2bb9a6"
+    },
+    {
      "bytes": 1264,
      "mode": 384,
      "path": "c4d_receipts/c4-prod-0002/ordinal-0002/packet.json",
@@ -31988,7 +31994,7 @@
     }
    ],
    "root": "data/csr8_phase_c",
-   "totalBytes": 349461160
+   "totalBytes": 349461517
   },
   {
    "dirCount": 1,
@@ -63451,6 +63457,6 @@
    "totalBytes": 463928909
   }
  ],
- "totalBytes": 813390069,
+ "totalBytes": 813390426,
  "version": 2
 }
