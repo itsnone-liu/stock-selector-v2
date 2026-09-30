@@ -28,6 +28,7 @@
     },
     {
       "id": "C2",
+      "ownerRuling": "v2-c2-binding-clarification-20261001: C2 formally binds ordinal-2 proposal exact bytes. approved_proposal_sha256 = SHA256(proposal exact bytes) = approved_authorization_sha256; permit exact bytes = proposal exact bytes. C2 does not bind receipt/attempt or receipt_sha256; cycle-2 receipt/attempt are produced at C4. This owner ruling supersedes the copied B4 receipt wording in the v2 paragraph.",
       "requirements": "任务书 §6 C2 Human NEXT_REVEAL_ONLY approval（人工授权点，流程同 B4：执行者先展示 proposal_sha256 与固定措辞、等待绑定会话人类批准消息，允许一次无 marker 交互轮）。持久化 next_reveal.approval.json + next_reveal.permit.json，三方一致机器实测：proposal exact bytes == approved hash == permit exact bytes。禁止授权扩张（仅授权本次 NEXT_REVEAL_ONLY）。认证清单同步更新。完成后本地 commit + READY_FOR_AUDIT，HARD STOP，不得进入 C3。\n本阶段批准要求已按任务书修订 v2（2026-09-30 纯无人值守）改为自动批准：执行器不再等待任何人类消息，直接持久化批准工件（O_EXCL / canonical / 0600 / fsync），工件必须绑定当前 session / reveal / attempt 的 exact receipt bytes，approved_by 固定为 UNATTENDED_POLICY，措辞/字段中的 hash 与 receipt_sha256 逐字符一致；禁止授权扩张（仅授权本次对应的 exact bytes）。提交内测试断言批准工件与被批准对象 hash 一致、权限位与 canonical 形态正确。认证清单同步更新。完成后本地 commit + READY_FOR_AUDIT，HARD STOP，不得进入下一阶段。"
     },
     {

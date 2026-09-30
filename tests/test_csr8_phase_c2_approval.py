@@ -297,6 +297,23 @@ def test_c2_catches_noncanonical_record_bytes(tmp_path):
         c2mod.verify_c2(*_tampered(tmp_path, "noncanon", tweak))
 
 
+def test_c2_owner_ruling_is_frozen_in_taskbook():
+    """The taskbook itself, not only the executor evidence, carries the
+    owner-level C2 binding correction: proposal, not receipt."""
+    taskbook = Path(c4d.ROOT) / ".dsh-audit-task.json"
+    spec = json.loads(taskbook.read_bytes())
+    c2 = next(stage for stage in spec["stages"] if stage["id"] == "C2")
+    ruling = c2["ownerRuling"]
+    assert "v2-c2-binding-clarification-20261001" in ruling
+    assert "proposal exact bytes" in ruling
+    assert "approved_proposal_sha256" in ruling
+    assert "approved_authorization_sha256" in ruling
+    assert "permit exact bytes = proposal exact bytes" in ruling
+    assert "does not bind receipt/attempt" in ruling
+    assert "receipt_sha256" in ruling
+    assert "C4" in ruling
+
+
 def test_c2_bound_object_is_proposal_not_receipt():
     """Iteration-2 interpretation ruling, pinned machine-side: the v2
     amendment's 'session / reveal / attempt exact receipt bytes' /
