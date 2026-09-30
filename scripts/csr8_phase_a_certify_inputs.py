@@ -70,6 +70,11 @@ PROTECTED_ARTIFACTS = (
     'data/csr8_phase_c/production/c4-prod-0002/authorization/ordinal-0002/next_reveal.permit.json',
     'docs/audit/evidence/b4_unattended_approval.json',
     'docs/audit/evidence/c2_unattended_approval.json',
+    'data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0002/packet.json',
+    'data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0002/annotation_session_registry.json',
+    'data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0002/annotation_draft.json',
+    'data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0002/attempt-0001/receipt.json',
+    'data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0002/attempt-0001/draft_snapshot.bin',
 )
 
 # C4-D 域阶段边界（C1 终态感知）：annotator/ 工作区在 B5 POST_SEAL_FINAL
