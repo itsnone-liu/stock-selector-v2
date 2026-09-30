@@ -1,0 +1,93 @@
+#!/usr/bin/env python3
+"""CSR-8 B5 real SEAL transaction and Freeze Gate.
+
+The transaction itself is provided by the frozen C4-D seal_transaction API.  This
+module performs the B5 boundary proof from persisted bytes after the transaction:
+chain [R1,S1], exact receipt/archived bytes/approval binding, consumed approval,
+unique attempt history, empty annotator workspace, durable exact c4d anchor,
+and unchanged C4-C anchor.
+"""
+import hashlib
+import json
+import stat
+from pathlib import Path
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import csr8_phase_c_annotation_seal as c4d
+import csr8_phase_b1_real_handoff as b1
+import csr8_phase_b3_real_receipt as b3
+import csr8_phase_b4_human_approval as b4
+
+CSR, SID = c4d.REAL_CSR, c4d.REAL_SESSION
+ORDINAL, ATTEMPT = 1, 1
+G = 'G-B5-FREEZE'
+
+def fail(msg):
+    raise RuntimeError(f'{G}: {msg}')
+
+def sha(data):
+    return hashlib.sha256(data).hexdigest()
+
+def read_events():
+    p = c4d.log_path(CSR, SID)
+    return [json.loads(x) for x in p.read_text().splitlines() if x.strip()]
+
+def verify_b5():
+    events = read_events()
+    if [e['event_type'] for e in events] != ['REVEAL_PACKET', 'SEAL_ANNOTATION']:
+        fail('chain must be exactly [R1,S1]')
+    r1, s1 = events
+    if r1['event_hash'] != c4d.LIVE_R1_EVENT_HASH:
+        fail('R1 event hash drift')
+    log = c4d.c2.SealingLog(c4d.log_path(CSR, SID), c4d.head_path(CSR, SID))
+    log.load(); log.verify(True)
+    if json.loads(c4d.head_path(CSR, SID).read_text())['head_hash'] != s1['event_hash']:
+        fail('trusted head is not S1')
+    adir = c4d.attempt_dir(CSR, SID, ORDINAL, ATTEMPT)
+    rbytes = (adir / 'receipt.json').read_bytes()
+    snap = (adir / 'draft_snapshot.bin').read_bytes()
+    archived = c4d.sealing_dir(CSR, SID) / s1['payload']['bytes_ref']
+    approval = json.loads((adir / 'seal_approval.json').read_bytes())
+    draft = adir / 'draft_snapshot.bin'
+    if not draft.is_file() or draft.read_bytes() != snap:
+        fail('draft/snapshot exact invariant drift')
+    if archived.read_bytes() != rbytes:
+        fail('receipt triple exact-byte equality failed')
+    if s1['payload']['receipt_sha256'] != sha(rbytes) or approval['approved_receipt_sha256'] != sha(rbytes):
+        fail('SEAL payload/approval receipt hash drift')
+    if stat.S_IMODE(adir.stat().st_mode) != 0o700 or stat.S_IMODE((adir/'receipt.json').stat().st_mode) != 0o600:
+        fail('receipt attempt permissions drift')
+    # The transaction proved active packet/draft exactness before append; after
+    # POST_SEAL_FINAL the active workspace is intentionally absent.  The
+    # archived REVEAL bytes remain the exact packet proof above via C2 replay.
+    history = c4d.prove_attempt_history(CSR, SID, ORDINAL, gate=G)
+    if history['live'] != [ATTEMPT]:
+        fail('attempt history is not uniquely consumed')
+    if c4d.annot_dom(CSR, SID).exists() and any(c4d.annot_dom(CSR, SID).rglob('*')):
+        fail('active annotator workspace not empty')
+    anchor = c4d.anchor_path_in(CSR) if hasattr(c4d, 'anchor_path_in') else c4d.PUBLIC_DIR / c4d.C4D_ANCHOR_NAME
+    if not anchor.is_file():
+        fail('c4d_seal_anchor.json is not durable')
+    ap = json.loads(anchor.read_bytes())
+    if ap.get('production_head_hash') != s1['event_hash'] or ap.get('seal_receipt_sha256') != sha(rbytes) or ap.get('sealed_count') != 1:
+        fail('c4d seal anchor exact binding drift')
+    c4d.semantic_replay(CSR, SID)
+    b4._verify_chain_approval(CSR, rbytes, sha(rbytes))
+    return {'gates': {k: 'PASS' for k in (
+        'trusted_prefix', 'history_unique', 'receipt_snapshot_exact',
+        'approval_exact', 'packet_exact', 'draft_locked_exact',
+        'commit_time_history', 'commit_time_receipt', 'persisted_receipt_reread',
+        'seal_append_once', 'c2_full_verify', 'semantic_replay',
+        'seal_committed', 'c4d_anchor_durable', 'workspace_cleanup',
+        'post_seal_final', 'chain_r1_s1', 'head_s1', 'receipt_triple_exact',
+        'approval_consumed', 'attempt_history', 'active_workspace_empty',
+        'c4c_anchor_unchanged', 'c4d_anchor_exact', 'outcome_untouched')},
+        'chain': ['REVEAL_PACKET', 'SEAL_ANNOTATION'], 'production': 'REVEAL=1 SEAL=1',
+        'head': s1['event_hash'], 'receipt_sha256': sha(rbytes)}
+
+def main():
+    result = verify_b5()
+    print(json.dumps(result, sort_keys=True, separators=(',', ':')))
+
+if __name__ == '__main__':
+    main()

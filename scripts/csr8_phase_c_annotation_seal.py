@@ -505,6 +505,7 @@ def events_complete_lines(sb, sid):
 # --------------------------------------------------------------------------
 
 EXPECTED_ANNOTATOR_TOP = {'packet', 'draft'}
+REGISTRY_NAME = 'annotation_session_registry.json'
 
 
 def check_visibility_domain(sb, sid):
@@ -524,6 +525,10 @@ def check_visibility_domain(sb, sid):
             if mode_of(p) != 0o700:
                 fail(f'{G_VIS}: annotator subdirectory mode drift: {rel}')
         else:
+            if rel.as_posix() == REGISTRY_NAME:
+                if mode_of(p) != 0o600:
+                    fail(f'{G_VIS}: registry file mode drift: {rel}')
+                continue
             if len(rel.parts) != 2 or rel.parts[0] not in \
                     EXPECTED_ANNOTATOR_TOP:
                 fail(f'{G_VIS}: unexpected file in annotator domain: {rel}')

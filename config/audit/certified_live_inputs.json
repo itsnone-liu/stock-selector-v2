@@ -1,5 +1,5 @@
 {
- "fileCount": 10532,
+ "fileCount": 10531,
  "forbiddenPrefixes": [
   "c4d_proposals/"
  ],
@@ -20,23 +20,11 @@
  ],
  "roots": [
   {
-   "dirCount": 24,
+   "dirCount": 23,
    "dirs": [
     {
      "mode": 448,
      "path": "annotator"
-    },
-    {
-     "mode": 448,
-     "path": "annotator/c4-prod-0002"
-    },
-    {
-     "mode": 448,
-     "path": "annotator/c4-prod-0002/draft"
-    },
-    {
-     "mode": 448,
-     "path": "annotator/c4-prod-0002/packet"
     },
     {
      "mode": 448,
@@ -57,6 +45,10 @@
     {
      "mode": 448,
      "path": "c3_preflight/packets"
+    },
+    {
+     "mode": 493,
+     "path": "c4_public"
     },
     {
      "mode": 448,
@@ -112,6 +104,10 @@
     },
     {
      "mode": 493,
+     "path": "production/c4-prod-0002/sealing/bytes/seal_annotation"
+    },
+    {
+     "mode": 493,
      "path": "public"
     },
     {
@@ -119,26 +115,8 @@
      "path": "secret"
     }
    ],
-   "fileCount": 5291,
+   "fileCount": 5290,
    "files": [
-    {
-     "bytes": 816,
-     "mode": 384,
-     "path": "annotator/c4-prod-0002/annotation_session_registry.json",
-     "sha256": "542649b928ef674328cc3f70ac46e982af5cfc356a00dda94a8bdea53ac654b0"
-    },
-    {
-     "bytes": 1707,
-     "mode": 256,
-     "path": "annotator/c4-prod-0002/draft/annotation_draft.json",
-     "sha256": "79de988498fa657a3dcea40b59dec59576f9f421b74994a8471f492d8b6bd74a"
-    },
-    {
-     "bytes": 3002,
-     "mode": 384,
-     "path": "annotator/c4-prod-0002/packet/335f3213cce87fd482a06dab89ac9735de1967f5ee8b9703603cb0202b84aaed.json",
-     "sha256": "e9abcb4497e08bf5b1b4a412d23f1c79bf8f2ff5477b2cfdec3af1053852adc1"
-    },
     {
      "bytes": 1264,
      "mode": 384,
@@ -31760,6 +31738,12 @@
      "sha256": "606810c1a4184dc7db3b8a4b0ffb5220859c9ceaff77609cdf1bfc6ebf0acf39"
     },
     {
+     "bytes": 223,
+     "mode": 384,
+     "path": "c4_public/c4d_seal_anchor.json",
+     "sha256": "ebae35d307f8a6c2f7ba7c11c8819b93400a0616ce95a9b0bc79475ea70aa694"
+    },
+    {
      "bytes": 477,
      "mode": 384,
      "path": "c4c_proposals/c4-prod-0002/first_reveal.proposal.json",
@@ -31826,16 +31810,22 @@
      "sha256": "e9abcb4497e08bf5b1b4a412d23f1c79bf8f2ff5477b2cfdec3af1053852adc1"
     },
     {
+     "bytes": 1880,
+     "mode": 420,
+     "path": "production/c4-prod-0002/sealing/bytes/seal_annotation/1.bin",
+     "sha256": "85a224a3e748b569060a14aea8fe5fe353b62e8a804e0f43cfb4c51a18063aa6"
+    },
+    {
      "bytes": 90,
      "mode": 420,
      "path": "production/c4-prod-0002/sealing/sealing_log.head.json",
-     "sha256": "73074e436023f7c91e14bb6dad8d87b02635b6b015f26111b700bf453dbd273f"
+     "sha256": "84156b2cfe30acb6be94fab3c387c638264c942bf1ac210f8bc8edecca77fda6"
     },
     {
-     "bytes": 907,
+     "bytes": 1384,
      "mode": 420,
      "path": "production/c4-prod-0002/sealing/sealing_log.jsonl",
-     "sha256": "3b4f073c40ed237902f742b5c23bf7352892d795f5f367259ea204e99175b9d7"
+     "sha256": "0a50dc7e56d851bbaf38f6186914984df373656d82e831e15502133a756afcf1"
     },
     {
      "bytes": 1001,
@@ -31869,7 +31859,7 @@
     }
    ],
    "root": "data/csr8_phase_c",
-   "totalBytes": 349452957
+   "totalBytes": 349450012
   },
   {
    "dirCount": 1,
@@ -63332,6 +63322,6 @@
    "totalBytes": 463928909
   }
  ],
- "totalBytes": 813381866,
+ "totalBytes": 813378921,
  "version": 2
 }
