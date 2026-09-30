@@ -282,3 +282,18 @@ persisted artifacts and machine verification remain unchanged: all eight
 G-C2 gates pass, `approved_by=UNATTENDED_POLICY`, `scope=NEXT_REVEAL_ONLY`,
 and consumption is `UNUSED`. No C3 append, receipt generation, or
 authorization expansion was performed.
+
+## Iteration-11 audit re-verification
+
+For `audit_20260930021152297` / C2 / iteration 11, the persisted authorization
+artifacts were re-verified in place under the frozen C2 owner ruling. The
+verifier returned all eight G-C2 gates `PASS`; `approved_by` remained
+`UNATTENDED_POLICY`, `scope` remained `NEXT_REVEAL_ONLY`, and authorization
+consumption remained `UNUSED`. The exact proposal/approval/permit three-way
+value remained
+`d045778390478d5cdc31bedcf44078fd9307c10fa08d0bc84a18df596cecc578`.
+
+The C2 boundary remains unchanged: the authorization binds the ordinal-2
+proposal exact bytes, not a cycle-2 receipt or attempt that is created later
+at C4. No C3 append, receipt generation, C4 action, or authorization
+expansion was performed.
