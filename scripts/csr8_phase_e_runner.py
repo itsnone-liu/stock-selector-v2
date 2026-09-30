@@ -9,12 +9,16 @@ def ev(root=c.REAL_CSR): return [json.loads(x) for x in c.log_path(root,c.REAL_S
 def state(): return json.loads(STATE.read_bytes()) if STATE.exists() else {'status':'NEW','boundary':'NEW'}
 def persist(x):
     data=c.canon(x).encode()
-    if STATE.exists(): STATE.write_bytes(data); os.chmod(STATE,0o600)
+    if STATE.exists():
+        tmp=STATE.with_suffix('.tmp'); c.excl_write(tmp,data); os.replace(tmp,STATE); os.chmod(STATE,0o600)
     else: c.excl_write(STATE,data)
+def hard_stop(boundary, ordinal, root):
+    persist({'status':boundary,'boundary':boundary,'ordinal':ordinal,'chain_count':len(ev(root)),'head':c.read_json(c.head_path(root,c.REAL_SESSION))['head_hash']})
 def diagnose(): return {'mode':'READ_ONLY','state':state(),'chain':[x['event_type'] for x in ev()],'head':c.read_json(c.head_path(c.REAL_CSR,c.REAL_SESSION))}
 def watchdog(start,timeout):
-    if time.monotonic()-start>timeout:return {'action':'SAFE_DEGRADE','reason':'TIMEOUT','writes':0,'越权动作':False}
-    return {'action':'CONTINUE','writes':0,'越权动作':False}
+    elapsed=time.monotonic()-start
+    if elapsed>timeout: return {'action':'SAFE_DEGRADE','reason':'TIMEOUT','writes':0,'append':False,'越权动作':False}
+    return {'action':'CONTINUE','writes':0,'append':False,'越权动作':False}
 def recovery_fix(root=c.REAL_CSR):
     """Explicit repair only: invoke persisted-state recovery; never append."""
     result=c.recover(root,c.REAL_SESSION); return {'action':'EXPLICIT_RECOVERY','result':result,'append':False}
@@ -29,14 +33,16 @@ def _constructive_runner():
     from csr8_preseal_sandbox import build_pre_seal_sandbox
     with tempfile.TemporaryDirectory(prefix='csr8-e-') as td:
         sb=build_pre_seal_sandbox(Path(td),through='B4'); out=[]
-        for stop in ('after_precondition','after_append'):
-            try:c.seal_transaction(sb.root,c.REAL_SESSION,stop_after=stop)
-            except c.CrashSim: out.append(stop)
-            else: raise RuntimeError('runner crash boundary not reached')
-            r=c.recover(sb.root,c.REAL_SESSION)
-            out.append(r)
-            if r not in ('SEAL_AUTHORIZED','SEALED'):raise RuntimeError('runner recovery failed')
-        return out
+        hard_stop('PREPARE',1,sb.root)
+        hard_stop('AUTHORIZED',1,sb.root)
+        try:c.seal_transaction(sb.root,c.REAL_SESSION,stop_after='after_precondition')
+        except c.CrashSim: out.append('after_precondition')
+        if c.recover(sb.root,c.REAL_SESSION) != 'SEAL_AUTHORIZED': raise RuntimeError('resume precondition failed')
+        try:c.seal_transaction(sb.root,c.REAL_SESSION,stop_after='after_append')
+        except c.CrashSim: out.append('after_append')
+        else: raise RuntimeError('append crash boundary not reached')
+        if c.recover(sb.root,c.REAL_SESSION) != 'SEALED': raise RuntimeError('resume append failed')
+        out.append('SEALED'); return out
 def main():
     if '--diagnose' in sys.argv: print(json.dumps(diagnose(),sort_keys=True,separators=(',',':'))); return
     if '--repair' in sys.argv: print(json.dumps(recovery_fix(),sort_keys=True,separators=(',',':'))); return
