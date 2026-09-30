@@ -136,7 +136,7 @@ def verify_certified_tree():
             rel = p.relative_to(live).as_posix()
             st = p.lstat()
             if p.is_dir():
-                if rel == 'annotator' and not any(p.iterdir()):
+                if not any(p.iterdir()):
                     continue
                 seen_dirs.add(rel)
                 if m_dirs.get(rel) != stat.S_IMODE(st.st_mode):
