@@ -302,8 +302,14 @@ def main():
         snapshot = 'REVEAL=2 SEAL=2'
     else:
         c6 = {'c6': 'NOT_RUN'}; snapshot = 'REVEAL=2 SEAL=1'
+    if len(events) == 4:
+        spec = importlib.util.spec_from_file_location('d_audit', ROOT / 'scripts/csr8_phase_d_progressive_loop.py')
+        dmod = importlib.util.module_from_spec(spec); spec.loader.exec_module(dmod)
+        d = dmod.verify()
+    else:
+        d = {'d': 'NOT_RUN'}
     print(json.dumps({'certified_inputs': 'VERIFIED', 'certified_files': manifest['fileCount'],
-                      'certified_roots': len(manifest['roots']), 'c3': c3, 'c4': c4, 'c6': c6,
+                      'certified_roots': len(manifest['roots']), 'c3': c3, 'c4': c4, 'c6': c6, 'd': d,
                       'production_snapshot': snapshot}, separators=(',', ':')))
 
 if __name__ == "__main__": main()
