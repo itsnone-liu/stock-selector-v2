@@ -72,11 +72,16 @@ committed tests)
   authorization point.
 - No SEAL/approve_seal, no other ordinal domains, no authorization
   expansion (scope NEXT_REVEAL_ONLY, binding EXACT).
-- Tests: `tests/test_csr8_phase_c2_approval.py` (13 tests) re-executes
+- Tests: `tests/test_csr8_phase_c2_approval.py` (16 tests) re-executes
   the real approval end-to-end on a transaction-derived sealed replica
   (real B1→B4 + SEAL + C1 proposal + C2 approval) and fails closed on
   approval-hash / permit-bytes / mode / wording-hash / policy / scope /
-  missing-record / closed-world tampering; `tests/csr8_preseal_sandbox
+  missing-record / closed-world tampering, on a premature R2 append to
+  the sealing log (malformed append crashes chain re-verification — a
+  well-formed R2 is only reachable through the frozen C3 transaction
+  machinery, which C2 never invokes), on a non-canonical rewrite of the
+  unattended record, and on combining the CLI's write/read modes;
+  `tests/csr8_preseal_sandbox
   .py` rewinds the C2-era ordinal-2 authorization domain out of
   pre-B5 replicas (a copied pair binds LIVE bytes and breaks replica
   transactions).
