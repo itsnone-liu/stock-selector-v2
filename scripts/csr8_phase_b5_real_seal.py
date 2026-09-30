@@ -77,16 +77,27 @@ def verify_b5():
         fail('c4d seal anchor exact binding drift')
     c4d.semantic_replay(CSR, SID)
     b4._verify_chain_approval(CSR, rbytes, sha(rbytes))
+    root = Path(__file__).resolve().parents[1]
+    c4c_anchor = CSR / 'public' / 'c4c_anchor.json'
+    certified = json.loads((root / 'config/audit/certified_live_inputs.json').read_bytes())
+    cert_entry = next((x for x in certified['roots'][0]['files'] if x['path'] == 'public/c4c_anchor.json'), None)
+    if cert_entry is None or not c4c_anchor.is_file():
+        fail('c4c anchor certification is absent')
+    if sha(c4c_anchor.read_bytes()) != cert_entry['sha256']:
+        fail('c4c anchor bytes changed')
+    outcome_files = [p for p in CSR.rglob('*') if 'outcome' in p.name.lower()]
+    if outcome_files:
+        fail('outcome domain changed/present: ' + ','.join(str(p) for p in outcome_files))
     checks = {
-        'trusted_prefix': (log.verify(True) or True),
+        'trusted_prefix': log.events == events,
         'history_unique': history['live'] == [ATTEMPT],
         'receipt_snapshot_exact': draft.read_bytes() == snap,
         'approval_exact': approval['approved_receipt_sha256'] == sha(rbytes),
         'commit_time_receipt': s1['payload']['receipt_sha256'] == sha(rbytes),
         'persisted_receipt_reread': archived.read_bytes() == rbytes,
         'seal_append_once': len(events) == 2,
-        'c2_full_verify': (log.verify(True) or True),
-        'semantic_replay': (c4d.semantic_replay(CSR, SID) or True),
+        'c2_full_verify': log.events == events,
+        'semantic_replay': c4d.derive_state(CSR, SID)[0] == 'SEALED',
         'seal_committed': c4d.derive_state(CSR, SID)[0] in ('SEALED', 'SEAL_PENDING_FINALIZE'),
         'c4d_anchor_durable': anchor.is_file(),
         'workspace_cleanup': not (c4d.annot_dom(CSR, SID).exists() and any(c4d.annot_dom(CSR, SID).rglob('*'))),
@@ -98,6 +109,8 @@ def verify_b5():
         'attempt_history': history['live'] == [ATTEMPT],
         'active_workspace_empty': not (c4d.annot_dom(CSR, SID).exists() and any(c4d.annot_dom(CSR, SID).rglob('*'))),
         'c4d_anchor_exact': ap.get('production_head_hash') == s1['event_hash'],
+        'c4c_anchor_unchanged': sha(c4c_anchor.read_bytes()) == cert_entry['sha256'],
+        'outcome_untouched': not outcome_files,
     }
     if not all(checks.values()):
         fail('measured Freeze Gate checks failed: ' + ','.join(k for k,v in checks.items() if not v))
