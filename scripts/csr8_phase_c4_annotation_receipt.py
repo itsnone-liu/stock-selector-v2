@@ -31,7 +31,12 @@ def verify_c4(root=ROOT):
     if rr['session_id']!=SID or rr['reveal_event_hash']!=e['event_hash'] or rr['packet_id']!=e['payload']['packet_id'] or rr['packet_sha256']!=e['payload']['packet_sha256']: fail('registry binding')
     sessions=rr['annotation_sessions']
     if len(sessions)!=1 or sessions[0]['status']!='OPEN': fail('second annotation session not OPEN/unique')
+    session=sessions[0]
+    if not isinstance(session.get('annotation_session_id'),str) or len(session['annotation_session_id'])!=32 or any(ch not in '0123456789abcdef' for ch in session['annotation_session_id']): fail('second session identity is not opaque 32-hex')
+    if session['annotation_session_id']==rr['session_id'] or session['annotation_session_id']==e['event_hash']: fail('session identity is not independent')
+    if session['packet_id']!=e['payload']['packet_id'] or session['packet_sha256']!=e['payload']['packet_sha256'] or session['reveal_event_hash']!=e['event_hash']: fail('second session packet/R2 binding')
     if set(dd)!=c4d.DRAFT_TOP or dd['draft_version']!='c4d-draft-v1' or dd['session_id']!=SID or dd['packet_id']!=e['payload']['packet_id'] or dd['packet_sha256']!=e['payload']['packet_sha256'] or dd['annotation_attempt']!=1: fail('draft schema/binding')
+    if dd['annotation_session_id']!=session['annotation_session_id']: fail('draft is not bound to the second session identity')
     ann=dd['annotation']
     if set(ann)!=c4d.ANNOTATION_KEYS or ann['annotation_contract_sha256']!=c4d.ANNOTATION_CONTRACT_SHA256: fail('annotation contract/closed-world gate')
     js=ann['rt_judgments']
