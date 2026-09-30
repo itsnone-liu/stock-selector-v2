@@ -58,16 +58,24 @@ def verify_c3():
     }
 
 
-def append_r2():
-    # C2's frozen verifier is intentionally run before any append.  The
-    # verifier is C2-specific and must remain usable after C3, so record the
-    # pre-append proof before the irreversible transaction.
-    c2_result = c2.verify_c2()
-    c4d.reveal_transaction(c4d.REAL_CSR, SID, ORDINAL)
-    result = verify_c3()
-    result['c2_full_verify'] = 'PASS'
-    result['c2_gates'] = c2_result['gates']
-    return result
+def append_r2(root=c4d.REAL_CSR, record_path=None, record_witness=None):
+    # This is the sole C3 append path.  The persisted C2 state is fully
+    # verified immediately before the irreversible append; retain the exact
+    # verifier result rather than a hand-written PASS label.
+    c2_result = c2.verify_c2(root, record_path=record_path) if record_path else c2.verify_c2(root)
+    if c2_result['consumption'] != 'UNUSED' or \
+            set(c2_result['gates'].values()) != {'PASS'}:
+        raise RuntimeError('G-C3-PRE: C2 full verify did not pass UNUSED')
+    witness = {
+        'source': 'C3 append transaction precondition',
+        'chain_before_append': ['REVEAL_PACKET', 'SEAL_ANNOTATION'],
+        'consumption_before_append': c2_result['consumption'],
+        'gates': c2_result['gates'],
+    }
+    if record_witness is not None:
+        Path(record_witness).write_bytes(c4d.canon(witness).encode())
+    c4d.reveal_transaction(root, SID, ORDINAL)
+    return verify_c3() if root == c4d.REAL_CSR else witness
 
 
 def verify_live_c2_binding_after_append():
@@ -108,9 +116,15 @@ def verify_pre_append_c2_on_replica():
         c1.do_propose(sb.root)
         record = Path(td) / 'c2_record.json'
         c2.do_approve(sb.root, record)
-        c2.verify_c2(sb.root, record)
-        return {'replica_c2_full_verify': 'PASS', 'replica_chain_before_append':
-                ['REVEAL_PACKET', 'SEAL_ANNOTATION']}
+        pre = Path(td) / 'c3_pre_append_c2_witness.json'
+        append_r2(sb.root, record_path=record, record_witness=pre)
+        witness = json.loads(pre.read_bytes())
+        return {'replica_c2_full_verify': 'PASS',
+                'replica_c2_consumption_before_append':
+                    witness['consumption_before_append'],
+                'replica_chain_before_append':
+                    witness['chain_before_append'],
+                'replica_c2_gate_count': len(witness['gates'])}
 
 
 def main(argv=None):
@@ -121,6 +135,8 @@ def main(argv=None):
         result = verify_c3()
         result.update(verify_live_c2_binding_after_append())
         result.update(verify_pre_append_c2_on_replica())
+        if result.get('replica_c2_consumption_before_append') != 'UNUSED':
+            raise RuntimeError('G-C3-PRE: replica witness lacks pre-append UNUSED proof')
         evidence = ROOT / 'docs/audit/evidence/c3_append_r2.json'
         evidence.parent.mkdir(parents=True, exist_ok=True)
         evidence.write_bytes(c4d.canon(result).encode())
