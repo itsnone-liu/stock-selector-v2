@@ -1,6 +1,15 @@
 {
   "goal": "CSR-8 / Phase C 基础建设收尾（续 run audit_20260928142305936，授权链 v2）。前置事实（本 run 的既定前提，评审可直接核验）：Phase A / C4-D synthetic closeout 已于父 run 第 16 轮独立审计 APPROVE，目标提交 6f9c9af8c4fca7f36bd0bee0d349546f0304621f，机器证据 executor-tests-i16.json（桥隔离 worktree 认证物化 2 根/10526 文件零漂移，481 passed/0 failed/0 skipped/exit 0）；父 run 因线性阶段机把 B/C 槽位消耗于合规门槛记录而结构性僵局，由评审员 NEED_USER 裁决终止。本 run 以协议结构取代'宣告仪式'：任务书每个授权点独立成阶段（B1-B5、C1-C6、D、E、F、G），阶段边界即 HARD STOP 与独立审计点；未通过 G 阶段独立审计不得宣布 PRODUCTION INFRA FINAL FROZEN。任务书原文：.feishu-files/20260928140115-CSR8_PHASE_C_PRODUCTION_INFRA_FINAL_TASKBOOK.md；源文件 SHA256：9aeb636e2cf9dc8e1b59674e62e9b326e78929384cc5a4e03dd72b4d8a5427c7（未修改）。",
   "approvedPlan": "按任务书 §5-§14 逐授权点执行：B1 真实 annotator handoff → B2 真实 annotation draft → B3 真实 receipt freeze → B4 人工 exact-hash 批准（绑定会话人类固定措辞）→ B5 真实 SEAL 事务与 Freeze Gate → C1 ordinal-2 proposal → C2 人工 NEXT_REVEAL_ONLY 批准 → C3 append R2 → C4 第二周期 annotation+receipt → C5 第二周期人工批准 → C6 S2 SEAL 与双周期最终 Gate → D ordinal-N 泛化 → E production runner/watchdog/recovery → F analysis-ready bridge + audit package → G 最终 PRODUCTION INFRA FINAL FROZEN gate。每阶段：完成即本地 commit + READY_FOR_AUDIT + HARD STOP。通用约束贯穿全 run：真实生产链起点 REVEAL=1/SEAL=0（唯一 REVEAL_PACKET 头哈希 b5ec0ba1d485219fd7a2198b23e7ac0f979c23d4dd0cced16faa80d8f19437d5）；不得修改 C4-C executor 与 c4c_anchor.json exact bytes（c4d_seal_anchor 等任务书明示新产物除外）；每个引入或变更 live 数据的阶段必须同步重新生成认证清单 config/audit/certified_live_inputs.json（全树哈希零漂移协议，桥按目标提交物化复验）；机器审计必须实测 gate（真实函数、真实事务、禁止静态快照自证、禁止硬编码 PASS、禁止静默跳过）；B4/C2/C5 的人工批准必须来自绑定会话的人类用户以任务书固定措辞发出的消息，执行者不得代批、不得以文档引用代替。",
+  "preauthorization": {
+    "version": 1,
+    "gates": {
+      "B4": {"binding": ["EXACT"], "defaultExpiryH": 24},
+      "C2": {"binding": ["CONSTRAINT"], "kind": "REVEAL", "maxOrdinal": 1, "defaultExpiryH": 24},
+      "C5": {"binding": ["EXACT","CONSTRAINT"], "defaultExpiryH": 24}
+    },
+    "semantics": "本节构成任务书对下列各门批准要求的修订：当桥以 PREAUTH v1 记录（含人类逐字登记话术与消息溯源）验证放行时，视为满足该门的批准要求；验证不通过时不改变原批准要求。预授权不授权任务书范围外的任何操作。"
+  },
   "stages": [
     {
       "id": "B1",
@@ -16,7 +25,7 @@
     },
     {
       "id": "B4",
-      "requirements": "任务书 §5 B4 Human exact-hash approval。流程（人工授权点，评审即核对该流程痕迹）：执行者先在会话内只展示 receipt_sha256 并给出任务书固定措辞模板，等待绑定会话的人类用户回复固定措辞批准（本阶段允许执行者先发一次无 marker 的展示消息与用户交互）；收到人类批准消息后才允许持久化 seal_approval.json（O_EXCL / canonical / 0600 / fsync），批准记录必须绑定当前 session / reveal / attempt 的 exact receipt bytes，措辞中 hash 与 receipt_sha256 逐字符一致。禁止：执行者代批、以文档引用代替人类消息、批准措辞以外的授权扩张。提交内测试断言 seal_approval.json 与人类批准消息 hash 一致、权限位与 canonical 形态正确。认证清单同步更新。完成后本地 commit + READY_FOR_AUDIT，HARD STOP，不得进入 B5。"
+      "requirements": "任务书 §5 B4 Human exact-hash approval。流程（人工授权点，评审即核对该流程痕迹）：执行者先在会话内只展示 receipt_sha256 并给出任务书固定措辞模板，等待绑定会话的人类用户回复固定措辞批准（本阶段允许执行者先发一次无 marker 的展示消息与用户交互）；收到人类批准消息后才允许持久化 seal_approval.json（O_EXCL / canonical / 0600 / fsync），批准记录必须绑定当前 session / reveal / attempt 的 exact receipt bytes，措辞中 hash 与 receipt_sha256 逐字符一致。禁止：执行者代批、以文档引用代替人类消息、批准措辞以外的授权扩张。本节批准要求可由 preauthorization 节定义的预授权机制满足。提交内测试断言 seal_approval.json 与人类批准消息 hash 一致、权限位与 canonical 形态正确。认证清单同步更新。完成后本地 commit + READY_FOR_AUDIT，HARD STOP，不得进入 B5。"
     },
     {
       "id": "B5",
@@ -28,7 +37,7 @@
     },
     {
       "id": "C2",
-      "requirements": "任务书 §6 C2 Human NEXT_REVEAL_ONLY approval（人工授权点，流程同 B4：执行者先展示 proposal_sha256 与固定措辞、等待绑定会话人类批准消息，允许一次无 marker 交互轮）。持久化 next_reveal.approval.json + next_reveal.permit.json，三方一致机器实测：proposal exact bytes == approved hash == permit exact bytes。禁止授权扩张（仅授权本次 NEXT_REVEAL_ONLY）。认证清单同步更新。完成后本地 commit + READY_FOR_AUDIT，HARD STOP，不得进入 C3。"
+      "requirements": "任务书 §6 C2 Human NEXT_REVEAL_ONLY approval（人工授权点，流程同 B4：执行者先展示 proposal_sha256 与固定措辞、等待绑定会话人类批准消息，允许一次无 marker 交互轮）。持久化 next_reveal.approval.json + next_reveal.permit.json，三方一致机器实测：proposal exact bytes == approved hash == permit exact bytes。禁止授权扩张（仅授权本次 NEXT_REVEAL_ONLY）。本节批准要求可由 preauthorization 节定义的预授权机制满足。认证清单同步更新。完成后本地 commit + READY_FOR_AUDIT，HARD STOP，不得进入 C3。"
     },
     {
       "id": "C3",
@@ -40,7 +49,7 @@
     },
     {
       "id": "C5",
-      "requirements": "任务书 §6 C4（拆分二：人工 approval2，流程同 B4）：执行者展示 ordinal-2 receipt_sha256 与任务书固定措辞，等待绑定会话人类批准消息后持久化 seal_approval（O_EXCL/canonical/0600/fsync，绑定 ordinal-2 session/reveal/attempt exact bytes）。禁止授权扩张。认证清单同步更新。完成后本地 commit + READY_FOR_AUDIT，HARD STOP，不得进入 C6。"
+      "requirements": "任务书 §6 C4（拆分二：人工 approval2，流程同 B4）：执行者展示 ordinal-2 receipt_sha256 与任务书固定措辞，等待绑定会话人类批准消息后持久化 seal_approval（O_EXCL/canonical/0600/fsync，绑定 ordinal-2 session/reveal/attempt exact bytes）。禁止授权扩张。本节批准要求可由 preauthorization 节定义的预授权机制满足。认证清单同步更新。完成后本地 commit + READY_FOR_AUDIT，HARD STOP，不得进入 C6。"
     },
     {
       "id": "C6",
