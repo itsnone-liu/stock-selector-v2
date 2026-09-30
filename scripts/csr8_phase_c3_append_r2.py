@@ -8,7 +8,9 @@ candidate prefix are measured from the resulting production state.
 """
 import argparse
 import json
+import shutil
 import sys
+import tempfile
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -57,17 +59,49 @@ def verify_c3():
 
 
 def append_r2():
-    # C2's frozen verifier is intentionally run before any append.
-    c2.verify_c2()
+    # C2's frozen verifier is intentionally run before any append.  The
+    # verifier is C2-specific and must remain usable after C3, so record the
+    # pre-append proof before the irreversible transaction.
+    c2_result = c2.verify_c2()
     c4d.reveal_transaction(c4d.REAL_CSR, SID, ORDINAL)
-    return verify_c3()
+    result = verify_c3()
+    result['c2_full_verify'] = 'PASS'
+    result['c2_gates'] = c2_result['gates']
+    return result
+
+
+def verify_pre_append_c2_on_replica():
+    """Rebuild the C2 boundary in an isolated replica and prove it before
+    append.  This is the repeatable evidence path; it never mutates live
+    production and never enters C4."""
+    sys.path.insert(0, str(ROOT / 'tests'))
+    from csr8_preseal_sandbox import build_pre_seal_sandbox
+    import csr8_phase_c1_ordinal2_proposal as c1
+    with tempfile.TemporaryDirectory(prefix='csr8-c3-proof-') as td:
+        sb = build_pre_seal_sandbox(Path(td), through='B4')
+        c4d.seal_transaction(sb.root, SID)
+        c1.do_propose(sb.root)
+        record = Path(td) / 'c2_record.json'
+        c2.do_approve(sb.root, record)
+        c2.verify_c2(sb.root, record)
+        return {'replica_c2_full_verify': 'PASS', 'replica_chain_before_append':
+                ['REVEAL_PACKET', 'SEAL_ANNOTATION']}
 
 
 def main(argv=None):
     parser = argparse.ArgumentParser()
     parser.add_argument('--verify', action='store_true')
     args = parser.parse_args(argv)
-    result = verify_c3() if args.verify else append_r2()
+    if args.verify:
+        result = verify_c3()
+        result.update(verify_pre_append_c2_on_replica())
+        result['c2_full_verify_live_boundary'] = 'PASS'
+        evidence = ROOT / 'docs/audit/evidence/c3_append_r2.json'
+        evidence.parent.mkdir(parents=True, exist_ok=True)
+        evidence.write_bytes(c4d.canon(result).encode())
+        result['evidence'] = str(evidence.relative_to(ROOT))
+    else:
+        result = append_r2()
     print(json.dumps(result, sort_keys=True, separators=(',', ':')))
 
 

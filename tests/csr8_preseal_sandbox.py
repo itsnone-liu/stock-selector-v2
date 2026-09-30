@@ -57,11 +57,19 @@ def _rewind_chain_to_r1(root):
     archived bytes are removed: a pre-SEAL state must not contain them."""
     log = c4d.log_path(root, c4d.REAL_SESSION)
     lines = [l for l in log.read_text().splitlines() if l.strip()]
-    if len(lines) != 2:
+    # C3 live state is [R1,S1,R2].  Rewind must discard the later reveal and
+    # its ordinal-2 authorization so the replica is rebuilt from the exact
+    # pre-B5 boundary rather than inheriting post-C3 artifacts.
+    if len(lines) not in (2, 3):
         raise RuntimeError(
-            f"live production chain is not the terminal [R1,S1] shape "
-            f"({len(lines)} events) — refusing to build a pre-SEAL "
-            f"sandbox from it")
+            f"live production chain is not a supported [R1,S1] or "
+            f"[R1,S1,R2] shape ({len(lines)} events) — refusing to build a "
+            f"pre-SEAL sandbox from it")
+    if len(lines) == 3:
+        r2 = json.loads(lines[2])
+        if r2.get("event_type") != "REVEAL_PACKET":
+            raise RuntimeError("post-C3 tail is not an R2 reveal")
+        lines = lines[:2]
     r1 = json.loads(lines[0])
     if r1["event_type"] != "REVEAL_PACKET" or \
             r1["event_hash"] != c4d.LIVE_R1_EVENT_HASH:

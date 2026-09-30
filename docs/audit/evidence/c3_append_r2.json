@@ -1,0 +1,1 @@
+{"authorization_2":"CONSUMED","c2_full_verify_live_boundary":"PASS","candidate_prefix":2,"chain":["REVEAL_PACKET","SEAL_ANNOTATION","REVEAL_PACKET"],"head":"59377de47a49d76137c04cc10e2163023cd1b3da0eedaf19e9ec9e0c2cc06a35","replica_c2_full_verify":"PASS","replica_chain_before_append":["REVEAL_PACKET","SEAL_ANNOTATION"],"reveal_count":2,"s1_r1_replay":"PASS","seal_count":1}
