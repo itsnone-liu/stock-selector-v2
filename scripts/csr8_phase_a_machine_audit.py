@@ -199,6 +199,8 @@ def main():
     live_log = m.REAL_PRODUCTION / m.REAL_SESSION / 'sealing' / 'sealing_log.jsonl'
     live_events = [json.loads(x) for x in live_log.read_text().splitlines() if x.strip()]
     if [e.get('event_type') for e in live_events] == ['REVEAL_PACKET', 'SEAL_ANNOTATION']:
+        if len(live_events) != 2:
+            raise RuntimeError('post-SEAL witness requires exactly two persisted events')
         b5 = verify_b5_freeze_domain()
         print(json.dumps({'certified_inputs': 'VERIFIED',
                           'certified_files': manifest['fileCount'],
