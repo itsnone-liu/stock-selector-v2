@@ -251,3 +251,37 @@ def test_c2_catches_authorization_domain_extra_entry(tmp_path):
     with pytest.raises(RuntimeError,
                        match="not the exact C2 pair"):
         c2mod.verify_c2(*_tampered(tmp_path, "extra", tweak))
+
+
+def test_c2_bound_object_is_proposal_not_receipt():
+    """Iteration-2 interpretation ruling, pinned machine-side: the v2
+    amendment's 'session / reveal / attempt exact receipt bytes' /
+    'receipt_sha256' wording is a §5-B4 template carryover. C2 binds the
+    ordinal-2 PROPOSAL exact bytes (approved_proposal_sha256); a
+    receipt/attempt binding is semantically impossible at C2 because the
+    cycle-2 receipt/attempt artifacts are created at the C4 stage."""
+    # (1) no cycle-2 receipt/attempt domain exists at the C2 boundary
+    receipts = c4d.REAL_CSR / "c4d_receipts" / SID
+    assert sorted(p.name for p in receipts.iterdir()) == ["ordinal-0001"]
+    assert not (receipts / "ordinal-0002").exists()
+    # (2) neither persisted schema carries any receipt/attempt field
+    assert not (c4d.REVEAL_APPROVAL_KEYS &
+                {"receipt_sha256", "attempt", "attempt_id",
+                 "approved_receipt_sha256"})
+    assert not (c2mod.RECORD_KEYS &
+                {"receipt_sha256", "attempt", "attempt_id",
+                 "approved_receipt_sha256"})
+    rec = json.loads(c2mod.UNATTENDED_RECORD.read_bytes())
+    blob = json.dumps(rec)
+    assert "receipt" not in blob and "attempt" not in blob
+    # (3) the single bound object is the proposal exact bytes, and the
+    # chain-side approval binds the same hash
+    pbytes = (Path(c4d.REAL_CSR) / c1mod.PROPOSAL_REL).read_bytes()
+    psha = hashlib.sha256(pbytes).hexdigest()
+    approval = json.loads((AD_LIVE / "next_reveal.approval.json")
+                          .read_bytes())
+    permit = (AD_LIVE / "next_reveal.permit.json").read_bytes()
+    assert rec["approved_proposal_sha256"] == psha
+    assert approval["approved_authorization_sha256"] == psha
+    assert permit == pbytes
+    assert c2mod.parse_wording_hash(rec["taskbook_wording"]) == psha
