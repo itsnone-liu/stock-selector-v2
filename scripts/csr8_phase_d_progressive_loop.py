@@ -32,6 +32,23 @@ def ordinal_contract_matrix():
         except (RuntimeError,SystemExit): pass
         else: raise RuntimeError(f'D accepted invalid next ordinal {bad}')
     return {'candidate_ordinals':len(order),'invalid_jumps_rejected':4}
+def constructive_progressive_loop(count=3):
+    # Each iteration is a fresh, transaction-derived loop: prerequisite
+    # eligibility is evaluated from persisted chain, real receipt/approval
+    # bytes authorize the seal, and seal_transaction appends/finalizes.
+    loops=[]
+    for i in range(1,count+1):
+        sb,sid=c.prepared_authorized(case=f'D-ordinal-{i}',T=f'2021-04-{i:02d}')
+        before=events(sb)
+        if c.derive_state(sb,sid)[0] not in ('SEAL_AUTHORIZED','SEAL_PENDING_FINALIZE'): raise RuntimeError('D prerequisite not derived')
+        result=c.seal_transaction(sb,sid)
+        after=events(sb)
+        if result.get('state') != 'SEALED' or [e['event_type'] for e in after] != ['REVEAL_PACKET','SEAL_ANNOTATION']: raise RuntimeError('D real append/seal loop failed')
+        c.semantic_replay(sb,sid)
+        h=c.prove_attempt_history(sb,sid,1,gate=f'G-D-LOOP-{i}',events=after,reveal=after[0])
+        if h['seal_bound'] is None: raise RuntimeError('D loop history not seal-bound')
+        loops.append({'ordinal':i,'prerequisite':'PASS','authorization':'PASS','append':'PASS','seal':'PASS','history':'PASS'})
+    return loops
 def recovery_matrix():
     sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'tests'))
     from csr8_preseal_sandbox import build_pre_seal_sandbox
@@ -58,7 +75,8 @@ def verify():
     if types != ['REVEAL_PACKET','SEAL_ANNOTATION','REVEAL_PACKET','SEAL_ANNOTATION']: raise RuntimeError('D frozen production chain drift')
     prefixes=prefix_history_matrix(ev)
     contract=ordinal_contract_matrix()
+    loops=constructive_progressive_loop()
     c.semantic_replay(ROOT,SID)
     recovered=recovery_matrix()
-    return {'d':'PASS','contract':contract,'prefixes':prefixes,'recovery_checkpoints':recovered,'recovery_count':len(recovered),'semantic_replay':'PASS','chain':types}
+    return {'d':'PASS','contract':contract,'loops':loops,'prefixes':prefixes,'recovery_checkpoints':recovered,'recovery_count':len(recovered),'semantic_replay':'PASS','chain':types}
 if __name__=='__main__': print(json.dumps(verify(),sort_keys=True,separators=(',',':')))
