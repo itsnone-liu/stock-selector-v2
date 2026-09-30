@@ -219,3 +219,16 @@ The proposal/approval/permit three-way value remained
 The C2 owner ruling in `.dsh-audit-task.json` was applied: C2 binds the
 ordinal-2 proposal exact bytes, not a later receipt/attempt. No C3 append or
 other stage action was performed.
+
+## Iteration-7 re-verification
+
+For `audit_20260930021152297` / C2 / iteration 7, the persisted authorization
+artifacts were re-verified in place without invoking any C3 transaction. The
+machine verifier returned all eight G-C2 gates `PASS`; `approved_by` remained
+`UNATTENDED_POLICY`, `scope` remained `NEXT_REVEAL_ONLY`, and authorization
+consumption remained `UNUSED`. The exact three-way value remained
+`d045778390478d5cdc31bedcf44078fd9307c10fa08d0bc84a18df596cecc578`.
+
+This re-verification preserves the frozen C2 binding ruling: the authorized
+object is the ordinal-2 proposal exact bytes, not a later receipt or attempt.
+No C3 append, reveal transaction, or authorization expansion was performed.
