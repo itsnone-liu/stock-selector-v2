@@ -166,3 +166,34 @@ Byte-identity machine-check (recorded at 30579ad):
 is EMPTY — the three authorization artifacts are byte-identical across
 the whole iteration-2 chain; only gates, tests, and documentation
 moved.
+
+## Authoritative freeze clarification (iteration 3)
+
+**正式更正：C2 v2 中的 `session / reveal / attempt`、`exact receipt
+bytes` 与 `receipt_sha256` 是 B4 文案沿用笔误。C2 应正式解释为：绑定
+`ordinal-2 proposal exact bytes`，措辞与字段中的 hash 绑定
+`approved_proposal_sha256`。** 这不是把一个尚未实现的 receipt 绑定降级，
+而是确定 C2 的正确被批准对象；冻结 §6 C2 原文已经明确“批准 exact
+proposal hash”及三方一致合同。
+
+为避免歧义，C2 不绑定任何 receipt 或 attempt：在 C2 边界
+`c4d_receipts/c4-prod-0002/ordinal-0002/` 不存在。cycle-2 的 receipt
+及其 attempt 属于后续 C4 注释/annotation 阶段产物；它们既不能在 C2
+被读取，也不能替代 C2 proposal 作为授权对象。B4 的 receipt 绑定适用于
+B4，未来 C5 对已由 C4 产生的 cycle-2 receipt 的绑定适用于 C5，二者均
+不改变 C2 的 proposal 语义。
+
+因此三方合同的字段对应关系是唯一且同时成立的：
+
+```text
+proposal exact bytes
+  == SHA256(proposal exact bytes) == approved_proposal_sha256
+  == approved_authorization_sha256   (chain-side approval field)
+  == SHA256(permit exact bytes)
+permit exact bytes == proposal exact bytes
+```
+
+这里 `receipt_sha256` 不参与 C2 合同；要求 receipt/attempt 在 C2 同时
+存在会与阶段边界及冻结 approval schema 冲突。该裁定由
+`test_c2_bound_object_is_proposal_not_receipt`、冻结 schema 的闭世界校验、
+C2 的 G-C2-THREEWAY 及 machine audit 共同钉住。
