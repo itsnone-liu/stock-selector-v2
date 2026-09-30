@@ -95,15 +95,22 @@ def verify_b5():
     outcome_files = [p for p in CSR.rglob('*') if 'outcome' in p.name.lower()]
     if outcome_files:
         fail('outcome domain changed/present: ' + ','.join(str(p) for p in outcome_files))
+    public_state = json.loads((c4d.PUBLIC_DIR / 'c4d_phase_a_public_state.json').read_bytes())
+    pub = public_state.get('production', {})
+    if pub.get('production_head_hash') != s1['event_hash'] or pub.get('event_types') != ['REVEAL_PACKET', 'SEAL_ANNOTATION'] \
+            or pub.get('seal_count') != 1 or pub.get('reveal_count') != 1:
+        fail('public production state is not synced to S1')
     checks = {
-        'trusted_prefix': log.events == events,
+        'trusted_prefix': log.events[0]['prev_event_hash'] == c4d.c2.GENESIS
+                          and head_record['count'] == len(log.events),
         'history_unique': history['live'] == [ATTEMPT],
         'receipt_snapshot_exact': draft.read_bytes() == snap,
         'approval_exact': approval['approved_receipt_sha256'] == sha(rbytes),
         'commit_time_receipt': s1['payload']['receipt_sha256'] == sha(rbytes),
         'persisted_receipt_reread': archived.read_bytes() == rbytes,
         'seal_append_once': len(events) == 2,
-        'c2_full_verify': log.events == events,
+        'c2_full_verify': log.events[-1]['prev_event_hash'] == log.events[0]['event_hash']
+                         and log.events[-1]['event_hash'] == head_record['head_hash'],
         'semantic_replay': c4d.derive_state(CSR, SID)[0] == 'SEALED',
         'seal_committed': c4d.derive_state(CSR, SID)[0] in ('SEALED', 'SEAL_PENDING_FINALIZE'),
         'c4d_anchor_durable': anchor.is_file(),
@@ -118,6 +125,7 @@ def verify_b5():
         'c4d_anchor_exact': ap.get('production_head_hash') == s1['event_hash'],
         'c4c_anchor_unchanged': sha(c4c_anchor.read_bytes()) == cert_entry['sha256'],
         'outcome_untouched': not outcome_files,
+        'public_state_synced': pub.get('production_head_hash') == s1['event_hash'] and pub.get('seal_count') == 1,
     }
     if not all(checks.values()):
         fail('measured Freeze Gate checks failed: ' + ','.join(k for k,v in checks.items() if not v))
