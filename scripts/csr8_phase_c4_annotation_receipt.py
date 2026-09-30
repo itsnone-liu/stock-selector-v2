@@ -47,8 +47,12 @@ def verify_c4(root=ROOT):
     walk(dd)
     if keys & forbidden: fail('blindness leak: '+repr(sorted(keys&forbidden)))
     rb=(attempt/'receipt.json').read_bytes(); snap=(attempt/'draft_snapshot.bin').read_bytes(); rec=json.loads(rb)
-    if mode(attempt/'receipt.json')!=0o600 or mode(attempt/'draft_snapshot.bin')!=0o400: fail('receipt artifact mode drift')
+    if mode(attempt)!=0o700 or mode(attempt/'receipt.json')!=0o600 or mode(attempt/'draft_snapshot.bin')!=0o600: fail('receipt artifact mode drift')
+    if mode(od)!=0o700 or mode(od.parent)!=0o700 or mode(od.parent.parent)!=0o700: fail('receipt domain mode drift')
     if snap!=draft.read_bytes() or rec['draft_sha256']!=sha(draft.read_bytes()) or rec['reveal_event_hash']!=e['event_hash'] or rec['annotation_attempt']!=1: fail('receipt freeze invariant')
+    if set(rec)!=c4d.RECEIPT_TOP: fail('receipt closed-world schema drift')
+    if rec['session_id']!=SID or rec['packet_id']!=e['payload']['packet_id'] or rec['packet_sha256']!=e['payload']['packet_sha256']: fail('receipt chain binding drift')
+    if rec['annotation']['annotation_contract_sha256']!=c4d.ANNOTATION_CONTRACT_SHA256: fail('receipt annotation contract drift')
     names=sorted(p.name for p in od.iterdir())
     if names!=['annotation_draft.json','annotation_session_registry.json','attempt-0001','packet.json']: fail('ordinal-0002 closed-world violation')
     return {'c4':'PASS','artifact_root':str(od.relative_to(root)),'gates':{'exact_copy':'PASS','registry_schema':'PASS','session':'PASS','contract':'PASS','closed_world':'PASS','hypotheses':'PASS','blindness':'PASS','receipt_snapshot':'PASS','receipt_binding':'PASS'},'chain':['REVEAL_PACKET','SEAL_ANNOTATION','REVEAL_PACKET'],'production':'REVEAL=2 SEAL=1','receipt_sha256':sha(rb)}
