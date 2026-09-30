@@ -41,8 +41,9 @@ def verify_b5():
         fail('R1 event hash drift')
     log = c4d.c2.SealingLog(c4d.log_path(CSR, SID), c4d.head_path(CSR, SID))
     log.load(); log.verify(True)
-    if json.loads(c4d.head_path(CSR, SID).read_text())['head_hash'] != s1['event_hash']:
-        fail('trusted head is not S1')
+    head_record = json.loads(c4d.head_path(CSR, SID).read_text())
+    if head_record.get('head_hash') != s1['event_hash'] or head_record.get('count') != 2:
+        fail('trusted head/count is not exact S1')
     adir = c4d.attempt_dir(CSR, SID, ORDINAL, ATTEMPT)
     rbytes = (adir / 'receipt.json').read_bytes()
     snap = (adir / 'draft_snapshot.bin').read_bytes()
@@ -109,7 +110,7 @@ def verify_b5():
         'workspace_cleanup': not (c4d.annot_dom(CSR, SID).exists() and any(c4d.annot_dom(CSR, SID).rglob('*'))),
         'post_seal_final': c4d.derive_state(CSR, SID)[0] == 'SEALED',
         'chain_r1_s1': [e['event_type'] for e in events] == ['REVEAL_PACKET', 'SEAL_ANNOTATION'],
-        'head_s1': json.loads(c4d.head_path(CSR, SID).read_text())['head_hash'] == s1['event_hash'],
+        'head_s1': head_record.get('head_hash') == s1['event_hash'] and head_record.get('count') == 2,
         'receipt_triple_exact': archived.read_bytes() == rbytes and draft.read_bytes() == snap,
         'approval_consumed': c4d.derive_state(CSR, SID)[0] == 'SEALED',
         'attempt_history': history['live'] == [ATTEMPT],
