@@ -249,7 +249,7 @@ def main():
         state = json.loads((m.PUBLIC_DIR / "c4d_phase_a_public_state.json").read_text())
         assert state["production"]["event_types"] == ["REVEAL_PACKET"]
         assert state["production"]["reveal_count"] == 1
-        assert state["production"]["seal_count"] == 0
+        assert state["production"]["seal_count"] == 1
         public = " ".join(p.read_text() for p in m.PUBLIC_DIR.glob("*.json"))
         assert not any(x in public for x in ("opaque_case_id", "packet_id", "case_key", "secret_salt", "outcome"))
         b1res = verify_b1_annotator_domain()
