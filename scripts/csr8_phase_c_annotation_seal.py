@@ -19,10 +19,15 @@ under the user's synthetic-only authorization:
 
 Run 2 (CSR-8 Phase C infra final, taskbook 20260928140115 as amended
 v2-unattended-20260930) authorized the REAL authorization points B1-B5
-on this chain: B1 handoff, B2 draft, B3 receipt, B4 approval and the B5
-real S1 SEAL have been executed and machine-audited; the annotator
-workspace is cleared by POST_SEAL_FINAL and its audit trail lives in the
-C2 archive + draft_snapshot.bin.  The frozen C4-C executor
+and the §6 C-stage points on this chain: B1 handoff, B2 draft, B3
+receipt, B4 approval and the B5 real S1 SEAL have been executed and
+machine-audited; the annotator workspace is cleared by POST_SEAL_FINAL
+and its audit trail lives in the C2 archive + draft_snapshot.bin.  The
+C1 ordinal-2 next-reveal proposal (selector-only artifact
+c4d_proposals/<sid>/ordinal-0002/next_reveal.proposal.json) is generated
+and machine-verified by scripts/csr8_phase_c1_ordinal2_proposal.py via
+the frozen §7 builder verbatim; approval/permit (C2) and the R2 append
+(C3) remain forbidden.  The frozen C4-C executor
 (csr8_phase_c_first_reveal.py) and public/c4c_anchor.json remain exact
 byte-frozen; the real production terminal state is REVEAL=1/SEAL=1
 (chain [R1,S1], stage-aware live_preflight below proves it).
@@ -3928,8 +3933,10 @@ def live_preflight():
         seal anchor, byte-unchanged c4c anchor and cleared annotator
         workspace (the complete Freeze Gate is machine-measured by
         scripts/csr8_phase_b5_real_seal.py).
-    c4d_proposals/ stays forbidden until the ordinal-2 authorization
-    stage in either phase."""
+    c4d_proposals/ is forbidden in the reveal phase; in the sealed phase
+    the C1 ordinal-2 proposal (exactly ordinal-0002/
+    next_reveal.proposal.json, fully re-proven) is the sole legal entry —
+    approval/permit stay forbidden (C2 authorization point)."""
     log = REAL_PRODUCTION / REAL_SESSION / 'sealing' / 'sealing_log.jsonl'
     evs = [json.loads(l) for l in log.read_text().splitlines() if l.strip()]
     types = [e['event_type'] for e in evs]
@@ -3964,10 +3971,23 @@ def live_preflight():
             fail('live preflight: POST_SEAL_FINAL workspace not cleared')
     else:
         fail(f'live preflight: illegal live chain shape {types}')
-    # B3 creates and verifies the real receipt domain; proposals remain
-    # forbidden until the later authorization stage.
+    # B3 creates and verifies the real receipt domain.  The c4d_proposals
+    # domain: forbidden in the reveal phase; in the sealed phase the C1
+    # ordinal-2 proposal is the sole legal entry (fully re-proven below);
+    # approval/permit remain forbidden (C2 authorization point).
     if REAL_PROPOSALS_C4D.exists():
-        fail(f'live preflight: forbidden real domain exists: {REAL_PROPOSALS_C4D}')
+        if types != ['REVEAL_PACKET', 'SEAL_ANNOTATION']:
+            fail(f'live preflight: forbidden real domain exists: '
+                 f'{REAL_PROPOSALS_C4D}')
+        _check_proposal(REAL_CSR, REAL_SESSION, 2)
+        extra = sorted(
+            p.relative_to(REAL_PROPOSALS_C4D).as_posix()
+            for p in REAL_PROPOSALS_C4D.rglob('*') if p.is_file()
+            and p.relative_to(REAL_PROPOSALS_C4D).as_posix() !=
+            f'{REAL_SESSION}/ordinal-0002/next_reveal.proposal.json')
+        if extra:
+            fail(f'live preflight: unauthorized c4d_proposals entries: '
+                 f'{extra}')
     if REAL_ANNOTATOR.exists() and not REAL_ANNOTATOR.is_dir():
         fail('live preflight: annotator path exists but is not a domain')
     if types == ['REVEAL_PACKET'] and (PUBLIC_DIR / C4D_ANCHOR_NAME).exists():
@@ -4042,7 +4062,10 @@ def cmd_synthetic():
         fail('REAL PRODUCTION OR C4C ANCHOR MUTATED — fail-closed')
     live_preflight()
     if sealed:
-        live_invariants = ('REVEAL=1 SEAL=1 c4d_proposals absent '
+        proposal_state = ('ordinal-2 proposal exact (C1)'
+                          if REAL_PROPOSALS_C4D.exists()
+                          else 'c4d_proposals absent')
+        live_invariants = (f'REVEAL=1 SEAL=1 {proposal_state} '
                            'c4d_seal_anchor exact(S1) c4c_anchor '
                            'unchanged annotator workspace cleared '
                            '(POST_SEAL_FINAL)')

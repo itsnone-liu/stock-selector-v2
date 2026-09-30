@@ -20,12 +20,14 @@ This script produces that certification, pinned inside the repo:
   not a cherry-pick): ``data/csr8_phase_c`` (production chain, C3
   preflight, secret) and ``data/adjustment_baostock`` (frozen price
   authority verified by the C4-C regression);
-* it refuses to certify if any forbidden C4-D domain exists under
-  ``data/csr8_phase_c`` (c4d_receipts/, c4d_proposals/ — stage-boundary
-  aware as of run 2 B1: the annotator/ domain became a legal real
-  domain at B1 and its closed-world/leak gates are machine-verified by
-  scripts/csr8_phase_b1_real_handoff.py) — so the committed manifest
-  itself is machine-checkable proof of the stage boundary;
+* it refuses to certify any C4-D domain entry that violates the stage
+  boundary (stage-boundary aware as of run 2: annotator/ became legal
+  at B1 and was cleaned by the B5 POST_SEAL_FINAL; c4d_receipts/ is the
+  legal frozen evidence domain since B3; c4d_proposals/ became legal at
+  C1 as a CLOSED-WORLD domain whose sole allowlisted entry is the
+  ordinal-2 next_reveal.proposal.json — approval/permit are the C2
+  authorization point) — so the committed manifest itself is
+  machine-checkable proof of the stage boundary;
 * it writes ``config/audit/certified_live_inputs.json`` (version 2,
   multi-root).
 
@@ -57,18 +59,39 @@ ROOTS = (
 
 # Security-sensitive approval evidence is outside the live data roots, so it
 # must be pinned explicitly rather than silently omitted from certification.
+# The C1 ordinal-2 proposal is a selector-only 0600 artifact INSIDE the data
+# root (already inventory-pinned); listing it here additionally enforces its
+# 0600 mode through the bridge's protected-artifact materialization path.
 PROTECTED_ARTIFACTS = (
     'data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0001/attempt-0001/seal_approval.json',
+    'data/csr8_phase_c/c4d_proposals/c4-prod-0002/ordinal-0002/next_reveal.proposal.json',
     'docs/audit/evidence/b4_unattended_approval.json',
 )
 
-# C4-D 禁止域（阶段边界感知，post-B5 终态）：annotator/ 工作区在 B5
-# POST_SEAL_FINAL 后已按协议清理（终态不存在，审计线索在 C2 归档 +
-# draft_snapshot.bin）；c4d_receipts/ 自 B3 起为合法冻结证据域并保留至
-# 终态；c4d_proposals/ 在授权阶段（C2）之前始终禁止。
-FORBIDDEN_PREFIXES = (
-    'c4d_proposals/',
+# C4-D 域阶段边界（C1 终态感知）：annotator/ 工作区在 B5 POST_SEAL_FINAL
+# 后已按协议清理；c4d_receipts/ 自 B3 起为合法冻结证据域；c4d_proposals/
+# 自 C1 起合法，但 closed-world：域内唯一允许文件是 ordinal-2
+# next_reveal.proposal.json（approval/permit 是 C2 授权点、其余 ordinal
+# 域是后续阶段，均仍禁止）。
+C4D_PROPOSAL_ALLOWLIST = (
+    'c4d_proposals/c4-prod-0002/ordinal-0002/next_reveal.proposal.json',
 )
+
+
+def _c4d_proposal_forbidden(rel):
+    """rel is relative to data/csr8_phase_c (posix).
+
+    Legal inside c4d_proposals/ at the C1 boundary: exactly the
+    allowlisted file and the ancestor directories leading to it (the
+    closed-world DOMAIN structure).  Everything else — approval/permit
+    files, other ordinals, foreign subtrees — fails closed.
+    """
+    if not rel.startswith('c4d_proposals/'):
+        return False
+    if rel in C4D_PROPOSAL_ALLOWLIST:
+        return False
+    return not any(a.startswith(rel + '/')
+                   for a in C4D_PROPOSAL_ALLOWLIST)
 
 
 def sha256_file(p):
@@ -93,8 +116,8 @@ def inventory(root_rel):
                   f'{root_rel}/{rel}')
             sys.exit(1)
         if p.is_dir():
-            if any(rel.startswith(fp) for fp in FORBIDDEN_PREFIXES):
-                print(f'FAIL: forbidden C4-D domain present: '
+            if _c4d_proposal_forbidden(rel):
+                print(f'FAIL: forbidden C4-D proposal entry present: '
                       f'{root_rel}/{rel}')
                 sys.exit(1)
             # Empty directories are NOT certifiable: the bridge
@@ -108,8 +131,8 @@ def inventory(root_rel):
                 continue
             dirs.append({'path': rel, 'mode': stat.S_IMODE(st.st_mode)})
         elif p.is_file():
-            if any(rel.startswith(fp) for fp in FORBIDDEN_PREFIXES):
-                print(f'FAIL: forbidden C4-D file present: '
+            if _c4d_proposal_forbidden(rel):
+                print(f'FAIL: forbidden C4-D proposal file present: '
                       f'{root_rel}/{rel}')
                 sys.exit(1)
             files.append({'path': rel, 'sha256': sha256_file(p),
@@ -150,7 +173,11 @@ def main():
     manifest = {
         'version': 2,
         'generator': 'scripts/csr8_phase_a_certify_inputs.py',
-        'forbiddenPrefixes': list(FORBIDDEN_PREFIXES),
+        # C1 stage boundary: no blanket-forbidden C4-D prefix remains;
+        # c4d_proposals/ is closed-world with exactly the allowlisted
+        # ordinal-2 proposal (approval/permit stay forbidden — C2 point).
+        'forbiddenPrefixes': [],
+        'c4dProposalAllowlist': list(C4D_PROPOSAL_ALLOWLIST),
         'roots': roots,
         'protectedArtifacts': protected,
         'fileCount': sum(r['fileCount'] for r in roots),

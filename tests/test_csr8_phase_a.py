@@ -195,7 +195,17 @@ def test_public_blindness_contract_and_anchor_are_machine_checked(tmp_path):
         ["REVEAL_PACKET", "SEAL_ANNOTATION"]
     assert not mod.REAL_ANNOTATOR.exists()          # POST_SEAL_FINAL cleanup
     assert mod.REAL_RECEIPTS.exists()               # frozen audit trail kept
-    assert not mod.REAL_PROPOSALS_C4D.exists()
+    # C1 boundary: the ordinal-2 next-reveal proposal is the sole legal
+    # c4d_proposals entry (selector-only, frozen-builder re-proven);
+    # approval/permit stay absent until the C2 authorization point.
+    proposal_rel = "c4-prod-0002/ordinal-0002/next_reveal.proposal.json"
+    proposal_entries = sorted(
+        p.relative_to(mod.REAL_PROPOSALS_C4D).as_posix()
+        for p in mod.REAL_PROPOSALS_C4D.rglob("*") if p.is_file())
+    assert proposal_entries == [proposal_rel], proposal_entries
+    c1_proposal, _c1_bytes = mod._check_proposal(
+        mod.REAL_CSR, mod.REAL_SESSION, 2)
+    assert c1_proposal["scope"] == "NEXT_REVEAL_ONLY"
 
 
 def test_bridge_machine_audit_script_executes_complete_matrix():
@@ -222,11 +232,21 @@ def test_bridge_machine_audit_script_executes_complete_matrix():
     assert "G-B5-PUBLIC_STATE_SYNCED" in gates
     assert "G-B5-C4C_ANCHOR_UNCHANGED" in gates
     assert "G-B5-OUTCOME_UNTOUCHED" in gates
+    # since C1 the machine audit also measures the ordinal-2 proposal gate
+    c1 = payload["c1"]
+    assert c1["c1_proposal"] == "PASS"
+    c1_gates = {k: v for k, v in c1.items() if k.startswith("G-C1-")}
+    assert set(c1_gates.values()) == {"PASS"}, c1_gates
+    assert {"G-C1-CHAIN", "G-C1-CLOSED", "G-C1-REPLAY", "G-C1-PREFIX",
+            "G-C1-ELIGIBLE", "G-C1-PROPOSAL", "G-C1-WORLD",
+            "G-C1-BOUNDARY"} <= set(c1_gates)
 
 
 def test_certified_live_inputs_manifest_is_complete_and_forbidden_free():
     """The committed inventory certifies the ENTIRE data/csr8_phase_c tree:
-    no forbidden C4-D domain can be listed (or exist), the local tree must
+    the c4d_proposals domain is certified CLOSED-WORLD (since C1 its sole
+    legal entry is the ordinal-2 next_reveal.proposal.json — approval/
+    permit and every other entry stay forbidden), the local tree must
     match every pinned hash/mode exactly, and the pinned production chain
     links to the frozen anchor head hash."""
     import importlib.util
@@ -239,18 +259,31 @@ def test_certified_live_inputs_manifest_is_complete_and_forbidden_free():
     assert manifest["fileCount"] == sum(len(r["files"]) for r in manifest["roots"])
     protected = {x["path"]: x for x in manifest.get("protectedArtifacts", [])}
     approval_rel = "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0001/attempt-0001/seal_approval.json"
+    proposal_rel = "data/csr8_phase_c/c4d_proposals/c4-prod-0002/ordinal-0002/next_reveal.proposal.json"
     record_rel = "docs/audit/evidence/b4_unattended_approval.json"
     assert approval_rel in protected
     assert record_rel in protected
     assert protected[approval_rel]["mode"] == 0o600
     assert protected[record_rel]["mode"] == 0o600
+    # C1: the selector-only ordinal-2 proposal is a protected artifact
+    assert proposal_rel in protected
+    assert protected[proposal_rel]["mode"] == 0o600
     paths = []
     for r in manifest["roots"]:
         paths += [f"{r['root']}/{f['path']}" for f in r["files"]]
         paths += [f"{r['root']}/{d['path']}" for d in r["dirs"]]
-    for forbidden in ("data/csr8_phase_c/c4d_proposals/",):
-        assert not any(p.startswith(forbidden) for p in paths), \
-            f"forbidden C4-D domain certified: {forbidden}"
+    # C1 closed-world: c4d_proposals/ is certified with EXACTLY the
+    # allowlisted ordinal-2 proposal subtree — the declared allowlist
+    # equals the certified entries and nothing else may appear there
+    # (approval/permit are the C2 authorization point, other ordinals
+    # are later stages).
+    assert manifest.get("forbiddenPrefixes") == []
+    c1_allow = manifest.get("c4dProposalAllowlist")
+    assert c1_allow == ["c4d_proposals/c4-prod-0002/ordinal-0002/next_reveal.proposal.json"]
+    proposal_domain_files = sorted(
+        f"{r['root']}/{f['path']}" for r in manifest["roots"] for f in r["files"]
+        if f"{r['root']}/{f['path']}".startswith("data/csr8_phase_c/c4d_proposals/"))
+    assert proposal_domain_files == [proposal_rel], proposal_domain_files
     # required gate inputs are pinned
     listed = {f"{r['root']}/{f['path']}" for r in manifest["roots"]
               for f in r["files"]}

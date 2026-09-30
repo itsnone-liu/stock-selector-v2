@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Bridge-executable CSR-8 machine audit (B5-authoritative contract).
+"""Bridge-executable CSR-8 machine audit (B5-authoritative + C1 contract).
 
 The synthetic Phase-A matrix (D01–D71, guard semantics, C4-C regression)
 is executed and asserted by the committed pytest suite directly; this
@@ -10,6 +10,11 @@ approval, unique attempt history, cleared workspace, durable exact
 c4d/c4c anchors, untouched outcome domain, public production state
 REVEAL=1/SEAL=1) from persisted live bytes via
 scripts/csr8_phase_b5_real_seal.py — no static snapshot self-attestation.
+Since stage C1 it additionally measures the ordinal-2 next-reveal
+proposal gate (chain-derived prerequisites, frozen-builder re-proof,
+closed-world c4d_proposals domain, no approval/permit, no R2 append)
+from persisted live bytes via
+scripts/csr8_phase_c1_ordinal2_proposal.py.
 
 The audit bridge executes this script in a detached worktree of the
 exact TARGET_COMMIT where gitignored data/ does not exist.  Per the
@@ -28,11 +33,27 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 TARGET = ROOT / "scripts/csr8_phase_c_annotation_seal.py"
 B5_TARGET = ROOT / "scripts/csr8_phase_b5_real_seal.py"
+C1_TARGET = ROOT / "scripts/csr8_phase_c1_ordinal2_proposal.py"
 CERT_MANIFEST = ROOT / "config/audit/certified_live_inputs.json"
-# 阶段边界感知（post-B5 终态）：annotator/ 工作区已由 POST_SEAL_FINAL 按
+# 阶段边界感知（C1 终态）：annotator/ 工作区已由 POST_SEAL_FINAL 按
 # 协议清理（终态不存在）；c4d_receipts/ 是 B3 起的合法冻结证据域；
-# c4d_proposals/ 在 C2 授权阶段之前始终禁止。
-FORBIDDEN_PREFIXES = ("c4d_proposals/",)
+# c4d_proposals/ 自 C1 起合法但 closed-world：域内唯一允许文件是
+# ordinal-2 next_reveal.proposal.json（approval/permit 是 C2 授权点、
+# 其余条目仍禁止）。
+C4D_PROPOSAL_ALLOWLIST = (
+    "c4d_proposals/c4-prod-0002/ordinal-0002/next_reveal.proposal.json",
+)
+
+
+def _c4d_proposal_forbidden(rel):
+    """C1 closed-world: legal c4d_proposals/ entries are exactly the
+    allowlisted file plus its ancestor directories."""
+    if not rel.startswith("c4d_proposals/"):
+        return False
+    if rel in C4D_PROPOSAL_ALLOWLIST:
+        return False
+    return not any(a.startswith(rel + "/")
+                   for a in C4D_PROPOSAL_ALLOWLIST)
 
 def load():
     import sys
@@ -101,8 +122,8 @@ def verify_certified_tree():
         m_dirs = {d["path"]: d["mode"] for d in r["dirs"]}
         m_files = {f["path"]: f for f in r["files"]}
         for rel in list(m_dirs) + list(m_files):
-            if any(rel.startswith(fp) for fp in FORBIDDEN_PREFIXES):
-                raise RuntimeError(f"certified manifest lists forbidden C4-D path: {r['root']}/{rel}")
+            if _c4d_proposal_forbidden(rel):
+                raise RuntimeError(f"certified manifest lists a C4-D proposal entry outside the C1 closed-world allowlist: {r['root']}/{rel}")
         seen_dirs, seen_files = set(), set()
         for p in sorted(live.rglob("*")):
             rel = p.relative_to(live).as_posix()
@@ -147,6 +168,25 @@ def verify_b5_freeze_domain():
         "G-B5-" + k.upper(): v for k, v in result["gates"].items()}}
 
 
+def verify_c1_proposal_domain(manifest):
+    """Measure the complete C1 ordinal-2 proposal gate from persisted
+    bytes (chain-derived prerequisites + frozen-builder re-proof +
+    closed-world + no-C2/no-C3 boundary).  The manifest's allowlist must
+    equal the audit's own closed-world constant — no self-declared
+    widening."""
+    declared = tuple(manifest.get("c4dProposalAllowlist", ()))
+    if declared != C4D_PROPOSAL_ALLOWLIST:
+        raise RuntimeError(
+            "certified manifest c4dProposalAllowlist does not equal the "
+            f"machine-audit closed-world constant: {declared}")
+    import sys
+    sys.path.insert(0, str(TARGET.parent))
+    spec = importlib.util.spec_from_file_location("c4d_c1", C1_TARGET)
+    c1 = importlib.util.module_from_spec(spec); spec.loader.exec_module(c1)
+    result = c1.verify_c1()
+    return {"c1_proposal": "PASS", **result["gates"]}
+
+
 def main():
     manifest = verify_certified_tree()
     m = load()
@@ -157,8 +197,11 @@ def main():
     result = verify_b5_freeze_domain()
     if result.get('b5_freeze') != 'PASS':
         raise RuntimeError('B5 Freeze Gate did not pass')
+    c1 = verify_c1_proposal_domain(manifest)
+    if c1.get('c1_proposal') != 'PASS':
+        raise RuntimeError('C1 proposal gate did not pass')
     print(json.dumps({'certified_inputs': 'VERIFIED', 'certified_files': manifest['fileCount'],
-                      'certified_roots': len(manifest['roots']), 'b5': result,
+                      'certified_roots': len(manifest['roots']), 'b5': result, 'c1': c1,
                       'production_snapshot': 'REVEAL=1 SEAL=1'}, separators=(',', ':')))
 
 if __name__ == "__main__": main()

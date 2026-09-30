@@ -1,8 +1,9 @@
 {
- "fileCount": 10531,
- "forbiddenPrefixes": [
-  "c4d_proposals/"
+ "c4dProposalAllowlist": [
+  "c4d_proposals/c4-prod-0002/ordinal-0002/next_reveal.proposal.json"
  ],
+ "fileCount": 10532,
+ "forbiddenPrefixes": [],
  "generator": "scripts/csr8_phase_a_certify_inputs.py",
  "protectedArtifacts": [
   {
@@ -10,6 +11,12 @@
    "mode": 384,
    "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0001/attempt-0001/seal_approval.json",
    "sha256": "110e01d6709c08cac28dddf55bdaf8ab9f75f735ac11fb51cbbe8a69b0a9c0c9"
+  },
+  {
+   "bytes": 574,
+   "mode": 384,
+   "path": "data/csr8_phase_c/c4d_proposals/c4-prod-0002/ordinal-0002/next_reveal.proposal.json",
+   "sha256": "d045778390478d5cdc31bedcf44078fd9307c10fa08d0bc84a18df596cecc578"
   },
   {
    "bytes": 1238,
@@ -20,7 +27,7 @@
  ],
  "roots": [
   {
-   "dirCount": 22,
+   "dirCount": 25,
    "dirs": [
     {
      "mode": 448,
@@ -53,6 +60,18 @@
     {
      "mode": 448,
      "path": "c4c_proposals/c4-prod-0002"
+    },
+    {
+     "mode": 448,
+     "path": "c4d_proposals"
+    },
+    {
+     "mode": 448,
+     "path": "c4d_proposals/c4-prod-0002"
+    },
+    {
+     "mode": 448,
+     "path": "c4d_proposals/c4-prod-0002/ordinal-0002"
     },
     {
      "mode": 448,
@@ -111,7 +130,7 @@
      "path": "secret"
     }
    ],
-   "fileCount": 5290,
+   "fileCount": 5291,
    "files": [
     {
      "bytes": 1264,
@@ -31746,6 +31765,12 @@
      "sha256": "911d8b844da3a38467aecc0919ee22664484f87c9f49bf445a5a949b6245dc81"
     },
     {
+     "bytes": 574,
+     "mode": 384,
+     "path": "c4d_proposals/c4-prod-0002/ordinal-0002/next_reveal.proposal.json",
+     "sha256": "d045778390478d5cdc31bedcf44078fd9307c10fa08d0bc84a18df596cecc578"
+    },
+    {
      "bytes": 1707,
      "mode": 384,
      "path": "c4d_receipts/c4-prod-0002/ordinal-0001/attempt-0001/draft_snapshot.bin",
@@ -31855,7 +31880,7 @@
     }
    ],
    "root": "data/csr8_phase_c",
-   "totalBytes": 349450012
+   "totalBytes": 349450586
   },
   {
    "dirCount": 1,
@@ -63318,6 +63343,6 @@
    "totalBytes": 463928909
   }
  ],
- "totalBytes": 813378921,
+ "totalBytes": 813379495,
  "version": 2
 }
