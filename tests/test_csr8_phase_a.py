@@ -233,7 +233,7 @@ def test_bridge_machine_audit_script_executes_complete_matrix():
     manifest = json.loads((ROOT / "config/audit/certified_live_inputs.json").read_text())
     assert payload["certified_files"] == manifest["fileCount"]
     assert payload["certified_roots"] == len(manifest["roots"])
-    assert payload["production_snapshot"] == "REVEAL=2 SEAL=1"
+    assert payload["production_snapshot"] == "REVEAL=2 SEAL=2"
     b5 = payload.get("b5", {"b5_freeze": "SUPERSEDED-BY-C3"})
     assert b5["b5_freeze"] in {"PASS", "SUPERSEDED-BY-C3"}
     if b5["b5_freeze"] == "SUPERSEDED-BY-C3":

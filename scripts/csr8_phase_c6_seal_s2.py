@@ -11,6 +11,19 @@ def verify():
     after=evs()
     if [e['event_type'] for e in after]!=['REVEAL_PACKET','SEAL_ANNOTATION','REVEAL_PACKET','SEAL_ANNOTATION']: raise RuntimeError('C6 chain mismatch')
     if c4d.derive_state(ROOT,SID)[0] != 'SEALED': raise RuntimeError('C6 final state not SEALED')
+    if len([e for e in after if e['event_type']=='REVEAL_PACKET']) != 2 or len([e for e in after if e['event_type']=='SEAL_ANNOTATION']) != 2: raise RuntimeError('C6 production count drift')
+    pairs=[]
+    for i,e in enumerate(after):
+        if e['event_type']=='SEAL_ANNOTATION':
+            prior=[x for x in after[:i] if x['event_type']=='REVEAL_PACKET']
+            if not prior: raise RuntimeError('C6 seal without reveal')
+            r=prior[-1]
+            if e['payload']['receipt_sha256'] != c4d.sha((c4d.sealing_dir(ROOT,SID)/e['payload']['bytes_ref']).read_bytes()): raise RuntimeError('C6 archived receipt hash drift')
+            pairs.append((r['event_hash'],e['event_hash']))
+    if len(pairs)!=2: raise RuntimeError('C6 pair count drift')
+    reveals=[e for e in after if e['event_type']=='REVEAL_PACKET']
+    c4d.prove_attempt_history(ROOT,SID,1,gate='G-C6-ORD1',events=after,reveal=reveals[0])
+    c4d.prove_attempt_history(ROOT,SID,2,gate='G-C6-ORD2',events=after,reveal=reveals[1])
     c4d.semantic_replay(ROOT,SID)
     return {'c6':'PASS','chain':[e['event_type'] for e in after],'production':'REVEAL=2 SEAL=2','open_reveals':0,'candidate_prefix':2,'r1_s1_exact':'PASS','r2_s2_exact':'PASS','ordinal1_history':'PASS','ordinal2_history':'PASS','authorization1':'CONSUMED','authorization2':'CONSUMED','dual_replay':'PASS','crash_recovery':'PASS','outcome_untouched':'PASS'}
 def main():

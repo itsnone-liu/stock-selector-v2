@@ -291,8 +291,19 @@ def main():
         raise RuntimeError('C3 audit requires exact persisted chain')
     c3 = verify_c3_append_domain() if types == ['REVEAL_PACKET', 'SEAL_ANNOTATION', 'REVEAL_PACKET'] else {'c3_append':'SUPERSEDED-BY-C6'}
     c4 = verify_c4_annotation_domain(manifest)
+    if len(events) == 4:
+        import sys
+        sys.path.insert(0, str(ROOT / 'scripts'))
+        spec = importlib.util.spec_from_file_location('c6_audit', ROOT / 'scripts/csr8_phase_c6_seal_s2.py')
+        c6mod = importlib.util.module_from_spec(spec); spec.loader.exec_module(c6mod)
+        c6 = c6mod.verify()
+        if c6.get('c6') != 'PASS' or c6.get('production') != 'REVEAL=2 SEAL=2':
+            raise RuntimeError('C6 dual-cycle verification did not pass')
+        snapshot = 'REVEAL=2 SEAL=2'
+    else:
+        c6 = {'c6': 'NOT_RUN'}; snapshot = 'REVEAL=2 SEAL=1'
     print(json.dumps({'certified_inputs': 'VERIFIED', 'certified_files': manifest['fileCount'],
-                      'certified_roots': len(manifest['roots']), 'c3': c3, 'c4': c4,
-                      'production_snapshot': 'REVEAL=2 SEAL=1'}, separators=(',', ':')))
+                      'certified_roots': len(manifest['roots']), 'c3': c3, 'c4': c4, 'c6': c6,
+                      'production_snapshot': snapshot}, separators=(',', ':')))
 
 if __name__ == "__main__": main()
