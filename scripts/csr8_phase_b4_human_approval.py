@@ -122,6 +122,22 @@ def approval_rel(root=CSR):
             'seal_approval.json').relative_to(root).as_posix()
 
 
+def enforce_private_artifact(path):
+    """Repair Git checkout's non-authoritative mode before proving bytes.
+
+    Git can only record 0644/0755, while these approval artifacts are
+    security-sensitive and must be 0600 on disk.  A clean checkout therefore
+    needs an explicit chmod before the fail-closed proof; the bytes are not
+    rewritten and the directory is fsynced after the mode transition.
+    """
+    path = Path(path)
+    if not path.is_file():
+        fail(f'approval artifact absent: {path}')
+    path.chmod(0o600)
+    c4d.fsync_file(path)
+    c4d.fsync_dir(path.parent)
+
+
 def expected_record(rsha, approval_bytes, root=CSR):
     return {
         'approval_version': RECORD_VERSION,
@@ -153,6 +169,10 @@ def _verify_chain_approval(root, rbytes, rsha):
     apath = c4d.attempt_dir(root, SID, ORDINAL, ATTEMPT) / 'seal_approval.json'
     if not apath.is_file():
         fail('seal_approval.json is absent')
+    # Tracked approval artifacts are materialized by Git as 0644 on a clean
+    # checkout; normalize the required private mode before proof without
+    # changing their canonical bytes.
+    enforce_private_artifact(apath)
     ab = apath.read_bytes()
     try:
         approval = json.loads(ab)
@@ -193,6 +213,8 @@ def _verify_unattended_record(record_path, rsha, approval_bytes, root=CSR):
     exact authorized-artifact sha256, fixed no-expansion statement."""
     if not Path(record_path).is_file():
         fail(f'unattended approval record absent: {record_path}')
+    # Normalize Git checkout mode before the immutable-byte proof.
+    enforce_private_artifact(record_path)
     rb = Path(record_path).read_bytes()
     try:
         rec = json.loads(rb)
@@ -281,6 +303,9 @@ def persist_unattended(root=CSR, record_path=UNATTENDED_RECORD):
     rsha = receipt_sha256(root)
     apath = c4d.attempt_dir(root, SID, ORDINAL, ATTEMPT) / 'seal_approval.json'
     if apath.exists():
+        # A Git checkout may materialize this tracked artifact as 0644; restore
+        # the required private mode before the chain-side proof.
+        enforce_private_artifact(apath)
         # immutable O_EXCL artifact already on the chain: it must bind
         # the exact current receipt bytes (re-proven below in full)
         rbytes = (c4d.attempt_dir(root, SID, ORDINAL, ATTEMPT) /
@@ -291,6 +316,9 @@ def persist_unattended(root=CSR, record_path=UNATTENDED_RECORD):
                                receipt_sha=rsha)
     approval_bytes = apath.read_bytes()
     if Path(record_path).exists():
+        # Same checkout-mode repair applies to the run-side immutable record;
+        # never rewrite its canonical bytes.
+        enforce_private_artifact(record_path)
         fail('unattended approval record already exists; '
              'immutable O_EXCL artifact')
     record = expected_record(rsha, approval_bytes, root)
