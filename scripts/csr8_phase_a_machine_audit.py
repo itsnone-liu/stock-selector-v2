@@ -197,13 +197,24 @@ def verify_c2_approval_domain():
     """Measure the complete C2 NEXT_REVEAL_ONLY approval gate from
     persisted bytes (frozen proposal/approval/permit re-proof, three-way
     exact-bytes consistency, UNUSED consumption, unattended-policy
-    record, closed-world authorization domain)."""
+    record, closed-world authorization domain).  The audit output also
+    surfaces the exact binding hashes (approved proposal == permit ==
+    approval's approved_authorization_sha256) plus the policy fields so
+    the three-way contract is visible in the audit line itself."""
     import sys
     sys.path.insert(0, str(TARGET.parent))
     spec = importlib.util.spec_from_file_location("c4d_c2", C2_TARGET)
     c2 = importlib.util.module_from_spec(spec); spec.loader.exec_module(c2)
     result = c2.verify_c2()
-    return {"c2_approval": "PASS", **result["gates"]}
+    return {"c2_approval": "PASS", **result["gates"],
+            "approved_by": result["approved_by"],
+            "scope": result["scope"],
+            "consumption": result["consumption"],
+            "approved_proposal_sha256": result["approved_proposal_sha256"],
+            "authorized_artifact_sha256":
+                result["authorized_artifact_sha256"],
+            "authorized_permit_sha256":
+                result["authorized_permit_sha256"]}
 
 
 def main():

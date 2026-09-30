@@ -353,6 +353,8 @@ def main(argv=None):
     ap.add_argument('--persist', action='store_true',
                     help='execute the real one-shot C2 transaction')
     args = ap.parse_args(argv)
+    if args.persist and args.verify:
+        ap.error('--persist and --verify are mutually exclusive')
     if args.persist:
         result = do_approve()
     else:

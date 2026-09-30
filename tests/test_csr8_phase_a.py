@@ -248,6 +248,13 @@ def test_bridge_machine_audit_script_executes_complete_matrix():
     assert {"G-C2-STATE", "G-C2-PROPOSAL", "G-C2-APPROVAL", "G-C2-PERMIT",
             "G-C2-THREEWAY", "G-C2-UNUSED", "G-C2-RECORD",
             "G-C2-WORLD"} <= set(c2_gates)
+    # the audit line itself surfaces the three-way binding hashes
+    assert c2["approved_by"] == "UNATTENDED_POLICY"
+    assert c2["scope"] == "NEXT_REVEAL_ONLY"
+    assert c2["consumption"] == "UNUSED"
+    assert c2["approved_proposal_sha256"] == c2["authorized_permit_sha256"]
+    assert len(c2["approved_proposal_sha256"]) == 64
+    assert len(c2["authorized_artifact_sha256"]) == 64
 
 
 def test_certified_live_inputs_manifest_is_complete_and_forbidden_free():
