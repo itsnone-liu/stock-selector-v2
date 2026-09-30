@@ -2,7 +2,7 @@
  "c4dProposalAllowlist": [
   "c4d_proposals/c4-prod-0002/ordinal-0002/next_reveal.proposal.json"
  ],
- "fileCount": 10534,
+ "fileCount": 10535,
  "forbiddenPrefixes": [],
  "generator": "scripts/csr8_phase_a_certify_inputs.py",
  "protectedArtifacts": [
@@ -152,7 +152,7 @@
      "path": "secret"
     }
    ],
-   "fileCount": 5293,
+   "fileCount": 5294,
    "files": [
     {
      "bytes": 1264,
@@ -31865,6 +31865,12 @@
      "sha256": "e9abcb4497e08bf5b1b4a412d23f1c79bf8f2ff5477b2cfdec3af1053852adc1"
     },
     {
+     "bytes": 1264,
+     "mode": 420,
+     "path": "production/c4-prod-0002/sealing/bytes/reveal_packet/2.bin",
+     "sha256": "30635e93925744fff634c4974ea29df14f4bf871b126b35f6764eb2ac78ef004"
+    },
+    {
      "bytes": 1880,
      "mode": 420,
      "path": "production/c4-prod-0002/sealing/bytes/seal_annotation/1.bin",
@@ -31874,13 +31880,13 @@
      "bytes": 90,
      "mode": 420,
      "path": "production/c4-prod-0002/sealing/sealing_log.head.json",
-     "sha256": "84156b2cfe30acb6be94fab3c387c638264c942bf1ac210f8bc8edecca77fda6"
+     "sha256": "a135f7f5d2fea4391e23a0d3ae51151a1e150232b8b66cd90e707d02fe6f2bb7"
     },
     {
-     "bytes": 1384,
+     "bytes": 2388,
      "mode": 420,
      "path": "production/c4-prod-0002/sealing/sealing_log.jsonl",
-     "sha256": "0a50dc7e56d851bbaf38f6186914984df373656d82e831e15502133a756afcf1"
+     "sha256": "bcc71e45788802473df4de626fe4e2a1f9122f2e5c2be513cfa47b5ed3787e1b"
     },
     {
      "bytes": 1001,
@@ -31914,7 +31920,7 @@
     }
    ],
    "root": "data/csr8_phase_c",
-   "totalBytes": 349451518
+   "totalBytes": 349453786
   },
   {
    "dirCount": 1,
@@ -63377,6 +63383,6 @@
    "totalBytes": 463928909
   }
  ],
- "totalBytes": 813380427,
+ "totalBytes": 813382695,
  "version": 2
 }
