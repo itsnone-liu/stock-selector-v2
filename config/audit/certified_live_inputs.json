@@ -45,7 +45,7 @@
  ],
  "roots": [
   {
-   "dirCount": 29,
+   "dirCount": 28,
    "dirs": [
     {
      "mode": 448,
@@ -114,10 +114,6 @@
     {
      "mode": 448,
      "path": "c4d_receipts/c4-prod-0002/ordinal-0002/attempt-0001"
-    },
-    {
-     "mode": 448,
-     "path": "c4d_receipts/c4-prod-0002/ordinal-0002/packet.json"
     },
     {
      "mode": 448,
@@ -31848,8 +31844,8 @@
     },
     {
      "bytes": 1264,
-     "mode": 384,
-     "path": "c4d_receipts/c4-prod-0002/ordinal-0002/packet.json/c67fccc2b211561dbca40d3a3a0aee4a3545781a8d2e12abba1b83f05a9c5ef2.json",
+     "mode": 420,
+     "path": "c4d_receipts/c4-prod-0002/ordinal-0002/packet.json",
      "sha256": "30635e93925744fff634c4974ea29df14f4bf871b126b35f6764eb2ac78ef004"
     },
     {

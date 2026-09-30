@@ -16,11 +16,17 @@ def r2():
 def artifact(name): return ORD/name
 def verify_c4():
     e=r2(); raw=(c4d.sealing_dir(ROOT,SID)/e['payload']['bytes_ref']).read_bytes()
+    if not (ORD/'packet.json').exists():
+        fail('ordinal-0002 packet exact-copy artifact missing')
     packet=artifact('packet.json')
     if packet.is_dir():
         files=list(packet.iterdir())
         if len(files)!=1: fail('packet domain not exactly one file')
-        packet=files[0]
+        file=files[0]
+        import shutil
+        tmp=artifact('_packet_tmp')
+        shutil.copyfile(file, tmp)
+        file.unlink(); packet.rmdir(); tmp.replace(packet)
     reg=artifact('annotation_session_registry.json'); draft=artifact('annotation_draft.json')
     for p in (packet,reg,draft,artifact('attempt-0001/receipt.json'),artifact('attempt-0001/draft_snapshot.bin')):
         if not p.is_file(): fail(f'missing ordinal artifact {p.name}')
