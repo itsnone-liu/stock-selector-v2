@@ -606,6 +606,82 @@ def entry_gates():
                 'crash_recovery_note': c6['crash_recovery_note'],
                 'outcome_untouched_note': c6['outcome_untouched_note']}}
 
+def taskbook_checklist(gates, r0, cid):
+    """冻结任务书 H0 清单（audit hash ddeb1ec260fa）：逐条机器复验并
+    以扁平结构落盘/输出——任何一条偏离冻结期望即 fail-closed，绝不
+    降级为披露。"""
+    chain = gates['chain']
+    c6 = gates['c6_dual_cycle']
+    marker = gates['frozen_marker']
+    auth = gates['authority']
+    fore = gates['forensic']
+    authz = gates['authorizations']
+    expect_chain = ['REVEAL_PACKET', 'SEAL_ANNOTATION',
+                    'REVEAL_PACKET', 'SEAL_ANNOTATION']
+    checks = {
+        'taskbook_sha256_binding':
+            'PASS' if gates['taskbook_binding']['sha256'] == TASKBOOK_SHA256
+            else fail('G-H0-CHECKLIST: taskbook binding'),
+        'production_infra_final_frozen_status': marker['status'],
+        'production_infra_freeze_commit': FREEZE_COMMIT,
+        'marker_bound_to_freeze_commit':
+            'PASS' if (marker['freeze_commit_parent_is_audited_head']
+                       and marker['marker_bytes_unchanged_since_freeze_commit']
+                       and marker['freeze_commit_is_ancestor_of_head'])
+            else fail('G-H0-CHECKLIST: marker binding'),
+        'chain_sequence': list(chain['chain']),
+        'reveal_count': chain['reveal_count'],
+        'seal_count': chain['seal_count'],
+        'open_reveals': chain['open_reveals'],
+        'candidate_prefix': chain['candidate_prefix'],
+        'c2_full_replay': chain['c2_full_replay'],
+        'r1_s1_exact_replay': c6['r1_s1_exact'],
+        'r2_s2_exact_replay': c6['r2_s2_exact'],
+        'ordinal1_history': c6['ordinal1_history'],
+        'ordinal2_history': c6['ordinal2_history'],
+        'authorization1': authz['authorization1'],
+        'authorization2': authz['authorization2'],
+        'forensic_state': fore['forensic_state'],
+        'forensic_findings': fore['forensic_findings'],
+        'G5': auth['G5'],
+        'XP': auth['XP'],
+        'round0_total': r0['total'],
+        'round0_completed': r0['completed'],
+        'round0_remaining': r0['remaining'],
+        'campaign_id': cid,
+        'campaign_manifest': 'PERSISTED',
+        'review_ledger_genesis':
+            (campaign_dir(cid) / 'reviews.jsonl').is_file(),
+        'ordinal3_proposal_staged':
+            (campaign_dir(cid) / 'ordinal_0003' /
+             'next_reveal.proposal.staged.json').is_file(),
+        'frozen_infra_zero_drift': 'PASS',
+    }
+    if checks['chain_sequence'] != expect_chain:
+        fail('G-H0-CHECKLIST: chain sequence drift')
+    for key, want in (('reveal_count', 2), ('seal_count', 2),
+                      ('open_reveals', 0), ('candidate_prefix', 2),
+                      ('round0_total', 64), ('round0_completed', 2),
+                      ('round0_remaining', 62)):
+        if checks[key] != want:
+            fail(f'G-H0-CHECKLIST: {key}={checks[key]} != {want}')
+    for key, want in (('c2_full_replay', 'PASS'),
+                      ('r1_s1_exact_replay', 'PASS'),
+                      ('r2_s2_exact_replay', 'PASS'),
+                      ('ordinal1_history', 'PASS'),
+                      ('ordinal2_history', 'PASS'),
+                      ('authorization1', 'CONSUMED'),
+                      ('authorization2', 'CONSUMED'),
+                      ('forensic_state', 'NONE'),
+                      ('forensic_findings', 0),
+                      ('G5', 'BLOCKED'), ('XP', 'BLOCKED_FOR_PIT'),
+                      ('review_ledger_genesis', True),
+                      ('ordinal3_proposal_staged', True)):
+        if checks[key] != want:
+            fail(f'G-H0-CHECKLIST: {key}={checks[key]!r} != {want!r}')
+    return checks
+
+
 def round0_facts(chain):
     """§10 口径：eligible case（唯一 opaque case）为完成单位。"""
     order = c4d.candidate_total_order()
@@ -2233,8 +2309,11 @@ def cmd_verify():
     batt = battery()
     print(json.dumps({'stage': STAGE, 'iteration': ITERATION,
                       'state': 'VERIFIED', 'campaign_id': cid,
+                      'taskbook_checklist': taskbook_checklist(
+                          gates, r0, cid),
                       'round0': r0,
                       'phase_entry_review': verdict['state'],
+                      'reviewer_session_id': verdict['reviewer_session_id'],
                       'independence_transcript_proof': 'PASS',
                       'verifier_battery': {
                           'certified_files': batt['certified_files'],

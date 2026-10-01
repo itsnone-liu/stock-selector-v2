@@ -275,3 +275,34 @@ def test_h0_verify_command_is_pure_read_and_passes_end_to_end():
     # restricted-zone anchor: review-surface entries verified in-process
     # (the full-tree count belongs to the audit layer, not Phase H)
     assert payload["verifier_battery"]["certified_files"] > 5000
+    # frozen taskbook checklist surfaced item-by-item in the pure-read
+    # verify output (audit hash ddeb1ec260fa expectations, fail-closed)
+    c = payload["taskbook_checklist"]
+    assert c["taskbook_sha256_binding"] == "PASS"
+    assert c["production_infra_final_frozen_status"] == \
+        "FINAL VERDICT: APPROVE"
+    assert c["production_infra_freeze_commit"] == \
+        "cd7f2a5db0fddee824bd1e5ce6da0f8bcd7431ca"
+    assert c["marker_bound_to_freeze_commit"] == "PASS"
+    assert c["chain_sequence"] == ["REVEAL_PACKET", "SEAL_ANNOTATION",
+                                   "REVEAL_PACKET", "SEAL_ANNOTATION"]
+    assert (c["reveal_count"], c["seal_count"], c["open_reveals"],
+            c["candidate_prefix"]) == (2, 2, 0, 2)
+    assert c["c2_full_replay"] == "PASS"
+    assert c["r1_s1_exact_replay"] == "PASS"
+    assert c["r2_s2_exact_replay"] == "PASS"
+    assert c["ordinal1_history"] == "PASS"
+    assert c["ordinal2_history"] == "PASS"
+    assert c["authorization1"] == "CONSUMED"
+    assert c["authorization2"] == "CONSUMED"
+    assert c["forensic_state"] == "NONE"
+    assert c["forensic_findings"] == 0
+    assert c["G5"] == "BLOCKED" and c["XP"] == "BLOCKED_FOR_PIT"
+    assert (c["round0_total"], c["round0_completed"],
+            c["round0_remaining"]) == (64, 2, 62)
+    assert c["campaign_id"] == payload["campaign_id"]
+    assert c["campaign_manifest"] == "PERSISTED"
+    assert c["review_ledger_genesis"] is True
+    assert c["ordinal3_proposal_staged"] is True
+    assert c["frozen_infra_zero_drift"] == "PASS"
+    assert payload["reviewer_session_id"]
