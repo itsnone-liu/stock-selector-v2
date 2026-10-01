@@ -2,7 +2,7 @@
  "export": {
   "chain_head_hash": "c1fa24420e411a19e191b6399dafab02f568c1fe7ef766a481907c970b68becd",
   "fileCount": 68,
-  "totalBytes": 658138
+  "totalBytes": 666759
  },
  "verify": {
   "all_pass": true,
@@ -11,6 +11,7 @@
    "G-P-ANALYSIS": "PASS",
    "G-P-AUTHZ": "PASS",
    "G-P-BLIND": "PASS",
+   "G-P-BOUNDARY": "PASS",
    "G-P-CHAIN": "PASS",
    "G-P-CORPUS": "PASS",
    "G-P-GATES": "PASS",
@@ -18,9 +19,10 @@
    "G-P-MANIFEST": "PASS",
    "G-P-RECEIPTS": "PASS",
    "G-P-UNIVERSE": "PASS",
-   "G-P-VERDICTS": "PASS"
+   "G-P-VERDICTS": "PASS",
+   "G-P-VERDICTS-CHAIN": "PASS"
   },
   "head_hash": "c1fa24420e411a19e191b6399dafab02f568c1fe7ef766a481907c970b68becd",
-  "totalBytes": 658138
+  "totalBytes": 666759
  }
 }

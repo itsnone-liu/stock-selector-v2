@@ -287,7 +287,24 @@ def export(pkg=PKG, root=CSR):
         ''.join(x + '\n' for x in load_or_bootstrap_verdicts()))
     head = json.loads((pkg / 'chain/sealing_log.head.json').read_text())
     verdict_bytes = (pkg / 'verdicts.jsonl').read_bytes()
-    for name, payload in [('infra_manifest.json', {'run_id': RUN_ID}), ('production_chain_snapshot.json', {'head': head}), ('sealed_pair_manifest.json', {'pairs': len(sealed_pairs(root, SID))}), ('annotation_corpus_manifest.json', {'path': 'corpus/phase_c_annotation_corpus.parquet'}), ('authorization_manifest.json', {'path': 'approvals'}), ('recovery_audit.json', {'source': 'e_phase_runner_matrix.json'}), ('gate_results.json', {'source': 'f_phase_bridge.json'}), ('public_anchor_manifest.json', {'chain_head': head['head_hash'], 'verdicts_sha256': sha(verdict_bytes)})]:
+    # §9.4: per-line hash chain over the REAL authoritative verdict history.
+    # chain[i] = sha256(chain[i-1] || sha256(line_i)); every record is bound
+    # to all predecessors, so any single-line rewrite breaks the chain head.
+    vlines = (pkg / 'verdicts.jsonl').read_text().splitlines()
+    v_line_sha = [sha(x.encode()) for x in vlines]
+    v_prev = '0' * 64
+    for _h in v_line_sha:
+        v_prev = sha((v_prev + _h).encode())
+    # §9.2: closed-world classification of every packaged copy.
+    # annotator_surface = files the annotator domain produced/may see
+    # (corpus, analysis, labeled join, approvals); everything else is
+    # auditor-side sensitive material (universe codes, outcomes, gates
+    # evidence, envelopes).  Recorded explicitly and re-verified.
+    annotator_surface = sorted(
+        p.relative_to(pkg).as_posix() for p in pkg.rglob('*')
+        if p.is_file() and p.relative_to(pkg).as_posix().startswith(
+            ('corpus/', 'analysis/', 'approvals/')))
+    for name, payload in [('infra_manifest.json', {'run_id': RUN_ID}), ('production_chain_snapshot.json', {'head': head}), ('sealed_pair_manifest.json', {'pairs': len(sealed_pairs(root, SID))}), ('annotation_corpus_manifest.json', {'path': 'corpus/phase_c_annotation_corpus.parquet'}), ('authorization_manifest.json', {'path': 'approvals'}), ('recovery_audit.json', {'source': 'e_phase_runner_matrix.json'}), ('gate_results.json', {'source': 'f_phase_bridge.json'}), ('public_anchor_manifest.json', {'chain_head': head['head_hash'], 'verdicts_sha256': sha(verdict_bytes), 'verdict_records': len(vlines), 'verdict_line_sha256': v_line_sha, 'verdict_chain_head': v_prev, 'boundary_policy': 'annotator_surface = corpus/ analysis/ approvals/ (blind by construction); analysis_labeled/ carries post-reveal labels and stays auditor-side with all other sensitive copies', 'boundary_annotator_surface': annotator_surface})]:
         (pkg / name).write_text(json.dumps({'schema_version':'csr8-f-envelope-v1','source_commit':'pending','source_hashes':{'chain_head':head['head_hash'],'verdicts':sha(verdict_bytes)},'row_counts':{'rows':0},'created_at':'phase-f-export','payload':payload}, sort_keys=True, indent=1))
     files = []
     for p in sorted(pkg.rglob('*')):
@@ -400,6 +417,61 @@ def verify(pkg=PKG):
     if last_state not in ('PENDING_AUDIT', 'APPROVE', 'REVISE', 'NEED_USER', 'REJECTED', 'STAGE_ADVANCED'):
         fail(f'G-P-VERDICTS: unknown F verdict {last_state}')
     gates['G-P-VERDICTS'] = 'PASS'
+
+    # §9.4 全量可复验：对真实 authoritative 历史执行逐行哈希链复验。
+    # anchor 本身被 MANIFEST closed-world 哈希锚定，篡改任一行（即使配平
+    # MANIFEST 的行哈希）都会破坏链头/逐行清单。
+    anchor = json.loads((pkg / 'public_anchor_manifest.json').read_text())['payload']
+    line_sha = [sha(x.encode()) for x in lines]
+    prev = '0' * 64
+    for _h in line_sha:
+        prev = sha((prev + _h).encode())
+    if (anchor.get('verdict_records') != len(lines)
+            or anchor.get('verdict_line_sha256') != line_sha
+            or anchor.get('verdict_chain_head') != prev
+            or anchor.get('verdicts_sha256') != sha((pkg / 'verdicts.jsonl').read_bytes())):
+        fail('G-P-VERDICTS-CHAIN: per-line hash-chain re-verification of the '
+             'authoritative verdict history failed')
+    gates['G-P-VERDICTS-CHAIN'] = 'PASS'
+
+    # §9.2 可达性边界覆盖包内全部副本：闭域分类 + annotator 可达面全量
+    # 盲态扫描（禁键 + identity token），敏感副本全部哈希锚定于 MANIFEST。
+    uni = json.loads((pkg / 'universe/codes.json').read_text())
+    p_codes = set(uni['codes'])
+    actual = set(on_disk)
+    recorded_annot = anchor.get('boundary_annotator_surface')
+    derived_annot = sorted(x for x in on_disk
+                           if x.startswith(('corpus/', 'analysis/',
+                                            'approvals/')))
+    if recorded_annot != derived_annot:
+        fail('G-P-BOUNDARY: recorded annotator-surface classification drift')
+    if set(recorded_annot or []) & (actual - set(recorded_annot or [])):
+        fail('G-P-BOUNDARY: classification is not a partition')
+    sensitive_missing = sorted(
+        x for x in actual - set(recorded_annot or [])
+        if x not in {f['path'] for f in manifest['files']}
+        and x != 'MANIFEST.json')
+    if sensitive_missing:
+        fail(f'G-P-BOUNDARY: sensitive copies not hash-anchored: {sensitive_missing[:3]}')
+    for rel in derived_annot:
+        ap = pkg / rel
+        if ap.suffix not in ('.json', '.jsonl'):
+            continue
+        text_keys, text_strings = set(), []
+        for ln in (ap.read_text().splitlines() if ap.suffix == '.jsonl'
+                   else [ap.read_text()]):
+            try:
+                _walk(json.loads(ln), text_keys, text_strings)
+            except (json.JSONDecodeError, ValueError):
+                fail(f'G-P-BOUNDARY: annotator-surface file not parseable {rel}')
+        hitk = sorted(text_keys & FORBIDDEN_KEYS)
+        if hitk:
+            fail(f'G-P-BOUNDARY: forbidden keys in annotator-surface {rel}: {hitk}')
+        hitc = sorted(t for t in _tokens(text_strings)
+                      if t in p_codes or f'sz.{t}' in p_codes or f'sh.{t}' in p_codes)
+        if hitc:
+            fail(f'G-P-BOUNDARY: identity tokens in annotator-surface {rel}: {hitc}')
+    gates['G-P-BOUNDARY'] = 'PASS'
 
     # gates evidence is a closed-world inventory, not a partial allowlist.
     gate_files = sorted(p.relative_to(pkg / 'gates').as_posix()

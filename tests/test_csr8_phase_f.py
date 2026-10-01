@@ -209,7 +209,7 @@ def test_f4_audit_package_standalone_reverify_and_tamper(
     m = fp.export(pkg, root)
     assert m["chain_event_count"] == 4 and m["fileCount"] > 30
     v = fp.verify(pkg)
-    assert v["all_pass"] and len(v["gates"]) == 11
+    assert v["all_pass"] and len(v["gates"]) == 13
 
     # real tamper 1: flip a packaged receipt byte
     rec = next(p for p in sorted((pkg / "receipts").rglob("receipt.json")))
@@ -378,6 +378,81 @@ def test_b5_durable_verdicts_are_append_only(tmp_path, monkeypatch):
         fp.load_or_bootstrap_verdicts()
 
 
+def test_b5b_package_boundary_and_verdict_chain_tamper(tmp_path, sandbox, monkeypatch):
+    """§9.2/§9.4 绕过路径：包内敏感副本可达面 + 真实 verdict 历史的
+    逐行哈希链 —— 注入 identity token 或改写任一 verdict 行（即使配平
+    MANIFEST 行哈希）都必须被包内复验识破。"""
+    root, _, _ = sandbox
+    fo.build_outcomes(root)
+    fo.join(root)
+    # authoritative 形态的真实历史种子（runId/stage 覆盖/F 收尾），使包内
+    # 复验走 authoritative 分支并执行逐行哈希链。
+    stages = ["B4", "B5", "C1", "C2", "C3", "C4", "C5", "C6", "D", "E", "F"]
+    seed = [json.dumps({"runId": fp.RUN_ID, "stage": s, "iteration": i + 1,
+                        "ts": 1700000000 + i, "headCommit": "0" * 39 + "1",
+                        "verdict": {"state": "REVISE", "stage": s,
+                                    "iteration": i + 1}},
+                       ensure_ascii=False, sort_keys=True)
+            for i, s in enumerate(stages)]
+    (tmp_path / "verdicts.jsonl").write_text("\n".join(seed) + "\n")
+    monkeypatch.setattr(fp, "DURABLE_VERDICTS", tmp_path / "verdicts.jsonl")
+    pkg = tmp_path / "pkg"
+    fp.export(pkg, root)
+    v = fp.verify(pkg)
+    assert v["all_pass"]
+
+    def rehash_manifest(rel):
+        m = json.loads((pkg / "MANIFEST.json").read_text())
+        entry = next(f for f in m["files"] if f["path"] == rel)
+        entry["sha256"] = fp.sha_file(pkg / rel)
+        entry["bytes"] = (pkg / rel).stat().st_size
+        (pkg / "MANIFEST.json").write_text(
+            json.dumps(m, ensure_ascii=False, sort_keys=True, indent=1))
+
+    # 渗透 1：向 annotator 可达的规范化副本注入 identity token，并配平
+    # corpus ledger 与 MANIFEST（chain 锚定不受影响）—— 只有包内可达面
+    # 全量盲态扫描能识破。
+    jl = pkg / "corpus/phase_c_annotation_corpus.jsonl"
+    rows = [json.loads(x) for x in jl.read_text().splitlines() if x.strip()]
+    rows[0]["evidence_note"] = (rows[0].get("evidence_note") or "") + " see sz.301042"
+    jl.write_text("".join(json.dumps(r, ensure_ascii=False, sort_keys=True) + "\n"
+                          for r in rows))
+    lp = pkg / "corpus/ledger.json"
+    led = json.loads(lp.read_text())
+    ent = next(f for f in led["files"] if f["path"] == "phase_c_annotation_corpus.jsonl")
+    ent["sha256"] = fp.sha_file(jl)
+    ent["bytes"] = jl.stat().st_size
+    led["file_hashes"] = {f["path"]: f["sha256"] for f in led["files"]}
+    led["totals"] = {"files": len(led["files"]),
+                     "bytes": sum(f["bytes"] for f in led["files"])}
+    lp.write_text(json.dumps(led, ensure_ascii=False, sort_keys=True, indent=1))
+    rehash_manifest("corpus/phase_c_annotation_corpus.jsonl")
+    rehash_manifest("corpus/ledger.json")
+    with pytest.raises(RuntimeError, match="G-P-BOUNDARY"):
+        fp.verify(pkg)
+
+    # 还原渗透 1 的影响：重新导出干净包再做渗透 2（verdict 行改写 +
+    # 配平 MANIFEST）—— 逐行哈希链必须识破。
+    pkg2 = tmp_path / "pkg2"
+    fp.export(pkg2, root)
+    assert fp.verify(pkg2)["all_pass"]
+    fp2 = pkg2 / "verdicts.jsonl"
+    lns = fp2.read_text().splitlines()
+    r = json.loads(lns[min(3, len(lns) - 1)])
+    r["iteration"] = int(r.get("iteration", 1)) + 40
+    r["verdict"]["iteration"] = r["iteration"]   # 内层 envelope 同步配平
+    lns[min(3, len(lns) - 1)] = json.dumps(r, ensure_ascii=False, sort_keys=True)
+    fp2.write_text("\n".join(lns) + "\n")
+    m2 = json.loads((pkg2 / "MANIFEST.json").read_text())
+    entry = next(f for f in m2["files"] if f["path"] == "verdicts.jsonl")
+    entry["sha256"] = fp.sha_file(fp2)
+    entry["bytes"] = fp2.stat().st_size
+    (pkg2 / "MANIFEST.json").write_text(
+        json.dumps(m2, ensure_ascii=False, sort_keys=True, indent=1))
+    with pytest.raises(RuntimeError, match="G-P-VERDICTS-CHAIN"):
+        fp.verify(pkg2)
+
+
 def test_b6_labeled_join_tamper_with_consistent_manifest(sandbox):
     """§9.3/§9.4 绕过路径：改 labeled 行 + 配平 join_manifest 计数 ——
     join 必须是 analysis×outcomes 的唯一确定性复推导。"""
@@ -403,7 +478,7 @@ def test_f5_live_artifacts_and_evidence_reverify_readonly():
     assert fb.verify_blinding(fb.CSR)["all_pass"]
     assert set(fo.verify_outcomes(fb.CSR).values()) == {"PASS"}
     v = fp.verify(fp.PKG)
-    assert v["all_pass"] and len(v["gates"]) == 11
+    assert v["all_pass"] and len(v["gates"]) == 13
     dur = fp.DURABLE_VERDICTS.read_text().splitlines()
     assert fp.check_authoritative_history(dur)["records"] == 101
     ev = json.loads((ROOT / "docs/audit/evidence/f_phase_bridge.json").read_text())
