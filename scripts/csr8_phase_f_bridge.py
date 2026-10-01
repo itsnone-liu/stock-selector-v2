@@ -214,6 +214,7 @@ def build_corpus(root=CSR, sid=SID):
                   'log_sha256': sha(log.read_bytes()),
                   'head_file_sha256': sha(head.read_bytes())},
         'pairs': meta_pairs, 'files': files,
+        'file_hashes': {f['path']: f['sha256'] for f in files},
         'totals': {'files': len(files), 'bytes': sum(f['bytes'] for f in files)},
         'read_only': {'file_mode': '0o444', 'enforcement':
                       'mode bits + hash ledger (tamper-evident under any uid, '
@@ -274,6 +275,8 @@ def _corpus_gates(prefix, cdir, ledger, pairs, head, ev_count, sid,
     cdir = Path(cdir)
     on_disk = sorted(p.relative_to(cdir).as_posix()
                      for p in cdir.rglob('*') if p.is_file())
+    if ledger.get('file_hashes') is not None and ledger.get('file_hashes') != {f['path']: f['sha256'] for f in ledger['files']}:
+        fail(f'{prefix}-ANCHORS: file hash index mismatch')
     listed = sorted([f['path'] for f in ledger['files']] + ['ledger.json']
                     + (['phase_c_annotation_corpus.parquet']
                        if (cdir / 'phase_c_annotation_corpus.parquet').is_file() else []))

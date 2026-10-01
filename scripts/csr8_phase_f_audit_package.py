@@ -235,11 +235,15 @@ def export(pkg=PKG, root=CSR):
                     pkg / 'approvals/authorization')
     shutil.copytree(root / 'c4d_proposals' / SID, pkg / 'approvals/proposals')
     (pkg / 'gates').mkdir()
-    for name in GATE_FILES:
-        src = ROOT / 'docs/audit/evidence' / name
-        if not src.is_file():
-            fail(f'gate evidence missing: {name}')
-        shutil.copy2(src, pkg / 'gates' / name)
+    # Closed-world gate inventory: every shipped evidence artifact is copied,
+    # rather than a hand-maintained partial allowlist.
+    evidence_root = ROOT / 'docs/audit/evidence'
+    for src in sorted(evidence_root.rglob('*')):
+        if src.is_file() and src.name != 'verdicts.jsonl' and not src.is_relative_to(evidence_root / 'f_audit_package'):
+            rel = src.relative_to(evidence_root)
+            dst = pkg / 'gates' / rel
+            dst.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(src, dst)
     # corpus 全量字节（非仅账本）→ 包内可独立复验不可变性
     shutil.copytree(corpus_dir(root, SID), pkg / 'corpus')
     table_path = pkg / 'corpus/phase_c_annotation_corpus.parquet'
@@ -395,10 +399,11 @@ def verify(pkg=PKG):
         fail(f'G-P-VERDICTS: unknown F verdict {last_state}')
     gates['G-P-VERDICTS'] = 'PASS'
 
-    # gates 证据齐全
-    for name in GATE_FILES:
-        if not (pkg / 'gates' / name).is_file():
-            fail(f'G-P-GATES: missing {name}')
+    # gates evidence is a closed-world inventory, not a partial allowlist.
+    gate_files = sorted(p.relative_to(pkg / 'gates').as_posix()
+                        for p in (pkg / 'gates').rglob('*') if p.is_file())
+    if not gate_files or 'f_phase_bridge.json' not in gate_files:
+        fail('G-P-GATES: complete evidence inventory missing bridge evidence')
     gates['G-P-GATES'] = 'PASS'
 
     # universe 底册：包内 identity 扫描的权威代码表
