@@ -360,9 +360,13 @@ def test_certified_live_inputs_manifest_is_complete_and_forbidden_free():
     # staged copy is certified inventory (0600) under h_campaign/
     staged_proposals = sorted(
         f"{r['root']}/{f['path']}" for r in manifest["roots"] for f in r["files"]
-        if "h_campaign/" in f"{r['root']}/{f['path']}"
+        if ("h_campaign/" in f"{r['root']}/{f['path']}"
+            or "h_campaign_archive/" in f"{r['root']}/{f['path']}")
         and f["path"].endswith("next_reveal.proposal.staged.json"))
-    assert len(staged_proposals) == 1, staged_proposals
+    live_staged_proposals = [p for p in staged_proposals
+                             if "/h_campaign_archive/" not in p]
+    assert len(live_staged_proposals) == 1, staged_proposals
+    assert any("/h_campaign_archive/" in p for p in staged_proposals)
     # required gate inputs are pinned
     listed = {f"{r['root']}/{f['path']}" for r in manifest["roots"]
               for f in r["files"]}

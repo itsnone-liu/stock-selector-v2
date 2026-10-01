@@ -78,7 +78,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 RUN_ID = 'audit_20261001135212538'
 STAGE = 'H0'
-ITERATION = 4
+ITERATION = 5
 HOST_ID = 'RainYun-c438TDGn'
 TASKBOOK_VERSION = 'v1.1'
 TASKBOOK_PATH = ('/root/dsh-ws/.feishu-files/20261001134014-'
@@ -435,8 +435,16 @@ AUDIT_LAYER_DRIFT_CLASSIFICATION = {
         'window and fail on any drift outside it',
     'tests/test_csr8_phase_c2_approval.py':
         'audit test realignment (stage-aware skip after C2 rotation)',
+    'scripts/csr8_phase_h_close_certified_tree.py':
+        'iteration-5 remediation: incremental certified-manifest closure '
+        'over the campaign zones only (review-surface reads under the '
+        'ForbiddenReadGuard; forbidden-zone pins carried byte-identically '
+        'from the last audit-layer certification, never opened) — closes '
+        'the audit-layer tree so the target commit state is replayable',
     'config/audit/certified_live_inputs.json':
-        'designed certify absorption (regenerated manifest)',
+        'designed certify absorption (regenerated manifest); iteration-5: '
+        'campaign-zone closure appended by the dedicated closure tool '
+        '(see campaignClosure block inside the manifest)',
     'docs/audit/evidence/h_phase_entry_gate.json':
         'phase-h machine evidence (regenerated and committed each '
         'iteration; absent at the freeze commit)',
@@ -910,7 +918,12 @@ def build_or_verify_manifest(gates, chain, r0, cid, staged, head):
     body = {
         'manifest_version': 'csr8-h-campaign-manifest-v3',
         'campaign_id': cid,
-        'phase': 'H', 'stage': STAGE, 'run_id': RUN_ID, 'iteration': ITERATION,
+        'phase': 'H', 'stage': STAGE, 'run_id': RUN_ID,
+        # A continuation iteration must not rewrite the campaign manifest:
+        # its bytes are packet-bound. Preserve the persisted campaign
+        # creation iteration while the gate output advances.
+        'iteration': (json.loads(path.read_bytes()).get('iteration', ITERATION)
+                      if path.exists() else ITERATION),
         'taskbook': {'version': TASKBOOK_VERSION, 'sha256': TASKBOOK_SHA256,
                      'source_byte_binding': gates['taskbook_binding']},
         'session_id': SID,
@@ -1744,8 +1757,11 @@ def restricted_manifest_anchor():
       归审计层复验）。
     * h_campaign/ 条目：campaign 生命周期域由本 gate 更强的专用证明
       （append-only hash-chain ledger、closed-world、write-surface 快照、
-      reviewer transcript 独立性扫描）覆盖；certify 不再由 Phase H 运行，
-      其 h_campaign 条目按设计滞后，不参与比对。
+      reviewer transcript 独立性扫描）覆盖；iteration-5 起清单本身也由
+      专用闭合工具（csr8_phase_h_close_certified_tree.py，仅 review-surface
+      读取）在 campaign 域内闭合，但其逐文件哈希仍由这些更强证明锚定，
+      anchor 维持计数披露。h_campaign_archive/ 条目为 review-surface
+      历史域，逐文件参与锚定比对。
     """
     cfg_path = ROOT / 'config/audit/certified_live_inputs.json'
     if not cfg_path.is_file():
@@ -2197,7 +2213,28 @@ def build_evidence(gates, r0, cid, artifacts, ledger, verdict, indep,
                             'h_campaign_archive with SUPERSESSION.json; '
                             'this iteration re-bootstrapped a fresh '
                             'campaign and a fresh independent review under '
-                            'the v2 protocol',
+                            'the v2 protocol '
+                            'ITERATION 5: the iteration-4 completion was '
+                            'rejected because the certified tree did not '
+                            'close at the target commit (the committed '
+                            'manifest still pinned the archived iteration-3 '
+                            'campaign and did not cover the live campaign, '
+                            'ledger, ordinal-3 staged proposal or reviewer '
+                            'verdict, so the entry state was not replayable '
+                            'by the audit layer). Remediated WITHOUT '
+                            'weakening the iteration-4 forbidden-read '
+                            'ruling: the dedicated closure tool '
+                            '(scripts/csr8_phase_h_close_certified_tree.py, '
+                            'run under the ForbiddenReadGuard) updates ONLY '
+                            'the h_campaign/ + h_campaign_archive/ entries '
+                            'of config/audit/certified_live_inputs.json '
+                            '(review-surface reads; forbidden-zone pins '
+                            'carried byte-identically, never opened; '
+                            'non-campaign entries asserted byte-identical '
+                            'fail-closed), so the frozen audit-layer '
+                            'verify_certified_tree() now closes over the '
+                            'full live tree at this commit while Phase H '
+                            'still performs zero forbidden-zone reads',
         'outcome_read_policy': OUTCOME_READ_POLICY,
         'identity_accessed': False,
         'future_data_accessed': False,

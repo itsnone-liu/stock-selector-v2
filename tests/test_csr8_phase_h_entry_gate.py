@@ -263,7 +263,7 @@ def test_h0_verify_command_is_pure_read_and_passes_end_to_end():
         cwd=str(ROOT), capture_output=True, text=True, timeout=1800)
     assert result.returncode == 0, result.stdout[-2000:] + result.stderr[-2000:]
     payload = json.loads(result.stdout.strip().splitlines()[-1])
-    assert payload["stage"] == "H0" and payload["iteration"] == 4
+    assert payload["stage"] == "H0" and payload["iteration"] == 5
     assert payload["state"] == "VERIFIED"
     # schema pin: downstream audit parsers depend on this exact field set;
     # any accidental loss or rename fails loudly instead of silently
