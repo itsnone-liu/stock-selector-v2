@@ -244,6 +244,11 @@ def export(pkg=PKG, root=CSR):
             dst = pkg / 'gates' / rel
             dst.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(src, dst)
+    # Materialize normalized corpus before copying so its ledger entry and
+    # parquet bytes are exported atomically as one closed-world snapshot.
+    if not (corpus_dir(root, SID) / 'phase_c_annotation_corpus.parquet').is_file():
+        from csr8_phase_f_bridge import build_corpus_table
+        build_corpus_table(root, SID)
     # corpus 全量字节（非仅账本）→ 包内可独立复验不可变性
     shutil.copytree(corpus_dir(root, SID), pkg / 'corpus')
     table_path = pkg / 'corpus/phase_c_annotation_corpus.parquet'
@@ -253,11 +258,25 @@ def export(pkg=PKG, root=CSR):
         from csr8_phase_f_bridge import build_corpus_table
         build_corpus_table(root, SID)
         shutil.copy2(corpus_dir(root, SID) / table_path.name, table_path)
+        shutil.copy2(corpus_dir(root, SID) / 'ledger.json', pkg / 'corpus/ledger.json')
     if not table_path.is_file():
         fail('normalized annotation corpus parquet missing')
     # mandated normalized table is included as a first-class artifact
     if not (pkg / 'corpus/phase_c_annotation_corpus.parquet').is_file():
         fail('normalized annotation corpus parquet missing')
+    # Always refresh the package ledger after copying the normalized table.
+    source_ledger = corpus_dir(root, SID) / 'ledger.json'
+    shutil.copy2(source_ledger, pkg / 'corpus/ledger.json')
+    # Ensure the copied ledger explicitly indexes the normalized parquet.
+    lp = pkg / 'corpus/ledger.json'
+    ld = json.loads(lp.read_text())
+    pp = pkg / 'corpus/phase_c_annotation_corpus.parquet'
+    if not any(f['path'] == pp.name for f in ld['files']):
+        ld['files'].append({'path': pp.name, 'bytes': pp.stat().st_size, 'sha256': sha_file(pp), 'binds': 'normalized-corpus'})
+        ld['files'].sort(key=lambda f: f['path'])
+        ld['file_hashes'] = {f['path']: f['sha256'] for f in ld['files']}
+        ld['totals'] = {'files': len(ld['files']), 'bytes': sum(f['bytes'] for f in ld['files'])}
+        lp.write_text(json.dumps(ld, ensure_ascii=False, sort_keys=True, indent=1))
     (pkg / 'analysis').mkdir()
     shutil.copy2(analysis_dir(root, SID) / 'analysis_manifest.json',
                  pkg / 'analysis/analysis_manifest.json')

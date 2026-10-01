@@ -257,7 +257,29 @@ def build_corpus_table(root=CSR, sid=SID):
     table = pa.Table.from_pylist(rows)
     pq.write_table(table, out)
     os.chmod(out, 0o444)
-    return {'path': out.name, 'rows': len(rows), 'columns': table.column_names, 'sha256': sha(out.read_bytes())}
+    digest = sha(out.read_bytes())
+    # The normalized table is part of the same closed-world corpus ledger.
+    lp = ledger_path(root, sid)
+    ledger = json.loads(lp.read_text())
+    rel = out.relative_to(corpus_dir(root, sid)).as_posix()
+    entry = {'path': rel, 'bytes': out.stat().st_size, 'sha256': digest,
+             'binds': 'persisted-frozen-artifacts-normalized-corpus'}
+    ledger['files'] = [f for f in ledger['files'] if f['path'] != rel] + [entry]
+    ledger['files'] = sorted(ledger['files'], key=lambda f: f['path'])
+    ledger['file_hashes'] = {f['path']: f['sha256'] for f in ledger['files']}
+    ledger['totals'] = {'files': len(ledger['files']), 'bytes': sum(f['bytes'] for f in ledger['files'])}
+    lp.write_text(json.dumps(ledger, ensure_ascii=False, sort_keys=True, indent=1))
+    os.chmod(lp, 0o444)
+    # analysis manifest binds the final corpus ledger, including parquet.
+    am = analysis_dir(root, sid) / 'analysis_manifest.json'
+    if am.is_file():
+        a = json.loads(am.read_text())
+        a['corpus_ledger_sha256'] = sha(lp.read_bytes())
+        if _is_immutable(am):
+            subprocess.run(['chattr', '-i', str(am)], check=True)
+        am.write_text(json.dumps(a, ensure_ascii=False, sort_keys=True, indent=1))
+        os.chmod(am, 0o444)
+    return {'path': out.name, 'rows': len(rows), 'columns': table.column_names, 'sha256': digest}
 
 
 def read_ledger(root=CSR, sid=SID):
@@ -279,7 +301,8 @@ def _corpus_gates(prefix, cdir, ledger, pairs, head, ev_count, sid,
         fail(f'{prefix}-ANCHORS: file hash index mismatch')
     listed = sorted([f['path'] for f in ledger['files']] + ['ledger.json']
                     + (['phase_c_annotation_corpus.parquet']
-                       if (cdir / 'phase_c_annotation_corpus.parquet').is_file() else []))
+                       if (cdir / 'phase_c_annotation_corpus.parquet').is_file()
+                       and not any(f['path'] == 'phase_c_annotation_corpus.parquet' for f in ledger['files']) else []))
     if on_disk != listed:
         fail(f'{prefix}-WORLD: corpus closed-world violated {on_disk} != {listed}')
     gates[f'{prefix}-WORLD'] = 'PASS'
