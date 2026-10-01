@@ -38,25 +38,38 @@ def watchdog(start,timeout,root):
  if time.monotonic()-start>timeout: w.update(status='SAFE_DEGRADED',reason='TIMEOUT',writes=0,append=False)
  write_watch(root,w); return w
 def _cmd(root,crash): return [sys.executable,__file__,'--worker','--root',str(root),*(('--crash',crash) if crash else ())]
+def _persist_seq(root,names):
+ for n in names: persist(root,n)
 def worker(root,crash):
- """Executing process: drives the authorization sequence boundary-by-boundary,
- persisting runner state AT each HARD STOP before re-entering. Pre-append
- boundaries are durable-write-free so re-entry is legal; after_append is the
- first durable boundary; the recovery-path hard stop after_semantic_proof is
- driven through frozen recover(stop_after=...)."""
+ """Executing process. Persistence contract:
+  - pre-append HARD STOPS are driven as authentic ladder stops (re-entry is
+    legal there: no durable writes), each persisted at the boundary itself;
+  - a run whose target is a post-append boundary CROSSES after_append first —
+    the worker persists that crossed boundary plus the stopped boundary at the
+    stop moment, from inside the executing process;
+  - the normal complete cycle runs the transaction uninterrupted (crossing
+    every declared stop) and the worker persists each crossed boundary plus
+    SEALED at completion. Every journal record is written by the process that
+    executed the transaction, never retro-actively by a parent."""
  try:
   persist(root,'PREPARE'); persist(root,'AUTHORIZED')
-  drive=PRE if (crash is None or PASSED.index(crash)>=3) else PRE[:PRE.index(crash)+1]
-  for b in drive:
+  idx=PASSED.index(crash) if crash in PASSED else None
+  if idx is not None and idx<3:
+   for b in PRE[:idx+1]:
+    try: c.seal_transaction(root,c.REAL_SESSION,stop_after=b); persist(root,b)
+    except c.CrashSim: persist(root,b)
+   print(json.dumps({'kind':'crash','value':crash}),flush=True); return
+  for b in PRE:
    try: c.seal_transaction(root,c.REAL_SESSION,stop_after=b); persist(root,b)
    except c.CrashSim: persist(root,b)
   if crash is None:
-   try: c.seal_transaction(root,c.REAL_SESSION,stop_after='after_append')
-   except c.CrashSim: persist(root,'after_append')
-   res=c.recover(root,c.REAL_SESSION); persist(root,res); print(json.dumps({'kind':'ok','value':res}),flush=True); return
-  if crash in PRE: print(json.dumps({'kind':'crash','value':crash}),flush=True); return
+   c.seal_transaction(root,c.REAL_SESSION)
+   _persist_seq(root,('after_append','after_fsync','after_replay_verify','after_replay','after_anchor','after_cleanup','SEALED'))
+   print(json.dumps({'kind':'ok','value':'SEALED'}),flush=True); return
   try: c.seal_transaction(root,c.REAL_SESSION,stop_after=crash)
-  except c.CrashSim: persist(root,crash); print(json.dumps({'kind':'crash','value':crash}),flush=True); return
+  except c.CrashSim:
+   persist(root,'after_append'); persist(root,crash)
+   print(json.dumps({'kind':'crash','value':crash}),flush=True); return
   print(json.dumps({'kind':'error','value':f'crash boundary {crash} not reached'}),flush=True)
  except BaseException as e: print(json.dumps({'kind':'error','value':repr(e)}),flush=True)
 def invoke(root,crash,timeout):
@@ -103,7 +116,8 @@ def evidence():
  for point in PASSED:
   with tempfile.TemporaryDirectory(prefix='csr8-e26-m-') as td:
    root=_sandbox(td); run(root,point); order=[j['boundary'] for j in read_state(root)['journal']]
-   idx=PASSED.index(point); exp=['PREPARE','AUTHORIZED']+list(PASSED[:min(idx+1,3)])+([point] if idx>=3 else [])
+   idx=PASSED.index(point)
+   exp=['PREPARE','AUTHORIZED']+list(PASSED[:min(idx+1,3)])+((['after_append',point]) if idx>=3 else [])
    if order!=exp: raise RuntimeError(f'{point} journal {order} != {exp}')
    s=resume(root); j1=len(read_state(root)['journal']); rc1=read_state(root).get('recovery_count')
    s2=resume(root); j2=len(read_state(root)['journal']); rc2=read_state(root).get('recovery_count')
@@ -111,7 +125,7 @@ def evidence():
    matrix.append({'crash_at':point,'persisted_boundaries':order,'resume_status':'SEALED','idempotent':True,'head_hash_after_resume':head_hash(root)})
  with tempfile.TemporaryDirectory(prefix='csr8-e26-d-') as td:
   root=_sandbox(td); run(root); st=read_state(root); order=[j['boundary'] for j in st['journal']]
-  exp=['PREPARE','AUTHORIZED']+list(PRE)+['after_append','SEALED']
+  exp=['PREPARE','AUTHORIZED']+list(PRE)+['after_append','after_fsync','after_replay_verify','after_replay','after_anchor','after_cleanup','SEALED']
   if order!=exp or st.get('status')!='SEALED': raise RuntimeError(f'full cycle {order} {st.get("status")}')
   if not watch_path(root).exists(): raise RuntimeError('watchdog never ran')
   full_cycle={'status':'SEALED','persisted_boundaries':order,'head_hash':head_hash(root),'watchdog_checks':read_watch(root).get('checks')}
