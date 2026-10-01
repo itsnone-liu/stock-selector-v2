@@ -316,9 +316,21 @@ def test_c2_catches_noncanonical_record_bytes(tmp_path):
 
 def test_c2_owner_ruling_is_frozen_in_taskbook():
     """The taskbook itself, not only the executor evidence, carries the
-    owner-level C2 binding correction: proposal, not receipt."""
+    owner-level C2 binding correction: proposal, not receipt.
+
+    The .dsh-audit-task.json taskbook rotates per phase; the C2 stage
+    (and its ownerRuling) is only present while the C2 taskbook is the
+    live one. When the taskbook has rotated to a later phase (e.g. the
+    Phase H autonomous annotation campaign), the C2 ruling remains
+    frozen in git history at the audited commits — this test self-skips
+    (same precedent as the superseded-stage self-skips in the C1 tests).
+    """
     taskbook = Path(c4d.ROOT) / ".dsh-audit-task.json"
     spec = json.loads(taskbook.read_bytes())
+    stage_ids = {stage["id"] for stage in spec.get("stages", [])}
+    if "C2" not in stage_ids:
+        pytest.skip("taskbook has rotated past C2; the C2 owner ruling is "
+                    "frozen in git history at the audited C2 commits")
     c2 = next(stage for stage in spec["stages"] if stage["id"] == "C2")
     ruling = c2["ownerRuling"]
     assert "v2-c2-binding-clarification-20261001" in ruling

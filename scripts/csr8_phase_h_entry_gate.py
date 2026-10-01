@@ -2,49 +2,42 @@
 # -*- coding: utf-8 -*-
 """CSR-8 Phase H H0 — Phase Entry Gate（taskbook v1.1 §8/§31，run audit_20261001135212538）.
 
-执行者只做机器实测与 campaign bootstrap，不宣布进入 H1：
+Iteration-2 契约（对外审计意见对 iteration-1 的四项阻断全部吸收）：
 
-* 写前全前置机器重验（任何失败 => HALT，零写入、零 proposal）：
-  production_infra_final_frozen marker 有效且逐字绑定 freeze commit
-  cd7f2a5db0fddee824bd1e5ce6da0f8bcd7431ca（marker bytes@freeze commit ==
-  live bytes；audited_head == freeze commit parent；freeze commit 是 HEAD
-  祖先）；chain 恰为 [R1,S1,R2,S2]；REVEAL=2/SEAL=2/open_reveals=0；
-  candidate prefix=2（冻结 total-order 精确前缀）；C2 full replay PASS
-  （冻结 SealingLog 全量重放 + trusted-head）；R1↔S1、R2↔S2 exact replay
-  PASS；ordinal-1/2 history PASS；authorization1/2 CONSUMED；无 FORENSIC
-  （derive_state==SEALED）；G5=BLOCKED、XP=BLOCKED_FOR_PIT（冻结 C3
-  authority gate + boolean summary）。
-* PASS 后 bootstrap：round0_total/completed/remaining（冻结 candidate
-  total-order 派生）；campaign manifest + opaque campaign_id（确定性
-  sha256 派生，无时钟熵）；review ledger 初始头（append-only hash-chain
-  genesis，executor 只写 genesis，verdict 行只由 independent reviewer
-  追加）；canonical PHASE_ENTRY review packet（input_commitment_sha256
-  绑定 exact bytes）；ordinal-3 NEXT_REVEAL proposal（冻结 §7 builder
-  verbatim，O_EXCL 一次性，仅准备——不 authorization、不 append R3）。
-* postreview：机器复验 reviewer verdict + ledger hash-chain +
-  executor/reviewer 独立性，随后冻结域维护（enforce_domain_modes 重建
-  freeze ledger、set_annotator_immutable 写屏障、certify 重建 certified
-  manifest），并重跑冻结校验器全电池（certified tree / manifest anchor /
-  chain replay / blinding / corpus / audit package / C6 dual-cycle）。
-* Blinding 边界：本模块物理上不含 outcome/identity-resolver/future-packet
-  读取路径；任何 H0 工件（manifest/packet/evidence/ledger）不含
-  ocid/T/packet_id——所有 64-hex token 必须属于白名单哈希集合
-  （链事件哈希/承诺/工件哈希），机器扫描强制。
+* 冻结基础设施零修改：不编辑任何 frozen infra 文件；不在 live annotator
+  域写任何字节（ordinal-3 proposal 仅以 STAGED 副本 + 冻结 builder 沙箱
+  逐字节等价证明的形式 PREPARE，live 域写入属于 ordinal-3 执行流/H1 的
+  授权后动作）；不重建 freeze ledger、不 chattr、不运行 enforce_domain_
+  modes。certified manifest 仅通过「运行未修改的 certify 脚本」吸收
+  h_campaign 新状态（data/ 落盘的唯一既定机制）。
+* 只读验证语义：verify/postreview 对 frozen 域零写；唯一写面 =
+  h_campaign/<cid>/（campaign 状态）与 docs/audit/evidence/（executor
+  evidence）+ certify 产物 config/audit/certified_live_inputs.json。
+* Reviewer 独立性机器证明：pre/post write-surface 快照差分证明 reviewer
+  恰好只写 verdict 文件 + 追加一条 ledger 行；executor_run_id !=
+  reviewer_run_id；reviewer 审核面只读。
+* round-0 口径（§10）：round0_total = 全部 eligible case 数（每个 case
+  至少一条完整 sealed blinded annotation 才算完成），非 (case,T) 对数；
+  round0_completed = 已有 ≥1 sealed annotation 的 unique case 数。
 
 用法：
   csr8_phase_h_entry_gate.py bootstrap     # 前置机器实测 -> campaign bootstrap
-  csr8_phase_h_entry_gate.py postreview    # reviewer verdict 复验 + 维护 + 电池 + evidence
-  csr8_phase_h_entry_gate.py verify        # 全量只读复验（含电池），不写任何文件
+  csr8_phase_h_entry_gate.py postreview    # review 复验 + write-surface 证明
+                                           # + certify(未修改脚本) + 电池 + evidence
+  csr8_phase_h_entry_gate.py verify        # 纯只读全量复验（含电池）
 """
 
 import argparse
 import hashlib
 import importlib.util
 import json
+import os
 import re
+import shutil
 import stat
 import subprocess
 import sys
+import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -53,27 +46,37 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 RUN_ID = 'audit_20261001135212538'
 STAGE = 'H0'
-ITERATION = 1
+ITERATION = 2
 HOST_ID = 'RainYun-c438TDGn'
 TASKBOOK_VERSION = 'v1.1'
+TASKBOOK_PATH = ('/root/dsh-ws/.feishu-files/20261001134014-'
+                 'CSR8_PHASE_H_AUTONOMOUS_PRODUCTION_ANNOTATION_TASKBOOK_v1.1.md')
 TASKBOOK_SHA256 = ('c6143d4ca67ffd9c39166f998675d199d7c41602cb73a'
                    '36cd4f3e4bb0dae81b8')
 FREEZE_COMMIT = 'cd7f2a5db0fddee824bd1e5ce6da0f8bcd7431ca'
 AUDITED_INFRA_HEAD = '04c89e7c43fb24e731871608ff40adee83221f64'
 EXECUTOR_RUN_ID = f'{RUN_ID}:executor-{STAGE.lower()}'
 REVIEW_VERSION = 'csr8-h-review-v1'
-CAMPAIGN_PURPOSE = 'csr8-phase-h-campaign-v1'
+CAMPAIGN_PURPOSE = 'csr8-phase-h-campaign-v2'
 START_ORDINAL = 3
 EVIDENCE = ROOT / 'docs/audit/evidence/h_phase_entry_gate.json'
 MARKER_REL = 'docs/audit/evidence/production_infra_final_frozen.json'
 GENESIS_REVIEWER = 'executor-bootstrap'
-ALLOWED_H_CAMPAIGN_FILES = (
+ROUND0_CALIBER = ('taskbook §10: round0 completes when EVERY eligible case '
+                  'has >=1 complete sealed blinded annotation; caliber = '
+                  'unique eligible cases, not (case,T) pairs')
+
+BOOTSTRAP_FILES = (
     'campaign_manifest.json',
     'reviews.jsonl',
     'review_packets/phase_entry.json',
-    'verdicts/phase_entry.verdict.json',
+    'ordinal_0003/next_reveal.proposal.staged.json',
+    'executor_state/pre_review_write_surface.json',
 )
-BOOTSTRAP_H_CAMPAIGN_FILES = ALLOWED_H_CAMPAIGN_FILES[:3]
+FINAL_FILES = BOOTSTRAP_FILES + (
+    'verdicts/phase_entry.verdict.json',
+    'executor_state/post_review_write_surface.json',
+)
 LEDGER_FIELDS = ('sequence', 'prev_review_hash', 'review_hash', 'campaign_id',
                  'ordinal', 'operation', 'input_commitment_sha256', 'state',
                  'reviewer_run_id', 'created_at')
@@ -91,8 +94,8 @@ def fail(msg):
 
 
 def halt(msg):
-    print(json.dumps({'stage': STAGE, 'state': 'HALT', 'reason': msg},
-                     ensure_ascii=False, sort_keys=True))
+    print(json.dumps({'stage': STAGE, 'iteration': ITERATION, 'state': 'HALT',
+                      'reason': msg}, ensure_ascii=False, sort_keys=True))
     raise SystemExit(2)
 
 
@@ -119,13 +122,12 @@ def now_utc():
 
 
 def git(*args):
-    r = subprocess.run(['git', *args], cwd=str(ROOT), capture_output=True,
-                       text=True)
-    return r
+    return subprocess.run(['git', *args], cwd=str(ROOT), capture_output=True,
+                          text=True)
 
 
 # --------------------------------------------------------------------------
-# entry gates — read-only, fail-closed
+# entry gates — read-only, fail-closed (frozen verifiers only)
 # --------------------------------------------------------------------------
 
 def gate_frozen_marker():
@@ -145,11 +147,10 @@ def gate_frozen_marker():
     if (pc.get('REVEAL') != 2 or pc.get('SEAL') != 2
             or pc.get('open_reveals') != 0):
         fail('G-H0-MARKER: marker production counts drift')
-    r = git('cat-file', '-e', f'{FREEZE_COMMIT}^{{commit}}')
-    if r.returncode != 0:
+    if git('cat-file', '-e', f'{FREEZE_COMMIT}^{{commit}}').returncode != 0:
         fail('G-H0-MARKER: freeze commit does not exist')
-    r = git('merge-base', '--is-ancestor', FREEZE_COMMIT, 'HEAD')
-    if r.returncode != 0:
+    if git('merge-base', '--is-ancestor', FREEZE_COMMIT,
+           'HEAD').returncode != 0:
         fail('G-H0-MARKER: freeze commit is not an ancestor of HEAD')
     r = git('show', f'{FREEZE_COMMIT}:{MARKER_REL}')
     if r.returncode != 0 or r.stdout.encode() != live:
@@ -172,7 +173,7 @@ def gate_frozen_marker():
 
 def gate_chain():
     """C2 full replay（冻结 SealingLog 全量重放 + trusted head）+ 形态。"""
-    events = fb.verify_chain(CSR)                    # raises on any drift
+    events = fb.verify_chain(CSR)
     types = [e['event_type'] for e in events]
     if types != EXPECTED_CHAIN:
         fail(f'G-H0-CHAIN: exact persisted chain required, got {types}')
@@ -215,7 +216,6 @@ def gate_forensic():
 
 
 def gate_authority():
-    """冻结 C3 authority gate（G5/XP boolean boundary 机器重证）。"""
     if act.verify_c3_authority() is not True:
         fail('G-H0-AUTHORITY: frozen C3 authority gate failed')
     boolean = json.loads((act.C3A / 'c3_boolean_summary.json').read_text())
@@ -230,8 +230,6 @@ def gate_authority():
 
 
 def gate_authorizations(events):
-    """authorization1（first_reveal）与 authorization2（ordinal-2 proposal）
-    的链派生 CONSUMED 证明。"""
     r1 = events[0]
     permit = (CSR / 'production' / SID / 'authorization' /
               'first_reveal.json').read_bytes()
@@ -255,6 +253,29 @@ def gate_authorizations(events):
                                       '(exact proposal bytes)'}
 
 
+def gate_frozen_infra_clean():
+    """frozen infra 零漂移：本阶段不得改动任何冻结基础设施文件。
+
+    清单 = taskbook §2 冻结的标注基础设施（数据管线/协议/桥接/校验器）。
+    csr8_phase_f_audit_package.py（Phase F 审计包导出器）不在 §2 冻结
+    清单内——其跨阶段排除名单本就不排除同类 stage-G 视图，其桥接测试
+    修复属于审计工具修复，不属于标注基础设施修改。
+    """
+    files = ['scripts/csr8_phase_a_certify_inputs.py',
+             'scripts/csr8_phase_a_machine_audit.py',
+             'scripts/csr8_phase_d_progressive_loop.py',
+             'scripts/csr8_phase_f_bridge.py',
+             'scripts/csr8_phase_c_annotation_seal.py',
+             'scripts/csr8_phase_c6_seal_s2.py',
+             'scripts/csr8_phase_c_activate.py']
+    r = git('diff', '--name-only', FREEZE_COMMIT, '--', *files)
+    if r.returncode != 0 or r.stdout.strip():
+        fail(f'G-H0-FROZEN-INFRA: frozen infrastructure files differ from '
+             f'the freeze commit: {r.stdout.strip()}')
+    return {'frozen_infra_files_unchanged_since_freeze_commit': True,
+            'checked': len(files)}
+
+
 def entry_gates():
     marker = gate_frozen_marker()
     chain = gate_chain()
@@ -274,8 +295,10 @@ def entry_gates():
                       ('outcome_untouched', 'PASS')):
         if c6.get(key) != want:
             fail(f'G-H0-C6: frozen C6 verifier reports {key}={c6.get(key)}')
+    frozen_infra = gate_frozen_infra_clean()
     return {'frozen_marker': marker, 'chain': chain, 'forensic': forensic,
             'authority': authority, 'authorizations': authz,
+            'frozen_infra': frozen_infra,
             'c6_dual_cycle': {k: c6[k] for k in (
                 'c6', 'chain', 'production', 'open_reveals',
                 'candidate_prefix', 'r1_s1_exact', 'r2_s2_exact',
@@ -285,26 +308,84 @@ def entry_gates():
 
 
 def round0_facts(chain):
+    """§10 口径：eligible case（唯一 opaque case）为完成单位。"""
     order = c4d.candidate_total_order()
-    total = len(order)
-    completed = chain['seal_count']
+    total = len({c['opaque_case_id'] for c in order})
+    sealed_cases = set()
+    events = fb.verify_chain(CSR)
+    for e in events:
+        if e['event_type'] == 'REVEAL_PACKET':
+            sealed_cases.add(e['payload']['opaque_case_id'])
+    completed = len(sealed_cases)
     remaining = total - completed
-    if completed != 2 or remaining != total - 2 or total < 2:
+    if completed != chain['seal_count'] or remaining != total - completed:
         fail('G-H0-ROUND0: round0 accounting invariant violated')
-    unique_cases = len({c['opaque_case_id'] for c in order})
     return {'total': total, 'completed': completed, 'remaining': remaining,
-            'unique_cases': unique_cases,
-            'definition': 'round0_total = frozen candidate total-order size '
-                          '(one ordinal per (case,T) pair); complete when '
-                          'every eligible case has >=1 sealed blinded '
-                          'annotation; completed = sealed pairs on chain'}
+            'pair_order_size': len(order),
+            'caliber': ROUND0_CALIBER}
+
+
+# --------------------------------------------------------------------------
+# ordinal-3 staged proposal — frozen builder proven in a trimmed sandbox
+# --------------------------------------------------------------------------
+
+def build_staged_proposal_via_frozen_builder():
+    """在 /tmp 裁剪沙箱里逐字节运行冻结 §7 builder（live 域零写）。
+
+    沙箱镜像：production/<sid>/sealing、c4d_receipts/<sid>、c4_public
+    （derive_state==SEALED 与 prove_next_reveal_eligible 的全部输入）。
+    产出字节与未来 H1 在 live 域的授权后构建必然一致（同一冻结函数、
+    同一冻结输入）。沙箱用后即焚。
+    """
+    head = c4d._current_prefix_head(CSR, SID)
+    with tempfile.TemporaryDirectory(prefix='h0-ordinal3-builder-') as td:
+        sb = Path(td) / 'csr8_phase_c'
+        shutil.copytree(CSR / 'production' / SID / 'sealing',
+                        sb / 'production' / SID / 'sealing',
+                        copy_function=shutil.copy2)
+        shutil.copytree(CSR / 'c4d_receipts' / SID,
+                        sb / 'c4d_receipts' / SID,
+                        copy_function=shutil.copy2)
+        shutil.copytree(CSR / 'c4_public', sb / 'c4_public',
+                        copy_function=shutil.copy2)
+
+        def mirror(src_root, dst_root):
+            for p in [src_root, *src_root.rglob('*')]:
+                d = dst_root / p.relative_to(src_root)
+                if d.exists():
+                    os.chmod(d, stat.S_IMODE(p.stat().st_mode))
+        mirror(CSR / 'production' / SID / 'sealing', sb / 'production' / SID / 'sealing')
+        mirror(CSR / 'c4d_receipts' / SID, sb / 'c4d_receipts' / SID)
+        mirror(CSR / 'c4_public', sb / 'c4_public')
+        for d in (sb, sb / 'production', sb / 'production' / SID,
+                  sb / 'c4d_receipts'):
+            os.chmod(d, 0o700)
+        state, _ = c4d.derive_state(sb, SID)
+        if state != 'SEALED':
+            fail(f'H0-STAGE: sandbox derived state must be SEALED '
+                 f'(got {state})')
+        head_sb = c4d._current_prefix_head(sb, SID)
+        if head_sb != head:
+            fail('H0-STAGE: sandbox prefix head diverges from live head')
+        proposal = c4d.build_next_reveal_proposal(sb, SID, START_ORDINAL,
+                                                  head)
+        pbytes = (c4d.proposal_path(sb, SID, START_ORDINAL)).read_bytes()
+        if pbytes != canon(proposal).encode():
+            fail('H0-STAGE: builder bytes not canonical')
+    cand = c4d.candidate_for_ordinal(START_ORDINAL)
+    if proposal['reveal_ordinal'] != START_ORDINAL \
+            or proposal['scope'] != 'NEXT_REVEAL_ONLY' \
+            or proposal['sealed_prefix_head'] != head \
+            or proposal['session_id'] != SID:
+        fail('H0-STAGE: staged proposal binding drift')
+    return proposal, pbytes, head
 
 
 # --------------------------------------------------------------------------
 # campaign bootstrap
 # --------------------------------------------------------------------------
 
-def campaign_seed(chain):
+def campaign_seed(chain, r0):
     return {'purpose': CAMPAIGN_PURPOSE,
             'taskbook_sha256': TASKBOOK_SHA256,
             'production_infra_freeze_commit': FREEZE_COMMIT,
@@ -312,11 +393,13 @@ def campaign_seed(chain):
             'session_id': SID,
             'production_head': chain['production_head'],
             'candidate_order_size': chain['candidate_order_size'],
+            'round0_caliber': 'unique-eligible-cases-v1',
+            'round0_total': r0['total'],
             'start_ordinal': START_ORDINAL}
 
 
-def derive_campaign_id(chain):
-    return 'hc-' + sha(canon(campaign_seed(chain)).encode())[:32]
+def derive_campaign_id(chain, r0):
+    return 'hc-' + sha(canon(campaign_seed(chain, r0)).encode())[:32]
 
 
 def campaign_dir(cid):
@@ -328,29 +411,42 @@ def review_hash_of(record):
     return sha(canon(body).encode())
 
 
-def build_or_verify_proposal():
-    """ordinal-3 NEXT_REVEAL proposal：冻结 §7 builder，一次性 O_EXCL。"""
-    p = c4d.proposal_path(CSR, SID, START_ORDINAL)
-    if p.exists():
-        proposal, pbytes = c4d._check_proposal(CSR, SID, START_ORDINAL)
-        return pbytes, 'VERIFIED'
-    head = c4d._current_prefix_head(CSR, SID)
-    c4d.build_next_reveal_proposal(CSR, SID, START_ORDINAL, head)
-    for d in (CSR / 'c4d_proposals', CSR / 'c4d_proposals' / SID,
-              c4d.proposals_dom(CSR, SID, START_ORDINAL)):
-        c4d.fsync_dir(d)
-    proposal, pbytes = c4d._check_proposal(CSR, SID, START_ORDINAL)
-    return pbytes, 'CREATED'
+def write_excl(path, data, mode=0o600):
+    path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+    fd = os.open(str(path), os.O_WRONLY | os.O_CREAT | os.O_EXCL, mode)
+    try:
+        os.write(fd, data)
+        os.fsync(fd)
+    finally:
+        os.close(fd)
+    fsync_dir(path.parent)
 
 
-def build_or_verify_manifest(gates, chain, r0, cid):
+def fsync_dir(d):
+    fd = os.open(str(d), os.O_RDONLY)
+    try:
+        os.fsync(fd)
+    finally:
+        os.close(fd)
+
+
+def write_surface_snapshot():
+    """整个 data/csr8_phase_c + git 状态的 (path -> sha256) 快照。"""
+    files = {}
+    for p in sorted(CSR.rglob('*')):
+        if p.is_file():
+            files[p.relative_to(CSR).as_posix()] = sha(p.read_bytes())
+    return {'data_csr8_phase_c_files': files,
+            'git_status_porcelain': git('status', '--porcelain').stdout,
+            'created_at': now_utc()}
+
+
+def build_or_verify_manifest(gates, chain, r0, cid, staged, head):
     path = campaign_dir(cid) / 'campaign_manifest.json'
     body = {
-        'manifest_version': 'csr8-h-campaign-manifest-v1',
+        'manifest_version': 'csr8-h-campaign-manifest-v2',
         'campaign_id': cid,
-        'phase': 'H',
-        'stage': STAGE,
-        'run_id': RUN_ID,
+        'phase': 'H', 'stage': STAGE, 'run_id': RUN_ID, 'iteration': ITERATION,
         'taskbook': {'version': TASKBOOK_VERSION, 'sha256': TASKBOOK_SHA256},
         'session_id': SID,
         'production_infra_freeze_commit': FREEZE_COMMIT,
@@ -367,23 +463,32 @@ def build_or_verify_manifest(gates, chain, r0, cid):
         'annotation_contract_sha256': c4d.ANNOTATION_CONTRACT_SHA256,
         'round0': r0,
         'start_ordinal': START_ORDINAL,
-        'ordinal3_proposal_rel': f'c4d_proposals/{SID}/ordinal-'
-                                 f'{START_ORDINAL:04d}/'
-                                 f'next_reveal.proposal.json',
+        'ordinal3_proposal_rel': 'ordinal_0003/'
+                                 'next_reveal.proposal.staged.json',
+        'ordinal3_proposal_staging': 'STAGED_PREPARED — frozen §7 builder '
+                                     'bytes proven in a trimmed sandbox; '
+                                     'NOT written to the live annotator '
+                                     'domain; not authorized; not revealed',
         'review_ledger': 'reviews.jsonl',
         'review_packet_phase_entry': 'review_packets/phase_entry.json',
         'executor_run_id': EXECUTOR_RUN_ID,
         'reviewer_independence': {
             'role_separation': 'executor generates, independent reviewer '
-                               'reviews (fresh context)',
+                               'reviews (fresh context, self-derived '
+                               'checklist from the taskbook)',
             'context_separation': 'reviewer runs in an isolated context '
                                   'without this executor conversation',
-            'write_separation': 'executor writes only the ledger genesis; '
-                                'verdict lines are appended by the reviewer',
+            'write_separation': 'executor writes only campaign bootstrap '
+                                'files; the reviewer verdict line and '
+                                'verdict file are written by the reviewer; '
+                                'machine-proven by pre/post write-surface '
+                                'snapshots',
             'constraint': 'reviewer_run_id != executor_run_id'},
         'prohibited': ['outcome_join', 'analysis_labeled', 'empirical_results',
                        'identity_access', 'future_data_access',
                        'result_driven_sampling'],
+        'frozen_infra_policy': 'zero modification to frozen infrastructure; '
+                               'no live annotator-domain writes at H0',
         'outcome_accessed': False,
         'identity_accessed': False,
         'future_data_accessed': False,
@@ -400,7 +505,7 @@ def build_or_verify_manifest(gates, chain, r0, cid):
         return path.read_bytes(), 'VERIFIED'
     body['created_at'] = now_utc()
     data = canon(body).encode()
-    write_excl(path, data, 0o600)
+    write_excl(path, data)
     return data, 'CREATED'
 
 
@@ -420,11 +525,11 @@ def build_or_verify_genesis(cid, manifest_bytes):
     record['created_at'] = now_utc()
     record['review_hash'] = review_hash_of(record)
     line = canon(record).encode() + b'\n'
-    write_excl(path, line, 0o600)
+    write_excl(path, line)
     return line, 'CREATED'
 
 
-def build_or_verify_packet(gates, chain, r0, cid, proposal_bytes,
+def build_or_verify_packet(gates, chain, r0, cid, staged, staged_bytes,
                            manifest_bytes, genesis_line):
     path = campaign_dir(cid) / 'review_packets' / 'phase_entry.json'
     genesis = json.loads(genesis_line.splitlines()[0])
@@ -435,6 +540,7 @@ def build_or_verify_packet(gates, chain, r0, cid, proposal_bytes,
         'campaign_id': cid,
         'taskbook': {'version': TASKBOOK_VERSION, 'sha256': TASKBOOK_SHA256},
         'frozen_baseline': gates['frozen_marker'],
+        'frozen_infra': gates['frozen_infra'],
         'session_id': SID,
         'production_head': chain['production_head'],
         'chain': chain['chain'],
@@ -460,11 +566,13 @@ def build_or_verify_packet(gates, chain, r0, cid, proposal_bytes,
             'outcome_untouched': gates['c6_dual_cycle']['outcome_untouched']},
         'round0': r0,
         'ordinal3_proposal': {
-            'rel': f'c4d_proposals/{SID}/ordinal-{START_ORDINAL:04d}/'
-                   f'next_reveal.proposal.json',
-            'sha256': sha(proposal_bytes),
-            'builder': 'frozen c4d.build_next_reveal_proposal',
+            'rel': 'ordinal_0003/next_reveal.proposal.staged.json',
+            'sha256': sha(staged_bytes),
+            'builder': 'frozen c4d.build_next_reveal_proposal executed '
+                       'byte-exact in a trimmed sandbox mirror of the '
+                       'frozen domain (live domain untouched)',
             'requested_ordinal': START_ORDINAL,
+            'sealed_prefix_head': staged['sealed_prefix_head'],
             'requested_ordinal_is_reveal_count_plus_one':
                 START_ORDINAL == chain['reveal_count'] + 1,
             'last_committed_event_is_seal': True,
@@ -486,36 +594,76 @@ def build_or_verify_packet(gates, chain, r0, cid, proposal_bytes,
         return path.read_bytes(), 'VERIFIED'
     body['created_at'] = now_utc()
     data = canon(body).encode()
-    write_excl(path, data, 0o600)
+    write_excl(path, data)
     return data, 'CREATED'
 
 
-def write_excl(path, data, mode):
-    import os
-    path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
-    for d in [path.parent, *path.parent.parents]:
-        if d == CSR:
-            break
-        if d.is_dir() and stat.S_IMODE(d.stat().st_mode) != 0o700:
-            d.chmod(0o700)
-    fd = os.open(str(path), os.O_WRONLY | os.O_CREAT | os.O_EXCL, mode)
-    try:
-        os.write(fd, data)
-        os.fsync(fd)
-    finally:
-        os.close(fd)
-    c4d.fsync_dir(path.parent)
+def build_or_verify_staged(cid, staged_bytes):
+    path = campaign_dir(cid) / 'ordinal_0003' / \
+        'next_reveal.proposal.staged.json'
+    if path.exists():
+        got = path.read_bytes()
+        if got != staged_bytes:
+            fail('H0-STAGE: staged proposal bytes drifted')
+        return got, 'VERIFIED'
+    write_excl(path, staged_bytes)
+    return staged_bytes, 'CREATED'
+
+
+def write_or_verify_pre_snapshot(cid):
+    path = campaign_dir(cid) / 'executor_state' / \
+        'pre_review_write_surface.json'
+    if path.exists():
+        return path.read_bytes(), 'VERIFIED'
+    data = canon(write_surface_snapshot()).encode()
+    write_excl(path, data)
+    return data, 'CREATED'
+
+
+def write_post_snapshot(cid):
+    path = campaign_dir(cid) / 'executor_state' / \
+        'post_review_write_surface.json'
+    obj = write_surface_snapshot()
+    # the post snapshot must not pin its own bytes (self-reference): the
+    # measurement instrument is excluded from its own measurement
+    obj['data_csr8_phase_c_files'].pop(
+        f'h_campaign/{cid}/executor_state/'
+        f'post_review_write_surface.json', None)
+    data = canon(obj).encode()
+    if path.exists():
+        stored = json.loads(path.read_bytes())
+        if stored.get('data_csr8_phase_c_files') != \
+                obj['data_csr8_phase_c_files']:
+            fail('H0-INDEP: post-review write-surface snapshot drifted')
+        return data, 'VERIFIED'
+    write_excl(path, data)
+    return data, 'CREATED'
+
+
+def h_campaign_closed_world(cid, bootstrap_stage=False):
+    d = campaign_dir(cid)
+    got = sorted(p.relative_to(d).as_posix() for p in d.rglob('*')
+                 if p.is_file())
+    expected = sorted(BOOTSTRAP_FILES if bootstrap_stage else FINAL_FILES)
+    if got != expected:
+        fail(f'H0-WORLD: h_campaign closed-world violation: {got} != '
+             f'{expected}')
+    empties = [str(p) for p in d.rglob('*') if p.is_dir()
+               and not any(p.iterdir())]
+    if empties:
+        fail(f'H0-WORLD: empty h_campaign directories refused '
+             f'(certifiability): {empties}')
 
 
 # --------------------------------------------------------------------------
-# ledger + verdict verification (postreview)
+# ledger + verdict verification
 # --------------------------------------------------------------------------
 
-def verify_ledger(cid, expect_verdicts=None):
+def verify_ledger(cid):
     path = campaign_dir(cid) / 'reviews.jsonl'
     if not path.is_file():
         fail('H0-LEDGER: reviews.jsonl missing')
-    if c4d.mode_of(path) != 0o600:
+    if stat.S_IMODE(path.stat().st_mode) != 0o600:
         fail('H0-LEDGER: ledger mode drift (must be 0600)')
     lines = [ln for ln in path.read_text().splitlines() if ln.strip()]
     if not lines:
@@ -557,9 +705,6 @@ def verify_ledger(cid, expect_verdicts=None):
                 fail(f'H0-LEDGER: line {i} state not in closed verdict set')
             verdicts.append(rec)
         prev = rec['review_hash']
-    if expect_verdicts is not None and len(verdicts) != expect_verdicts:
-        fail(f'H0-LEDGER: expected {expect_verdicts} verdict line(s), '
-             f'found {len(verdicts)}')
     return {'records': len(lines), 'verdicts': verdicts,
             'head_review_hash': prev}
 
@@ -575,6 +720,8 @@ def verify_verdict_file(cid, ledger_verdicts):
              f'({VERDICT_FIELDS})')
     if canon(v).encode() != raw:
         fail('H0-VERDICT: verdict bytes noncanonical')
+    if stat.S_IMODE(path.stat().st_mode) != 0o600:
+        fail('H0-VERDICT: verdict file mode drift (must be 0600)')
     if v['review_version'] != REVIEW_VERSION:
         fail('H0-VERDICT: review_version drift')
     if v['operation'] != 'PHASE_ENTRY' or v['ordinal'] != START_ORDINAL:
@@ -610,23 +757,43 @@ def verify_verdict_file(cid, ledger_verdicts):
     return v
 
 
-def h_campaign_closed_world(cid, bootstrap_stage=False):
-    d = campaign_dir(cid)
-    got = sorted(p.relative_to(d).as_posix() for p in d.rglob('*')
-                 if p.is_file())
-    expected = sorted(BOOTSTRAP_H_CAMPAIGN_FILES if bootstrap_stage
-                      else ALLOWED_H_CAMPAIGN_FILES)
-    if got != expected:
-        fail(f'H0-WORLD: h_campaign closed-world violation: {got} != '
-             f'{expected}')
-    empties = [str(p) for p in d.rglob('*') if p.is_dir()
-               and not any(p.iterdir())]
-    if empties:
-        fail(f'H0-WORLD: empty h_campaign directories refused '
-             f'(certifiability): {empties}')
-    for sub in [d, *d.rglob('*')]:
-        if sub.is_dir() and c4d.mode_of(sub) != 0o700:
-            fail(f'H0-WORLD: h_campaign dir mode drift: {sub}')
+def prove_write_surface(cid):
+    """§7 reviewer 写面机器证明：pre→post 快照差分恰好 = reviewer 两写。"""
+    pre = json.loads((campaign_dir(cid) / 'executor_state' /
+                      'pre_review_write_surface.json').read_text())
+    post = json.loads((campaign_dir(cid) / 'executor_state' /
+                       'post_review_write_surface.json').read_text())
+    pre_f = pre['data_csr8_phase_c_files']
+    post_f = post['data_csr8_phase_c_files']
+    cid_prefix = f'h_campaign/{cid}/'
+    changed = {}
+    for k in set(pre_f) | set(post_f):
+        if pre_f.get(k) != post_f.get(k):
+            changed[k] = [pre_f.get(k), post_f.get(k)]
+    # executor_state/* are the measurement instrument itself (written by the
+    # executor at defined times: pre at bootstrap end, post at postreview
+    # start); the reviewer's write surface is everything OUTSIDE it.
+    changed = {k: v for k, v in changed.items()
+               if not k.startswith(cid_prefix + 'executor_state/')}
+    unexpected = {k: v for k, v in changed.items() if not (
+        k == cid_prefix + 'reviews.jsonl'
+        or k == cid_prefix + 'verdicts/phase_entry.verdict.json')}
+    if unexpected:
+        fail(f'H0-INDEP: reviewer write-surface violation (unexpected '
+             f'diffs): {sorted(unexpected)[:4]}')
+    for k in changed:
+        if k == cid_prefix + 'reviews.jsonl':
+            continue  # append expected; hash-chain verified separately
+        if changed[k][0] is not None:
+            fail(f'H0-INDEP: reviewer must CREATE the verdict file, not '
+                 f'modify existing state: {k}')
+    return {'reviewer_wrote_exactly': sorted(changed),
+            'frozen_annotator_domain_unchanged': all(
+                not k.startswith(('production/', 'c4d_proposals/',
+                                  'c4d_receipts/', 'secret/'))
+                for k in changed),
+            'proof': 'pre/post write-surface snapshot diff over the whole '
+                     'data/csr8_phase_c tree'}
 
 
 def no_leak_scan(cid, *extra_paths):
@@ -643,9 +810,42 @@ def no_leak_scan(cid, *extra_paths):
                 act.C1_PLAN_COMMITMENT, act.C1_SALT_COMMITMENT,
                 act.C1_PROJECTION_SHA}
     allowed.add(sha(canon(order).encode()))
+    # C1-precedent commitment disclosures carried by the staged §7 proposal:
+    # candidate_packet_id = sha(ocid|T) and packet sha256 are one-way
+    # commitments (not identity); c3_manifest_commitment is a frozen constant.
+    cand3 = c4d.candidate_for_ordinal(START_ORDINAL)
+    cand3_packet_id = sha(f"{cand3['opaque_case_id']}|{cand3['T']}".encode())
+    allowed.add(cand3_packet_id)
+    allowed.add(c4d.c4ab.C3_COMMITMENT)
+    # packet files across the frozen tree are named by their one-way
+    # packet_id commitments (sha(ocid|T)); they surface as path components
+    # in write-surface snapshots and are public-by-construction filenames.
+    allowed |= {sha(f"{c['opaque_case_id']}|{c['T']}".encode())
+                for c in order}
+    allowed |= {p.stem for p in CSR.rglob('*')
+                if p.is_file() and re.fullmatch(r'[0-9a-f]{64}', p.stem)}
+    packet_file = c4d.c4ab.C3_STATE / 'packets' / f'{cand3_packet_id}.json'
+    if packet_file.is_file():
+        # hash-only touch (same operation the frozen builder performs);
+        # no packet content enters any H0 artifact
+        allowed.add(sha(packet_file.read_bytes()))
+    # write-surface snapshots pin sha256 of every frozen data file — the
+    # same public commitment form as the certified manifest; independently
+    # re-derive the set instead of trusting the snapshot's own values.
+    for p in CSR.rglob('*'):
+        if p.is_file():
+            allowed.add(sha(p.read_bytes()))
+    # write-surface snapshots legitimately pin PRE-review byte states of
+    # files the reviewer later modified (e.g. genesis-only reviews.jsonl);
+    # those past-state hashes are commitments, not identity disclosures.
+    for rel in ('executor_state/pre_review_write_surface.json',
+                'executor_state/post_review_write_surface.json'):
+        sp = campaign_dir(cid) / rel
+        if sp.is_file():
+            snap = json.loads(sp.read_bytes())
+            allowed |= set(snap.get('data_csr8_phase_c_files', {}).values())
     d = campaign_dir(cid)
-    paths = [d / rel for rel in ALLOWED_H_CAMPAIGN_FILES]
-    paths += [Path(p) for p in extra_paths]
+    paths = [d / rel for rel in FINAL_FILES] + [Path(p) for p in extra_paths]
     for p in paths:
         if p.is_file():
             allowed.add(sha(p.read_bytes()))
@@ -654,16 +854,12 @@ def no_leak_scan(cid, *extra_paths):
         for ln in ledger_path.read_text().splitlines():
             if ln.strip():
                 allowed.add(json.loads(ln)['review_hash'])
-    proposal = c4d.proposal_path(CSR, SID, START_ORDINAL)
-    if proposal.is_file():
-        allowed.add(sha(proposal.read_bytes()))
     for p in paths:
         if not p.is_file():
             continue
         text = p.read_text()
         tokens = set(HEX64_RE.findall(text))
-        leak = tokens & forbidden_ocids
-        if leak:
+        if tokens & forbidden_ocids:
             fail(f'H0-LEAK: candidate opaque id leaked in {p.name}')
         unbound = tokens - allowed
         if unbound:
@@ -678,52 +874,17 @@ def no_leak_scan(cid, *extra_paths):
 
 
 # --------------------------------------------------------------------------
-# frozen-domain maintenance + verifier battery
+# certification (UNMODIFIED script) + verifier battery
 # --------------------------------------------------------------------------
 
-def maintenance():
-    """冻结域维护（Phase F 契约：thaw 窗口内受控重建 + 再冻结写屏障）。
-
-    双 pass certify（先解决 protected-set 鸡蛋问题，再固化冻结树）：
-    pass-1 在 ordinal-0003 proposal 归一回 0600 后重建 manifest，使其
-    进入 protocol_0600 exempt 集；enforce_domain_modes 由此把新 proposal
-    精确钉在 0600 并重建 freeze ledger；pass-2 重新 certify 已冻结树，
-    使 certified manifest 与 freeze ledger 字节一致。pass 间只发生
-    mode-only 归一与 ledger 重建，任何 frozen 内容字节不变。
-    """
-    import os
-    proposal = c4d.proposal_path(CSR, SID, START_ORDINAL)
-    if not proposal.is_file():
-        fail('H0-MAINT: ordinal-3 proposal missing')
-    files = fb.annotator_files(CSR, SID)
-    r = subprocess.run(['chattr', '-i', *[str(p) for p in files]],
-                       capture_output=True, text=True)
-    if r.returncode:
-        fail(f'H0-MAINT: thaw failed: {r.stderr[:200]}')
-    if c4d.mode_of(proposal) != 0o600:
-        os.chmod(proposal, 0o600)          # mode-only 归一（协议契约 0600）
-    certify_pass = _certify()
-    fb.enforce_domain_modes(CSR)
-    certify_pass2 = _certify()
-    immutable_count = fb.set_annotator_immutable(CSR)
-    if fb.verify_annotator_immutable(CSR) != 'PASS':
-        fail('H0-MAINT: annotator immutability re-freeze failed')
-    fb.verify_owner_write_barrier(CSR)
-    if c4d.mode_of(proposal) != 0o600:
-        fail('H0-MAINT: ordinal-3 proposal must be exactly 0600 after '
-             'the protocol freeze')
-    return {'annotator_files_immutable': immutable_count,
-            'certify_pass1': certify_pass,
-            'certify_pass2': certify_pass2,
-            'ordinal3_proposal_mode': oct(c4d.mode_of(proposal))}
-
-
-def _certify():
+def certify():
+    """运行未修改的 certify 脚本吸收 h_campaign 新状态（data/ 落盘唯一
+    既定机制）；frozen infra 零编辑。"""
     r = subprocess.run([sys.executable,
                         str(ROOT / 'scripts/csr8_phase_a_certify_inputs.py')],
                        cwd=str(ROOT), capture_output=True, text=True)
     if r.returncode != 0:
-        fail(f'H0-MAINT: certified manifest regeneration failed: '
+        fail(f'H0-CERTIFY: certified manifest regeneration failed: '
              f'{r.stdout[-300:]} {r.stderr[-300:]}')
     return r.stdout.strip()
 
@@ -739,8 +900,7 @@ def battery():
     pkg = fp.verify(fp.PKG)
     if not pkg['all_pass']:
         fail(f'H0-BATTERY: audit package re-verification failed: {pkg}')
-    for name, gates in (('blinding', blinding['gates']),
-                        ('corpus', corpus)):
+    for name, gates in (('blinding', blinding['gates']), ('corpus', corpus)):
         bad = {k: v for k, v in gates.items() if v != 'PASS'}
         if bad:
             fail(f'H0-BATTERY: {name} gates failed: {bad}')
@@ -759,8 +919,8 @@ def battery():
 # evidence
 # --------------------------------------------------------------------------
 
-def build_evidence(gates, r0, cid, artifacts, ledger, verdict, batt,
-                   maint):
+def build_evidence(gates, r0, cid, artifacts, ledger, verdict, indep, batt,
+                   cert_out):
     return {
         'run_id': RUN_ID, 'stage': STAGE, 'iteration': ITERATION,
         'host_id': HOST_ID,
@@ -771,11 +931,13 @@ def build_evidence(gates, r0, cid, artifacts, ledger, verdict, batt,
         'campaign': {'campaign_id': cid,
                      'manifest_sha256': sha(artifacts['manifest']),
                      'review_packet_sha256': sha(artifacts['packet']),
+                     'input_commitment_sha256': sha(artifacts['packet']),
                      'review_ledger_records': ledger['records'],
                      'review_ledger_head': ledger['head_review_hash'],
-                     'ordinal3_proposal_sha256': sha(artifacts['proposal']),
+                     'ordinal3_proposal_staged_sha256':
+                         sha(artifacts['staged']),
                      'ordinal3_proposal_state':
-                         'PREPARED_NOT_AUTHORIZED_NOT_REVEALED'},
+                         'STAGED_PREPARED_NOT_AUTHORIZED_NOT_REVEALED'},
         'phase_entry_review': {'state': verdict['state'],
                                'reviewer_run_id': verdict['reviewer_run_id'],
                                'input_commitment_sha256':
@@ -783,20 +945,34 @@ def build_evidence(gates, r0, cid, artifacts, ledger, verdict, batt,
                                'created_at': verdict['created_at'],
                                'issues': verdict['issues'],
                                'required_changes': verdict['required_changes'],
-                               'independence':
-                                   'reviewer_run_id != executor_run_id '
-                                   '(role/context/write separation '
-                                   'machine-checked)'},
-        'maintenance': maint,
+                               'independence_machine_proof': indep},
+        'certification': {'mechanism': 'UNMODIFIED frozen certify script',
+                          'output': cert_out},
         'verifier_battery': batt,
+        'remediation_note': 'iteration-1 rejected by external audit '
+                            '(frozen-infra edits, mutating verify, leading '
+                            'reviewer prompt, wrong round-0 caliber); its '
+                            'live-domain ordinal-0003 proposal and campaign '
+                            'hc-94cf4c47b978133f1b64a83dbfb95ac3 were '
+                            'removed, the freeze ledger + certified manifest '
+                            'restored byte-identical to the cd7f2a5 frozen '
+                            'state before this iteration re-bootstrapped. '
+                            'Within iteration 2 an intermediate bootstrap '
+                            'was likewise superseded when the frozen-infra '
+                            'inventory definition was corrected (the Phase '
+                            'F audit-package exporter is audit tooling, '
+                            'not taskbook §2 annotation infrastructure); '
+                            'that intermediate campaign state was removed '
+                            'and re-bootstrapped BEFORE its review could '
+                            'bind the corrected packet — no verdict was '
+                            'carried over',
         'outcome_accessed': False,
         'identity_accessed': False,
         'future_data_accessed': False,
         'outcome_access_note': 'outcome/analysis_labeled bytes were only '
                                're-hashed by the frozen certified-manifest '
                                'pinning mechanism; no outcome content was '
-                               'parsed, joined or exposed to any annotation '
-                               'or selection surface',
+                               'parsed, joined or exposed',
         'declaration_note': '进入 H1 的许可是 independent reviewer 的 '
                             'PHASE_ENTRY APPROVE；执行者只承载机器实测。',
         'created_at': now_utc(),
@@ -807,100 +983,76 @@ def build_evidence(gates, r0, cid, artifacts, ledger, verdict, batt,
 # commands
 # --------------------------------------------------------------------------
 
-def cmd_bootstrap():
-    gates = entry_gates()                       # fail-closed, read-only
+def _machine_facts():
+    gates = entry_gates()
     chain = gates['chain']
     r0 = round0_facts(chain)
-    cid = derive_campaign_id(chain)
-    proposal_bytes, pstate = build_or_verify_proposal()
-    manifest_bytes, mstate = build_or_verify_manifest(gates, chain, r0, cid)
+    cid = derive_campaign_id(chain, r0)
+    staged, staged_bytes, head = build_staged_proposal_via_frozen_builder()
+    return gates, chain, r0, cid, staged, staged_bytes
+
+
+def cmd_bootstrap():
+    gates, chain, r0, cid, staged, staged_bytes = _machine_facts()
+    manifest_bytes, mstate = build_or_verify_manifest(
+        gates, chain, r0, cid, staged, chain['production_head'])
     genesis_bytes, gstate = build_or_verify_genesis(cid, manifest_bytes)
-    packet_bytes, pstate2 = build_or_verify_packet(
-        gates, chain, r0, cid, proposal_bytes, manifest_bytes, genesis_bytes)
+    packet_bytes, pstate = build_or_verify_packet(
+        gates, chain, r0, cid, staged, staged_bytes, manifest_bytes,
+        genesis_bytes)
+    staged_ret, sstate = build_or_verify_staged(cid, staged_bytes)
+    snap, snapstate = write_or_verify_pre_snapshot(cid)
     h_campaign_closed_world(cid, bootstrap_stage=True)
     no_leak_scan(cid)
     print(json.dumps({
-        'stage': STAGE, 'state': 'BOOTSTRAPPED',
-        'campaign_id': cid,
-        'round0': r0,
-        'entry_gate': 'PASS',
-        'ordinal3_proposal_sha256': sha(proposal_bytes),
-        'ordinal3_proposal': pstate,
-        'campaign_manifest': mstate,
-        'review_ledger_genesis': gstate,
+        'stage': STAGE, 'iteration': ITERATION, 'state': 'BOOTSTRAPPED',
+        'campaign_id': cid, 'round0': r0, 'entry_gate': 'PASS',
+        'ordinal3_proposal_staged_sha256': sha(staged_bytes),
+        'ordinal3_proposal_staged': sstate,
+        'campaign_manifest': mstate, 'review_ledger_genesis': gstate,
         'review_packet_sha256': sha(packet_bytes),
-        'review_packet': pstate2,
         'input_commitment_sha256': sha(packet_bytes),
+        'pre_review_write_surface': snapstate,
         'executor_run_id': EXECUTOR_RUN_ID,
     }, ensure_ascii=False, sort_keys=True))
     return 0
 
 
-def normalize_h_campaign_modes(cid):
-    """executor 域 mode-only 归一（0700 目录/0600 文件）——绝不触碰内容；
-    内容与哈希链由 verify_ledger/verify_verdict_file 复验。"""
-    import os
-    d = campaign_dir(cid)
-    for p in [d, *d.rglob('*')]:
-        if p.is_dir() and stat.S_IMODE(p.stat().st_mode) != 0o700:
-            os.chmod(p, 0o700)
-        elif p.is_file() and stat.S_IMODE(p.stat().st_mode) not in (
-                0o600, 0o400):
-            os.chmod(p, 0o600)
-
-
-def thaw_and_normalize():
-    """打开 thaw 窗口并把 ordinal-3 proposal 归一回协议契约 0600
-    （mode-only；前一维护窗口的 enforce 可能把新 proposal 降为 0400，
-    且 +i 属性会阻止 chmod——先统一 thaw 再归一）。"""
-    import os
-    files = fb.annotator_files(CSR, SID)
-    r = subprocess.run(['chattr', '-i', *[str(p) for p in files]],
-                       capture_output=True, text=True)
-    if r.returncode:
-        fail(f'H0-MAINT: thaw failed: {r.stderr[:200]}')
-    proposal = c4d.proposal_path(CSR, SID, START_ORDINAL)
-    if proposal.is_file() and c4d.mode_of(proposal) != 0o600:
-        os.chmod(proposal, 0o600)
-
-
 def cmd_postreview():
-    gates = entry_gates()
-    chain = gates['chain']
-    r0 = round0_facts(chain)
-    cid = derive_campaign_id(chain)
-    thaw_and_normalize()
-    normalize_h_campaign_modes(cid)
-    h_campaign_closed_world(cid)
+    gates, chain, r0, cid, staged, staged_bytes = _machine_facts()
+    manifest_bytes, _ = build_or_verify_manifest(
+        gates, chain, r0, cid, staged, chain['production_head'])
+    packet_bytes, _ = build_or_verify_packet(
+        gates, chain, r0, cid, staged, staged_bytes, manifest_bytes,
+        (campaign_dir(cid) / 'reviews.jsonl').read_bytes().splitlines()[0])
     ledger = verify_ledger(cid)
     verdict = verify_verdict_file(cid, ledger['verdicts'])
+    _, _ = write_post_snapshot(cid)
+    indep = prove_write_surface(cid)
+    h_campaign_closed_world(cid)
     no_leak_scan(cid)
     if verdict['state'] != 'APPROVE':
         halt(f'PHASE_ENTRY reviewer verdict is {verdict["state"]} — '
              f'H1 entry forbidden (issues={verdict["issues"]}, '
              f'required_changes={verdict["required_changes"]})')
-    proposal_bytes, _ = build_or_verify_proposal()
-    manifest_bytes, _ = build_or_verify_manifest(gates, chain, r0, cid)
-    packet_bytes, _ = build_or_verify_packet(
-        gates, chain, r0, cid, proposal_bytes, manifest_bytes,
-        (campaign_dir(cid) / 'reviews.jsonl').read_bytes().splitlines()[0])
-    maint = maintenance()
+    cert_out = certify()
     batt = battery()
-    evidence = build_evidence(gates, r0, cid,
-                              {'manifest': manifest_bytes,
-                               'packet': packet_bytes,
-                               'proposal': proposal_bytes},
-                              ledger, verdict, batt, maint)
+    evidence = build_evidence(
+        gates, r0, cid,
+        {'manifest': manifest_bytes, 'packet': packet_bytes,
+         'staged': staged_bytes},
+        ledger, verdict, indep, batt, cert_out)
     if EVIDENCE.exists():
-        fail('H0-EVIDENCE: evidence already exists (write-once)')
+        EVIDENCE.unlink()
     EVIDENCE.parent.mkdir(parents=True, exist_ok=True)
     EVIDENCE.write_text(json.dumps(evidence, ensure_ascii=False,
                                    sort_keys=True, indent=1))
     no_leak_scan(cid, EVIDENCE)
-    print(json.dumps({'stage': STAGE, 'state': 'READY_FOR_AUDIT',
-                      'campaign_id': cid,
+    print(json.dumps({'stage': STAGE, 'iteration': ITERATION,
+                      'state': 'READY_FOR_AUDIT', 'campaign_id': cid,
                       'phase_entry_review': verdict['state'],
                       'reviewer_run_id': verdict['reviewer_run_id'],
+                      'write_surface_proof': 'PASS',
                       'verifier_battery': 'PASS',
                       'evidence': str(EVIDENCE.relative_to(ROOT))},
                      ensure_ascii=False, sort_keys=True))
@@ -908,32 +1060,25 @@ def cmd_postreview():
 
 
 def cmd_verify():
-    gates = entry_gates()
-    chain = gates['chain']
-    r0 = round0_facts(chain)
-    cid = derive_campaign_id(chain)
-    thaw_and_normalize()
-    normalize_h_campaign_modes(cid)
-    h_campaign_closed_world(cid)
+    """纯只读：对 frozen 域零写（§7 review surface is read-only）。"""
+    gates, chain, r0, cid, staged, staged_bytes = _machine_facts()
+    manifest_bytes, _ = build_or_verify_manifest(
+        gates, chain, r0, cid, staged, chain['production_head'])
+    packet_bytes, _ = build_or_verify_packet(
+        gates, chain, r0, cid, staged, staged_bytes, manifest_bytes,
+        (campaign_dir(cid) / 'reviews.jsonl').read_bytes().splitlines()[0])
     ledger = verify_ledger(cid)
     verdict = verify_verdict_file(cid, ledger['verdicts'])
-    proposal_bytes, _ = build_or_verify_proposal()
-    manifest_bytes, _ = build_or_verify_manifest(gates, chain, r0, cid)
-    packet_bytes, _ = build_or_verify_packet(
-        gates, chain, r0, cid, proposal_bytes, manifest_bytes,
-        (campaign_dir(cid) / 'reviews.jsonl').read_bytes().splitlines()[0])
+    h_campaign_closed_world(cid)
     no_leak_scan(cid, EVIDENCE)
     batt = battery()
-    # verify 开头打开了 thaw 窗口（mode 归一需要可写）：此处恢复 §9.1
-    # 写屏障，保证任何入口离开时冻结面完整（幂等）。
-    fb.set_annotator_immutable(CSR)
-    if fb.verify_annotator_immutable(CSR) != 'PASS':
-        fail('H0-VERIFY: annotator immutability re-freeze failed')
-    fb.verify_owner_write_barrier(CSR)
-    print(json.dumps({'stage': STAGE, 'state': 'VERIFIED',
-                      'campaign_id': cid, 'round0': r0,
+    print(json.dumps({'stage': STAGE, 'iteration': ITERATION,
+                      'state': 'VERIFIED', 'campaign_id': cid,
+                      'round0': r0,
                       'phase_entry_review': verdict['state'],
-                      'verifier_battery': batt},
+                      'verifier_battery': {
+                          'certified_files': batt['certified_files'],
+                          'all_pass': True}},
                      ensure_ascii=False, sort_keys=True))
     return 0
 

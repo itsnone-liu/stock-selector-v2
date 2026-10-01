@@ -66,7 +66,6 @@ ROOTS = (
 PROTECTED_ARTIFACTS = (
     'data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0001/attempt-0001/seal_approval.json',
     'data/csr8_phase_c/c4d_proposals/c4-prod-0002/ordinal-0002/next_reveal.proposal.json',
-    'data/csr8_phase_c/c4d_proposals/c4-prod-0002/ordinal-0003/next_reveal.proposal.json',
     'data/csr8_phase_c/production/c4-prod-0002/authorization/ordinal-0002/next_reveal.approval.json',
     'data/csr8_phase_c/production/c4-prod-0002/authorization/ordinal-0002/next_reveal.permit.json',
     'docs/audit/evidence/b4_unattended_approval.json',
@@ -78,16 +77,13 @@ PROTECTED_ARTIFACTS = (
     'data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0002/attempt-0001/draft_snapshot.bin',
 )
 
-# C4-D 域阶段边界（C1 终态 + Phase H H0 边界感知）：annotator/ 工作区在
-# B5 POST_SEAL_FINAL 后已按协议清理；c4d_receipts/ 自 B3 起为合法冻结证
-# 据域；c4d_proposals/ 自 C1 起合法，closed-world：ordinal-2 proposal 是
-# C1 授权点产物（authorization2 已 CONSUMED）；ordinal-3 proposal 是
-# Phase H H0 entry gate（taskbook v1.1 §8/§31）用冻结 §7 builder 准备的
-# NEXT_REVEAL_ONLY proposal（PREPARED——尚未 authorization、尚未
-# reveal）；approval/permit 与其余 ordinal 域仍禁止。
+# C4-D 域阶段边界（C1 终态感知）：annotator/ 工作区在 B5 POST_SEAL_FINAL
+# 后已按协议清理；c4d_receipts/ 自 B3 起为合法冻结证据域；c4d_proposals/
+# 自 C1 起合法，但 closed-world：域内唯一允许文件是 ordinal-2
+# next_reveal.proposal.json（approval/permit 是 C2 授权点、其余 ordinal
+# 域是后续阶段，均仍禁止）。
 C4D_PROPOSAL_ALLOWLIST = (
     'c4d_proposals/c4-prod-0002/ordinal-0002/next_reveal.proposal.json',
-    'c4d_proposals/c4-prod-0002/ordinal-0003/next_reveal.proposal.json',
 )
 
 

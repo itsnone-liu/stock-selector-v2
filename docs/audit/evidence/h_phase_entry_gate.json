@@ -1,14 +1,19 @@
 {
  "campaign": {
-  "campaign_id": "hc-94cf4c47b978133f1b64a83dbfb95ac3",
-  "manifest_sha256": "01c6745ffbc5e972b219b7aeb34026d86bf717459c0cc9b1f19e2b717d29ea94",
-  "ordinal3_proposal_sha256": "1443cb61f97b497ecc68b4a84f7bedcbbfdb21235744c7cc0a3fa5a5fe9ecef7",
-  "ordinal3_proposal_state": "PREPARED_NOT_AUTHORIZED_NOT_REVEALED",
-  "review_ledger_head": "f501d7bf2b2e3fa3d2d295fb073ba806b39dd0cc7315e45d4e69d8a0972e0575",
+  "campaign_id": "hc-ffb08d91bcad13370194524a0d403521",
+  "input_commitment_sha256": "4b9cca263f9d5a64c2be181eebeda0dd559d3c971a1b5a077677432b9f5666fd",
+  "manifest_sha256": "9f229ccde765af19c50c25cb4e1d0bbbbc26898129a0ec81e1033b50f62dc22b",
+  "ordinal3_proposal_staged_sha256": "1443cb61f97b497ecc68b4a84f7bedcbbfdb21235744c7cc0a3fa5a5fe9ecef7",
+  "ordinal3_proposal_state": "STAGED_PREPARED_NOT_AUTHORIZED_NOT_REVEALED",
+  "review_ledger_head": "6bdd3e5324a24c72257e49dd03ed8cab6a6f8ec79e4ae6de6aedd246f482897b",
   "review_ledger_records": 2,
-  "review_packet_sha256": "6f9e45d21f77b85d44ef170049d4287508d51321eb2f6588883e3e229dba8897"
+  "review_packet_sha256": "4b9cca263f9d5a64c2be181eebeda0dd559d3c971a1b5a077677432b9f5666fd"
  },
- "created_at": "2026-10-01T14:19:50Z",
+ "certification": {
+  "mechanism": "UNMODIFIED frozen certify script",
+  "output": "certified 2 roots / 10570 files / 814821910 bytes -> config/audit/certified_live_inputs.json"
+ },
+ "created_at": "2026-10-01T15:38:07Z",
  "declaration_note": "进入 H1 的许可是 independent reviewer 的 PHASE_ENTRY APPROVE；执行者只承载机器实测。",
  "entry_gate": {
   "authority": {
@@ -74,6 +79,10 @@
    "forensic_findings": 0,
    "forensic_state": "NONE"
   },
+  "frozen_infra": {
+   "checked": 7,
+   "frozen_infra_files_unchanged_since_freeze_commit": true
+  },
   "frozen_marker": {
    "audited_infra_head": "04c89e7c43fb24e731871608ff40adee83221f64",
    "freeze_commit_is_ancestor_of_head": true,
@@ -94,31 +103,33 @@
  "future_data_accessed": false,
  "host_id": "RainYun-c438TDGn",
  "identity_accessed": false,
- "iteration": 1,
- "maintenance": {
-  "annotator_files_immutable": 26,
-  "certify_pass1": "certified 2 roots / 10568 files / 813459845 bytes -> config/audit/certified_live_inputs.json",
-  "certify_pass2": "certified 2 roots / 10568 files / 813459764 bytes -> config/audit/certified_live_inputs.json",
-  "ordinal3_proposal_mode": "0o600"
- },
+ "iteration": 2,
  "operation": "PHASE_ENTRY",
- "outcome_access_note": "outcome/analysis_labeled bytes were only re-hashed by the frozen certified-manifest pinning mechanism; no outcome content was parsed, joined or exposed to any annotation or selection surface",
+ "outcome_access_note": "outcome/analysis_labeled bytes were only re-hashed by the frozen certified-manifest pinning mechanism; no outcome content was parsed, joined or exposed",
  "outcome_accessed": false,
  "phase_entry_review": {
-  "created_at": "2026-10-01T14:15:28Z",
-  "independence": "reviewer_run_id != executor_run_id (role/context/write separation machine-checked)",
-  "input_commitment_sha256": "6f9e45d21f77b85d44ef170049d4287508d51321eb2f6588883e3e229dba8897",
+  "created_at": "2026-10-01T15:37:06Z",
+  "independence_machine_proof": {
+   "frozen_annotator_domain_unchanged": true,
+   "proof": "pre/post write-surface snapshot diff over the whole data/csr8_phase_c tree",
+   "reviewer_wrote_exactly": [
+    "h_campaign/hc-ffb08d91bcad13370194524a0d403521/reviews.jsonl",
+    "h_campaign/hc-ffb08d91bcad13370194524a0d403521/verdicts/phase_entry.verdict.json"
+   ]
+  },
+  "input_commitment_sha256": "4b9cca263f9d5a64c2be181eebeda0dd559d3c971a1b5a077677432b9f5666fd",
   "issues": [],
   "required_changes": [],
-  "reviewer_run_id": "rev-e93e4aee58681718",
+  "reviewer_run_id": "rev-faa3e5dd5b4c562d",
   "state": "APPROVE"
  },
+ "remediation_note": "iteration-1 rejected by external audit (frozen-infra edits, mutating verify, leading reviewer prompt, wrong round-0 caliber); its live-domain ordinal-0003 proposal and campaign hc-94cf4c47b978133f1b64a83dbfb95ac3 were removed, the freeze ledger + certified manifest restored byte-identical to the cd7f2a5 frozen state before this iteration re-bootstrapped. Within iteration 2 an intermediate bootstrap was likewise superseded when the frozen-infra inventory definition was corrected (the Phase F audit-package exporter is audit tooling, not taskbook §2 annotation infrastructure); that intermediate campaign state was removed and re-bootstrapped BEFORE its review could bind the corrected packet — no verdict was carried over",
  "round0": {
+  "caliber": "taskbook §10: round0 completes when EVERY eligible case has >=1 complete sealed blinded annotation; caliber = unique eligible cases, not (case,T) pairs",
   "completed": 2,
-  "definition": "round0_total = frozen candidate total-order size (one ordinal per (case,T) pair); complete when every eligible case has >=1 sealed blinded annotation; completed = sealed pairs on chain",
-  "remaining": 1715,
-  "total": 1717,
-  "unique_cases": 64
+  "pair_order_size": 1717,
+  "remaining": 62,
+  "total": 64
  },
  "run_id": "audit_20261001135212538",
  "stage": "H0",
@@ -161,7 +172,7 @@
    "G-F-OSBOUNDARY",
    "G-F-REACH"
   ],
-  "certified_files": 10568,
+  "certified_files": 10570,
   "certified_roots": 2,
   "certified_tree": "PASS",
   "chain_replay": "PASS",

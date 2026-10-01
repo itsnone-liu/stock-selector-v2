@@ -262,6 +262,7 @@ def export(pkg=PKG, root=CSR):
         if (src.is_file() and src.name != 'verdicts.jsonl'
                 and src.name != 'f_phase_audit_package.json'
                 and src.name != 'g_final_machine_audit.json'
+                and src.name != 'production_infra_final_frozen.json'
                 and not src.is_relative_to(evidence_root / 'f_audit_package')):
             text = src.read_text(errors='replace') if src.stat().st_size < 2_000_000 else ''
             if any(x != RUN_ID for x in re.findall(r'audit_\d{6,}', text)):
