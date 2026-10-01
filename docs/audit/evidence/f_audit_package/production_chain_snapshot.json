@@ -1,0 +1,18 @@
+{
+ "created_at": "phase-f-export",
+ "payload": {
+  "head": {
+   "count": 4,
+   "head_hash": "c1fa24420e411a19e191b6399dafab02f568c1fe7ef766a481907c970b68becd"
+  }
+ },
+ "row_counts": {
+  "rows": 0
+ },
+ "schema_version": "csr8-f-envelope-v1",
+ "source_commit": "pending",
+ "source_hashes": {
+  "chain_head": "c1fa24420e411a19e191b6399dafab02f568c1fe7ef766a481907c970b68becd",
+  "verdicts": "7d8cd6126bb42732d68eae569d95debcadd4097397e2dd9c72a73a6bf5491dec"
+ }
+}

@@ -1,7 +1,7 @@
 {
  "chain_event_count": 4,
  "chain_head_hash": "c1fa24420e411a19e191b6399dafab02f568c1fe7ef766a481907c970b68becd",
- "fileCount": 58,
+ "fileCount": 66,
  "files": [
   {
    "bytes": 1112,
@@ -22,6 +22,11 @@
    "bytes": 301,
    "path": "analysis_labeled/join_manifest.json",
    "sha256": "f973a657d747b8874ad8a3bbde5819d2fe6d8be4c983b62a471691c0ea81d508"
+  },
+  {
+   "bytes": 398,
+   "path": "annotation_corpus_manifest.json",
+   "sha256": "3ddd5728e53064b1ba3dd9cf157ffbb26af123bda6b51c54ef61830c0c5f4007"
   },
   {
    "bytes": 209,
@@ -47,6 +52,11 @@
    "bytes": 574,
    "path": "approvals/proposals/ordinal-0002/next_reveal.proposal.json",
    "sha256": "d045778390478d5cdc31bedcf44078fd9307c10fa08d0bc84a18df596cecc578"
+  },
+  {
+   "bytes": 367,
+   "path": "authorization_manifest.json",
+   "sha256": "988d316e102ed827e0c6a3260ba44e477b92b62d480a1593ec6369956a6e6fd1"
   },
   {
    "bytes": 3002,
@@ -144,6 +154,11 @@
    "sha256": "7e16bf76cf8a92c850b5fae9bebb2268f1eb1cff6769e365777a0b085da7333d"
   },
   {
+   "bytes": 379,
+   "path": "gate_results.json",
+   "sha256": "a903f9500b1a96ce17c0c13462b1832c50cffe5b0c80d780551bc801ffc97f98"
+  },
+  {
    "bytes": 4584,
    "path": "gates/b4_gate_attempts.md",
    "sha256": "3cac38cfac78c7b01747cff7649d6699ea9a56c424f5c493fa3c9854d59a5b55"
@@ -229,6 +244,11 @@
    "sha256": "80c8df0fc18b98f83ea8a4932433353bc76ca20d146ff411635139ca577197c5"
   },
   {
+   "bytes": 383,
+   "path": "infra_manifest.json",
+   "sha256": "8e157576c360fe98118a9a2a600637a940d39da0de27a053e6da51d1d06cd0e8"
+  },
+  {
    "bytes": 854,
    "path": "outcomes/outcome_join_contract.json",
    "sha256": "4c63a5b307f5b9c3f557cedcc9087580ae9e7ad56b7ea4996f6a6d6df617d109"
@@ -237,6 +257,16 @@
    "bytes": 1795,
    "path": "outcomes/outcomes.jsonl",
    "sha256": "31fac4b10e97955137d170261be9524b477d1221dc5d0b1c805f62a9a17c4952"
+  },
+  {
+   "bytes": 459,
+   "path": "production_chain_snapshot.json",
+   "sha256": "ec996716c79e6fe7102abe90514bcc05b42ad852d2c9d027e3bbcaa353261b4d"
+  },
+  {
+   "bytes": 517,
+   "path": "public_anchor_manifest.json",
+   "sha256": "e3724e3dde7d4ef296191291eec8c6e7d8ae6fd83656a744082784c76f492801"
   },
   {
    "bytes": 1707,
@@ -284,6 +314,16 @@
    "sha256": "30635e93925744fff634c4974ea29df14f4bf871b126b35f6764eb2ac78ef004"
   },
   {
+   "bytes": 386,
+   "path": "recovery_audit.json",
+   "sha256": "d349e3542fecf465451e44d28fb532f287e3a244d023385694c3c1381a59f044"
+  },
+  {
+   "bytes": 358,
+   "path": "sealed_pair_manifest.json",
+   "sha256": "06ae28f5023ec02be72b54c64cea85201bff92f9873e51e559490b679f673c05"
+  },
+  {
    "bytes": 78763,
    "path": "universe/codes.json",
    "sha256": "ca52a7c08988bb96dbb71ec6922732a6ab2a67bee6957fd8adb708f9f101f411"
@@ -297,6 +337,6 @@
  "package_version": "csr8-f-audit-package-v1",
  "run_id": "audit_20260930021152297",
  "session_id": "c4-prod-0002",
- "totalBytes": 640568,
+ "totalBytes": 643815,
  "verify": "python3 scripts/csr8_phase_f_audit_package.py --verify --pkg docs/audit/evidence/f_audit_package"
 }

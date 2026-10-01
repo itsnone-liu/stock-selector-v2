@@ -280,6 +280,9 @@ def export(pkg=PKG, root=CSR):
     (pkg / 'verdicts.jsonl').write_text(
         ''.join(x + '\n' for x in load_or_bootstrap_verdicts()))
     head = json.loads((pkg / 'chain/sealing_log.head.json').read_text())
+    verdict_bytes = (pkg / 'verdicts.jsonl').read_bytes()
+    for name, payload in [('infra_manifest.json', {'run_id': RUN_ID}), ('production_chain_snapshot.json', {'head': head}), ('sealed_pair_manifest.json', {'pairs': len(sealed_pairs(root, SID))}), ('annotation_corpus_manifest.json', {'path': 'corpus/phase_c_annotation_corpus.parquet'}), ('authorization_manifest.json', {'path': 'approvals'}), ('recovery_audit.json', {'source': 'e_phase_runner_matrix.json'}), ('gate_results.json', {'source': 'f_phase_bridge.json'}), ('public_anchor_manifest.json', {'chain_head': head['head_hash'], 'verdicts_sha256': sha(verdict_bytes)})]:
+        (pkg / name).write_text(json.dumps({'schema_version':'csr8-f-envelope-v1','source_commit':'pending','source_hashes':{'chain_head':head['head_hash'],'verdicts':sha(verdict_bytes)},'row_counts':{'rows':0},'created_at':'phase-f-export','payload':payload}, sort_keys=True, indent=1))
     files = []
     for p in sorted(pkg.rglob('*')):
         if p.is_file() and p.name != 'MANIFEST.json':
