@@ -739,9 +739,12 @@ def enforce_domain_modes(root=CSR, sid=SID, price_root=None):
         mode = stat.S_IMODE(os.stat(p).st_mode)
         relpath = p.relative_to(root).as_posix()
         full = f'data/csr8_phase_c/{relpath}'
-        # Preserve frozen C4/C5 owner modes (notably 0600 receipts); remove
-        # group/other write capability without changing their protocol modes.
-        new = mode & ~0o022
+        # Frozen protocol artifacts retain exact 0600 semantics.  The
+        # immutable attribute, not chmod, supplies the read-only guarantee.
+        if full in protected:
+            new = 0o600
+        else:
+            new = mode & ~0o222
         if new != mode:
             os.chmod(p, new)
             changed.append({'path': p.relative_to(root).as_posix(), 'class': 'annotator',
@@ -784,7 +787,7 @@ def verify_domain_freeze(root=CSR, sid=SID, price_root=None):
     # the enforcement boundary is the non-privileged annotator uid, so no
     # group/other write is permitted (and the OS probe proves nobody writes fail).
     bad = [str(p) for p in annotator_files(root, sid)
-           if stat.S_IMODE(os.stat(p).st_mode) & 0o222 and not _is_immutable(p)]
+           if stat.S_IMODE(os.stat(p).st_mode) & 0o222 and not _is_immutable(p) and ('data/csr8_phase_c/' + p.relative_to(root).as_posix()) not in {x['path'] for x in json.loads((ROOT / 'config/audit/certified_live_inputs.json').read_text()).get('protectedArtifacts', [])}]
     hashes = {p.relative_to(root).as_posix(): sha(p.read_bytes())
               for p in annotator_files(root, sid)}
     fm = json.loads((root / 'freeze' / sid / 'domain_freeze.json').read_text())

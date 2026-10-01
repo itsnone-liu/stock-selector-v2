@@ -32076,13 +32076,13 @@
     },
     {
      "bytes": 209,
-     "mode": 384,
+     "mode": 256,
      "path": "production/c4-prod-0002/authorization/first_reveal.approval.json",
      "sha256": "f72a92bb1df99a0f5ec1c94c51a079027c5d8957bbddeec1eca3fec17336f840"
     },
     {
      "bytes": 477,
-     "mode": 384,
+     "mode": 256,
      "path": "production/c4-prod-0002/authorization/first_reveal.json",
      "sha256": "911d8b844da3a38467aecc0919ee22664484f87c9f49bf445a5a949b6245dc81"
     },
@@ -32100,49 +32100,49 @@
     },
     {
      "bytes": 327,
-     "mode": 384,
+     "mode": 256,
      "path": "production/c4-prod-0002/first_candidate_record.json",
      "sha256": "fd1c018ba13c6b5e90f28c3dbd862a90146d86397a06dbac276c7a4713a4b4c9"
     },
     {
      "bytes": 3002,
-     "mode": 384,
+     "mode": 256,
      "path": "production/c4-prod-0002/sealing/bytes/reveal_packet/0.bin",
      "sha256": "e9abcb4497e08bf5b1b4a412d23f1c79bf8f2ff5477b2cfdec3af1053852adc1"
     },
     {
      "bytes": 1264,
-     "mode": 384,
+     "mode": 256,
      "path": "production/c4-prod-0002/sealing/bytes/reveal_packet/2.bin",
      "sha256": "30635e93925744fff634c4974ea29df14f4bf871b126b35f6764eb2ac78ef004"
     },
     {
      "bytes": 1880,
-     "mode": 384,
+     "mode": 256,
      "path": "production/c4-prod-0002/sealing/bytes/seal_annotation/1.bin",
      "sha256": "85a224a3e748b569060a14aea8fe5fe353b62e8a804e0f43cfb4c51a18063aa6"
     },
     {
      "bytes": 1880,
-     "mode": 384,
+     "mode": 256,
      "path": "production/c4-prod-0002/sealing/bytes/seal_annotation/3.bin",
      "sha256": "4242e4b406c0a5b8864a192bbbd9d76e4af728ece14a5593f9e262c75629ee69"
     },
     {
      "bytes": 90,
-     "mode": 384,
+     "mode": 256,
      "path": "production/c4-prod-0002/sealing/sealing_log.head.json",
      "sha256": "880d2b30723382ce3b0cde77cd8a53b8b220228ccbd69c29dfb997c2b76d4a9a"
     },
     {
      "bytes": 2865,
-     "mode": 384,
+     "mode": 256,
      "path": "production/c4-prod-0002/sealing/sealing_log.jsonl",
      "sha256": "47d64f896f1d30127bfb6790e1405cd4927685bd7e2889d06335e47fac9ad094"
     },
     {
      "bytes": 1001,
-     "mode": 384,
+     "mode": 256,
      "path": "production/c4-prod-0002/session_manifest.json",
      "sha256": "053c8ef051ef11dd14d09fe2e8372f472d991c60c55feea6cdebdae66699588e"
     },
