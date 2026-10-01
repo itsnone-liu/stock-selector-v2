@@ -231,54 +231,97 @@ def read_ledger(root=CSR, sid=SID):
     return json.loads(ledger_path(root, sid).read_text())
 
 
-def verify_corpus(root=CSR, sid=SID):
-    """只读全 gate 实测；任何篡改 → RuntimeError。"""
-    root = Path(root)
+def _corpus_gates(prefix, cdir, ledger, pairs, head, ev_count, sid,
+                    check_modes):
+    """corpus 不可变性的全部绑定重推导（live 与 audit package 共用）。
+
+    每个 gate 都从冻结链/链绑定 receipt 重新推导 —— 账本本身被重写也必须
+    被识破（root 可写 0o444，唯一不变式 = 全部绑定可从链重derive）。
+    """
     gates = {}
-    ledger = read_ledger(root, sid)
-    cdir = corpus_dir(root, sid)
+    cdir = Path(cdir)
     on_disk = sorted(p.relative_to(cdir).as_posix()
                      for p in cdir.rglob('*') if p.is_file())
     listed = sorted([f['path'] for f in ledger['files']] + ['ledger.json'])
     if on_disk != listed:
-        fail(f'G-F-CORPUS-WORLD: corpus closed-world violated {on_disk} != {listed}')
-    gates['G-F-CORPUS-WORLD'] = 'PASS'
+        fail(f'{prefix}-WORLD: corpus closed-world violated {on_disk} != {listed}')
+    gates[f'{prefix}-WORLD'] = 'PASS'
+    blobs = {}
     for f in ledger['files']:
         fp = cdir / f['path']
         b = fp.read_bytes()
+        blobs[f['path']] = b
         if sha(b) != f['sha256'] or len(b) != f['bytes']:
-            fail(f"G-F-CORPUS-LEDGER: hash ledger mismatch {f['path']}")
-        if stat.S_IMODE(os.stat(fp).st_mode) != 0o444:
-            fail(f"G-F-CORPUS-RO: file not read-only {f['path']}")
-    gates['G-F-CORPUS-LEDGER'] = 'PASS'
-    gates['G-F-CORPUS-RO'] = 'PASS'
-    # 冻结链 replay 重新派生全部绑定
-    evs = verify_chain(root, sid)
-    head = json.loads(sealing_paths(root, sid)[1].read_text())
+            fail(f"{prefix}-LEDGER: hash ledger mismatch {f['path']}")
+        if check_modes and stat.S_IMODE(os.stat(fp).st_mode) != 0o444:
+            fail(f"{prefix}-RO: file not read-only {f['path']}")
+    gates[f'{prefix}-LEDGER'] = 'PASS'
+    if check_modes:
+        gates[f'{prefix}-RO'] = 'PASS'
     if (head['head_hash'] != ledger['chain']['head_hash']
-            or len(evs) != ledger['chain']['event_count']):
-        fail('G-F-CORPUS-CHAIN: ledger no longer binds the live chain head')
-    pairs = sealed_pairs(root, sid)
-    if len(pairs) != len(ledger['pairs']):
-        fail('G-F-CORPUS-CHAIN: pair count drift')
+            or ev_count != ledger['chain']['event_count']
+            or len(pairs) != len(ledger['pairs'])):
+        fail(f'{prefix}-CHAIN: ledger no longer binds the sealing chain head/count')
     for (ordinal, rev, seal), m in zip(pairs, ledger['pairs']):
         rp, sp = rev['payload'], seal['payload']
+        od = f'ordinal-{ordinal:04d}'
         if (m['reveal_event_hash'] != rev['event_hash']
                 or m['seal_event_hash'] != seal['event_hash']
                 or m['packet_sha256'] != rp['packet_sha256']
                 or m['receipt_sha256'] != sp['receipt_sha256']
                 or m['opaque_case_id'] != rp['opaque_case_id'] or m['T'] != rp['T']):
-            fail(f'G-F-CORPUS-CHAIN: pair {ordinal} binding drift')
-        od = f'ordinal-{ordinal:04d}'
-        pb = (cdir / 'pairs' / od / 'reveal_packet.json').read_bytes()
-        rb = (cdir / 'pairs' / od / 'seal_receipt.json').read_bytes()
+            fail(f'{prefix}-CHAIN: pair {ordinal} binding drift')
+        pb = blobs[f'pairs/{od}/reveal_packet.json']
+        rb = blobs[f'pairs/{od}/seal_receipt.json']
         if sha(pb) != rp['packet_sha256'] or sha(rb) != sp['receipt_sha256']:
-            fail(f'G-F-CORPUS-CHAIN: corpus bytes != chain payload ({od})')
+            fail(f'{prefix}-CHAIN: corpus bytes != chain payload ({od})')
         receipt = json.loads(rb)
         if receipt['packet_id'] != rp['packet_id']:
-            fail(f'G-F-CORPUS-CHAIN: receipt/packet binding ({od})')
-    gates['G-F-CORPUS-CHAIN'] = 'PASS'
+            fail(f'{prefix}-CHAIN: receipt/packet binding ({od})')
+        # anchors: 非 chain payload 的 corpus 字节必须锚定在链绑定 receipt 上
+        appr = json.loads(blobs[f'pairs/{od}/seal_approval.json'])
+        if (not appr.get('approved')
+                or appr.get('approved_receipt_sha256') != sp['receipt_sha256']
+                or appr.get('annotation_attempt') != receipt.get('annotation_attempt')):
+            fail(f'{prefix}-ANCHORS: approval no longer binds chain receipt ({od})')
+        for name in ('draft_snapshot.bin', 'annotation_draft.json'):
+            k = f'pairs/{od}/{name}'
+            if k in blobs and sha(blobs[k]) != receipt.get('draft_sha256'):
+                fail(f'{prefix}-ANCHORS: {name} != receipt.draft_sha256 ({od})')
+        k = f'pairs/{od}/annotation_session_registry.json'
+        if k in blobs:
+            reg = json.loads(blobs[k])
+            sess = [s for s in reg.get('annotation_sessions', [])
+                    if s.get('annotation_session_id') == receipt.get('annotation_session_id')]
+            if (reg.get('session_id') != sid
+                    or reg.get('packet_id') != rp['packet_id']
+                    or reg.get('packet_sha256') != rp['packet_sha256']
+                    or reg.get('reveal_event_hash') != rev['event_hash']
+                    or reg.get('annotation_contract_sha256') != c4d.ANNOTATION_CONTRACT_SHA256
+                    or not sess
+                    or sess[0].get('packet_id') != rp['packet_id']
+                    or sess[0].get('packet_sha256') != rp['packet_sha256']
+                    or sess[0].get('reveal_event_hash') != rev['event_hash']):
+                fail(f'{prefix}-ANCHORS: registry semantics no longer chain-derived ({od})')
+        k = f'pairs/{od}/packet.json'
+        if k in blobs:
+            if sha(blobs[k]) != rp['packet_sha256'] or \
+                    json.loads(blobs[k])['packet_id'] != rp['packet_id']:
+                fail(f'{prefix}-ANCHORS: packet copy drift ({od})')
+    gates[f'{prefix}-CHAIN'] = 'PASS'
+    gates[f'{prefix}-ANCHORS'] = 'PASS'
     return gates
+
+
+def verify_corpus(root=CSR, sid=SID):
+    """只读全 gate 实测；任何篡改（含重写账本）→ RuntimeError。"""
+    root = Path(root)
+    ledger = read_ledger(root, sid)
+    evs = verify_chain(root, sid)
+    head = json.loads(sealing_paths(root, sid)[1].read_text())
+    pairs = sealed_pairs(root, sid)
+    return _corpus_gates('G-F-CORPUS', corpus_dir(root, sid), ledger, pairs,
+                         head, len(evs), sid, check_modes=True)
 
 
 # --------------------------------------------------------------- §9.2 ------
@@ -321,8 +364,12 @@ def _annotation_summary(receipt):
             'annotation_attempt': receipt.get('annotation_attempt')}
 
 
-def build_analysis(root=CSR, sid=SID):
-    """分析侧只经 guarded reader 读 corpus 盲态字节派生 analysis 行。"""
+def derive_analysis_rows(root=CSR, sid=SID):
+    """纯派生：只经 guarded reader 从 corpus 盲态字节重建 analysis 行。
+
+    build 与 verify 共用同一确定性路径 —— analysis 域在磁盘上的行必须是
+    corpus 的唯一可推导结果（整体重写即使配平 manifest 也必须被识破）。
+    """
     root = Path(root)
     allowed = analysis_allowed_roots(root, sid)
     ledger = json.loads(guarded_read(ledger_path(root, sid), allowed))
@@ -352,6 +399,14 @@ def build_analysis(root=CSR, sid=SID):
         if set(row) != set(ROW_SCHEMA):
             fail('analysis row schema drift')
         rows.append(row)
+    return rows
+
+
+def build_analysis(root=CSR, sid=SID):
+    """分析侧只经 guarded reader 读 corpus 盲态字节派生 analysis 行。"""
+    root = Path(root)
+    rows = derive_analysis_rows(root, sid)
+    ledger = json.loads(ledger_path(root, sid).read_bytes())
     adir = analysis_dir(root, sid)
     adir.mkdir(parents=True, exist_ok=True)
     (adir / 'analysis_rows.jsonl').write_text(
@@ -402,6 +457,12 @@ def verify_blinding(root=CSR, sid=SID, universe=UNIVERSE):
     root = Path(root)
     gates, attempts = {}, []
     adir = analysis_dir(root, sid)
+    # 符号链接逃逸面：分析侧可读域内不允许任何 symlink 存在
+    symlinks = [str(p) for p in list(adir.rglob('*')) +
+                list(corpus_dir(root, sid).rglob('*')) if p.is_symlink()]
+    if symlinks:
+        fail(f'G-F-NOSYMLINK: symlink inside analysis/corpus domain: {symlinks}')
+    gates['G-F-NOSYMLINK'] = 'PASS'
     world = sorted(p.relative_to(adir).as_posix() for p in adir.rglob('*')
                    if p.is_file())
     if world != ['analysis_manifest.json', 'analysis_rows.jsonl']:
@@ -483,6 +544,27 @@ def verify_blinding(root=CSR, sid=SID, universe=UNIVERSE):
     if inv:
         fail('G-F-INVERT: blind key inverted without secret_salt')
     gates['G-F-INVERT'] = 'PASS'
+
+    # 行必须是 corpus 的唯一确定性推导结果（防整体重写 + 配平 manifest）
+    expected = derive_analysis_rows(root, sid)
+    if [canon(r) for r in expected] != [canon(r) for r in rows]:
+        fail('G-F-DERIVE: stored analysis rows are NOT the corpus-derived '
+             'rows (wholesale rewrite detected)')
+    gates['G-F-DERIVE'] = 'PASS'
+
+    # manifest 锚定：行哈希 + corpus 账本 + 链头（防换源重打包）
+    ledger_bytes = ledger_path(root, sid).read_bytes()
+    lmeta = json.loads(ledger_bytes)
+    if (manifest['corpus_ledger_sha256'] != sha(ledger_bytes)
+            or manifest['source_head_hash'] != lmeta['chain']['head_hash']
+            or manifest['analysis_version'] != ANALYSIS_VERSION):
+        fail('G-F-MANIFEST: analysis manifest no longer anchors to corpus ledger')
+    for ent, r in zip(manifest['rows'], rows):
+        if (ent['row_id'] != r['row_id']
+                or ent['packet_id'] != r['packet_id']
+                or ent['row_sha256'] != sha(canon(r).encode())):
+            fail('G-F-MANIFEST: manifest row binding drift')
+    gates['G-F-MANIFEST'] = 'PASS'
     return {'gates': gates, 'attempts': attempts,
             'all_pass': all(v == 'PASS' for v in gates.values())}
 

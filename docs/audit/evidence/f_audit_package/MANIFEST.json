@@ -1,12 +1,27 @@
 {
  "chain_event_count": 4,
  "chain_head_hash": "c1fa24420e411a19e191b6399dafab02f568c1fe7ef766a481907c970b68becd",
- "fileCount": 42,
+ "fileCount": 57,
  "files": [
   {
    "bytes": 1112,
    "path": "analysis/analysis_manifest.json",
    "sha256": "9734064cfb3157adf873a19dfc15e1c081c1e97c1964e03a8a90ba880221dea2"
+  },
+  {
+   "bytes": 1989,
+   "path": "analysis/analysis_rows.jsonl",
+   "sha256": "974340579292703de6581269de6e3a6dbe058d768678f2ba852d1eaca46f3072"
+  },
+  {
+   "bytes": 6670,
+   "path": "analysis_labeled/analysis_labeled.jsonl",
+   "sha256": "836046246996728d065a262f207a1a39e8e9b7a60e92d2587fac5c6d3ffde4ce"
+  },
+  {
+   "bytes": 301,
+   "path": "analysis_labeled/join_manifest.json",
+   "sha256": "f973a657d747b8874ad8a3bbde5819d2fe6d8be4c983b62a471691c0ea81d508"
   },
   {
    "bytes": 209,
@@ -67,6 +82,61 @@
    "bytes": 5434,
    "path": "corpus/ledger.json",
    "sha256": "e112c392bf8352f23daec29055e9c004fef6daeb69edce6752e1c043b18d8401"
+  },
+  {
+   "bytes": 1707,
+   "path": "corpus/pairs/ordinal-0001/draft_snapshot.bin",
+   "sha256": "79de988498fa657a3dcea40b59dec59576f9f421b74994a8471f492d8b6bd74a"
+  },
+  {
+   "bytes": 3002,
+   "path": "corpus/pairs/ordinal-0001/reveal_packet.json",
+   "sha256": "e9abcb4497e08bf5b1b4a412d23f1c79bf8f2ff5477b2cfdec3af1053852adc1"
+  },
+  {
+   "bytes": 357,
+   "path": "corpus/pairs/ordinal-0001/seal_approval.json",
+   "sha256": "110e01d6709c08cac28dddf55bdaf8ab9f75f735ac11fb51cbbe8a69b0a9c0c9"
+  },
+  {
+   "bytes": 1880,
+   "path": "corpus/pairs/ordinal-0001/seal_receipt.json",
+   "sha256": "85a224a3e748b569060a14aea8fe5fe353b62e8a804e0f43cfb4c51a18063aa6"
+  },
+  {
+   "bytes": 1707,
+   "path": "corpus/pairs/ordinal-0002/annotation_draft.json",
+   "sha256": "9f399afe6d0e4a1a4dbfb700dc16f6408d470247149bcaa35c221225c8e312d0"
+  },
+  {
+   "bytes": 816,
+   "path": "corpus/pairs/ordinal-0002/annotation_session_registry.json",
+   "sha256": "c77dc29ab32d0d013932d53749551f0036cb08f623f31f7f85a93590131f8920"
+  },
+  {
+   "bytes": 1707,
+   "path": "corpus/pairs/ordinal-0002/draft_snapshot.bin",
+   "sha256": "9f399afe6d0e4a1a4dbfb700dc16f6408d470247149bcaa35c221225c8e312d0"
+  },
+  {
+   "bytes": 1264,
+   "path": "corpus/pairs/ordinal-0002/packet.json",
+   "sha256": "30635e93925744fff634c4974ea29df14f4bf871b126b35f6764eb2ac78ef004"
+  },
+  {
+   "bytes": 1264,
+   "path": "corpus/pairs/ordinal-0002/reveal_packet.json",
+   "sha256": "30635e93925744fff634c4974ea29df14f4bf871b126b35f6764eb2ac78ef004"
+  },
+  {
+   "bytes": 357,
+   "path": "corpus/pairs/ordinal-0002/seal_approval.json",
+   "sha256": "1ee4fdd0adc177c4aa8b08c55054e0740d419afa9ff03d626675de1d7d2bb9a6"
+  },
+  {
+   "bytes": 1880,
+   "path": "corpus/pairs/ordinal-0002/seal_receipt.json",
+   "sha256": "4242e4b406c0a5b8864a192bbbd9d76e4af728ece14a5593f9e262c75629ee69"
   },
   {
    "bytes": 4584,
@@ -139,9 +209,9 @@
    "sha256": "ac558c15d9bc44365585ca8a56610a131aff3e60425a7a5d0355657b915b2cab"
   },
   {
-   "bytes": 2762,
+   "bytes": 2907,
    "path": "gates/f_phase_bridge.json",
-   "sha256": "557fe3eba1f9cbb1d3817d3d5dd1e70949f6700487d2fbae442db3f2da6601f8"
+   "sha256": "245050f971a04e78949a13615282e5f9cf41f469249fdf7fcc103735cabe6414"
   },
   {
    "bytes": 40792,
@@ -209,6 +279,11 @@
    "sha256": "30635e93925744fff634c4974ea29df14f4bf871b126b35f6764eb2ac78ef004"
   },
   {
+   "bytes": 78763,
+   "path": "universe/codes.json",
+   "sha256": "ca52a7c08988bb96dbb71ec6922732a6ab2a67bee6957fd8adb708f9f101f411"
+  },
+  {
    "bytes": 2728,
    "path": "verdicts.jsonl",
    "sha256": "588ad7c30c7e978bdac1ae06e25cd8914cba3194f96cff8311cb07dd73ca2a3a"
@@ -217,6 +292,6 @@
  "package_version": "csr8-f-audit-package-v1",
  "run_id": "audit_20260930021152297",
  "session_id": "c4-prod-0002",
- "totalBytes": 130873,
+ "totalBytes": 234682,
  "verify": "python3 scripts/csr8_phase_f_audit_package.py --verify --pkg docs/audit/evidence/f_audit_package"
 }

@@ -29,9 +29,11 @@ import csr8_phase_c_annotation_seal as c4d  # noqa: E402
 import csr8_phase_c_seal as c2              # noqa: E402
 from csr8_phase_f_bridge import (CSR, SID, ROOT, canon, fail, sealed_pairs,
                                  corpus_dir, ledger_path, analysis_dir,
-                                 FORBIDDEN_KEYS, _walk, _tokens, UNIVERSE)
-from csr8_phase_f_outcome_join import (outcomes_dir, OUTCOME_KEYS,
-                                       OUTCOME_FORBIDDEN_KEYS)
+                                 FORBIDDEN_KEYS, _walk, _tokens, UNIVERSE,
+                                 _corpus_gates, DATE_RE)
+from csr8_phase_f_outcome_join import (outcomes_dir, labeled_dir,
+                                       OUTCOME_KEYS, OUTCOME_FORBIDDEN_KEYS,
+                                       HORIZONS)
 
 PKG = ROOT / 'docs/audit/evidence/f_audit_package'
 RUN_ID = 'audit_20260930021152297'
@@ -77,6 +79,12 @@ GATE_FILES = (
     'f_phase_bridge.json', 'target_tree_6f9c9af.txt', 'verdict_A16.md',
 )
 
+STAGES = ['A', 'B', 'C1', 'C2', 'C3', 'C4', 'C5', 'C6', 'D', 'E', 'F']
+# 审计历史权威载体：docs/audit/evidence/verdicts.jsonl（durable、append-only）。
+# export 只 bootstrap 一次；之后逐行 prev 链校验并原样打包 —— 重写历史 =
+# 断链，export/verify 都必须失败。裁决回执到达后经 append_verdict 追加。
+DURABLE_VERDICTS = ROOT / 'docs/audit/evidence/verdicts.jsonl'
+
 
 def sha(b):
     return hashlib.sha256(b).hexdigest()
@@ -90,15 +98,56 @@ def sha_file(p):
     return h.hexdigest()
 
 
-def build_verdicts():
-    """hash-chain verdicts.jsonl 行（逐行 prev_sha256 绑定）。"""
+def _verdict_line(v, prev):
+    return canon({**v, 'run_id': RUN_ID, 'prev_sha256': prev})
+
+
+def check_verdict_chain(lines, allow_stages=None):
+    """逐行 prev 链 + canonical + 阶段序列校验；返回最后一条记录。"""
+    prev, stages = '0' * 64, []
+    for ln in lines:
+        rec = json.loads(ln)
+        if rec['prev_sha256'] != prev:
+            fail('verdicts hash chain broken (history rewrite detected)')
+        if canon(rec) != ln:
+            fail('verdicts line not canonical')
+        prev = sha(ln.encode())
+        stages.append(rec['stage'])
+    want = allow_stages if allow_stages is not None else STAGES
+    if stages != want:
+        fail(f'verdict stage coverage {stages} != {want}')
+    return json.loads(lines[-1])
+
+
+def load_or_bootstrap_verdicts():
+    """durable 审计历史：首次 bootstrap，此后只读 + 断链即失败。"""
+    if DURABLE_VERDICTS.is_file():
+        lines = DURABLE_VERDICTS.read_text().splitlines()
+        last = check_verdict_chain(lines)
+        if last['stage'] != 'F':
+            fail('durable verdicts missing the F stage entry')
+        return lines
     lines, prev = [], '0' * 64
     for v in VERDICT_HISTORY:
-        rec = {**v, 'run_id': RUN_ID, 'prev_sha256': prev}
-        line = canon(rec)
-        prev = sha(line.encode())
-        lines.append(line)
+        ln = _verdict_line(v, prev)
+        prev = sha(ln.encode())
+        lines.append(ln)
+    DURABLE_VERDICTS.write_text(''.join(x + '\n' for x in lines))
     return lines
+
+
+def append_verdict(stage, verdict, commit, source):
+    """裁决回执追加（append-only；重复阶段/断链拒绝）。"""
+    lines = load_or_bootstrap_verdicts()
+    last = json.loads(lines[-1])
+    if stage != STAGES[STAGES.index(last['stage']) + 1 if last['stage'] in STAGES else 0]:
+        fail(f'append order violated after {last["stage"]}')
+    rec = {'stage': stage, 'iteration': 1, 'verdict': verdict,
+           'commit': commit, 'source': source}
+    ln = _verdict_line(rec, sha(lines[-1].encode()))
+    with open(DURABLE_VERDICTS, 'a') as f:
+        f.write(ln + '\n')
+    return ln
 
 
 def export(pkg=PKG, root=CSR):
@@ -123,18 +172,33 @@ def export(pkg=PKG, root=CSR):
         if not src.is_file():
             fail(f'gate evidence missing: {name}')
         shutil.copy2(src, pkg / 'gates' / name)
-    (pkg / 'corpus').mkdir()
-    shutil.copy2(ledger_path(root, SID), pkg / 'corpus/ledger.json')
+    # corpus 全量字节（非仅账本）→ 包内可独立复验不可变性
+    shutil.copytree(corpus_dir(root, SID), pkg / 'corpus')
     (pkg / 'analysis').mkdir()
     shutil.copy2(analysis_dir(root, SID) / 'analysis_manifest.json',
                  pkg / 'analysis/analysis_manifest.json')
+    shutil.copy2(analysis_dir(root, SID) / 'analysis_rows.jsonl',
+                 pkg / 'analysis/analysis_rows.jsonl')
+    (pkg / 'analysis_labeled').mkdir()
+    shutil.copy2(labeled_dir(root, SID) / 'analysis_labeled.jsonl',
+                 pkg / 'analysis_labeled/analysis_labeled.jsonl')
+    shutil.copy2(labeled_dir(root, SID) / 'join_manifest.json',
+                 pkg / 'analysis_labeled/join_manifest.json')
     (pkg / 'outcomes').mkdir()
     shutil.copy2(outcomes_dir(root, SID) / 'outcomes.jsonl',
                  pkg / 'outcomes/outcomes.jsonl')
     shutil.copy2(outcomes_dir(root, SID) / 'outcome_join_contract.json',
                  pkg / 'outcomes/outcome_join_contract.json')
+    # 审计侧 identity 扫描底册：冻结 universe 代码表（codes only）
+    (pkg / 'universe').mkdir()
+    uni = json.loads(Path(UNIVERSE).read_text())
+    (pkg / 'universe/codes.json').write_text(json.dumps(
+        {'source': 'config/universe_frozen.json',
+         'source_sha256': sha_file(Path(UNIVERSE)),
+         'n_codes': len(uni['codes']), 'codes': uni['codes']},
+        ensure_ascii=False, sort_keys=True, indent=1))
     (pkg / 'verdicts.jsonl').write_text(
-        ''.join(x + '\n' for x in build_verdicts()))
+        ''.join(x + '\n' for x in load_or_bootstrap_verdicts()))
     head = json.loads((pkg / 'chain/sealing_log.head.json').read_text())
     files = []
     for p in sorted(pkg.rglob('*')):
@@ -222,55 +286,115 @@ def verify(pkg=PKG):
         fail('G-P-AUTHZ: ordinal-2 approval/permit binding broken')
     gates['G-P-AUTHZ'] = 'PASS'
 
-    # corpus ledger ↔ 包内链
+    # corpus 全量复验：closed-world + 账本 + 链绑定 + anchors —— 全部从
+    # 包内字节重推导（mode 位不跨包，故只测 4/5 类绑定；RO 属 live 域）
     ledger = json.loads((pkg / 'corpus/ledger.json').read_text())
-    if (ledger['chain']['head_hash'] != head['head_hash']
-            or ledger['chain']['event_count'] != len(evs)
-            or len(ledger['pairs']) != len(pairs)):
-        fail('G-P-CORPUS: ledger does not bind packaged chain')
-    for (ordinal, rev, seal), m in zip(pairs, ledger['pairs']):
-        if (m['reveal_event_hash'] != rev['event_hash']
-                or m['seal_event_hash'] != seal['event_hash']
-                or m['packet_sha256'] != rev['payload']['packet_sha256']
-                or m['receipt_sha256'] != seal['payload']['receipt_sha256']):
-            fail(f'G-P-CORPUS: pair {ordinal} binding drift')
+    raw = _corpus_gates('G-P-CORPUS', pkg / 'corpus', ledger, pairs, head,
+                        len(evs), SID, check_modes=False)
+    if set(raw.values()) != {'PASS'}:
+        fail('G-P-CORPUS: packaged corpus failed re-derivation')
     gates['G-P-CORPUS'] = 'PASS'
 
-    # verdicts hash-chain + 阶段覆盖
+    # verdicts：durable 历史的逐行 hash 链 + 阶段覆盖 + F 收尾
     lines = (pkg / 'verdicts.jsonl').read_text().splitlines()
-    prev, stages = '0' * 64, []
-    for ln in lines:
-        rec = json.loads(ln)
-        if rec['prev_sha256'] != prev or sha(ln.encode()) is None:
-            fail('G-P-VERDICTS: hash chain broken')
-        if canon(rec) != ln:
-            fail('G-P-VERDICTS: line not canonical')
-        prev = sha(ln.encode())
-        stages.append((rec['stage'], rec['verdict']))
-    if [s for s, _ in stages] != ['A', 'B', 'C1', 'C2', 'C3', 'C4', 'C5', 'C6', 'D', 'E', 'F']:
-        fail(f'G-P-VERDICTS: stage coverage {stages}')
-    if stages[-1] != ('F', 'PENDING_AUDIT'):
-        fail('G-P-VERDICTS: F must be PENDING_AUDIT at export time')
+    last = check_verdict_chain(lines)
+    if last['stage'] != 'F':
+        fail('G-P-VERDICTS: verdict history must end at stage F')
+    if last['verdict'] not in ('PENDING_AUDIT', 'APPROVE', 'REJECTED',
+                               'STAGE_ADVANCED'):
+        fail(f'G-P-VERDICTS: unknown F verdict {last["verdict"]}')
     gates['G-P-VERDICTS'] = 'PASS'
 
-    # gates 证据齐全 + outcomes 盲态
+    # gates 证据齐全
     for name in GATE_FILES:
         if not (pkg / 'gates' / name).is_file():
             fail(f'G-P-GATES: missing {name}')
     gates['G-P-GATES'] = 'PASS'
-    keys, strings = set(), []
-    for ln in (pkg / 'outcomes/outcomes.jsonl').read_text().splitlines():
-        r = json.loads(ln)
+
+    # universe 底册：包内 identity 扫描的权威代码表
+    uni = json.loads((pkg / 'universe/codes.json').read_text())
+    if (uni['n_codes'] != len(uni['codes']) or uni['n_codes'] < 5000
+            or uni['source'] != 'config/universe_frozen.json'):
+        fail('G-P-UNIVERSE: packaged universe code list drift')
+    codes = set(uni['codes'])
+    gates['G-P-UNIVERSE'] = 'PASS'
+
+    def blind_scan(rows, tag, forbidden):
+        keys, strings = set(), []
+        for r in rows:
+            _walk(r, keys, strings)
+        hitk = sorted(keys & forbidden)
+        if hitk:
+            fail(f'G-P-BLIND: forbidden keys in {tag}: {hitk}')
+        toks = _tokens(strings)
+        hitc = sorted(t for t in toks
+                      if t in codes or f'sz.{t}' in codes or f'sh.{t}' in codes)
+        if hitc:
+            fail(f'G-P-BLIND: identity tokens in {tag}: {hitc}')
+
+    # packaged analysis 行：manifest 锚定 + 行级盲态（键/identity/未来日期）
+    arows = [json.loads(x) for x in
+             (pkg / 'analysis/analysis_rows.jsonl').read_text().splitlines() if x.strip()]
+    aman = json.loads((pkg / 'analysis/analysis_manifest.json').read_text())
+    if (aman['corpus_ledger_sha256'] != sha_file(pkg / 'corpus/ledger.json')
+            or aman['source_head_hash'] != head['head_hash']
+            or aman['n_rows'] != len(arows)):
+        fail('G-P-ANALYSIS: packaged manifest no longer anchors packaged corpus')
+    for ent, r in zip(aman['rows'], arows):
+        if ent['row_sha256'] != sha(canon(r).encode()):
+            fail('G-P-ANALYSIS: row/manifest binding drift')
+    blind_scan(arows, 'packaged analysis rows', FORBIDDEN_KEYS)
+    for r in arows:
+        _, ss = set(), []
+        _walk(r, set(), ss)
+        for s in ss:
+            for d in DATE_RE.findall(s):
+                if d > r['T']:
+                    fail(f'G-P-ANALYSIS: post-T date in packaged rows {d}')
+    gates['G-P-ANALYSIS'] = 'PASS'
+
+    # packaged outcomes：schema + 删失语义 + 覆盖
+    orows = [json.loads(x) for x in
+             (pkg / 'outcomes/outcomes.jsonl').read_text().splitlines() if x.strip()]
+    for r in orows:
         if set(r) != OUTCOME_KEYS:
             fail('G-P-BLIND: outcome schema drift in package')
-        _walk(r, keys, strings)
-    if keys & OUTCOME_FORBIDDEN_KEYS:
-        fail('G-P-BLIND: forbidden keys in packaged outcomes')
-    codes = set(json.loads(Path(UNIVERSE).read_text())['codes'])
-    toks = _tokens(strings)
-    if any(t in codes or f'sz.{t}' in codes or f'sh.{t}' in codes for t in toks):
-        fail('G-P-BLIND: identity tokens in packaged outcomes')
+        if r['censored'] != (r['forward_return'] is None):
+            fail('G-P-BLIND: censoring semantics violated in package')
+    want = {(a['opaque_case_id'], a['packet_id'], h) for a in arows for h in HORIZONS}
+    got = {(r['opaque_case_id'], r['packet_id'], r['horizon_days']) for r in orows}
+    if got != want or len(orows) != len(want):
+        fail('G-P-JOIN: packaged outcome/analysis coverage mismatch')
+    blind_scan(orows, 'packaged outcomes', OUTCOME_FORBIDDEN_KEYS)
     gates['G-P-BLIND'] = 'PASS'
+
+    # packaged labeled 域：join 唯一确定性复推导 + manifest 锚定
+    lrows = [json.loads(x) for x in
+             (pkg / 'analysis_labeled/analysis_labeled.jsonl').read_text().splitlines() if x.strip()]
+    jman = json.loads((pkg / 'analysis_labeled/join_manifest.json').read_text())
+    by_key = {}
+    for o in orows:
+        by_key.setdefault((o['opaque_case_id'], o['packet_id']), []).append(o)
+    exp = []
+    for a in arows:
+        outs = sorted(by_key.get((a['opaque_case_id'], a['packet_id']), []),
+                      key=lambda x: x['horizon_days'])
+        if len(outs) != len(HORIZONS):
+            fail('G-P-JOIN: labeled coverage incomplete at re-derivation')
+        for o in outs:
+            exp.append({**a, 'horizon_days': o['horizon_days'],
+                        'outcome_as_of': o['outcome_as_of'],
+                        'forward_return': o['forward_return'],
+                        'censored': o['censored'],
+                        'censor_reason': o['censor_reason']})
+    if [canon(r) for r in exp] != [canon(r) for r in lrows]:
+        fail('G-P-JOIN: packaged labeled rows are NOT the re-derived join')
+    blind_scan(lrows, 'packaged labeled rows', OUTCOME_FORBIDDEN_KEYS)
+    if (jman['contract_sha256'] != sha_file(pkg / 'outcomes/outcome_join_contract.json')
+            or jman['n_labeled_rows'] != len(lrows)
+            or jman['join_keys'] != ['opaque_case_id', 'packet_id']):
+        fail('G-P-JOIN: join manifest drift')
+    gates['G-P-JOIN'] = 'PASS'
     return {'gates': gates, 'head_hash': head['head_hash'],
             'fileCount': manifest['fileCount'],
             'totalBytes': manifest['totalBytes'],

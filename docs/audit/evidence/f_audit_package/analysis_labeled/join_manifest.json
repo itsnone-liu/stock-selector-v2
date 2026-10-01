@@ -1,0 +1,13 @@
+{
+ "censored": 0,
+ "contract_sha256": "4c63a5b307f5b9c3f557cedcc9087580ae9e7ad56b7ea4996f6a6d6df617d109",
+ "join_keys": [
+  "opaque_case_id",
+  "packet_id"
+ ],
+ "join_version": "csr8-f-outcome-join-v1",
+ "n_analysis_rows": 2,
+ "n_labeled_rows": 6,
+ "n_outcome_rows": 6,
+ "session_id": "c4-prod-0002"
+}

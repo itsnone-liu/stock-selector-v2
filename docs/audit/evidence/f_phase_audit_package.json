@@ -1,23 +1,26 @@
 {
  "export": {
   "chain_head_hash": "c1fa24420e411a19e191b6399dafab02f568c1fe7ef766a481907c970b68becd",
-  "fileCount": 42,
-  "totalBytes": 130873
+  "fileCount": 57,
+  "totalBytes": 234682
  },
  "verify": {
   "all_pass": true,
-  "fileCount": 42,
+  "fileCount": 57,
   "gates": {
+   "G-P-ANALYSIS": "PASS",
    "G-P-AUTHZ": "PASS",
    "G-P-BLIND": "PASS",
    "G-P-CHAIN": "PASS",
    "G-P-CORPUS": "PASS",
    "G-P-GATES": "PASS",
+   "G-P-JOIN": "PASS",
    "G-P-MANIFEST": "PASS",
    "G-P-RECEIPTS": "PASS",
+   "G-P-UNIVERSE": "PASS",
    "G-P-VERDICTS": "PASS"
   },
   "head_hash": "c1fa24420e411a19e191b6399dafab02f568c1fe7ef766a481907c970b68becd",
-  "totalBytes": 130873
+  "totalBytes": 234682
  }
 }

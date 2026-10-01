@@ -197,6 +197,39 @@ def verify_outcomes(root=CSR, sid=SID, cal_path=CAL, price_root=PRICE):
         if not ok:
             fail(f'G-F-OUTCOME-RECOMPUTE: row mismatch {ocid[:12]}… H={h}')
     gates['G-F-OUTCOME-RECOMPUTE'] = 'PASS'
+
+    # join 可复验：labeled 域必须是 analysis×outcomes 的唯一确定性推导结果
+    ldir = labeled_dir(root, sid)
+    if (ldir / 'join_manifest.json').is_file():
+        lrows = [json.loads(x) for x in
+                 (ldir / 'analysis_labeled.jsonl').read_text().splitlines() if x.strip()]
+        jman = json.loads((ldir / 'join_manifest.json').read_text())
+        exp = []
+        for a in arows:
+            outs = sorted((o for o in rows
+                           if (o['opaque_case_id'], o['packet_id'])
+                           == (a['opaque_case_id'], a['packet_id'])),
+                          key=lambda x: x['horizon_days'])
+            if len(outs) != len(HORIZONS):
+                fail('G-F-JOIN-CONTRACT: outcome coverage incomplete at re-join')
+            for o in outs:
+                exp.append({**a, 'horizon_days': o['horizon_days'],
+                            'outcome_as_of': o['outcome_as_of'],
+                            'forward_return': o['forward_return'],
+                            'censored': o['censored'],
+                            'censor_reason': o['censor_reason']})
+        if [canon(r) for r in exp] != [canon(r) for r in lrows]:
+            fail('G-F-JOIN-CONTRACT: labeled rows are NOT the re-derived join')
+        contract_sha = sha((outcomes_dir(root, sid) /
+                            'outcome_join_contract.json').read_bytes())
+        if (jman['contract_sha256'] != contract_sha
+                or jman['n_labeled_rows'] != len(lrows)
+                or jman['n_analysis_rows'] != len(arows)
+                or jman['n_outcome_rows'] != len(rows)
+                or jman['censored'] != sum(1 for r in lrows if r['censored'])
+                or jman['join_keys'] != ['opaque_case_id', 'packet_id']):
+            fail('G-F-JOIN-CONTRACT: join manifest drift')
+    gates['G-F-JOIN-CONTRACT'] = 'PASS'
     return gates
 
 

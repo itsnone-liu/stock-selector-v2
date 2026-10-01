@@ -2,10 +2,13 @@
  "analysis": {
   "gates": {
    "G-F-CLOSED": "PASS",
+   "G-F-DERIVE": "PASS",
    "G-F-FUTURE": "PASS",
    "G-F-IDENTITY": "PASS",
    "G-F-INVERT": "PASS",
    "G-F-KEYS": "PASS",
+   "G-F-MANIFEST": "PASS",
+   "G-F-NOSYMLINK": "PASS",
    "G-F-REACH": "PASS"
   },
   "n_rows": 2,
@@ -56,6 +59,7 @@
    "files": 11
   },
   "gates": {
+   "G-F-CORPUS-ANCHORS": "PASS",
    "G-F-CORPUS-CHAIN": "PASS",
    "G-F-CORPUS-LEDGER": "PASS",
    "G-F-CORPUS-RO": "PASS",
@@ -119,6 +123,7 @@
   },
   "gates": {
    "G-F-CENSOR": "PASS",
+   "G-F-JOIN-CONTRACT": "PASS",
    "G-F-JOIN-KEYS": "PASS",
    "G-F-OUTCOME-BLIND": "PASS",
    "G-F-OUTCOME-RECOMPUTE": "PASS",
