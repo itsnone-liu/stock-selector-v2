@@ -228,6 +228,36 @@ def build_corpus(root=CSR, sid=SID):
     return ledger
 
 
+def build_corpus_table(root=CSR, sid=SID):
+    """Persist normalized one-row-per-hypothesis annotation corpus."""
+    import pyarrow as pa
+    import pyarrow.parquet as pq
+    rows = []
+    for ordinal, rev, seal in sealed_pairs(root, sid):
+        rb = Path(root) / 'c4d_receipts' / sid / f'ordinal-{ordinal:04d}' / 'attempt-0001' / 'receipt.json'
+        receipt = json.loads(rb.read_text())
+        ann = receipt.get('annotation', {})
+        packet_id = rev['payload'].get('packet_id')
+        if not packet_id:
+            packet_id = f'ordinal-{ordinal:04d}'
+        for j in ann.get('rt_judgments', []):
+            rows.append({'session_id': sid, 'reveal_ordinal': ordinal,
+                'opaque_case_id': rev['payload']['opaque_case_id'], 'T': rev['payload']['T'],
+                'packet_id': packet_id, 'packet_sha256': rev['payload']['packet_sha256'],
+                'reveal_event_hash': rev['event_hash'], 'seal_event_hash': seal['event_hash'],
+                'receipt_sha256': sha(rb.read_bytes()), 'annotation_attempt': receipt.get('annotation_attempt'),
+                'annotation_session_id': receipt.get('annotation_session_id'),
+                'hypothesis_id': j.get('hypothesis_id'), 'observability': j.get('observability'),
+                'support': j.get('support'), 'evidence_refs': json.dumps(j.get('evidence_refs', []), sort_keys=True),
+                'evidence_note': j.get('evidence_note'), 'flags': json.dumps(ann.get('flags', []), sort_keys=True),
+                'receipt_created_at': receipt.get('created_at'), 'sealed_at': seal.get('ts')})
+    out = corpus_dir(root, sid) / 'phase_c_annotation_corpus.parquet'
+    table = pa.Table.from_pylist(rows)
+    pq.write_table(table, out)
+    os.chmod(out, 0o444)
+    return {'path': out.name, 'rows': len(rows), 'columns': table.column_names, 'sha256': sha(out.read_bytes())}
+
+
 def read_ledger(root=CSR, sid=SID):
     return json.loads(ledger_path(root, sid).read_text())
 
@@ -243,7 +273,9 @@ def _corpus_gates(prefix, cdir, ledger, pairs, head, ev_count, sid,
     cdir = Path(cdir)
     on_disk = sorted(p.relative_to(cdir).as_posix()
                      for p in cdir.rglob('*') if p.is_file())
-    listed = sorted([f['path'] for f in ledger['files']] + ['ledger.json'])
+    listed = sorted([f['path'] for f in ledger['files']] + ['ledger.json']
+                    + (['phase_c_annotation_corpus.parquet']
+                       if (cdir / 'phase_c_annotation_corpus.parquet').is_file() else []))
     if on_disk != listed:
         fail(f'{prefix}-WORLD: corpus closed-world violated {on_disk} != {listed}')
     gates[f'{prefix}-WORLD'] = 'PASS'
@@ -879,6 +911,7 @@ def evidence(root=CSR, out_path=None):
     out_path = Path(out_path) if out_path else (
         ROOT / 'docs/audit/evidence/f_phase_bridge.json')
     led = build_corpus(root)
+    corpus_table = build_corpus_table(root)
     man = build_analysis(root)
     outcomes = build_outcomes(root)
     j = join(root)
@@ -911,7 +944,7 @@ def evidence(root=CSR, out_path=None):
             fail('censoring variant produced no censored rows')
     ev = {
         'run_id': 'audit_20260930021152297', 'stage': 'F',
-        'corpus': {'files': led['totals'],
+        'corpus': {'files': led['totals'], 'normalized_table': corpus_table,
                    'chain_head_hash': led['chain']['head_hash'],
                    'gates': live['corpus']},
         'analysis': {'n_rows': man['n_rows'],

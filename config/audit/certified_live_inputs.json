@@ -2,7 +2,7 @@
  "c4dProposalAllowlist": [
   "c4d_proposals/c4-prod-0002/ordinal-0002/next_reveal.proposal.json"
  ],
- "fileCount": 10561,
+ "fileCount": 10562,
  "forbiddenPrefixes": [],
  "generator": "scripts/csr8_phase_a_certify_inputs.py",
  "protectedArtifacts": [
@@ -242,7 +242,7 @@
      "path": "secret"
     }
    ],
-   "fileCount": 5320,
+   "fileCount": 5321,
    "files": [
     {
      "bytes": 1112,
@@ -32033,6 +32033,12 @@
      "sha256": "4242e4b406c0a5b8864a192bbbd9d76e4af728ece14a5593f9e262c75629ee69"
     },
     {
+     "bytes": 8350,
+     "mode": 292,
+     "path": "corpus/c4-prod-0002/phase_c_annotation_corpus.parquet",
+     "sha256": "7e16bf76cf8a92c850b5fae9bebb2268f1eb1cff6769e365777a0b085da7333d"
+    },
+    {
      "bytes": 3600,
      "mode": 292,
      "path": "freeze/c4-prod-0002/domain_freeze.json",
@@ -32166,7 +32172,7 @@
     }
    ],
    "root": "data/csr8_phase_c",
-   "totalBytes": 349501570
+   "totalBytes": 349509920
   },
   {
    "dirCount": 1,
@@ -63629,6 +63635,6 @@
    "totalBytes": 463928909
   }
  ],
- "totalBytes": 813430479,
+ "totalBytes": 813438829,
  "version": 2
 }

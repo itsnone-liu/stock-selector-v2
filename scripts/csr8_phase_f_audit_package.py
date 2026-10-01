@@ -242,6 +242,18 @@ def export(pkg=PKG, root=CSR):
         shutil.copy2(src, pkg / 'gates' / name)
     # corpus 全量字节（非仅账本）→ 包内可独立复验不可变性
     shutil.copytree(corpus_dir(root, SID), pkg / 'corpus')
+    table_path = pkg / 'corpus/phase_c_annotation_corpus.parquet'
+    if not table_path.is_file():
+        # Standalone export callers may have built the legacy corpus directly;
+        # materialize the normalized table from the persisted frozen bytes.
+        from csr8_phase_f_bridge import build_corpus_table
+        build_corpus_table(root, SID)
+        shutil.copy2(corpus_dir(root, SID) / table_path.name, table_path)
+    if not table_path.is_file():
+        fail('normalized annotation corpus parquet missing')
+    # mandated normalized table is included as a first-class artifact
+    if not (pkg / 'corpus/phase_c_annotation_corpus.parquet').is_file():
+        fail('normalized annotation corpus parquet missing')
     (pkg / 'analysis').mkdir()
     shutil.copy2(analysis_dir(root, SID) / 'analysis_manifest.json',
                  pkg / 'analysis/analysis_manifest.json')

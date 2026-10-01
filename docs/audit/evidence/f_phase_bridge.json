@@ -148,6 +148,32 @@
    "G-F-CORPUS-LEDGER": "PASS",
    "G-F-CORPUS-RO": "PASS",
    "G-F-CORPUS-WORLD": "PASS"
+  },
+  "normalized_table": {
+   "columns": [
+    "session_id",
+    "reveal_ordinal",
+    "opaque_case_id",
+    "T",
+    "packet_id",
+    "packet_sha256",
+    "reveal_event_hash",
+    "seal_event_hash",
+    "receipt_sha256",
+    "annotation_attempt",
+    "annotation_session_id",
+    "hypothesis_id",
+    "observability",
+    "support",
+    "evidence_refs",
+    "evidence_note",
+    "flags",
+    "receipt_created_at",
+    "sealed_at"
+   ],
+   "path": "phase_c_annotation_corpus.parquet",
+   "rows": 12,
+   "sha256": "7e16bf76cf8a92c850b5fae9bebb2268f1eb1cff6769e365777a0b085da7333d"
   }
  },
  "join": {
