@@ -815,6 +815,49 @@ def verify_owner_write_barrier(root=CSR, sid=SID):
     return 'PASS'
 
 
+def verify_manifest_anchor(manifest_path=None, root_map=None):
+    """§9.1 commit-anchored closed world over the certified inputs.
+
+    Closes the coordinated-rewrite path: an attacker with root can thaw the
+    domain, rewrite the normalized corpus copies AND the ledger (and even
+    the chain events they are derived from) consistently, so every internal
+    gate re-derives cleanly.  The one thing that cannot be rewritten without
+    changing the commit itself is the certified manifest pinned in git at
+    TARGET_COMMIT.  Every file under each certified root must byte-equal,
+    mode-equal and set-equal that manifest.
+    """
+    mp = (Path(manifest_path) if manifest_path else
+          ROOT / 'config/audit/certified_live_inputs.json')
+    manifest = json.loads(mp.read_text())
+    default_map = {'data/csr8_phase_c': CSR,
+                   'data/adjustment_baostock': PRICE.parent}
+    rmap = root_map if root_map is not None else default_map
+    for r in manifest['roots']:
+        label = r['root'] if isinstance(r, dict) else r
+        if label not in rmap:
+            fail(f'G-F-MANIFEST-ANCHOR: no local root bound for {label}')
+        base = Path(rmap[label])
+        if not base.is_dir():
+            fail(f'G-F-MANIFEST-ANCHOR: certified root absent: {label}')
+        m_files = {f['path'] for f in r['files']}
+        on_disk = {p.relative_to(base).as_posix()
+                   for p in base.rglob('*') if p.is_file()}
+        if on_disk != m_files:
+            extra = sorted(on_disk - m_files)[:3]
+            missing = sorted(m_files - on_disk)[:3]
+            fail(f'G-F-MANIFEST-ANCHOR: closed-world violated for {label}: '
+                 f'extra={extra} missing={missing}')
+        for f in r['files']:
+            p = base / f['path']
+            b = p.read_bytes()
+            if len(b) != f['bytes'] or sha(b) != f['sha256']:
+                fail(f'G-F-MANIFEST-ANCHOR: sha256/bytes drift: '
+                     f'{label}/{f["path"]}')
+            if stat.S_IMODE(os.stat(p).st_mode) != f['mode']:
+                fail(f'G-F-MANIFEST-ANCHOR: mode drift: {label}/{f["path"]}')
+    return 'PASS'
+
+
 ATTEMPT_ARTIFACT_NAMES = {'receipt.json', 'draft_snapshot.bin', 'seal_approval.json'}
 
 

@@ -19,9 +19,12 @@ Machine-measured on real transaction surfaces (no fixture snapshots):
 * live artifacts — the committed evidence and the live F domains re-verify
   read-only.
 """
+import hashlib
 import json
 import os
 import shutil
+import stat as stat_mod
+import subprocess
 import sys
 from pathlib import Path
 
@@ -92,13 +95,12 @@ def test_f1_domain_readonly_is_uniform_no_exempt_files(sandbox):
     """§9.1 硬条件以无例外谓词执行：G-F-DOMAIN-RO 检查每一个 annotator
     文件（含 0600 协议件）的 group/other 写位；协议件被放宽到 0640 也必须
     当场失败——不存在逃过只读判定的"例外集"。"""
-    import stat as stat_mod
     root, _, _ = sandbox
     gates = fb.verify_domain_freeze(root)
     assert set(gates.values()) == {"PASS"}
     # 每个 annotator 文件都无 group/other 写位（统一谓词，无豁免名单）
-    for p in fb.annotator_files(root):
-        assert stat_mod.S_IMODE(os.stat(p).st_mode) & 0o022 == 0, p
+    for q in fb.annotator_files(root):
+        assert stat_mod.S_IMODE(os.stat(q).st_mode) & 0o022 == 0, q
     # 协议 0600 件（旧实现的豁免集成员）被放宽 → G-F-DOMAIN-RO 失败
     exempt = fb.protocol_0600_set(root)
     proto = next(p for p in fb.annotator_files(root)
@@ -123,6 +125,56 @@ def test_f1_os_probe_attempts_every_annotator_file(sandbox):
     creates = [a for a in out["attempts"] if a.get("op") == "create"]
     assert creates and all(a["got"] == "PERMISSION_DENIED" for a in creates)
     assert all(a["got"] == "PERMISSION_DENIED" for a in writes)
+
+
+def _synth_anchor_manifest(base, label):
+    """Synthesize a certify-style manifest for an arbitrary tree (test anchor)."""
+    files = []
+    for q in sorted(Path(base).rglob("*")):
+        if q.is_file():
+            st = os.stat(q)
+            files.append({"path": q.relative_to(base).as_posix(),
+                          "bytes": st.st_size,
+                          "mode": stat_mod.S_IMODE(st.st_mode),
+                          "sha256": hashlib.sha256(q.read_bytes()).hexdigest()})
+    return {"version": 2, "roots": [{"root": label, "dirs": [], "files": files}]}
+
+
+def test_f1_manifest_anchor_defeats_coordinated_rewrite(tmp_path, sandbox):
+    """§9.1 协同改写闭合：root 攻击者解冻后同时重写规范化 corpus 副本与
+    ledger 并把全部内部哈希配平，甚至重新冻结 immutable —— 内部账本可被
+    配平，但锚定 TARGET_COMMIT 的 certified manifest 改不了，anchor 必须
+    识破（真实尝试并失败）。"""
+    root, _, _ = sandbox
+    mpath = tmp_path / "anchor_manifest.json"
+    mpath.write_text(json.dumps(_synth_anchor_manifest(root, "sandbox")))
+    assert fb.verify_manifest_anchor(mpath, {"sandbox": root}) == "PASS"
+
+    # 真实协同改写：corpus packet 字节翻转 + ledger 逐项配平
+    pkt = fb.corpus_dir(root) / "pairs/ordinal-0001/reveal_packet.json"
+    raw = pkt.read_bytes()
+    pkt.write_bytes(raw[:-1] + bytes([raw[-1] ^ 0x01]))
+    lp = fb.corpus_dir(root) / "ledger.json"
+    led = json.loads(lp.read_text())
+    ent = next(f for f in led["files"]
+               if f["path"].endswith("reveal_packet.json"))
+    ent["sha256"] = hashlib.sha256(pkt.read_bytes()).hexdigest()
+    ent["bytes"] = pkt.stat().st_size
+    led["file_hashes"] = {f["path"]: f["sha256"] for f in led["files"]}
+    led["totals"] = {"files": len(led["files"]),
+                     "bytes": sum(f["bytes"] for f in led["files"])}
+    lp.write_text(json.dumps(led, ensure_ascii=False, sort_keys=True, indent=1))
+    with pytest.raises(RuntimeError, match="G-F-MANIFEST-ANCHOR"):
+        fb.verify_manifest_anchor(mpath, {"sandbox": root})
+
+    # 攻击者再给篡改文件套上 immutable 属性：写屏障不是完整性锚，
+    # anchor 与写屏障正交，仍必须识破。
+    subprocess.run(["chattr", "+i", str(pkt)], check=True)
+    try:
+        with pytest.raises(RuntimeError, match="G-F-MANIFEST-ANCHOR"):
+            fb.verify_manifest_anchor(mpath, {"sandbox": root})
+    finally:
+        subprocess.run(["chattr", "-i", str(pkt)], check=True)
 
 
 def test_f1_corpus_bytes_bind_to_chain(sandbox):
@@ -627,9 +679,35 @@ def test_f5_live_artifacts_and_evidence_reverify_readonly():
     assert ev["corpus"]["chain_head_hash"] == head["head_hash"]
     assert set(ev["corpus"]["gates"].values()) == {"PASS"}
     assert set(ev["analysis"]["gates"].values()) == {"PASS"}
+    assert ev["analysis"]["gates"]["G-F-DOMAIN-IMMUTABLE"] == "PASS"
+    assert ev["analysis"]["gates"]["G-F-DOMAIN-OWNER-RO"] == "PASS"
     assert set(ev["outcomes"]["gates"].values()) == {"PASS"}
     assert any(c["censored"] for c in ev["outcomes"]["censoring_variant"]["rows"])
     pkgev = json.loads((ROOT / "docs/audit/evidence/"
                         "f_phase_audit_package.json").read_text())
     assert pkgev["verify"]["all_pass"]
     assert pkgev["verify"]["head_hash"] == head["head_hash"]
+
+
+def test_f5_write_barrier_reproducible_at_target_commit():
+    """§9.1 在精确 TARGET_COMMIT 上可复验的真实强制证明：对 certifiied
+    树施加域冻结（immutable）后，owner/root 对每个 annotator 文件的真实
+    append 写入必须全部失败，且全树 byte/mode/set 等于 commit 锚定的
+    certified manifest（协同改写路径闭合）。桥物化树同样可复跑。"""
+    if not (fb.CSR / "corpus" / SID / "ledger.json").is_file():
+        pytest.skip("live F artifacts not built yet")
+    files = fb.annotator_files(fb.CSR)
+    initially_immutable = fb._is_immutable(files[0])
+    assert fb.set_annotator_immutable(fb.CSR) == len(files)
+    assert fb.verify_annotator_immutable(fb.CSR) == "PASS"
+    # 真实 owner append 尝试：每个 annotator 文件都必须拒绝
+    assert fb.verify_owner_write_barrier(fb.CSR) == "PASS"
+    # commit 锚定：certified 树与 TARGET_COMMIT 内 manifest 完全一致
+    assert fb.verify_manifest_anchor() == "PASS"
+    # 恢复原状态：live 终态保持 immutable；桥物化树恢复初态（可变）
+    r = subprocess.run(["chattr", "-i", *[str(p) for p in files]],
+                       capture_output=True, text=True)
+    assert r.returncode == 0, r.stderr[:200]
+    if initially_immutable:
+        assert fb.set_annotator_immutable(fb.CSR) == len(files)
+    assert set(fb.verify_corpus(fb.CSR).values()) == {"PASS"}
