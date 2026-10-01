@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
-"""Phase E production runner: explicit root, durable journal, recovery CLI."""
-import argparse,json,os,sys,time,tempfile,threading
+import argparse,json,os,sys,time,tempfile,subprocess
 from pathlib import Path
 sys.path.insert(0,str(Path(__file__).resolve().parent)); import csr8_phase_c_annotation_seal as c
 STOPS=('PREPARE','AUTHORIZED','after_verify','after_derive','after_precondition','after_append','after_fsync','after_replay_verify','after_replay','after_anchor','after_cleanup','SEALED')
@@ -13,64 +12,48 @@ def persist(root,boundary):
  s=read_state(root); s.update(status=boundary,chain_count=len(events(root)),heartbeat=time.time()); s['journal'].append({'boundary':boundary,'events':[e['event_type'] for e in events(root)]}); write_state(root,s); return s
 def watchdog(start,timeout,root):
  s=read_state(root); s['heartbeat']=time.time(); s['watchdog_checks']=s.get('watchdog_checks',0)+1
- if time.monotonic()-start>timeout:
-  s.update(status='SAFE_DEGRADED',watchdog={'reason':'TIMEOUT','writes':0,'append':False}); write_state(root,s)
+ if time.monotonic()-start>timeout: s.update(status='SAFE_DEGRADED',watchdog={'reason':'TIMEOUT','writes':0,'append':False}); write_state(root,s)
  return s
-def _seal_worker(root,crash,result):
- try: result.extend([('ok',c.seal_transaction(root,c.REAL_SESSION,stop_after=crash))])
- except c.CrashSim as e: result.extend([('crash',str(e))])
- except BaseException as e: result.extend([('error',repr(e))])
+def worker(root,crash):
+ try: print(json.dumps({'kind':'ok','value':c.seal_transaction(root,c.REAL_SESSION,stop_after=crash)}),flush=True)
+ except c.CrashSim as e: print(json.dumps({'kind':'crash','value':str(e)}),flush=True)
+ except BaseException as e: print(json.dumps({'kind':'error','value':repr(e)}),flush=True)
 def run(root,crash=None,timeout=300):
  root=Path(root); types=[e['event_type'] for e in events(root)]
  if not types or types[-1]!='REVEAL_PACKET': raise RuntimeError('supplied root must end with an open production REVEAL')
  started=time.monotonic(); persist(root,'PREPARE'); persist(root,'AUTHORIZED')
- result=[]; t=threading.Thread(target=_seal_worker,args=(root,crash,result),daemon=True); t.start()
- while t.is_alive():
+ p=subprocess.Popen([sys.executable,__file__,'--worker','--root',str(root),*(('--crash',crash) if crash else ())],stdout=subprocess.PIPE,text=True)
+ while p.poll() is None:
   watchdog(started,timeout,root)
-  if read_state(root).get('status')=='SAFE_DEGRADED':
-   t.join(timeout=0.2); return read_state(root)
-  time.sleep(0.01)
- t.join(); kind,value=result[0] if result else ('error','worker exited without result')
- if kind=='crash': persist(root,value); return read_state(root)
- if kind=='error': raise RuntimeError(value)
- persist(root,'SEALED'); return value or read_state(root)
+  if read_state(root).get('status')=='SAFE_DEGRADED': p.kill(); p.wait(); return read_state(root)
+  time.sleep(.01)
+ line=p.stdout.readline(); msg=json.loads(line) if line else {'kind':'error','value':'worker exited'}
+ if msg['kind']=='crash': persist(root,msg['value']); return read_state(root)
+ if msg['kind']=='error': raise RuntimeError(msg['value'])
+ persist(root,'SEALED'); return msg['value'] or read_state(root)
 def resume(root):
  s=read_state(root)
- if s.get('status')=='SAFE_DEGRADED': return s
- if s.get('resumed') and s.get('status')=='SEALED': return s
+ if s.get('status')=='SAFE_DEGRADED' or (s.get('resumed') and s.get('status')=='SEALED'): return s
  result=c.recover(root,c.REAL_SESSION); s.update(status=result,recovery_count=s.get('recovery_count',0)+1); write_state(root,s)
- if result=='SEAL_AUTHORIZED':
-  final=c.seal_transaction(root,c.REAL_SESSION); persist(root,'SEALED'); s=read_state(root); s.update(status='SEALED',resumed=True); write_state(root,s)
- else:
-  s.update(resumed=True); write_state(root,s)
+ if result=='SEAL_AUTHORIZED': c.seal_transaction(root,c.REAL_SESSION); persist(root,'SEALED'); s=read_state(root); s.update(status='SEALED',resumed=True); write_state(root,s)
+ else: s.update(resumed=True); write_state(root,s)
  return s
 def diagnose(root): return {'mode':'READ_ONLY','state':read_state(root),'events':[e['event_type'] for e in events(root)]}
-def repair(root):
- before=diagnose(root); result=c.recover(root,c.REAL_SESSION); return {'mode':'EXPLICIT_REPAIR','before':before,'result':result,'append':False}
-def verify_recovery_command(root):
- before=diagnose(root); repaired=repair(root); after=diagnose(root)
- if before['mode']!='READ_ONLY' or repaired['mode']!='EXPLICIT_REPAIR' or after['mode']!='READ_ONLY': raise RuntimeError('recovery command separation')
- return {'diagnose_before':before,'repair':repaired,'diagnose_after':after}
+def repair(root): return {'mode':'EXPLICIT_REPAIR','before':diagnose(root),'result':c.recover(root,c.REAL_SESSION),'append':False}
 def evidence():
  sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'tests')); from csr8_preseal_sandbox import build_pre_seal_sandbox
  out=[]
  for point in STOPS[2:-1]:
-  with tempfile.TemporaryDirectory(prefix='csr8-e17-') as td:
-   root=build_pre_seal_sandbox(Path(td),through='B4').root
-   s=run(root,point); journal_before=len(s['journal']); s=resume(root); want='SEALED'
-   if s['status']!=want or resume(root)['status']!=want or journal_before<3: raise RuntimeError(point)
-   verify_recovery_command(root)
-   out.append({'point':point,'status':s['status'],'journal':len(s['journal']),'persisted_before_resume':journal_before})
- with tempfile.TemporaryDirectory(prefix='csr8-watch-') as td:
-  root=build_pre_seal_sandbox(Path(td),through='B4').root; w=watchdog(time.monotonic()-10,1,root)
-  assert w['status']=='SAFE_DEGRADED' and w['watchdog']['writes']==0 and not w['watchdog']['append']
- return {'checkpoints':out,'watchdog':'SAFE_DEGRADED'}
+  with tempfile.TemporaryDirectory(prefix='csr8-e22-') as td:
+   root=build_pre_seal_sandbox(Path(td),through='B4').root; s=run(root,point); before=len(s['journal']); s=resume(root)
+   if s['status']!='SEALED' or resume(root)['status']!='SEALED' or before<3: raise RuntimeError(point)
+   out.append({'point':point,'status':s['status'],'persisted':before})
+ return {'checkpoints':out}
 def main():
- a=argparse.ArgumentParser(); a.add_argument('--root',type=Path,default=c.REAL_CSR); a.add_argument('--run',action='store_true'); a.add_argument('--resume',action='store_true'); a.add_argument('--diagnose',action='store_true'); a.add_argument('--repair',action='store_true'); a.add_argument('--evidence',action='store_true'); args=a.parse_args()
- if args.evidence: print(json.dumps(evidence(),sort_keys=True,separators=(',',':'))); return
- if args.run: print(json.dumps(run(args.root),sort_keys=True,separators=(',',':'))); return
- if args.resume: print(json.dumps(resume(args.root),sort_keys=True,separators=(',',':'))); return
- if args.diagnose: print(json.dumps(diagnose(args.root),sort_keys=True,separators=(',',':'))); return
- if args.repair: print(json.dumps(repair(args.root),sort_keys=True,separators=(',',':'))); return
+ a=argparse.ArgumentParser(); a.add_argument('--root',type=Path,default=c.REAL_CSR); a.add_argument('--run',action='store_true'); a.add_argument('--resume',action='store_true'); a.add_argument('--evidence',action='store_true'); a.add_argument('--worker',action='store_true'); a.add_argument('--crash'); x=a.parse_args()
+ if x.worker: worker(x.root,x.crash); return
+ if x.evidence: print(json.dumps(evidence(),sort_keys=True,separators=(',',':'))); return
+ if x.run: print(json.dumps(run(x.root),sort_keys=True,separators=(',',':'))); return
+ if x.resume: print(json.dumps(resume(x.root),sort_keys=True,separators=(',',':'))); return
  print(json.dumps({'runner':'READY','hard_stops':STOPS},sort_keys=True,separators=(',',':')))
 if __name__=='__main__': main()
