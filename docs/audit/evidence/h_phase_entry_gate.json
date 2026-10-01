@@ -24,7 +24,7 @@
   "verified_protected_artifacts": 11,
   "verified_root_entries": 5326
  },
- "created_at": "2026-10-01T22:29:28Z",
+ "created_at": "2026-10-01T22:52:13Z",
  "declaration_note": "进入 H1 的许可是 independent reviewer 的 PHASE_ENTRY APPROVE；执行者只承载机器实测。",
  "entry_gate": {
   "authority": {
@@ -156,7 +156,7 @@
  "host_id": "RainYun-c438TDGn",
  "identity_access_note": "no identity resolver touched; opaque ids and one-way packet commitments only",
  "identity_accessed": false,
- "iteration": 5,
+ "iteration": 6,
  "operation": "PHASE_ENTRY",
  "outcome_read_policy": {
   "in_process_guarantee": "a dynamic ForbiddenReadGuard intercepts every in-process file open during command execution and fails closed (G-H0-FORBIDDEN-READ) on any read under outcomes/ or analysis_labeled/",
@@ -200,10 +200,11 @@
    },
    "sessions_scanned": 104,
    "storage_probe": {
-    "executor_cannot_write_or_edit_transcripts": true,
+    "executor_cannot_write_or_edit_transcripts": null,
     "path": "/root/.dsh/sessions",
-    "result": "DENIED (workspace-write file sandbox)",
-    "write_attempt": "O_CREAT|O_WRONLY probe"
+    "read_only_attribution_checks": true,
+    "result": "NOT A SECURITY BOUNDARY; external harness/auditor owns storage integrity",
+    "write_attempt": "NOT PERFORMED"
    },
    "transcript_sha256_allowlist": [
     "1cbf12171bf8c25971d7245e232a0e19248c45bd093159f978ba240c71b96e42"

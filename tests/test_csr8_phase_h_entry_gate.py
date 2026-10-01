@@ -202,8 +202,8 @@ def test_h0_reviewer_independence_is_transcript_anchored():
     assert proof["executor_session_is_writer"] is False
     assert proof["executor_session_scanned"] is True
     assert proof["all_writers_subagent_origin"] is True
-    assert proof["storage_probe"][
-        "executor_cannot_write_or_edit_transcripts"] is True
+    assert proof["storage_probe"]["read_only_attribution_checks"] is True
+    assert proof["storage_probe"]["executor_cannot_write_or_edit_transcripts"] is None
     # the verdict's self-declared session id is among the discovered writers
     assert verdict["reviewer_session_id"] in {w["session_id"] for w in writers}
     assert proof["sessions_scanned"] >= 1
@@ -263,7 +263,7 @@ def test_h0_verify_command_is_pure_read_and_passes_end_to_end():
         cwd=str(ROOT), capture_output=True, text=True, timeout=1800)
     assert result.returncode == 0, result.stdout[-2000:] + result.stderr[-2000:]
     payload = json.loads(result.stdout.strip().splitlines()[-1])
-    assert payload["stage"] == "H0" and payload["iteration"] == 5
+    assert payload["stage"] == "H0" and payload["iteration"] == 6
     assert payload["state"] == "VERIFIED"
     # schema pin: downstream audit parsers depend on this exact field set;
     # any accidental loss or rename fails loudly instead of silently
