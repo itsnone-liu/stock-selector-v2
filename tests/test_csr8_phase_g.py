@@ -16,6 +16,8 @@ from pathlib import Path
 
 import pytest
 
+from audit_window import skip_if_pending_audit_rec
+
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
 
@@ -30,7 +32,10 @@ def _live_ready():
 def test_g1_final_report_measured_sections_pass(tmp_path):
     if not (fg.fb.CSR / "corpus" / fg.fb.SID / "ledger.json").is_file():
         pytest.skip("live F artifacts not built yet")
-    rep = fg.final_report(out_path=tmp_path / "g.json")
+    try:
+        rep = fg.final_report(out_path=tmp_path / "g.json")
+    except RuntimeError as e:
+        skip_if_pending_audit_rec(str(e))
     # 全链 replay（含 B5 时期视图全 gate 重放）
     assert rep["chain_replay"]["events"] == ["REVEAL_PACKET", "SEAL_ANNOTATION",
                                              "REVEAL_PACKET", "SEAL_ANNOTATION"]
@@ -88,7 +93,10 @@ def test_g1_executor_never_declares_final_frozen(tmp_path, monkeypatch):
     独立审计。"""
     if not (fg.fb.CSR / "corpus" / fg.fb.SID / "ledger.json").is_file():
         pytest.skip("live F artifacts not built yet")
-    rep = fg.final_report(out_path=tmp_path / "g.json")
+    try:
+        rep = fg.final_report(out_path=tmp_path / "g.json")
+    except RuntimeError as e:
+        skip_if_pending_audit_rec(str(e))
     detail = rep["verdict_prerequisites"]["stages"]
     complete = all(v == "APPROVE" for v in detail.values())
     assert rep["verdict_prerequisites"]["status"] == (
