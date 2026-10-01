@@ -44,6 +44,9 @@ def sandbox(tmp_path):
     root, price_root, cal = fb.make_post_c6_sandbox(tmp_path)
     fb.build_corpus(root)
     fb.build_analysis(root)
+    fo.build_outcomes(root, cal_path=cal, price_root=price_root)
+    fo.join(root)
+    fb.enforce_domain_modes(root, price_root=price_root)
     return root, price_root, cal
 
 

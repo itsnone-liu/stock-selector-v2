@@ -3,16 +3,100 @@
   "gates": {
    "G-F-CLOSED": "PASS",
    "G-F-DERIVE": "PASS",
+   "G-F-DOMAIN-PRIVATE": "PASS",
+   "G-F-DOMAIN-RO": "PASS",
+   "G-F-FREEZE-LEDGER": "PASS",
    "G-F-FUTURE": "PASS",
    "G-F-IDENTITY": "PASS",
    "G-F-INVERT": "PASS",
    "G-F-KEYS": "PASS",
    "G-F-MANIFEST": "PASS",
    "G-F-NOSYMLINK": "PASS",
+   "G-F-OSBOUNDARY": "PASS",
    "G-F-REACH": "PASS"
   },
   "n_rows": 2,
   "penetration_attempts": [
+   {
+    "attempt": "OS boundary allowed-read",
+    "expect": "OK",
+    "got": "OK",
+    "kind": "allowed-read",
+    "ok": true,
+    "op": "read",
+    "path": "/root/project/workspace/stock-selector-v2/data/csr8_phase_c/analysis/c4-prod-0002/analysis_rows.jsonl",
+    "uid": 65534
+   },
+   {
+    "attempt": "OS boundary allowed-read",
+    "expect": "OK",
+    "got": "OK",
+    "kind": "allowed-read",
+    "ok": true,
+    "op": "read",
+    "path": "/root/project/workspace/stock-selector-v2/data/csr8_phase_c/corpus/c4-prod-0002/ledger.json",
+    "uid": 65534
+   },
+   {
+    "attempt": "OS boundary secret-read",
+    "expect": "PERMISSION_DENIED",
+    "got": "PERMISSION_DENIED",
+    "kind": "secret-read",
+    "ok": true,
+    "op": "read",
+    "path": "/root/project/workspace/stock-selector-v2/data/csr8_phase_c/secret/secret_salt",
+    "uid": 65534
+   },
+   {
+    "attempt": "OS boundary outcome-read",
+    "expect": "PERMISSION_DENIED",
+    "got": "PERMISSION_DENIED",
+    "kind": "outcome-read",
+    "ok": true,
+    "op": "read",
+    "path": "/root/project/workspace/stock-selector-v2/data/csr8_phase_c/outcomes/c4-prod-0002/outcomes.jsonl",
+    "uid": 65534
+   },
+   {
+    "attempt": "OS boundary labeled-read",
+    "expect": "PERMISSION_DENIED",
+    "got": "PERMISSION_DENIED",
+    "kind": "labeled-read",
+    "ok": true,
+    "op": "read",
+    "path": "/root/project/workspace/stock-selector-v2/data/csr8_phase_c/analysis_labeled/c4-prod-0002/analysis_labeled.jsonl",
+    "uid": 65534
+   },
+   {
+    "attempt": "OS boundary identity-read",
+    "expect": "PERMISSION_DENIED",
+    "got": "PERMISSION_DENIED",
+    "kind": "identity-read",
+    "ok": true,
+    "op": "read",
+    "path": "/root/project/workspace/stock-selector-v2/data/adjustment_baostock/per_stock/sh.601328.json.gz",
+    "uid": 65534
+   },
+   {
+    "attempt": "OS boundary corpus-write",
+    "expect": "PERMISSION_DENIED",
+    "got": "PERMISSION_DENIED",
+    "kind": "corpus-write",
+    "ok": true,
+    "op": "write",
+    "path": "/root/project/workspace/stock-selector-v2/data/csr8_phase_c/corpus/c4-prod-0002/pairs/ordinal-0001/reveal_packet.json",
+    "uid": 65534
+   },
+   {
+    "attempt": "OS boundary annotator-write",
+    "expect": "PERMISSION_DENIED",
+    "got": "PERMISSION_DENIED",
+    "kind": "annotator-write",
+    "ok": true,
+    "op": "write",
+    "path": "/root/project/workspace/stock-selector-v2/data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0002/annotation_draft.json",
+    "uid": 65534
+   },
    {
     "attempt": "forbidden-key presence (nested walk)",
     "found": [],

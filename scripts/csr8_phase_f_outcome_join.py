@@ -16,6 +16,7 @@ import gzip
 import hashlib
 import hmac
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -134,6 +135,8 @@ def build_outcomes(root=CSR, sid=SID, cal_path=CAL, price_root=PRICE,
     }
     (odir / 'outcome_join_contract.json').write_text(
         json.dumps(contract, ensure_ascii=False, sort_keys=True, indent=1))
+    for fp_ in (odir / 'outcomes.jsonl', odir / 'outcome_join_contract.json'):
+        os.chmod(fp_, 0o400)
     return {'contract': contract, 'rows': rows}
 
 
@@ -267,6 +270,8 @@ def join(root=CSR, sid=SID):
     }
     (ldir / 'join_manifest.json').write_text(
         json.dumps(manifest, ensure_ascii=False, sort_keys=True, indent=1))
+    for fp_ in (ldir / 'analysis_labeled.jsonl', ldir / 'join_manifest.json'):
+        os.chmod(fp_, 0o400)
     return {'manifest': manifest, 'rows': labeled}
 
 

@@ -19,7 +19,9 @@ verify() 只依赖包内字节独立复验：冻结 SealingLog replay、receipt/
 import argparse
 import hashlib
 import json
+import re
 import shutil
+import subprocess
 import sys
 from pathlib import Path
 
@@ -107,6 +109,8 @@ def check_verdict_chain(lines, allow_stages=None):
     prev, stages = '0' * 64, []
     for ln in lines:
         rec = json.loads(ln)
+        if rec.get('commit') is not None and not re.fullmatch(r'[0-9a-f]{40}', rec['commit']):
+            fail('verdict commit is not a full 40-hex git object')
         if rec['prev_sha256'] != prev:
             fail('verdicts hash chain broken (history rewrite detected)')
         if canon(rec) != ln:
@@ -119,8 +123,36 @@ def check_verdict_chain(lines, allow_stages=None):
     return json.loads(lines[-1])
 
 
+def derive_verdict_history():
+    """从真实 git commit 对象解析完整 stage-final 历史（不接受短 hash）。"""
+    out = []
+    for v in VERDICT_HISTORY:
+        rec = {k: v[k] for k in ('stage', 'iteration', 'verdict', 'source')}
+        short = v.get('commit')
+        if short:
+            q = subprocess.run(['git', '-C', str(ROOT), 'rev-parse', short],
+                               capture_output=True, text=True)
+            if q.returncode or not q.stdout.strip().startswith(short):
+                fail(f'git history missing commit {short}')
+            full = q.stdout.strip()
+            s = subprocess.run(['git', '-C', str(ROOT), 'show', '-s',
+                                '--format=%s', full], capture_output=True,
+                               text=True, check=True).stdout.strip()
+            anc = subprocess.run(['git', '-C', str(ROOT), 'merge-base',
+                                  '--is-ancestor', full, 'HEAD'])
+            if anc.returncode:
+                fail(f'commit is not an ancestor of current audit tree: {full}')
+            rec['commit'] = full
+            rec['commit_subject'] = s
+        else:
+            rec['commit'] = None
+            rec['commit_subject'] = None
+        out.append(rec)
+    return out
+
+
 def load_or_bootstrap_verdicts():
-    """durable 审计历史：首次 bootstrap，此后只读 + 断链即失败。"""
+    """durable 审计历史：首次从 git bootstrap，此后只读 + 断链即失败。"""
     if DURABLE_VERDICTS.is_file():
         lines = DURABLE_VERDICTS.read_text().splitlines()
         last = check_verdict_chain(lines)
@@ -128,7 +160,7 @@ def load_or_bootstrap_verdicts():
             fail('durable verdicts missing the F stage entry')
         return lines
     lines, prev = [], '0' * 64
-    for v in VERDICT_HISTORY:
+    for v in derive_verdict_history():
         ln = _verdict_line(v, prev)
         prev = sha(ln.encode())
         lines.append(ln)

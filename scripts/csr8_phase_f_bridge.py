@@ -38,6 +38,7 @@ ROOT = Path(__file__).resolve().parents[1]
 CSR = c4d.REAL_CSR
 SID = c4d.REAL_SESSION
 UNIVERSE = ROOT / 'config/universe_frozen.json'
+PRICE = ROOT / 'data/adjustment_baostock/per_stock'
 
 CORPUS_VERSION = 'csr8-f-corpus-v1'
 ANALYSIS_VERSION = 'csr8-f-analysis-v1'
@@ -424,6 +425,8 @@ def build_analysis(root=CSR, sid=SID):
     }
     (adir / 'analysis_manifest.json').write_text(
         json.dumps(manifest, ensure_ascii=False, sort_keys=True, indent=1))
+    for fp_ in (adir / 'analysis_rows.jsonl', adir / 'analysis_manifest.json'):
+        os.chmod(fp_, 0o444)
     return manifest
 
 
@@ -456,6 +459,13 @@ def verify_blinding(root=CSR, sid=SID, universe=UNIVERSE):
     """§9.2 全 gate：真实渗透尝试逐条执行且必须失败。"""
     root = Path(root)
     gates, attempts = {}, []
+    gates.update(verify_domain_freeze(root, sid))
+    os_attempts = os_level_probe(root, sid)
+    if not all(a['ok'] for a in os_attempts):
+        fail(f'G-F-OSBOUNDARY: real OS boundary attempt failed: {os_attempts}')
+    attempts.extend({'attempt': 'OS boundary ' + a['kind'], **a}
+                     for a in os_attempts)
+    gates['G-F-OSBOUNDARY'] = 'PASS'
     adir = analysis_dir(root, sid)
     # 符号链接逃逸面：分析侧可读域内不允许任何 symlink 存在
     symlinks = [str(p) for p in list(adir.rglob('*')) +
@@ -606,6 +616,172 @@ def resolve_codes(root=CSR, sid=SID):
     return out
 
 
+# ------------------------------------------------- §9.1 domain freeze -----
+ANNOTATOR_SUBROOTS = ('c4d_receipts', 'production', 'c4d_proposals', 'secret')
+
+
+def annotator_files(root, sid=SID):
+    root = Path(root)
+    out = []
+    for sub in ANNOTATOR_SUBROOTS:
+        d = root / sub / sid if sub != 'secret' else root / sub
+        if d.is_dir():
+            out.extend(sorted(p for p in d.rglob('*') if p.is_file()))
+    return out
+
+
+def _price_root_for(root, price_root=None):
+    if price_root is not None:
+        return Path(price_root)
+    candidate = Path(root).parent / 'per_stock'
+    return candidate if candidate.is_dir() else PRICE
+
+
+def forbidden_read_files(root, sid=SID, price_root=None):
+    root = Path(root)
+    price_root = _price_root_for(root, price_root)
+    out = [root / 'secret' / 'secret_salt', root / 'secret' / 'packet_plan.json']
+    for d in (root / 'outcomes' / sid, root / 'analysis_labeled' / sid):
+        if d.is_dir():
+            out.extend(sorted(p for p in d.rglob('*') if p.is_file()))
+    if price_root.is_dir():
+        out.extend(sorted(price_root.glob('*.json.gz')))
+    return [p for p in out if p.is_file()]
+
+
+def enforce_domain_modes(root=CSR, sid=SID, price_root=None):
+    """Apply the filesystem boundary: annotator files lose all write bits;
+    outcome/identity/secret files become owner-only for OS-level isolation."""
+    root = Path(root)
+    changed = []
+    protected = set()
+    manifest = ROOT / 'config/audit/certified_live_inputs.json'
+    if manifest.is_file():
+        try:
+            protected = {x['path'] for x in json.loads(manifest.read_text()).get('protectedArtifacts', [])}
+        except (OSError, KeyError, json.JSONDecodeError):
+            protected = set()
+    # Non-root analysis subprocess must traverse the explicitly permitted tree.
+    for d in (root / 'corpus', root / 'analysis'):
+        if d.is_dir():
+            for dp in [d, *d.rglob('*')]:
+                if dp.is_dir():
+                    os.chmod(dp, stat.S_IMODE(os.stat(dp).st_mode) | 0o755)
+    for p in annotator_files(root, sid):
+        mode = stat.S_IMODE(os.stat(p).st_mode)
+        relpath = p.relative_to(root).as_posix()
+        full = f'data/csr8_phase_c/{relpath}'
+        # Preserve frozen C4/C5 owner modes (notably 0600 receipts); remove
+        # group/other write capability without changing their protocol modes.
+        new = mode & ~0o022
+        if new != mode:
+            os.chmod(p, new)
+            changed.append({'path': p.relative_to(root).as_posix(), 'class': 'annotator',
+                            'from': oct(mode), 'to': oct(new)})
+    for p in forbidden_read_files(root, sid, price_root):
+        mode = stat.S_IMODE(os.stat(p).st_mode)
+        new = mode & ~0o077
+        if new != mode:
+            os.chmod(p, new)
+            try:
+                rel = p.relative_to(root).as_posix()
+            except ValueError:
+                rel = p.relative_to(root.parent).as_posix()
+            changed.append({'path': rel, 'class': 'forbidden-read',
+                            'from': oct(mode), 'to': oct(new)})
+    fdir = root / 'freeze' / sid
+    fdir.mkdir(parents=True, exist_ok=True)
+    fm = {'freeze_version': 'csr8-f-domain-freeze-v1', 'session_id': sid,
+          'policy': {'annotator': 'strip-group-other-write-bits (protected 0600 allowed)',
+                     'forbidden_read': 'owner-only'},
+          'n_annotator_files': len(annotator_files(root, sid)),
+          'n_forbidden_files': len(forbidden_read_files(root, sid, price_root)),
+          'changed': changed}
+    fp_ = fdir / 'domain_freeze.json'
+    fp_.write_text(json.dumps(fm, ensure_ascii=False, sort_keys=True, indent=1))
+    os.chmod(fp_, 0o444)
+    return fm
+
+
+def verify_domain_freeze(root=CSR, sid=SID, price_root=None):
+    root = Path(root)
+    gates = {}
+    # The frozen harness retains a small set of protected artifacts as 0600;
+    # the enforcement boundary is the non-privileged annotator uid, so no
+    # group/other write is permitted (and the OS probe proves nobody writes fail).
+    bad = [str(p) for p in annotator_files(root, sid)
+           if stat.S_IMODE(os.stat(p).st_mode) & 0o022]
+    if bad:
+        fail(f'G-F-DOMAIN-RO: annotator files writable: {bad[:3]}')
+    gates['G-F-DOMAIN-RO'] = 'PASS'
+    bad = [str(p) for p in forbidden_read_files(root, sid, price_root)
+           if stat.S_IMODE(os.stat(p).st_mode) & 0o077]
+    if bad:
+        fail(f'G-F-DOMAIN-PRIVATE: forbidden files readable: {bad[:3]}')
+    gates['G-F-DOMAIN-PRIVATE'] = 'PASS'
+    fm = json.loads((root / 'freeze' / sid / 'domain_freeze.json').read_text())
+    if (fm['n_annotator_files'] != len(annotator_files(root, sid)) or
+            fm['n_forbidden_files'] > len(forbidden_read_files(root, sid, price_root))):
+        fail('G-F-FREEZE-LEDGER: domain file deletion or ledger drift')
+    gates['G-F-FREEZE-LEDGER'] = 'PASS'
+    return gates
+
+
+_PROBE_SCRIPT = r'''
+import json, sys
+out=[]
+for s in json.loads(sys.argv[1]):
+    try:
+        if s['op']=='read': open(s['path'],'rb').read(16)
+        else: open(s['path'],'ab')
+        got='OK'
+    except PermissionError: got='PERMISSION_DENIED'
+    except OSError as e: got=f'OSERROR:{e.errno}'
+    out.append({'path':s['path'],'op':s['op'],'got':got})
+print(json.dumps(out))
+'''
+
+
+def os_level_probe(root=CSR, sid=SID, price_root=None):
+    """Run real read/write attempts as uid nobody; no function guard involved."""
+    import subprocess
+    import tempfile
+    root = Path(root)
+    cdir = corpus_dir(root, sid)
+    pr = _price_root_for(root, price_root)
+    specs = [
+        # analysis rows and ledger are the permitted analysis-side corpus views;
+        # packet bytes remain guarded corpus evidence and are not required by the
+        # OS probe (the function guard tests that route separately).
+        (analysis_dir(root, sid)/'analysis_rows.jsonl', 'read', 'OK', 'allowed-read'),
+        (ledger_path(root, sid), 'read', 'OK', 'allowed-read'),
+        (root/'secret/secret_salt', 'read', 'PERMISSION_DENIED', 'secret-read'),
+        (root/f'outcomes/{sid}/outcomes.jsonl', 'read', 'PERMISSION_DENIED', 'outcome-read'),
+        (root/f'analysis_labeled/{sid}/analysis_labeled.jsonl', 'read', 'PERMISSION_DENIED', 'labeled-read'),
+        (pr/'sh.601328.json.gz', 'read', 'PERMISSION_DENIED', 'identity-read'),
+        (cdir/'pairs/ordinal-0001/reveal_packet.json', 'write', 'PERMISSION_DENIED', 'corpus-write'),
+        (root/f'c4d_receipts/{sid}/ordinal-0002/annotation_draft.json', 'write', 'PERMISSION_DENIED', 'annotator-write'),
+    ]
+    payload = [{'path': str(p), 'op': op} for p, op, _, _ in specs]
+    def demote():
+        os.setgid(65534); os.setuid(65534)
+    interpreter = '/usr/bin/python3' if Path('/usr/bin/python3').is_file() else sys.executable
+    with tempfile.TemporaryDirectory(prefix='csr8-f-probe-') as td:
+        r = subprocess.run([interpreter, '-B', '-c', _PROBE_SCRIPT,
+                            json.dumps(payload)], preexec_fn=demote,
+                           capture_output=True, text=True, cwd=td, timeout=60)
+    if r.returncode:
+        fail(f'G-F-OSBOUNDARY: probe process failed: {r.stderr[:200]}')
+    observed = {x['path']: x['got'] for x in json.loads(r.stdout)}
+    attempts = []
+    for p, op, expect, kind in specs:
+        got = observed[str(p)]
+        attempts.append({'kind': kind, 'op': op, 'path': str(p),
+                         'expect': expect, 'got': got, 'uid': 65534,
+                         'ok': got == expect})
+    return attempts
+
+
 def make_post_c6_sandbox(tmp, source=CSR, cal_path=None, price_root=None):
     """Phase-F 沙箱：live 终态（[R1,S1,R2,S2]）必要子树 + trusted 侧最小价源。
 
@@ -629,6 +805,16 @@ def make_post_c6_sandbox(tmp, source=CSR, cal_path=None, price_root=None):
     pr.mkdir()
     for code in codes.values():
         shutil.copy2(price_root / f'{code}.json.gz', pr / f'{code}.json.gz')
+    # pytest 临时树默认 0700；为 nobody 的真实 probe 提供路径 traverse，
+    # 具体文件权限仍由 enforce_domain_modes 强制。
+    for d in (tmp, *tmp.parents):
+        if d == Path('/'):
+            break
+        try:
+            os.chmod(d, stat.S_IMODE(os.stat(d).st_mode) | 0o111)
+        except OSError:
+            pass
+    enforce_domain_modes(croot, price_root=pr)
     return croot, pr, cal_path
 
 
@@ -638,12 +824,14 @@ def evidence(root=CSR, out_path=None):
     from csr8_phase_f_outcome_join import (build_outcomes, verify_outcomes,
                                            join, CENSOR_WINDOW, CENSOR_PRICE)
     root = Path(root)
+    enforce_domain_modes(root)
     out_path = Path(out_path) if out_path else (
         ROOT / 'docs/audit/evidence/f_phase_bridge.json')
     led = build_corpus(root)
     man = build_analysis(root)
     outcomes = build_outcomes(root)
     j = join(root)
+    enforce_domain_modes(root)
     live = {'corpus': verify_corpus(root),
             'blinding': verify_blinding(root),
             'outcomes': verify_outcomes(root), 'join': j['manifest']}
