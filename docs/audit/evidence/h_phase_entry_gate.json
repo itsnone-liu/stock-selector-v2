@@ -24,7 +24,7 @@
   "verified_protected_artifacts": 11,
   "verified_root_entries": 5318
  },
- "created_at": "2026-10-01T21:55:44Z",
+ "created_at": "2026-10-01T22:01:31Z",
  "declaration_note": "进入 H1 的许可是 independent reviewer 的 PHASE_ENTRY APPROVE；执行者只承载机器实测。",
  "entry_gate": {
   "authority": {
@@ -254,6 +254,41 @@
    "sha256": "c6143d4ca67ffd9c39166f998675d199d7c41602cb73a36cd4f3e4bb0dae81b8"
   },
   "version": "v1.1"
+ },
+ "taskbook_checklist": {
+  "G5": "BLOCKED",
+  "XP": "BLOCKED_FOR_PIT",
+  "authorization1": "CONSUMED",
+  "authorization2": "CONSUMED",
+  "c2_full_replay": "PASS",
+  "campaign_id": "hc-46195669974db3b25610bef4d047d927",
+  "campaign_manifest": "PERSISTED",
+  "candidate_prefix": 2,
+  "chain_sequence": [
+   "REVEAL_PACKET",
+   "SEAL_ANNOTATION",
+   "REVEAL_PACKET",
+   "SEAL_ANNOTATION"
+  ],
+  "forensic_findings": 0,
+  "forensic_state": "NONE",
+  "frozen_infra_zero_drift": "PASS",
+  "marker_bound_to_freeze_commit": "PASS",
+  "open_reveals": 0,
+  "ordinal1_history": "PASS",
+  "ordinal2_history": "PASS",
+  "ordinal3_proposal_staged": true,
+  "production_infra_final_frozen_status": "FINAL VERDICT: APPROVE",
+  "production_infra_freeze_commit": "cd7f2a5db0fddee824bd1e5ce6da0f8bcd7431ca",
+  "r1_s1_exact_replay": "PASS",
+  "r2_s2_exact_replay": "PASS",
+  "reveal_count": 2,
+  "review_ledger_genesis": true,
+  "round0_completed": 2,
+  "round0_remaining": 62,
+  "round0_total": 64,
+  "seal_count": 2,
+  "taskbook_sha256_binding": "PASS"
  },
  "verifier_battery": {
   "blinding_gates": [

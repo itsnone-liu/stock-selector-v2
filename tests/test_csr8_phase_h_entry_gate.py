@@ -309,7 +309,7 @@ def test_h0_verify_command_is_pure_read_and_passes_end_to_end():
     # the same checklist is PERSISTED in the committed evidence file
     ev = json.loads((ROOT / "docs/audit/evidence/h_phase_entry_gate.json"
                      ).read_bytes())
-    ec = ev["phase_entry_review"]["taskbook_checklist"]
+    ec = ev["taskbook_checklist"]
     assert ec["chain_sequence"] == c["chain_sequence"]
     assert ec["production_infra_freeze_commit"] == \
         c["production_infra_freeze_commit"]

@@ -2036,8 +2036,9 @@ def battery():
 # --------------------------------------------------------------------------
 
 def build_evidence(gates, r0, cid, artifacts, ledger, verdict, indep,
-                   trans, batt):
+                   trans, batt, checklist):
     return {
+        'taskbook_checklist': checklist,
         'run_id': RUN_ID, 'stage': STAGE, 'iteration': ITERATION,
         'host_id': HOST_ID,
         'operation': 'PHASE_ENTRY',
@@ -2271,7 +2272,8 @@ def cmd_postreview():
         gates, r0, cid,
         {'manifest': manifest_bytes, 'packet': packet_bytes,
          'staged': staged_bytes},
-        ledger, verdict, indep, trans, batt)
+        ledger, verdict, indep, trans, batt,
+        taskbook_checklist(gates, r0, cid))
     if EVIDENCE.exists():
         EVIDENCE.unlink()
     EVIDENCE.parent.mkdir(parents=True, exist_ok=True)
