@@ -24,7 +24,7 @@
   "verified_protected_artifacts": 11,
   "verified_root_entries": 5318
  },
- "created_at": "2026-10-01T21:54:48Z",
+ "created_at": "2026-10-01T21:55:44Z",
  "declaration_note": "进入 H1 的许可是 independent reviewer 的 PHASE_ENTRY APPROVE；执行者只承载机器实测。",
  "entry_gate": {
   "authority": {

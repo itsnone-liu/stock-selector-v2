@@ -306,3 +306,14 @@ def test_h0_verify_command_is_pure_read_and_passes_end_to_end():
     assert c["ordinal3_proposal_staged"] is True
     assert c["frozen_infra_zero_drift"] == "PASS"
     assert payload["reviewer_session_id"]
+    # the same checklist is PERSISTED in the committed evidence file
+    ev = json.loads((ROOT / "docs/audit/evidence/h_phase_entry_gate.json"
+                     ).read_bytes())
+    ec = ev["phase_entry_review"]["taskbook_checklist"]
+    assert ec["chain_sequence"] == c["chain_sequence"]
+    assert ec["production_infra_freeze_commit"] == \
+        c["production_infra_freeze_commit"]
+    assert (ec["round0_total"], ec["round0_completed"],
+            ec["round0_remaining"]) == (64, 2, 62)
+    assert ec["authorization1"] == "CONSUMED"
+    assert ec["ordinal3_proposal_staged"] is True
