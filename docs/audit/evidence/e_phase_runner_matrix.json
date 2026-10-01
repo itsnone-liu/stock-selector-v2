@@ -1,12 +1,8 @@
 {
  "checkpoints": [
   {
-   "chain_after_resume": [
-    "REVEAL_PACKET",
-    "SEAL_ANNOTATION"
-   ],
    "crash_at": "after_verify",
-   "head_hash_after_resume": "d0dd8cc64ce3dd63d89ff9215b0c551669ff1ee37b996a111f561308245adbba",
+   "head_hash_after_resume": "a12235cc47b6e3cbc139418f32d0c3306141b8332280db4c75bb83596b79db48",
    "persisted_boundaries": [
     "PREPARE",
     "AUTHORIZED",
@@ -15,12 +11,8 @@
    "resume_status": "SEALED"
   },
   {
-   "chain_after_resume": [
-    "REVEAL_PACKET",
-    "SEAL_ANNOTATION"
-   ],
    "crash_at": "after_derive",
-   "head_hash_after_resume": "1d26c4177eac26f3d3cde69a3fcf7f42ea8bae280d5bf7411e28daa0f36af3a3",
+   "head_hash_after_resume": "b0c4b73d937c984f40a41b70c565871825345153a0665270e68c9a5f5270e9ef",
    "persisted_boundaries": [
     "PREPARE",
     "AUTHORIZED",
@@ -30,12 +22,8 @@
    "resume_status": "SEALED"
   },
   {
-   "chain_after_resume": [
-    "REVEAL_PACKET",
-    "SEAL_ANNOTATION"
-   ],
    "crash_at": "after_precondition",
-   "head_hash_after_resume": "776cf10ede6a8ce29533c2e770c2b5dde0bbf8f2bf61639354cde345dde85e4a",
+   "head_hash_after_resume": "8dcb13ca36682894ffa86427d6e0d671298b7015134dcf68ab0be2ac4b461287",
    "persisted_boundaries": [
     "PREPARE",
     "AUTHORIZED",
@@ -46,12 +34,8 @@
    "resume_status": "SEALED"
   },
   {
-   "chain_after_resume": [
-    "REVEAL_PACKET",
-    "SEAL_ANNOTATION"
-   ],
    "crash_at": "after_append",
-   "head_hash_after_resume": "c88623f791f5a1e18a1e8f90d61fdc597e07eb5affed8cb1f7eb46d62f718b6b",
+   "head_hash_after_resume": "91f00a1c3eee3cd26dbabeb16c9262edda74686c2f03c04a916743edfabf3354",
    "persisted_boundaries": [
     "PREPARE",
     "AUTHORIZED",
@@ -63,108 +47,73 @@
    "resume_status": "SEALED"
   },
   {
-   "chain_after_resume": [
-    "REVEAL_PACKET",
-    "SEAL_ANNOTATION"
-   ],
    "crash_at": "after_fsync",
-   "head_hash_after_resume": "322e4fa949d0df3bc0247589f181cadd9a3319a84a522c02942f189a3ffc5118",
+   "head_hash_after_resume": "74537d9602d27b5c67ff111d80ce98b3677204105366addb15000c92f890a1b2",
    "persisted_boundaries": [
     "PREPARE",
     "AUTHORIZED",
     "after_verify",
     "after_derive",
     "after_precondition",
-    "after_append",
     "after_fsync"
    ],
    "resume_status": "SEALED"
   },
   {
-   "chain_after_resume": [
-    "REVEAL_PACKET",
-    "SEAL_ANNOTATION"
-   ],
    "crash_at": "after_replay_verify",
-   "head_hash_after_resume": "0e1e08bf86c073576fba6f17f40b7492f96e22eb583ad838f5d9d68e0ef194ff",
+   "head_hash_after_resume": "24895b36f08fccd37b6583e8176348b9d227a0358b39fd36ca4cfb0807257244",
    "persisted_boundaries": [
     "PREPARE",
     "AUTHORIZED",
     "after_verify",
     "after_derive",
     "after_precondition",
-    "after_append",
-    "after_fsync",
     "after_replay_verify"
    ],
    "resume_status": "SEALED"
   },
   {
-   "chain_after_resume": [
-    "REVEAL_PACKET",
-    "SEAL_ANNOTATION"
-   ],
    "crash_at": "after_replay",
-   "head_hash_after_resume": "43163632c5c4cb7d63eecb04a91214012aa73c74c51d923261519dd96ee74956",
+   "head_hash_after_resume": "9f15c894e45aae588972c8c88b0c33639dc1550f624f5927644ffc6c22162a34",
    "persisted_boundaries": [
     "PREPARE",
     "AUTHORIZED",
     "after_verify",
     "after_derive",
     "after_precondition",
-    "after_append",
-    "after_fsync",
-    "after_replay_verify",
     "after_replay"
    ],
    "resume_status": "SEALED"
   },
   {
-   "chain_after_resume": [
-    "REVEAL_PACKET",
-    "SEAL_ANNOTATION"
-   ],
    "crash_at": "after_anchor",
-   "head_hash_after_resume": "daafc5f1959190138734472518cafc03411992502ac3ccf236ab6ff5a270a9e4",
+   "head_hash_after_resume": "3f0a7dd67fa4c1cf55b9d95cc5a57e7eaa3cb4f2a6c26329a400345e5d0f3ad8",
    "persisted_boundaries": [
     "PREPARE",
     "AUTHORIZED",
     "after_verify",
     "after_derive",
     "after_precondition",
-    "after_append",
-    "after_fsync",
-    "after_replay_verify",
-    "after_replay",
     "after_anchor"
    ],
    "resume_status": "SEALED"
   },
   {
-   "chain_after_resume": [
-    "REVEAL_PACKET",
-    "SEAL_ANNOTATION"
-   ],
    "crash_at": "after_cleanup",
-   "head_hash_after_resume": "7329e39c1365c05519f80187f6c40890e5f7fafab6edfa8bc1d98d85293a7cb9",
+   "head_hash_after_resume": "499e02937d8d7d75d34c0890ac53cc273841114fd6f635be9b69c7e2754adacc",
    "persisted_boundaries": [
     "PREPARE",
     "AUTHORIZED",
     "after_verify",
     "after_derive",
     "after_precondition",
-    "after_append",
-    "after_fsync",
-    "after_replay_verify",
-    "after_replay",
-    "after_anchor",
     "after_cleanup"
    ],
    "resume_status": "SEALED"
   }
  ],
  "full_cycle": {
-  "head_hash": "42727ed73c12c1a0c958872340ee846df4acc3b7f902d2be1af198c39a6d7f08",
+  "head_hash": "934a0b844b1a70af2d9eeaa1d8f768682b13ef7f75e91c4da646c82a14671854",
   "persisted_boundaries": [
    "PREPARE",
    "AUTHORIZED",
@@ -172,21 +121,60 @@
    "after_derive",
    "after_precondition",
    "after_append",
-   "after_fsync",
-   "after_replay_verify",
-   "after_replay",
-   "after_anchor",
-   "after_cleanup",
    "SEALED"
   ],
   "status": "SEALED"
  },
+ "kill_race": [
+  {
+   "boundaries_at_kill": [],
+   "final": "SEALED",
+   "head_hash": "fdddd0bff8d412269cac0ba85652b3537c0551bcd9d21b4fc5ae7815645dc41b",
+   "kill_after_s": 0.02,
+   "repair": "SEALED"
+  },
+  {
+   "boundaries_at_kill": [],
+   "final": "SEALED",
+   "head_hash": "b38ce132b3d9e310012d9436bdc52499de7b0a1bb50b955782372fc114dedefa",
+   "kill_after_s": 0.06,
+   "repair": "SEALED"
+  },
+  {
+   "boundaries_at_kill": [
+    "PREPARE",
+    "AUTHORIZED",
+    "after_verify",
+    "after_derive",
+    "after_precondition",
+    "after_replay"
+   ],
+   "final": "SEALED",
+   "head_hash": "c5dd5e41f388c4c0eced701cf7c56e67a66db55cae4f73299413d2d5bb5a074d",
+   "kill_after_s": 0.12,
+   "repair": "SEALED"
+  },
+  {
+   "boundaries_at_kill": [
+    "PREPARE",
+    "AUTHORIZED",
+    "after_verify",
+    "after_derive",
+    "after_precondition",
+    "after_replay"
+   ],
+   "final": "SEALED",
+   "head_hash": "171dc500b48ae2c8b72e758000904cfc3eced17a385e17511849df7e28f2eda5",
+   "kill_after_s": 0.2,
+   "repair": "SEALED"
+  }
+ ],
+ "persistence": "worker-in-place",
  "runner": "csr8_phase_e_runner",
  "session": "c4-prod-0002",
  "timeout_repair": {
   "degraded": "SAFE_DEGRADED",
-  "final": "SEALED",
-  "head_hash": "03be88a3d68946e7b04a6cd8ffe13beb00507685576606a117698aefa74635b3",
+  "head_hash": "e2243b729d19e8745bf34c66b0d08c2b52a9be81a427ed3c4364c6c3467cbbc9",
   "repair_result": "SEALED",
   "resume_noop": true,
   "watchdog": {
