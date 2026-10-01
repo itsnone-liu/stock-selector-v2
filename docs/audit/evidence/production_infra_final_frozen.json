@@ -1,0 +1,34 @@
+{
+  "marker": "PRODUCTION_INFRA_FINAL_FROZEN",
+  "status": "FINAL VERDICT: APPROVE",
+  "audited_repository": "itsnone-liu/stock-selector-v2",
+  "audited_head": "04c89e7c43fb24e731871608ff40adee83221f64",
+  "declared_by": "INDEPENDENT_AUDIT",
+  "declaration_scope": "CSR-8 / Phase C production infrastructure",
+  "production_counts": {
+    "REVEAL": 2,
+    "SEAL": 2,
+    "open_reveals": 0
+  },
+  "production_sealing_head": "c1fa24420e411a19e191b6399dafab02f568c1fe7ef766a481907c970b68becd",
+  "verdict_history_head": "ad3baf889c5ed7bfcc44e11e20043fa59f08a1fe8a9f2250c3df9b432ac748db",
+  "verdict_records": 116,
+  "prerequisites": {
+    "B5": "APPROVE",
+    "C6": "APPROVE",
+    "D": "APPROVE",
+    "E": "APPROVE",
+    "F": "APPROVE"
+  },
+  "evidence": {
+    "machine_audit": "docs/audit/evidence/g_final_machine_audit.json",
+    "package_gate_count": 15,
+    "ordinal_n": "PASS",
+    "runner_recovery": "PASS",
+    "blinding": "PASS",
+    "authorization": "PASS",
+    "analysis_bridge": "PASS"
+  },
+  "transition": "CONTINUE_WITH_BLINDED_ANNOTATION_AND_ANALYSIS",
+  "note": "This marker is the independent audit declaration. The executor machine report remains non-declaring and records RESERVED-TO-INDEPENDENT-AUDIT."
+}
