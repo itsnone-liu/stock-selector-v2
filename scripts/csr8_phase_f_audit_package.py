@@ -235,11 +235,22 @@ def export(pkg=PKG, root=CSR):
                     pkg / 'approvals/authorization')
     shutil.copytree(root / 'c4d_proposals' / SID, pkg / 'approvals/proposals')
     (pkg / 'gates').mkdir()
-    # Closed-world gate inventory: every shipped evidence artifact is copied,
-    # rather than a hand-maintained partial allowlist.
+    # Closed-world gate inventory: every THIS-RUN evidence artifact is copied,
+    # rather than a hand-maintained partial allowlist.  Semantically
+    # contradictory copies are excluded up front and re-detected at verify:
+    #  - f_phase_audit_package.json: this exporter's own gate report; any
+    #    shipped copy is by construction one export stale (its fileCount/
+    #    totalBytes describe the PREVIOUS package and conflict with MANIFEST);
+    #  - artifacts carrying a foreign audit run id (stale cross-run
+    #    provenance contradicting this package's RUN_ID).
     evidence_root = ROOT / 'docs/audit/evidence'
     for src in sorted(evidence_root.rglob('*')):
-        if src.is_file() and src.name != 'verdicts.jsonl' and not src.is_relative_to(evidence_root / 'f_audit_package'):
+        if (src.is_file() and src.name != 'verdicts.jsonl'
+                and src.name != 'f_phase_audit_package.json'
+                and not src.is_relative_to(evidence_root / 'f_audit_package')):
+            text = src.read_text(errors='replace') if src.stat().st_size < 2_000_000 else ''
+            if any(x != RUN_ID for x in re.findall(r'audit_\d{6,}', text)):
+                continue
             rel = src.relative_to(evidence_root)
             dst = pkg / 'gates' / rel
             dst.parent.mkdir(parents=True, exist_ok=True)
@@ -304,8 +315,32 @@ def export(pkg=PKG, root=CSR):
         p.relative_to(pkg).as_posix() for p in pkg.rglob('*')
         if p.is_file() and p.relative_to(pkg).as_posix().startswith(
             ('corpus/', 'analysis/', 'approvals/')))
-    for name, payload in [('infra_manifest.json', {'run_id': RUN_ID}), ('production_chain_snapshot.json', {'head': head}), ('sealed_pair_manifest.json', {'pairs': len(sealed_pairs(root, SID))}), ('annotation_corpus_manifest.json', {'path': 'corpus/phase_c_annotation_corpus.parquet'}), ('authorization_manifest.json', {'path': 'approvals'}), ('recovery_audit.json', {'source': 'e_phase_runner_matrix.json'}), ('gate_results.json', {'source': 'f_phase_bridge.json'}), ('public_anchor_manifest.json', {'chain_head': head['head_hash'], 'verdicts_sha256': sha(verdict_bytes), 'verdict_records': len(vlines), 'verdict_line_sha256': v_line_sha, 'verdict_chain_head': v_prev, 'boundary_policy': 'annotator_surface = corpus/ analysis/ approvals/ (blind by construction); analysis_labeled/ carries post-reveal labels and stays auditor-side with all other sensitive copies', 'boundary_annotator_surface': annotator_surface})]:
-        (pkg / name).write_text(json.dumps({'schema_version':'csr8-f-envelope-v1','source_commit':'pending','source_hashes':{'chain_head':head['head_hash'],'verdicts':sha(verdict_bytes)},'row_counts':{'rows':0},'created_at':'phase-f-export','payload':payload}, sort_keys=True, indent=1))
+    # §9.4 envelope metadata must be real and machine-resolvable: the exact
+    # exporting commit, a real UTC timestamp, true row counts and in-package
+    # source paths.  Placeholders ('pending' / 'phase-f-export') are rejected
+    # by verify (G-P-ENVELOPE).
+    export_commit = subprocess.run(['git', 'rev-parse', 'HEAD'], cwd=ROOT,
+                                   capture_output=True, text=True, check=True
+                                   ).stdout.strip()
+    if not re.fullmatch(r'[0-9a-f]{40}', export_commit):
+        fail(f'G-P-ENVELOPE: cannot resolve exporting commit: {export_commit!r}')
+    from datetime import datetime, timezone
+    export_ts = datetime.now(timezone.utc).isoformat(timespec='seconds')
+    corpus_rows = len([x for x in (pkg / 'corpus/phase_c_annotation_corpus.jsonl')
+                       .read_text().splitlines() if x.strip()])
+    n_pairs = len(sealed_pairs(root, SID))
+    n_gates_copied = len([p for p in (pkg / 'gates').rglob('*') if p.is_file()])
+    n_approvals = len([p for p in (pkg / 'approvals').rglob('*') if p.is_file()])
+    for name, payload, rows in [
+        ('infra_manifest.json', {'run_id': RUN_ID, 'session_id': SID}, {'chain_events': head['count']}),
+        ('production_chain_snapshot.json', {'head': head}, {'chain_events': head['count']}),
+        ('sealed_pair_manifest.json', {'pairs': n_pairs}, {'sealed_pairs': n_pairs}),
+        ('annotation_corpus_manifest.json', {'path': 'corpus/phase_c_annotation_corpus.parquet', 'canonical_rows': 'corpus/phase_c_annotation_corpus.jsonl'}, {'corpus_rows': corpus_rows, 'corpus_columns': 19}),
+        ('authorization_manifest.json', {'path': 'approvals'}, {'authorization_files': n_approvals}),
+        ('recovery_audit.json', {'source': 'gates/e_phase_runner_matrix.json'}, {'gate_files_shipped': n_gates_copied}),
+        ('gate_results.json', {'source': 'gates/f_phase_bridge.json'}, {'gate_files_shipped': n_gates_copied}),
+        ('public_anchor_manifest.json', {'chain_head': head['head_hash'], 'verdicts_sha256': sha(verdict_bytes), 'verdict_records': len(vlines), 'verdict_line_sha256': v_line_sha, 'verdict_chain_head': v_prev, 'boundary_policy': 'annotator_surface = corpus/ analysis/ approvals/ (blind by construction); analysis_labeled/ carries post-reveal labels and stays auditor-side with all other sensitive copies', 'boundary_annotator_surface': annotator_surface}, {'verdict_records': len(vlines), 'annotator_surface_files': len(annotator_surface)})]:
+        (pkg / name).write_text(json.dumps({'schema_version':'csr8-f-envelope-v2','source_commit':export_commit,'source_hashes':{'chain_head':head['head_hash'],'verdicts':sha(verdict_bytes)},'row_counts':rows,'created_at':export_ts,'payload':payload}, sort_keys=True, indent=1))
     files = []
     for p in sorted(pkg.rglob('*')):
         if p.is_file() and p.name != 'MANIFEST.json':
@@ -473,12 +508,96 @@ def verify(pkg=PKG):
             fail(f'G-P-BOUNDARY: identity tokens in annotator-surface {rel}: {hitc}')
     gates['G-P-BOUNDARY'] = 'PASS'
 
-    # gates evidence is a closed-world inventory, not a partial allowlist.
+    # gates evidence is a closed-world inventory, not a partial allowlist —
+    # and every shipped copy must be semantically consistent with THIS
+    # package: no self-referential (inherently stale) exporter reports, no
+    # foreign-run provenance, no package-summary numbers that contradict the
+    # current MANIFEST.
     gate_files = sorted(p.relative_to(pkg / 'gates').as_posix()
                         for p in (pkg / 'gates').rglob('*') if p.is_file())
     if not gate_files or 'f_phase_bridge.json' not in gate_files:
         fail('G-P-GATES: complete evidence inventory missing bridge evidence')
+    if 'f_phase_audit_package.json' in gate_files:
+        fail('G-P-GATES: self-referential exporter report shipped inside '
+             'gates/ (provably stale against current MANIFEST)')
+    for rel in gate_files:
+        gp = pkg / 'gates' / rel
+        text = gp.read_text(errors='replace') if gp.stat().st_size < 2_000_000 else ''
+        foreign = sorted({x for x in re.findall(r'audit_\d{6,}', text)
+                          if x != RUN_ID})
+        if foreign:
+            fail(f'G-P-GATES: foreign audit run id in gates/{rel}: {foreign}')
+        if gp.suffix == '.json':
+            try:
+                gd = json.loads(text)
+            except json.JSONDecodeError:
+                fail(f'G-P-GATES: gates/{rel} is not parseable JSON')
+            gkeys, gvals = [], []
+            def _pairs(o):
+                if isinstance(o, dict):
+                    for k, v in o.items():
+                        if isinstance(v, (str, int, float)) and not isinstance(v, bool):
+                            gvals.append((k, v))
+                        _pairs(v)
+                elif isinstance(o, list):
+                    for v in o:
+                        _pairs(v)
+            _pairs(gd)
+            for k, v in gvals:
+                if k in ('fileCount', 'totalBytes') and v not in (
+                        manifest['fileCount'], manifest['totalBytes']):
+                    fail(f'G-P-GATES: gates/{rel} carries package summary '
+                         f'{k}={v} conflicting with current MANIFEST '
+                         f'({manifest[k]})')
     gates['G-P-GATES'] = 'PASS'
+
+    # §9.4 envelope 元数据必须真实且可解析：导出 commit、真实时间戳、真实
+    # 行数、包内可解析的 source/path —— 占位符与互相矛盾的元数据一律拒绝。
+    from datetime import datetime
+    mandated = ['infra_manifest.json', 'production_chain_snapshot.json',
+                'sealed_pair_manifest.json', 'annotation_corpus_manifest.json',
+                'authorization_manifest.json', 'recovery_audit.json',
+                'gate_results.json', 'public_anchor_manifest.json']
+    envs, commits, stamps = {}, set(), set()
+    for name in mandated:
+        if not (pkg / name).is_file():
+            fail(f'G-P-ENVELOPE: mandated artifact missing {name}')
+        env = json.loads((pkg / name).read_text())
+        if env.get('schema_version') != 'csr8-f-envelope-v2':
+            fail(f'G-P-ENVELOPE: {name} schema_version drift')
+        sc, ca = env.get('source_commit'), env.get('created_at')
+        if not sc or not re.fullmatch(r'[0-9a-f]{40}', sc):
+            fail(f'G-P-ENVELOPE: {name} source_commit unresolved: {sc!r}')
+        if not ca or ca in ('phase-f-export',) or not str(ca).endswith('+00:00'):
+            fail(f'G-P-ENVELOPE: {name} created_at not a real UTC stamp: {ca!r}')
+        try:
+            datetime.fromisoformat(str(ca))
+        except ValueError:
+            fail(f'G-P-ENVELOPE: {name} created_at unparseable: {ca!r}')
+        for ref in (env.get('payload', {}).get('path'),
+                    env.get('payload', {}).get('source'),
+                    env.get('payload', {}).get('canonical_rows')):
+            if ref and not (pkg / ref).exists():
+                fail(f'G-P-ENVELOPE: {name} payload reference not in package: {ref}')
+        envs[name] = env
+        commits.add(sc); stamps.add(ca)
+    if len(commits) != 1 or len(stamps) != 1:
+        fail('G-P-ENVELOPE: envelope metadata disagrees across artifacts')
+    n_pairs_pkg = len(pairs)
+    corpus_rows_pkg = len([x for x in
+                           (pkg / 'corpus/phase_c_annotation_corpus.jsonl')
+                           .read_text().splitlines() if x.strip()])
+    checks = {
+        'sealed_pair_manifest.json': ('sealed_pairs', n_pairs_pkg),
+        'annotation_corpus_manifest.json': ('corpus_rows', corpus_rows_pkg),
+        'public_anchor_manifest.json': ('verdict_records', len(lines)),
+    }
+    for name, (key, want) in checks.items():
+        got = envs[name]['row_counts'].get(key)
+        if got != want:
+            fail(f'G-P-ENVELOPE: {name} row_counts.{key}={got!r} '
+                 f'contradicts package actuals ({want})')
+    gates['G-P-ENVELOPE'] = 'PASS'
 
     # universe 底册：包内 identity 扫描的权威代码表
     uni = json.loads((pkg / 'universe/codes.json').read_text())

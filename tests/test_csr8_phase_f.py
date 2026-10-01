@@ -209,7 +209,7 @@ def test_f4_audit_package_standalone_reverify_and_tamper(
     m = fp.export(pkg, root)
     assert m["chain_event_count"] == 4 and m["fileCount"] > 30
     v = fp.verify(pkg)
-    assert v["all_pass"] and len(v["gates"]) == 13
+    assert v["all_pass"] and len(v["gates"]) == 14
 
     # real tamper 1: flip a packaged receipt byte
     rec = next(p for p in sorted((pkg / "receipts").rglob("receipt.json")))
@@ -453,6 +453,77 @@ def test_b5b_package_boundary_and_verdict_chain_tamper(tmp_path, sandbox, monkey
         fp.verify(pkg2)
 
 
+def test_b5c_package_stale_gates_and_placeholder_envelope(tmp_path, sandbox, monkeypatch):
+    """§9.4 绕过路径：向包内塞入过期 gate 报告（与当前 MANIFEST 冲突的
+    fileCount/totalBytes、外来 run id）或退回占位符 envelope 元数据 ——
+    语义矛盾必须被复验识破，即使 MANIFEST 行哈希全部配平。"""
+    root, _, _ = sandbox
+    fo.build_outcomes(root)
+    fo.join(root)
+    monkeypatch.setattr(fp, "DURABLE_VERDICTS", tmp_path / "verdicts.jsonl")
+    pkg = tmp_path / "pkg"
+    fp.export(pkg, root)
+    assert fp.verify(pkg)["all_pass"]
+    # 导出必须自始排除自引用报告与外来 run id 证据
+    gate_names = {p.relative_to(pkg / "gates").as_posix()
+                  for p in (pkg / "gates").rglob("*") if p.is_file()}
+    assert "f_phase_audit_package.json" not in gate_names
+
+    def rehash_manifest(rel):
+        m = json.loads((pkg / "MANIFEST.json").read_text())
+        target = pkg / rel
+        m["files"] = [f for f in m["files"] if f["path"] != rel]
+        if target.is_file():
+            m["files"].append({"path": rel, "sha256": fp.sha_file(target),
+                               "bytes": target.stat().st_size})
+            m["files"].sort(key=lambda f: f["path"])
+        m["fileCount"] = len(m["files"])
+        m["totalBytes"] = sum(f["bytes"] for f in m["files"])
+        (pkg / "MANIFEST.json").write_text(
+            json.dumps(m, ensure_ascii=False, sort_keys=True, indent=1))
+
+    # 渗透 1：塞入一份"上一轮导出"的过期自报告（fileCount 与当前 MANIFEST
+    # 冲突）并配平 MANIFEST —— 语义矛盾必须识破
+    stale = pkg / "gates/f_phase_audit_package.json"
+    stale.write_text(json.dumps({
+        "export": {"chain_head_hash": "0" * 64, "fileCount": 7, "totalBytes": 7},
+        "verify": {"all_pass": True}}, sort_keys=True))
+    rehash_manifest("gates/f_phase_audit_package.json")
+    with pytest.raises(RuntimeError, match="G-P-GATES"):
+        fp.verify(pkg)
+    stale.unlink()
+    rehash_manifest("gates/f_phase_audit_package.json")
+
+    # 渗透 2：外来 run id 的 gate 证据
+    foreign = pkg / "gates/foreign_provenance.json"
+    foreign.write_text(json.dumps({"run": "audit_19990101000000"}))
+    rehash_manifest("gates/foreign_provenance.json")
+    with pytest.raises(RuntimeError, match="G-P-GATES: foreign audit run id"):
+        fp.verify(pkg)
+    foreign.unlink()
+    rehash_manifest("gates/foreign_provenance.json")
+
+    # 渗透 3：envelope 元数据退化为占位符
+    env_p = pkg / "public_anchor_manifest.json"
+    env = json.loads(env_p.read_text())
+    real_commit = env["source_commit"]
+    env["source_commit"] = "pending"
+    env_p.write_text(json.dumps(env, sort_keys=True, indent=1))
+    rehash_manifest("public_anchor_manifest.json")
+    with pytest.raises(RuntimeError, match="G-P-ENVELOPE"):
+        fp.verify(pkg)
+    env["source_commit"] = real_commit          # 还原为与其余 envelope 一致
+    env_p.write_text(json.dumps(env, sort_keys=True, indent=1))
+    rehash_manifest("public_anchor_manifest.json")
+
+    # 渗透 4：row_counts 与包内实际矛盾（配平 MANIFEST 后仍须识破）
+    env["row_counts"]["verdict_records"] += 5
+    env_p.write_text(json.dumps(env, sort_keys=True, indent=1))
+    rehash_manifest("public_anchor_manifest.json")
+    with pytest.raises(RuntimeError, match="G-P-ENVELOPE: public_anchor_manifest.json row_counts"):
+        fp.verify(pkg)
+
+
 def test_b6_labeled_join_tamper_with_consistent_manifest(sandbox):
     """§9.3/§9.4 绕过路径：改 labeled 行 + 配平 join_manifest 计数 ——
     join 必须是 analysis×outcomes 的唯一确定性复推导。"""
@@ -478,7 +549,7 @@ def test_f5_live_artifacts_and_evidence_reverify_readonly():
     assert fb.verify_blinding(fb.CSR)["all_pass"]
     assert set(fo.verify_outcomes(fb.CSR).values()) == {"PASS"}
     v = fp.verify(fp.PKG)
-    assert v["all_pass"] and len(v["gates"]) == 13
+    assert v["all_pass"] and len(v["gates"]) == 14
     dur = fp.DURABLE_VERDICTS.read_text().splitlines()
     assert fp.check_authoritative_history(dur)["records"] == 101
     ev = json.loads((ROOT / "docs/audit/evidence/f_phase_bridge.json").read_text())
