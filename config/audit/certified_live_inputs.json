@@ -2,7 +2,7 @@
  "c4dProposalAllowlist": [
   "c4d_proposals/c4-prod-0002/ordinal-0002/next_reveal.proposal.json"
  ],
- "fileCount": 10562,
+ "fileCount": 10563,
  "forbiddenPrefixes": [],
  "generator": "scripts/csr8_phase_a_certify_inputs.py",
  "protectedArtifacts": [
@@ -242,13 +242,13 @@
      "path": "secret"
     }
    ],
-   "fileCount": 5321,
+   "fileCount": 5322,
    "files": [
     {
      "bytes": 1112,
      "mode": 292,
      "path": "analysis/c4-prod-0002/analysis_manifest.json",
-     "sha256": "4e60015ad713b2f95be6c7e13173359150106f88756cb6ecb7533f5c365a9bfe"
+     "sha256": "7d0710c5cfb64a890a38b157c93e760e408c015102e8d5f1ea50087f15fdd93f"
     },
     {
      "bytes": 1989,
@@ -31961,10 +31961,10 @@
      "sha256": "30635e93925744fff634c4974ea29df14f4bf871b126b35f6764eb2ac78ef004"
     },
     {
-     "bytes": 7006,
+     "bytes": 7700,
      "mode": 292,
      "path": "corpus/c4-prod-0002/ledger.json",
-     "sha256": "e19becf19d981a6c62edc2ace804f8310626be1fbc7ffb91444dae3ab00a309d"
+     "sha256": "bf4766073cf5d7588c4d9346fc0eaaeeb5ce7cb5b4aa497a8adecca5e443ecff"
     },
     {
      "bytes": 1707,
@@ -32033,16 +32033,22 @@
      "sha256": "4242e4b406c0a5b8864a192bbbd9d76e4af728ece14a5593f9e262c75629ee69"
     },
     {
+     "bytes": 11388,
+     "mode": 292,
+     "path": "corpus/c4-prod-0002/phase_c_annotation_corpus.jsonl",
+     "sha256": "eb64cbf64dab4c5bf46898648dce277f8d8e74fc6594b27b23c2a1193e0a07c4"
+    },
+    {
      "bytes": 8350,
      "mode": 292,
      "path": "corpus/c4-prod-0002/phase_c_annotation_corpus.parquet",
      "sha256": "7e16bf76cf8a92c850b5fae9bebb2268f1eb1cff6769e365777a0b085da7333d"
     },
     {
-     "bytes": 3600,
+     "bytes": 4500,
      "mode": 292,
      "path": "freeze/c4-prod-0002/domain_freeze.json",
-     "sha256": "eaf444537146b6e84ae31fa97a483f060315cb41f7600bba407348273167ec92"
+     "sha256": "94728b9e5555e579825555930bff02edb1aa05972f9402cc9c44057f65c3561d"
     },
     {
      "bytes": 854,
@@ -32172,7 +32178,7 @@
     }
    ],
    "root": "data/csr8_phase_c",
-   "totalBytes": 349511492
+   "totalBytes": 349524474
   },
   {
    "dirCount": 1,
@@ -63635,6 +63641,6 @@
    "totalBytes": 463928909
   }
  ],
- "totalBytes": 813440401,
+ "totalBytes": 813453383,
  "version": 2
 }

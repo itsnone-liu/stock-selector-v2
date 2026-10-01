@@ -1,12 +1,12 @@
 {
  "chain_event_count": 4,
  "chain_head_hash": "c1fa24420e411a19e191b6399dafab02f568c1fe7ef766a481907c970b68becd",
- "fileCount": 66,
+ "fileCount": 68,
  "files": [
   {
    "bytes": 1112,
    "path": "analysis/analysis_manifest.json",
-   "sha256": "9734064cfb3157adf873a19dfc15e1c081c1e97c1964e03a8a90ba880221dea2"
+   "sha256": "7d0710c5cfb64a890a38b157c93e760e408c015102e8d5f1ea50087f15fdd93f"
   },
   {
    "bytes": 1989,
@@ -89,9 +89,9 @@
    "sha256": "47d64f896f1d30127bfb6790e1405cd4927685bd7e2889d06335e47fac9ad094"
   },
   {
-   "bytes": 5434,
+   "bytes": 7700,
    "path": "corpus/ledger.json",
-   "sha256": "e112c392bf8352f23daec29055e9c004fef6daeb69edce6752e1c043b18d8401"
+   "sha256": "bf4766073cf5d7588c4d9346fc0eaaeeb5ce7cb5b4aa497a8adecca5e443ecff"
   },
   {
    "bytes": 1707,
@@ -147,6 +147,11 @@
    "bytes": 1880,
    "path": "corpus/pairs/ordinal-0002/seal_receipt.json",
    "sha256": "4242e4b406c0a5b8864a192bbbd9d76e4af728ece14a5593f9e262c75629ee69"
+  },
+  {
+   "bytes": 11388,
+   "path": "corpus/phase_c_annotation_corpus.jsonl",
+   "sha256": "eb64cbf64dab4c5bf46898648dce277f8d8e74fc6594b27b23c2a1193e0a07c4"
   },
   {
    "bytes": 8350,
@@ -229,9 +234,14 @@
    "sha256": "ac558c15d9bc44365585ca8a56610a131aff3e60425a7a5d0355657b915b2cab"
   },
   {
-   "bytes": 6096,
+   "bytes": 608,
+   "path": "gates/f_phase_audit_package.json",
+   "sha256": "91c5d260c2605ce38d25959353928ef2ebb575911046d36b9893bc2dd6eed717"
+  },
+  {
+   "bytes": 6157,
    "path": "gates/f_phase_bridge.json",
-   "sha256": "2b1df16f17e668c706da0adf7c7f6931dfb4e6b7e04e701e412ff7aa1eeac8fb"
+   "sha256": "6aed005ab3587bdcd9e31dd85fe844dec82a818de7842b302229318a7a3e51d3"
   },
   {
    "bytes": 40792,
@@ -337,6 +347,6 @@
  "package_version": "csr8-f-audit-package-v1",
  "run_id": "audit_20260930021152297",
  "session_id": "c4-prod-0002",
- "totalBytes": 643815,
+ "totalBytes": 658138,
  "verify": "python3 scripts/csr8_phase_f_audit_package.py --verify --pkg docs/audit/evidence/f_audit_package"
 }

@@ -230,10 +230,42 @@ def build_corpus(root=CSR, sid=SID):
     return ledger
 
 
+CORPUS_COLUMNS = ['session_id', 'reveal_ordinal', 'opaque_case_id', 'T', 'packet_id',
+                  'packet_sha256', 'reveal_event_hash', 'seal_event_hash', 'receipt_sha256',
+                  'annotation_attempt', 'annotation_session_id', 'hypothesis_id',
+                  'observability', 'support', 'evidence_refs', 'evidence_note', 'flags',
+                  'receipt_created_at', 'sealed_at']
+
+
+def _write_corpus_parquet(out, rows, columns):
+    """Parquet writer that runs in every certified environment.
+
+    pyarrow is optional (absent in the audit venv); duckdb is a declared
+    runtime dependency and writes parquet without it.
+    """
+    try:
+        import pyarrow as pa
+        import pyarrow.parquet as pq
+        data = {c: [r.get(c) for r in rows] for c in columns}
+        pq.write_table(pa.table(data), out)
+        return
+    except ImportError:
+        pass
+    import duckdb
+    ddl_types = {'reveal_ordinal': 'INTEGER'}
+    ddl = ', '.join(f'"{c}" {ddl_types.get(c, "VARCHAR")}' for c in columns)
+    con = duckdb.connect()
+    con.execute(f'CREATE TABLE t ({ddl})')
+    if rows:
+        ph = ', '.join('?' for _ in columns)
+        con.executemany(f'INSERT INTO t VALUES ({ph})',
+                        [tuple(r[c] for c in columns) for r in rows])
+    con.execute(f"COPY t TO '{out.as_posix()}' (FORMAT PARQUET)")
+    con.close()
+
+
 def build_corpus_table(root=CSR, sid=SID):
     """Persist normalized one-row-per-hypothesis annotation corpus."""
-    import pyarrow as pa
-    import pyarrow.parquet as pq
     rows = []
     for ordinal, rev, seal in sealed_pairs(root, sid):
         rb = Path(root) / 'c4d_receipts' / sid / f'ordinal-{ordinal:04d}' / 'attempt-0001' / 'receipt.json'
@@ -253,19 +285,29 @@ def build_corpus_table(root=CSR, sid=SID):
                 'support': j.get('support'), 'evidence_refs': json.dumps(j.get('evidence_refs', []), sort_keys=True),
                 'evidence_note': j.get('evidence_note'), 'flags': json.dumps(ann.get('flags', []), sort_keys=True),
                 'receipt_created_at': receipt.get('created_at'), 'sealed_at': seal.get('ts')})
-    out = corpus_dir(root, sid) / 'phase_c_annotation_corpus.parquet'
-    table = pa.Table.from_pylist(rows)
-    pq.write_table(table, out)
+    cdir = corpus_dir(root, sid)
+    cdir.mkdir(parents=True, exist_ok=True)
+    out = cdir / 'phase_c_annotation_corpus.parquet'
+    jl = cdir / 'phase_c_annotation_corpus.jsonl'
+    _write_corpus_parquet(out, rows, CORPUS_COLUMNS)
+    # Canonical stdlib serialization: identical bytes in every environment,
+    # independently of the parquet writer implementation.
+    jl.write_text(''.join(canon(r) + '\n' for r in rows))
     os.chmod(out, 0o444)
-    digest = sha(out.read_bytes())
-    # The normalized table is part of the same closed-world corpus ledger.
+    os.chmod(jl, 0o444)
+    entries = [
+        {'path': out.name, 'bytes': out.stat().st_size, 'sha256': sha(out.read_bytes()),
+         'binds': 'persisted-frozen-artifacts-normalized-corpus'},
+        {'path': jl.name, 'bytes': jl.stat().st_size, 'sha256': sha(jl.read_bytes()),
+         'binds': 'persisted-frozen-artifacts-normalized-corpus'},
+    ]
+    # The normalized tables are part of the same closed-world corpus ledger.
     lp = ledger_path(root, sid)
     ledger = json.loads(lp.read_text())
-    rel = out.relative_to(corpus_dir(root, sid)).as_posix()
-    entry = {'path': rel, 'bytes': out.stat().st_size, 'sha256': digest,
-             'binds': 'persisted-frozen-artifacts-normalized-corpus'}
-    ledger['files'] = [f for f in ledger['files'] if f['path'] != rel] + [entry]
-    ledger['files'] = sorted(ledger['files'], key=lambda f: f['path'])
+    names = {e['path'] for e in entries}
+    ledger['files'] = sorted([f for f in ledger['files'] if f['path'] not in names] + entries,
+                             key=lambda f: f['path'])
+    ledger['corpus_columns'] = list(CORPUS_COLUMNS)
     ledger['file_hashes'] = {f['path']: f['sha256'] for f in ledger['files']}
     ledger['totals'] = {'files': len(ledger['files']), 'bytes': sum(f['bytes'] for f in ledger['files'])}
     lp.write_text(json.dumps(ledger, ensure_ascii=False, sort_keys=True, indent=1))
@@ -275,11 +317,10 @@ def build_corpus_table(root=CSR, sid=SID):
     if am.is_file():
         a = json.loads(am.read_text())
         a['corpus_ledger_sha256'] = sha(lp.read_bytes())
-        if _is_immutable(am):
-            subprocess.run(['chattr', '-i', str(am)], check=True)
         am.write_text(json.dumps(a, ensure_ascii=False, sort_keys=True, indent=1))
         os.chmod(am, 0o444)
-    return {'path': out.name, 'rows': len(rows), 'columns': table.column_names, 'sha256': digest}
+    return {'path': out.name, 'rows': len(rows), 'columns': list(CORPUS_COLUMNS),
+            'sha256': sha(out.read_bytes())}
 
 
 def read_ledger(root=CSR, sid=SID):
@@ -299,10 +340,7 @@ def _corpus_gates(prefix, cdir, ledger, pairs, head, ev_count, sid,
                      for p in cdir.rglob('*') if p.is_file())
     if ledger.get('file_hashes') is not None and ledger.get('file_hashes') != {f['path']: f['sha256'] for f in ledger['files']}:
         fail(f'{prefix}-ANCHORS: file hash index mismatch')
-    listed = sorted([f['path'] for f in ledger['files']] + ['ledger.json']
-                    + (['phase_c_annotation_corpus.parquet']
-                       if (cdir / 'phase_c_annotation_corpus.parquet').is_file()
-                       and not any(f['path'] == 'phase_c_annotation_corpus.parquet' for f in ledger['files']) else []))
+    listed = sorted([f['path'] for f in ledger['files']] + ['ledger.json'])
     if on_disk != listed:
         fail(f'{prefix}-WORLD: corpus closed-world violated {on_disk} != {listed}')
     gates[f'{prefix}-WORLD'] = 'PASS'
@@ -709,7 +747,12 @@ def forbidden_read_files(root, sid=SID, price_root=None):
 
 
 def set_annotator_immutable(root=CSR, sid=SID):
-    """Set Linux FS immutable flag on every annotator-domain file.
+    """Optional local hardening: Linux FS immutable flag on annotator files.
+
+    NOT part of the certified verification contract — the attribute does not
+    survive audit-bridge materialization.  Read-only is certified by the
+    portable contract: protocol-0600 exact, others no write bits, content
+    pinned by the annotator_sha256 ledger.
 
     Unlike chmod, this blocks even root open/unlink until explicitly thawed;
     thawing is an auditable maintenance action, never part of analysis reads.
@@ -743,18 +786,48 @@ def _is_immutable(p):
     return bool(r.returncode == 0 and r.stdout.split() and 'i' in r.stdout.split()[0])
 
 
-def enforce_domain_modes(root=CSR, sid=SID, price_root=None):
-    """Apply the filesystem boundary: annotator files lose all write bits;
-    outcome/identity/secret files become owner-only for OS-level isolation."""
+ATTEMPT_ARTIFACT_NAMES = {'receipt.json', 'draft_snapshot.bin', 'seal_approval.json'}
+
+
+def protocol_0600_set(root=CSR, sid=SID):
+    """Annotator files the frozen protocol pins at exactly 0600.
+
+    Two sources, both machine-checkable: the certified manifest's
+    protectedArtifacts list, and the C4-D/C6 attempt-artifact contract
+    (receipt/snapshot/seal-approval of every sealed attempt must be 0600).
+    """
     root = Path(root)
-    changed = []
     protected = set()
     manifest = ROOT / 'config/audit/certified_live_inputs.json'
     if manifest.is_file():
         try:
             protected = {x['path'] for x in json.loads(manifest.read_text()).get('protectedArtifacts', [])}
-        except (OSError, KeyError, json.JSONDecodeError):
+        except (OSError, KeyError, TypeError, json.JSONDecodeError):
             protected = set()
+    out = set()
+    for p in annotator_files(root, sid):
+        rel = p.relative_to(root).as_posix()
+        parts = Path(rel).parts
+        if (f'data/csr8_phase_c/{rel}' in protected
+                or ('c4d_receipts' in parts and p.name in ATTEMPT_ARTIFACT_NAMES)):
+            out.add(rel)
+    return out
+
+
+def enforce_domain_modes(root=CSR, sid=SID, price_root=None):
+    """Apply the filesystem boundary: annotator files lose all write bits;
+    outcome/identity/secret files become owner-only for OS-level isolation.
+
+    Portability contract (audit bridge materializes the certified tree
+    without filesystem attributes): read-only is enforced by (a) exact
+    0600 on the protocol-pinned attempt/protected set per the frozen C4/C6
+    gates and (b) no write bits on every other annotator file, with (c)
+    every annotator byte pinned by the annotator_sha256 content ledger,
+    which the certified manifest anchors to the target commit.
+    """
+    root = Path(root)
+    changed = []
+    exempt = protocol_0600_set(root, sid)
     # Non-root analysis subprocess must traverse the explicitly permitted tree.
     for d in (root / 'corpus', root / 'analysis'):
         if d.is_dir():
@@ -764,18 +837,13 @@ def enforce_domain_modes(root=CSR, sid=SID, price_root=None):
     for p in annotator_files(root, sid):
         mode = stat.S_IMODE(os.stat(p).st_mode)
         relpath = p.relative_to(root).as_posix()
-        full = f'data/csr8_phase_c/{relpath}'
-        # Frozen protocol artifacts retain exact 0600 semantics.  The
-        # immutable attribute, not chmod, supplies the read-only guarantee.
-        if full in protected:
+        if relpath in exempt:
             new = 0o600
         else:
             new = mode & ~0o222
         if new != mode:
-            if _is_immutable(p):
-                fail(f'G-F-DOMAIN-IMMUTABLE: mode drift on immutable file {p}')
             os.chmod(p, new)
-            changed.append({'path': p.relative_to(root).as_posix(), 'class': 'annotator',
+            changed.append({'path': relpath, 'class': 'annotator',
                             'from': oct(mode), 'to': oct(new)})
     for p in forbidden_read_files(root, sid, price_root):
         mode = stat.S_IMODE(os.stat(p).st_mode)
@@ -792,15 +860,14 @@ def enforce_domain_modes(root=CSR, sid=SID, price_root=None):
     fdir.mkdir(parents=True, exist_ok=True)
     hashes = {p.relative_to(root).as_posix(): sha(p.read_bytes())
               for p in annotator_files(root, sid)}
-    # Immutable flag is applied only after all domain writes are complete;
-    # callers explicitly invoke set_annotator_immutable at freeze time.
-    fm = {'freeze_version': 'csr8-f-domain-freeze-v2', 'session_id': sid,
-          'policy': {'annotator': 'filesystem immutable attribute + no group/other write',
+    fm = {'freeze_version': 'csr8-f-domain-freeze-v3', 'session_id': sid,
+          'policy': {'annotator': 'protocol-0600 exact; others no write bits; '
+                                  'content pinned by annotator_sha256 ledger',
                      'forbidden_read': 'owner-only'},
           'n_annotator_files': len(annotator_files(root, sid)),
           'n_forbidden_files': len(forbidden_read_files(root, sid, price_root)),
           'annotator_sha256': hashes,
-          'immutable_required': all(_is_immutable(p) for p in annotator_files(root, sid)), 
+          'protocol_0600': sorted(exempt),
           'changed': changed}
     fp_ = fdir / 'domain_freeze.json'
     fp_.write_text(json.dumps(fm, ensure_ascii=False, sort_keys=True, indent=1))
@@ -811,31 +878,32 @@ def enforce_domain_modes(root=CSR, sid=SID, price_root=None):
 def verify_domain_freeze(root=CSR, sid=SID, price_root=None):
     root = Path(root)
     gates = {}
-    # The frozen harness retains a small set of protected artifacts as 0600;
-    # the enforcement boundary is the non-privileged annotator uid, so no
-    # group/other write is permitted (and the OS probe proves nobody writes fail).
-    bad = [str(p) for p in annotator_files(root, sid)
-           if stat.S_IMODE(os.stat(p).st_mode) & 0o222 and not _is_immutable(p) and ('data/csr8_phase_c/' + p.relative_to(root).as_posix()) not in {x['path'] for x in json.loads((ROOT / 'config/audit/certified_live_inputs.json').read_text()).get('protectedArtifacts', [])}]
-    hashes = {p.relative_to(root).as_posix(): sha(p.read_bytes())
-              for p in annotator_files(root, sid)}
-    fm = json.loads((root / 'freeze' / sid / 'domain_freeze.json').read_text())
-    if fm.get('annotator_sha256') != hashes:
-        fail('G-F-DOMAIN-HASH: annotator domain content ledger drift')
-    if fm.get('immutable_required') and any(not _is_immutable(p) for p in annotator_files(root, sid)):
-        fail('G-F-DOMAIN-IMMUTABLE: immutable attribute missing')
+    exempt = protocol_0600_set(root, sid)
+    files = list(annotator_files(root, sid))
+    bad_proto = [str(p) for p in files
+                 if p.relative_to(root).as_posix() in exempt
+                 and stat.S_IMODE(os.stat(p).st_mode) != 0o600]
+    if bad_proto:
+        fail(f'G-F-DOMAIN-PROTO: protocol artifacts must be exactly 0600: {bad_proto[:3]}')
+    gates['G-F-DOMAIN-PROTO'] = 'PASS'
+    bad = [str(p) for p in files
+           if p.relative_to(root).as_posix() not in exempt
+           and stat.S_IMODE(os.stat(p).st_mode) & 0o222]
     if bad:
         fail(f'G-F-DOMAIN-RO: annotator files writable: {bad[:3]}')
     gates['G-F-DOMAIN-RO'] = 'PASS'
-    if fm.get('immutable_required'):
-        if not all(_is_immutable(p) for p in annotator_files(root, sid)):
-            fail('G-F-DOMAIN-IMMUTABLE: annotator files lack immutable attribute')
-        gates['G-F-DOMAIN-IMMUTABLE'] = 'PASS'
+    hashes = {p.relative_to(root).as_posix(): sha(p.read_bytes())
+              for p in files}
+    fm = json.loads((root / 'freeze' / sid / 'domain_freeze.json').read_text())
+    if fm.get('annotator_sha256') != hashes:
+        fail('G-F-DOMAIN-HASH: annotator domain content ledger drift')
+    gates['G-F-DOMAIN-HASH'] = 'PASS'
     bad = [str(p) for p in forbidden_read_files(root, sid, price_root)
            if stat.S_IMODE(os.stat(p).st_mode) & 0o077]
     if bad:
         fail(f'G-F-DOMAIN-PRIVATE: forbidden files readable: {bad[:3]}')
     gates['G-F-DOMAIN-PRIVATE'] = 'PASS'
-    if (fm['n_annotator_files'] != len(annotator_files(root, sid)) or
+    if (fm['n_annotator_files'] != len(files) or
             fm['n_forbidden_files'] > len(forbidden_read_files(root, sid, price_root))):
         fail('G-F-FREEZE-LEDGER: domain file deletion or ledger drift')
     gates['G-F-FREEZE-LEDGER'] = 'PASS'
@@ -955,7 +1023,6 @@ def evidence(root=CSR, out_path=None):
     outcomes = build_outcomes(root)
     j = join(root)
     enforce_domain_modes(root)
-    set_annotator_immutable(root)
     live = {'corpus': verify_corpus(root),
             'blinding': verify_blinding(root),
             'outcomes': verify_outcomes(root), 'join': j['manifest']}

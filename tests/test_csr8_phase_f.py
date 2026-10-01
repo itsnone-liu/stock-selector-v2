@@ -47,11 +47,11 @@ def sandbox(tmp_path):
     fo.build_outcomes(root, cal_path=cal, price_root=price_root)
     fo.join(root)
     fb.enforce_domain_modes(root, price_root=price_root)
-    # Test sandbox is not constrained by the historical C4 0600 protocol set:
-    # enforce strict no-write annotator modes and re-ledger after all builders.
-    for p in fb.annotator_files(root):
-        os.chmod(p, os.stat(p).st_mode & ~0o222)
-    fb.enforce_domain_modes(root, price_root=price_root)
+    # Portable §9.1 contract (must hold identically in the audit bridge,
+    # which materializes the certified tree without filesystem attributes):
+    # protocol attempt artifacts stay exactly 0600 per the frozen C4-D/C6
+    # contract, every other annotator file carries no write bits, and all
+    # annotator bytes are pinned by the freeze content ledger.
     return root, price_root, cal
 
 

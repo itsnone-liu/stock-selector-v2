@@ -3,7 +3,9 @@
   "gates": {
    "G-F-CLOSED": "PASS",
    "G-F-DERIVE": "PASS",
+   "G-F-DOMAIN-HASH": "PASS",
    "G-F-DOMAIN-PRIVATE": "PASS",
+   "G-F-DOMAIN-PROTO": "PASS",
    "G-F-DOMAIN-RO": "PASS",
    "G-F-FREEZE-LEDGER": "PASS",
    "G-F-FUTURE": "PASS",

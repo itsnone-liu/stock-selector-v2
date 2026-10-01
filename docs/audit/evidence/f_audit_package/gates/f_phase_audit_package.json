@@ -1,12 +1,12 @@
 {
  "export": {
   "chain_head_hash": "c1fa24420e411a19e191b6399dafab02f568c1fe7ef766a481907c970b68becd",
-  "fileCount": 68,
-  "totalBytes": 658138
+  "fileCount": 66,
+  "totalBytes": 643815
  },
  "verify": {
   "all_pass": true,
-  "fileCount": 68,
+  "fileCount": 66,
   "gates": {
    "G-P-ANALYSIS": "PASS",
    "G-P-AUTHZ": "PASS",
@@ -21,6 +21,6 @@
    "G-P-VERDICTS": "PASS"
   },
   "head_hash": "c1fa24420e411a19e191b6399dafab02f568c1fe7ef766a481907c970b68becd",
-  "totalBytes": 658138
+  "totalBytes": 643815
  }
 }
