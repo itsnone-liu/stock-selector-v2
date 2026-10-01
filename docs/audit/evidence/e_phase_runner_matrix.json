@@ -1,0 +1,198 @@
+{
+ "checkpoints": [
+  {
+   "chain_after_resume": [
+    "REVEAL_PACKET",
+    "SEAL_ANNOTATION"
+   ],
+   "crash_at": "after_verify",
+   "head_hash_after_resume": "d0dd8cc64ce3dd63d89ff9215b0c551669ff1ee37b996a111f561308245adbba",
+   "persisted_boundaries": [
+    "PREPARE",
+    "AUTHORIZED",
+    "after_verify"
+   ],
+   "resume_status": "SEALED"
+  },
+  {
+   "chain_after_resume": [
+    "REVEAL_PACKET",
+    "SEAL_ANNOTATION"
+   ],
+   "crash_at": "after_derive",
+   "head_hash_after_resume": "1d26c4177eac26f3d3cde69a3fcf7f42ea8bae280d5bf7411e28daa0f36af3a3",
+   "persisted_boundaries": [
+    "PREPARE",
+    "AUTHORIZED",
+    "after_verify",
+    "after_derive"
+   ],
+   "resume_status": "SEALED"
+  },
+  {
+   "chain_after_resume": [
+    "REVEAL_PACKET",
+    "SEAL_ANNOTATION"
+   ],
+   "crash_at": "after_precondition",
+   "head_hash_after_resume": "776cf10ede6a8ce29533c2e770c2b5dde0bbf8f2bf61639354cde345dde85e4a",
+   "persisted_boundaries": [
+    "PREPARE",
+    "AUTHORIZED",
+    "after_verify",
+    "after_derive",
+    "after_precondition"
+   ],
+   "resume_status": "SEALED"
+  },
+  {
+   "chain_after_resume": [
+    "REVEAL_PACKET",
+    "SEAL_ANNOTATION"
+   ],
+   "crash_at": "after_append",
+   "head_hash_after_resume": "c88623f791f5a1e18a1e8f90d61fdc597e07eb5affed8cb1f7eb46d62f718b6b",
+   "persisted_boundaries": [
+    "PREPARE",
+    "AUTHORIZED",
+    "after_verify",
+    "after_derive",
+    "after_precondition",
+    "after_append"
+   ],
+   "resume_status": "SEALED"
+  },
+  {
+   "chain_after_resume": [
+    "REVEAL_PACKET",
+    "SEAL_ANNOTATION"
+   ],
+   "crash_at": "after_fsync",
+   "head_hash_after_resume": "322e4fa949d0df3bc0247589f181cadd9a3319a84a522c02942f189a3ffc5118",
+   "persisted_boundaries": [
+    "PREPARE",
+    "AUTHORIZED",
+    "after_verify",
+    "after_derive",
+    "after_precondition",
+    "after_append",
+    "after_fsync"
+   ],
+   "resume_status": "SEALED"
+  },
+  {
+   "chain_after_resume": [
+    "REVEAL_PACKET",
+    "SEAL_ANNOTATION"
+   ],
+   "crash_at": "after_replay_verify",
+   "head_hash_after_resume": "0e1e08bf86c073576fba6f17f40b7492f96e22eb583ad838f5d9d68e0ef194ff",
+   "persisted_boundaries": [
+    "PREPARE",
+    "AUTHORIZED",
+    "after_verify",
+    "after_derive",
+    "after_precondition",
+    "after_append",
+    "after_fsync",
+    "after_replay_verify"
+   ],
+   "resume_status": "SEALED"
+  },
+  {
+   "chain_after_resume": [
+    "REVEAL_PACKET",
+    "SEAL_ANNOTATION"
+   ],
+   "crash_at": "after_replay",
+   "head_hash_after_resume": "43163632c5c4cb7d63eecb04a91214012aa73c74c51d923261519dd96ee74956",
+   "persisted_boundaries": [
+    "PREPARE",
+    "AUTHORIZED",
+    "after_verify",
+    "after_derive",
+    "after_precondition",
+    "after_append",
+    "after_fsync",
+    "after_replay_verify",
+    "after_replay"
+   ],
+   "resume_status": "SEALED"
+  },
+  {
+   "chain_after_resume": [
+    "REVEAL_PACKET",
+    "SEAL_ANNOTATION"
+   ],
+   "crash_at": "after_anchor",
+   "head_hash_after_resume": "daafc5f1959190138734472518cafc03411992502ac3ccf236ab6ff5a270a9e4",
+   "persisted_boundaries": [
+    "PREPARE",
+    "AUTHORIZED",
+    "after_verify",
+    "after_derive",
+    "after_precondition",
+    "after_append",
+    "after_fsync",
+    "after_replay_verify",
+    "after_replay",
+    "after_anchor"
+   ],
+   "resume_status": "SEALED"
+  },
+  {
+   "chain_after_resume": [
+    "REVEAL_PACKET",
+    "SEAL_ANNOTATION"
+   ],
+   "crash_at": "after_cleanup",
+   "head_hash_after_resume": "7329e39c1365c05519f80187f6c40890e5f7fafab6edfa8bc1d98d85293a7cb9",
+   "persisted_boundaries": [
+    "PREPARE",
+    "AUTHORIZED",
+    "after_verify",
+    "after_derive",
+    "after_precondition",
+    "after_append",
+    "after_fsync",
+    "after_replay_verify",
+    "after_replay",
+    "after_anchor",
+    "after_cleanup"
+   ],
+   "resume_status": "SEALED"
+  }
+ ],
+ "full_cycle": {
+  "head_hash": "42727ed73c12c1a0c958872340ee846df4acc3b7f902d2be1af198c39a6d7f08",
+  "persisted_boundaries": [
+   "PREPARE",
+   "AUTHORIZED",
+   "after_verify",
+   "after_derive",
+   "after_precondition",
+   "after_append",
+   "after_fsync",
+   "after_replay_verify",
+   "after_replay",
+   "after_anchor",
+   "after_cleanup",
+   "SEALED"
+  ],
+  "status": "SEALED"
+ },
+ "runner": "csr8_phase_e_runner",
+ "session": "c4-prod-0002",
+ "timeout_repair": {
+  "degraded": "SAFE_DEGRADED",
+  "final": "SEALED",
+  "head_hash": "03be88a3d68946e7b04a6cd8ffe13beb00507685576606a117698aefa74635b3",
+  "repair_result": "SEALED",
+  "resume_noop": true,
+  "watchdog": {
+   "append": false,
+   "reason": "TIMEOUT",
+   "writes": 0
+  }
+ }
+}
