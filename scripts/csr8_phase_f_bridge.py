@@ -24,6 +24,7 @@ import argparse
 import hashlib
 import json
 import os
+import shutil
 import re
 import stat
 import sys
@@ -905,11 +906,18 @@ def evidence(root=CSR, out_path=None):
     """§9.1–§9.3 机器实测 evidence：live 构建+全 gate+真实渗透尝试+删失变体。"""
     import tempfile
     from csr8_phase_f_outcome_join import (build_outcomes, verify_outcomes,
-                                           join, CENSOR_WINDOW, CENSOR_PRICE)
+                                           join, outcomes_dir, labeled_dir,
+                                           CENSOR_WINDOW, CENSOR_PRICE)
     root = Path(root)
     enforce_domain_modes(root)
     out_path = Path(out_path) if out_path else (
         ROOT / 'docs/audit/evidence/f_phase_bridge.json')
+    # A fresh bridge run must be reproducible.  Remove only derived F outputs;
+    # frozen annotator bytes are never deleted or rewritten.
+    for derived in (corpus_dir(root), analysis_dir(root), outcomes_dir(root),
+                    labeled_dir(root), Path(root) / 'freeze' / SID):
+        if derived.exists():
+            shutil.rmtree(derived)
     led = build_corpus(root)
     corpus_table = build_corpus_table(root)
     man = build_analysis(root)
