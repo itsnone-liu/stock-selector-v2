@@ -2,7 +2,7 @@
  "export": {
   "chain_head_hash": "c1fa24420e411a19e191b6399dafab02f568c1fe7ef766a481907c970b68becd",
   "fileCount": 64,
-  "totalBytes": 674152
+  "totalBytes": 674222
  },
  "verify": {
   "all_pass": true,
@@ -24,6 +24,6 @@
    "G-P-VERDICTS-CHAIN": "PASS"
   },
   "head_hash": "c1fa24420e411a19e191b6399dafab02f568c1fe7ef766a481907c970b68becd",
-  "totalBytes": 674152
+  "totalBytes": 674222
  }
 }

@@ -24,6 +24,7 @@ import argparse
 import hashlib
 import json
 import os
+import subprocess
 import shutil
 import re
 import stat
@@ -756,15 +757,13 @@ def forbidden_read_files(root, sid=SID, price_root=None):
 
 
 def set_annotator_immutable(root=CSR, sid=SID):
-    """Optional local hardening: Linux FS immutable flag on annotator files.
+    """Apply the §9.1 hard write barrier to every annotator file.
 
-    NOT part of the certified verification contract — the attribute does not
-    survive audit-bridge materialization.  Read-only is certified by the
-    portable contract: protocol-0600 exact, others no write bits, content
-    pinned by the annotator_sha256 ledger.
-
-    Unlike chmod, this blocks even root open/unlink until explicitly thawed;
-    thawing is an auditable maintenance action, never part of analysis reads.
+    The hash ledger detects drift but is not a write barrier.  The Linux
+    immutable attribute is therefore applied to the complete domain after
+    generation and before certification; it blocks owner/root writes and
+    unlink/rename, not merely non-owner access.  Maintenance must explicitly
+    thaw the domain first and re-freeze it afterwards.
     """
     import subprocess
     files = annotator_files(root, sid)
@@ -1039,6 +1038,14 @@ def evidence(root=CSR, out_path=None):
                                            join, outcomes_dir, labeled_dir,
                                            CENSOR_WINDOW, CENSOR_PRICE)
     root = Path(root)
+    # Maintenance boundary: thaw only for the controlled regeneration window;
+    # the analysis-ready state is re-frozen with an OS write barrier below.
+    immutable_files = annotator_files(root)
+    if immutable_files:
+        r = subprocess.run(['chattr', '-i', *[str(p) for p in immutable_files]],
+                           capture_output=True, text=True)
+        if r.returncode:
+            fail(f'G-F-DOMAIN-IMMUTABLE: thaw before evidence failed: {r.stderr[:200]}')
     enforce_domain_modes(root)
     out_path = Path(out_path) if out_path else (
         ROOT / 'docs/audit/evidence/f_phase_bridge.json')
@@ -1094,6 +1101,16 @@ def evidence(root=CSR, out_path=None):
         'join': live['join'],
     }
     out_path.parent.mkdir(parents=True, exist_ok=True)
+    out_path.write_text(json.dumps(ev, ensure_ascii=False, sort_keys=True, indent=1))
+    # Final analysis-ready state: every annotator file is immutable, including
+    # protocol files historically left owner-writable by the 0600 contract.
+    # This is the actual write barrier; the hash ledger remains the forensic
+    # integrity layer, not a substitute for blocking writes.
+    immutable_count = set_annotator_immutable(root)
+    if verify_annotator_immutable(root) != 'PASS':
+        fail('G-F-DOMAIN-IMMUTABLE: final annotator freeze failed')
+    ev['analysis']['gates']['G-F-DOMAIN-IMMUTABLE'] = 'PASS'
+    ev['analysis']['immutable_annotator_files'] = immutable_count
     out_path.write_text(json.dumps(ev, ensure_ascii=False, sort_keys=True, indent=1))
     return ev
 

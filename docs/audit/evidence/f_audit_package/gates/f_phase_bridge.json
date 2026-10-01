@@ -4,6 +4,7 @@
    "G-F-CLOSED": "PASS",
    "G-F-DERIVE": "PASS",
    "G-F-DOMAIN-HASH": "PASS",
+   "G-F-DOMAIN-IMMUTABLE": "PASS",
    "G-F-DOMAIN-PRIVATE": "PASS",
    "G-F-DOMAIN-PROTO": "PASS",
    "G-F-DOMAIN-RO": "PASS",
@@ -17,6 +18,7 @@
    "G-F-OSBOUNDARY": "PASS",
    "G-F-REACH": "PASS"
   },
+  "immutable_annotator_files": 25,
   "n_rows": 2,
   "penetration_attempts": [
    {
