@@ -649,6 +649,41 @@ def forbidden_read_files(root, sid=SID, price_root=None):
     return [p for p in out if p.is_file()]
 
 
+def set_annotator_immutable(root=CSR, sid=SID):
+    """Set Linux FS immutable flag on every annotator-domain file.
+
+    Unlike chmod, this blocks even root open/unlink until explicitly thawed;
+    thawing is an auditable maintenance action, never part of analysis reads.
+    """
+    import subprocess
+    files = annotator_files(root, sid)
+    if not files:
+        fail('G-F-DOMAIN-IMMUTABLE: annotator domain is empty')
+    r = subprocess.run(['chattr', '+i', *[str(p) for p in files]],
+                       capture_output=True, text=True)
+    if r.returncode:
+        fail(f'G-F-DOMAIN-IMMUTABLE: chattr +i failed: {r.stderr[:200]}')
+    return len(files)
+
+
+def verify_annotator_immutable(root=CSR, sid=SID):
+    import subprocess
+    missing = []
+    for p in annotator_files(root, sid):
+        r = subprocess.run(['lsattr', '-d', str(p)], capture_output=True, text=True)
+        if r.returncode or len(r.stdout.split()) < 1 or 'i' not in r.stdout.split()[0]:
+            missing.append(str(p))
+    if missing:
+        fail(f'G-F-DOMAIN-IMMUTABLE: files not immutable: {missing[:3]}')
+    return 'PASS'
+
+
+def _is_immutable(p):
+    import subprocess
+    r = subprocess.run(['lsattr', '-d', str(p)], capture_output=True, text=True)
+    return bool(r.returncode == 0 and r.stdout.split() and 'i' in r.stdout.split()[0])
+
+
 def enforce_domain_modes(root=CSR, sid=SID, price_root=None):
     """Apply the filesystem boundary: annotator files lose all write bits;
     outcome/identity/secret files become owner-only for OS-level isolation."""
@@ -691,11 +726,17 @@ def enforce_domain_modes(root=CSR, sid=SID, price_root=None):
                             'from': oct(mode), 'to': oct(new)})
     fdir = root / 'freeze' / sid
     fdir.mkdir(parents=True, exist_ok=True)
-    fm = {'freeze_version': 'csr8-f-domain-freeze-v1', 'session_id': sid,
-          'policy': {'annotator': 'strip-group-other-write-bits (protected 0600 allowed)',
+    hashes = {p.relative_to(root).as_posix(): sha(p.read_bytes())
+              for p in annotator_files(root, sid)}
+    # Immutable flag is applied only after all domain writes are complete;
+    # callers explicitly invoke set_annotator_immutable at freeze time.
+    fm = {'freeze_version': 'csr8-f-domain-freeze-v2', 'session_id': sid,
+          'policy': {'annotator': 'filesystem immutable attribute + no group/other write',
                      'forbidden_read': 'owner-only'},
           'n_annotator_files': len(annotator_files(root, sid)),
           'n_forbidden_files': len(forbidden_read_files(root, sid, price_root)),
+          'annotator_sha256': hashes,
+          'immutable_required': all(_is_immutable(p) for p in annotator_files(root, sid)), 
           'changed': changed}
     fp_ = fdir / 'domain_freeze.json'
     fp_.write_text(json.dumps(fm, ensure_ascii=False, sort_keys=True, indent=1))
@@ -710,16 +751,26 @@ def verify_domain_freeze(root=CSR, sid=SID, price_root=None):
     # the enforcement boundary is the non-privileged annotator uid, so no
     # group/other write is permitted (and the OS probe proves nobody writes fail).
     bad = [str(p) for p in annotator_files(root, sid)
-           if stat.S_IMODE(os.stat(p).st_mode) & 0o022]
+           if stat.S_IMODE(os.stat(p).st_mode) & 0o222 and not _is_immutable(p)]
+    hashes = {p.relative_to(root).as_posix(): sha(p.read_bytes())
+              for p in annotator_files(root, sid)}
+    fm = json.loads((root / 'freeze' / sid / 'domain_freeze.json').read_text())
+    if fm.get('annotator_sha256') != hashes:
+        fail('G-F-DOMAIN-HASH: annotator domain content ledger drift')
+    if fm.get('immutable_required') and any(not _is_immutable(p) for p in annotator_files(root, sid)):
+        fail('G-F-DOMAIN-IMMUTABLE: immutable attribute missing')
     if bad:
         fail(f'G-F-DOMAIN-RO: annotator files writable: {bad[:3]}')
     gates['G-F-DOMAIN-RO'] = 'PASS'
+    if fm.get('immutable_required'):
+        if not all(_is_immutable(p) for p in annotator_files(root, sid)):
+            fail('G-F-DOMAIN-IMMUTABLE: annotator files lack immutable attribute')
+        gates['G-F-DOMAIN-IMMUTABLE'] = 'PASS'
     bad = [str(p) for p in forbidden_read_files(root, sid, price_root)
            if stat.S_IMODE(os.stat(p).st_mode) & 0o077]
     if bad:
         fail(f'G-F-DOMAIN-PRIVATE: forbidden files readable: {bad[:3]}')
     gates['G-F-DOMAIN-PRIVATE'] = 'PASS'
-    fm = json.loads((root / 'freeze' / sid / 'domain_freeze.json').read_text())
     if (fm['n_annotator_files'] != len(annotator_files(root, sid)) or
             fm['n_forbidden_files'] > len(forbidden_read_files(root, sid, price_root))):
         fail('G-F-FREEZE-LEDGER: domain file deletion or ledger drift')
@@ -832,6 +883,7 @@ def evidence(root=CSR, out_path=None):
     outcomes = build_outcomes(root)
     j = join(root)
     enforce_domain_modes(root)
+    set_annotator_immutable(root)
     live = {'corpus': verify_corpus(root),
             'blinding': verify_blinding(root),
             'outcomes': verify_outcomes(root), 'join': j['manifest']}

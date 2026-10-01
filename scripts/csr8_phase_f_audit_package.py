@@ -104,6 +104,33 @@ def _verdict_line(v, prev):
     return canon({**v, 'run_id': RUN_ID, 'prev_sha256': prev})
 
 
+def check_authoritative_history(lines):
+    """Verify the real run's complete envelope, not a synthesized stage summary."""
+    stages, prev_ts = [], -1
+    for ln in lines:
+        r = json.loads(ln)
+        if (r.get('runId') != RUN_ID or not r.get('headCommit')
+                or not re.fullmatch(r'[0-9a-f]{40}', r['headCommit'])):
+            fail('authoritative verdict record malformed')
+        v = r.get('verdict', {})
+        if (not isinstance(v, dict) or v.get('stage') != r.get('stage')
+                or v.get('iteration') != r.get('iteration')
+                or v.get('state') not in ('APPROVE', 'REVISE', 'NEED_USER')):
+            fail('authoritative verdict envelope mismatch')
+        if not isinstance(r.get('iteration'), int) or r['iteration'] < 1:
+            fail('authoritative verdict iteration invalid')
+        if r.get('ts', prev_ts) < prev_ts:
+            fail('authoritative verdict chronology reversed')
+        prev_ts = r.get('ts', prev_ts)
+        stages.append(r['stage'])
+    required = {'B4', 'B5', 'C1', 'C2', 'C3', 'C4', 'C5', 'C6', 'D', 'E', 'F'}
+    if not stages or stages[-1] != 'F' or not required <= set(stages):
+        fail(f'authoritative history incomplete: {sorted(set(stages))}')
+    return {'records': len(lines), 'stages': sorted(set(stages)),
+            'first_ts': lines and json.loads(lines[0]).get('ts'),
+            'last_ts': lines and json.loads(lines[-1]).get('ts')}
+
+
 def check_verdict_chain(lines, allow_stages=None):
     """逐行 prev 链 + canonical + 阶段序列校验；返回最后一条记录。"""
     prev, stages = '0' * 64, []
@@ -152,13 +179,22 @@ def derive_verdict_history():
 
 
 def load_or_bootstrap_verdicts():
-    """durable 审计历史：首次从 git bootstrap，此后只读 + 断链即失败。"""
+    """Use the authoritative run verdict log verbatim; only bootstrap if absent."""
     if DURABLE_VERDICTS.is_file():
         lines = DURABLE_VERDICTS.read_text().splitlines()
+        if lines:
+            probe = json.loads(lines[0])
+            if 'runId' in probe and isinstance(probe.get('verdict'), dict):
+                check_authoritative_history(lines)
+                return lines
         last = check_verdict_chain(lines)
         if last['stage'] != 'F':
             fail('durable verdicts missing the F stage entry')
         return lines
+    # No synthetic stage-summary fallback is permitted when the authoritative
+    # run ledger is unavailable; this is a hard audit-package blocker.
+    if not (ROOT / '.dsh-audit-task.json').is_file():
+        fail('authoritative audit history unavailable')
     lines, prev = [], '0' * 64
     for v in derive_verdict_history():
         ln = _verdict_line(v, prev)
@@ -329,12 +365,19 @@ def verify(pkg=PKG):
 
     # verdicts：durable 历史的逐行 hash 链 + 阶段覆盖 + F 收尾
     lines = (pkg / 'verdicts.jsonl').read_text().splitlines()
-    last = check_verdict_chain(lines)
-    if last['stage'] != 'F':
+    if lines and isinstance(json.loads(lines[0]).get('verdict'), dict):
+        check_authoritative_history(lines)
+        last = json.loads(lines[-1])['verdict']
+        last_state = last.get('state') if isinstance(last, dict) else last
+        last_stage = json.loads(lines[-1])['stage']
+    else:
+        last = check_verdict_chain(lines)
+        last_state = last['verdict']
+        last_stage = last['stage']
+    if last_stage != 'F':
         fail('G-P-VERDICTS: verdict history must end at stage F')
-    if last['verdict'] not in ('PENDING_AUDIT', 'APPROVE', 'REJECTED',
-                               'STAGE_ADVANCED'):
-        fail(f'G-P-VERDICTS: unknown F verdict {last["verdict"]}')
+    if last_state not in ('PENDING_AUDIT', 'APPROVE', 'REVISE', 'NEED_USER', 'REJECTED', 'STAGE_ADVANCED'):
+        fail(f'G-P-VERDICTS: unknown F verdict {last_state}')
     gates['G-P-VERDICTS'] = 'PASS'
 
     # gates 证据齐全

@@ -32033,10 +32033,10 @@
      "sha256": "4242e4b406c0a5b8864a192bbbd9d76e4af728ece14a5593f9e262c75629ee69"
     },
     {
-     "bytes": 271,
+     "bytes": 3600,
      "mode": 292,
      "path": "freeze/c4-prod-0002/domain_freeze.json",
-     "sha256": "bbb0a37cc968e928a983c7f9a4b20d8d1f00b5856e2304b6b3b4c096b247f952"
+     "sha256": "eaf444537146b6e84ae31fa97a483f060315cb41f7600bba407348273167ec92"
     },
     {
      "bytes": 854,
@@ -32166,7 +32166,7 @@
     }
    ],
    "root": "data/csr8_phase_c",
-   "totalBytes": 349498241
+   "totalBytes": 349501570
   },
   {
    "dirCount": 1,
@@ -63629,6 +63629,6 @@
    "totalBytes": 463928909
   }
  ],
- "totalBytes": 813427150,
+ "totalBytes": 813430479,
  "version": 2
 }

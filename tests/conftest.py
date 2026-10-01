@@ -29,7 +29,8 @@ def pytest_sessionstart(session):
     for entry in json.loads(manifest.read_text()).get("protectedArtifacts", []):
         path = root / entry["path"]
         if path.is_file():
-            os.chmod(path, entry["mode"])
+            if (os.stat(path).st_mode & 0o777) != entry["mode"]:
+                os.chmod(path, entry["mode"])
 
 
 @pytest.fixture

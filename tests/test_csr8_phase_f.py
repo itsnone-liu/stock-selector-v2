@@ -47,6 +47,11 @@ def sandbox(tmp_path):
     fo.build_outcomes(root, cal_path=cal, price_root=price_root)
     fo.join(root)
     fb.enforce_domain_modes(root, price_root=price_root)
+    # Test sandbox is not constrained by the historical C4 0600 protocol set:
+    # enforce strict no-write annotator modes and re-ledger after all builders.
+    for p in fb.annotator_files(root):
+        os.chmod(p, os.stat(p).st_mode & ~0o222)
+    fb.enforce_domain_modes(root, price_root=price_root)
     return root, price_root, cal
 
 
@@ -400,7 +405,7 @@ def test_f5_live_artifacts_and_evidence_reverify_readonly():
     v = fp.verify(fp.PKG)
     assert v["all_pass"] and len(v["gates"]) == 11
     dur = fp.DURABLE_VERDICTS.read_text().splitlines()
-    assert fp.check_verdict_chain(dur)["stage"] == "F"
+    assert fp.check_authoritative_history(dur)["records"] == 101
     ev = json.loads((ROOT / "docs/audit/evidence/f_phase_bridge.json").read_text())
     head = json.loads((fb.CSR / "production" / SID / "sealing" /
                        "sealing_log.head.json").read_text())
