@@ -1,0 +1,131 @@
+{
+ "analysis": {
+  "gates": {
+   "G-F-CLOSED": "PASS",
+   "G-F-FUTURE": "PASS",
+   "G-F-IDENTITY": "PASS",
+   "G-F-INVERT": "PASS",
+   "G-F-KEYS": "PASS",
+   "G-F-REACH": "PASS"
+  },
+  "n_rows": 2,
+  "penetration_attempts": [
+   {
+    "attempt": "forbidden-key presence (nested walk)",
+    "found": [],
+    "tried": 38
+   },
+   {
+    "attempt": "identity code token scan over all values",
+    "found": [],
+    "tokens": 47,
+    "universe_codes": 5240
+   },
+   {
+    "attempt": "post-T date string scan per row",
+    "found": [],
+    "rows": 2
+   },
+   {
+    "attempt": "guarded_read(secret_salt)",
+    "result": "BLOCKED"
+   },
+   {
+    "attempt": "guarded_read(outcomes.jsonl)",
+    "result": "BLOCKED"
+   },
+   {
+    "attempt": "guarded_read(sh.601328.json.gz)",
+    "result": "BLOCKED"
+   },
+   {
+    "attempt": "guarded_read(analysis_labeled.jsonl)",
+    "result": "BLOCKED"
+   },
+   {
+    "attempt": "HMAC blind-key inversion (public salt guesses x all canonical case keys)",
+    "computations": 420,
+    "matches": 0
+   }
+  ]
+ },
+ "corpus": {
+  "chain_head_hash": "c1fa24420e411a19e191b6399dafab02f568c1fe7ef766a481907c970b68becd",
+  "files": {
+   "bytes": 15941,
+   "files": 11
+  },
+  "gates": {
+   "G-F-CORPUS-CHAIN": "PASS",
+   "G-F-CORPUS-LEDGER": "PASS",
+   "G-F-CORPUS-RO": "PASS",
+   "G-F-CORPUS-WORLD": "PASS"
+  }
+ },
+ "join": {
+  "censored": 0,
+  "contract_sha256": "4c63a5b307f5b9c3f557cedcc9087580ae9e7ad56b7ea4996f6a6d6df617d109",
+  "join_keys": [
+   "opaque_case_id",
+   "packet_id"
+  ],
+  "join_version": "csr8-f-outcome-join-v1",
+  "n_analysis_rows": 2,
+  "n_labeled_rows": 6,
+  "n_outcome_rows": 6,
+  "session_id": "c4-prod-0002"
+ },
+ "outcomes": {
+  "censoring_variant": {
+   "outcome_as_of": "2021-04-30",
+   "rows": [
+    {
+     "T": "2023-10-13",
+     "censor_reason": "OUTCOME_WINDOW_NOT_ELAPSED",
+     "censored": true,
+     "horizon_days": 5
+    },
+    {
+     "T": "2023-10-13",
+     "censor_reason": "OUTCOME_WINDOW_NOT_ELAPSED",
+     "censored": true,
+     "horizon_days": 20
+    },
+    {
+     "T": "2023-10-13",
+     "censor_reason": "OUTCOME_WINDOW_NOT_ELAPSED",
+     "censored": true,
+     "horizon_days": 60
+    },
+    {
+     "T": "2021-03-08",
+     "censor_reason": null,
+     "censored": false,
+     "horizon_days": 5
+    },
+    {
+     "T": "2021-03-08",
+     "censor_reason": null,
+     "censored": false,
+     "horizon_days": 20
+    },
+    {
+     "T": "2021-03-08",
+     "censor_reason": "OUTCOME_WINDOW_NOT_ELAPSED",
+     "censored": true,
+     "horizon_days": 60
+    }
+   ]
+  },
+  "gates": {
+   "G-F-CENSOR": "PASS",
+   "G-F-JOIN-KEYS": "PASS",
+   "G-F-OUTCOME-BLIND": "PASS",
+   "G-F-OUTCOME-RECOMPUTE": "PASS",
+   "G-F-OUTCOME-SCHEMA": "PASS"
+  },
+  "n_rows": 6
+ },
+ "run_id": "audit_20260930021152297",
+ "stage": "F"
+}

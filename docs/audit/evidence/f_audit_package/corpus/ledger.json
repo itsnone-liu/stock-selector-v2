@@ -1,0 +1,125 @@
+{
+ "chain": {
+  "event_count": 4,
+  "head_file_sha256": "880d2b30723382ce3b0cde77cd8a53b8b220228ccbd69c29dfb997c2b76d4a9a",
+  "head_hash": "c1fa24420e411a19e191b6399dafab02f568c1fe7ef766a481907c970b68becd",
+  "log_sha256": "47d64f896f1d30127bfb6790e1405cd4927685bd7e2889d06335e47fac9ad094"
+ },
+ "corpus_version": "csr8-f-corpus-v1",
+ "files": [
+  {
+   "binds": "chain:REVEAL_PACKET",
+   "bytes": 3002,
+   "event_hash": "b5ec0ba1d485219fd7a2198b23e7ac0f979c23d4dd0cced16faa80d8f19437d5",
+   "packet_sha256": "e9abcb4497e08bf5b1b4a412d23f1c79bf8f2ff5477b2cfdec3af1053852adc1",
+   "path": "pairs/ordinal-0001/reveal_packet.json",
+   "sha256": "e9abcb4497e08bf5b1b4a412d23f1c79bf8f2ff5477b2cfdec3af1053852adc1"
+  },
+  {
+   "binds": "chain:SEAL_ANNOTATION",
+   "bytes": 1880,
+   "event_hash": "d8d37c38ff596aae472b1380b1cfd513d4390f3a7b938a2548a6a16770bb4620",
+   "path": "pairs/ordinal-0001/seal_receipt.json",
+   "receipt_sha256": "85a224a3e748b569060a14aea8fe5fe353b62e8a804e0f43cfb4c51a18063aa6",
+   "sha256": "85a224a3e748b569060a14aea8fe5fe353b62e8a804e0f43cfb4c51a18063aa6"
+  },
+  {
+   "approved_receipt_sha256": "85a224a3e748b569060a14aea8fe5fe353b62e8a804e0f43cfb4c51a18063aa6",
+   "binds": "receipt:approved_receipt_sha256",
+   "bytes": 357,
+   "path": "pairs/ordinal-0001/seal_approval.json",
+   "sha256": "110e01d6709c08cac28dddf55bdaf8ab9f75f735ac11fb51cbbe8a69b0a9c0c9"
+  },
+  {
+   "binds": "receipt:draft_sha256",
+   "bytes": 1707,
+   "draft_sha256": "79de988498fa657a3dcea40b59dec59576f9f421b74994a8471f492d8b6bd74a",
+   "path": "pairs/ordinal-0001/draft_snapshot.bin",
+   "sha256": "79de988498fa657a3dcea40b59dec59576f9f421b74994a8471f492d8b6bd74a"
+  },
+  {
+   "binds": "chain:REVEAL_PACKET",
+   "bytes": 1264,
+   "event_hash": "59377de47a49d76137c04cc10e2163023cd1b3da0eedaf19e9ec9e0c2cc06a35",
+   "packet_sha256": "30635e93925744fff634c4974ea29df14f4bf871b126b35f6764eb2ac78ef004",
+   "path": "pairs/ordinal-0002/reveal_packet.json",
+   "sha256": "30635e93925744fff634c4974ea29df14f4bf871b126b35f6764eb2ac78ef004"
+  },
+  {
+   "binds": "chain:SEAL_ANNOTATION",
+   "bytes": 1880,
+   "event_hash": "c1fa24420e411a19e191b6399dafab02f568c1fe7ef766a481907c970b68becd",
+   "path": "pairs/ordinal-0002/seal_receipt.json",
+   "receipt_sha256": "4242e4b406c0a5b8864a192bbbd9d76e4af728ece14a5593f9e262c75629ee69",
+   "sha256": "4242e4b406c0a5b8864a192bbbd9d76e4af728ece14a5593f9e262c75629ee69"
+  },
+  {
+   "approved_receipt_sha256": "4242e4b406c0a5b8864a192bbbd9d76e4af728ece14a5593f9e262c75629ee69",
+   "binds": "receipt:approved_receipt_sha256",
+   "bytes": 357,
+   "path": "pairs/ordinal-0002/seal_approval.json",
+   "sha256": "1ee4fdd0adc177c4aa8b08c55054e0740d419afa9ff03d626675de1d7d2bb9a6"
+  },
+  {
+   "binds": "receipt:draft_sha256",
+   "bytes": 1707,
+   "draft_sha256": "9f399afe6d0e4a1a4dbfb700dc16f6408d470247149bcaa35c221225c8e312d0",
+   "path": "pairs/ordinal-0002/draft_snapshot.bin",
+   "sha256": "9f399afe6d0e4a1a4dbfb700dc16f6408d470247149bcaa35c221225c8e312d0"
+  },
+  {
+   "binds": "receipt",
+   "bytes": 1707,
+   "packet_id": "c67fccc2b211561dbca40d3a3a0aee4a3545781a8d2e12abba1b83f05a9c5ef2",
+   "path": "pairs/ordinal-0002/annotation_draft.json",
+   "reveal_event_hash": "59377de47a49d76137c04cc10e2163023cd1b3da0eedaf19e9ec9e0c2cc06a35",
+   "sha256": "9f399afe6d0e4a1a4dbfb700dc16f6408d470247149bcaa35c221225c8e312d0"
+  },
+  {
+   "binds": "receipt",
+   "bytes": 816,
+   "packet_id": "c67fccc2b211561dbca40d3a3a0aee4a3545781a8d2e12abba1b83f05a9c5ef2",
+   "path": "pairs/ordinal-0002/annotation_session_registry.json",
+   "reveal_event_hash": "59377de47a49d76137c04cc10e2163023cd1b3da0eedaf19e9ec9e0c2cc06a35",
+   "sha256": "c77dc29ab32d0d013932d53749551f0036cb08f623f31f7f85a93590131f8920"
+  },
+  {
+   "binds": "chain:packet_sha256",
+   "bytes": 1264,
+   "packet_sha256": "30635e93925744fff634c4974ea29df14f4bf871b126b35f6764eb2ac78ef004",
+   "path": "pairs/ordinal-0002/packet.json",
+   "sha256": "30635e93925744fff634c4974ea29df14f4bf871b126b35f6764eb2ac78ef004"
+  }
+ ],
+ "pairs": [
+  {
+   "T": "2023-10-13",
+   "opaque_case_id": "d360c89a16c86ba1f79515658f76331cb3c806cc735c22f401c7a87b687652d3",
+   "ordinal": 1,
+   "packet_sha256": "e9abcb4497e08bf5b1b4a412d23f1c79bf8f2ff5477b2cfdec3af1053852adc1",
+   "receipt_sha256": "85a224a3e748b569060a14aea8fe5fe353b62e8a804e0f43cfb4c51a18063aa6",
+   "receipt_source": "c4d_receipts/c4-prod-0002/ordinal-0001/attempt-0001/receipt.json",
+   "reveal_event_hash": "b5ec0ba1d485219fd7a2198b23e7ac0f979c23d4dd0cced16faa80d8f19437d5",
+   "seal_event_hash": "d8d37c38ff596aae472b1380b1cfd513d4390f3a7b938a2548a6a16770bb4620"
+  },
+  {
+   "T": "2021-03-08",
+   "opaque_case_id": "27e3af94396c5ba143688720171ede3ec2f0952f823d4e0b6b6e63723a2d50cb",
+   "ordinal": 2,
+   "packet_sha256": "30635e93925744fff634c4974ea29df14f4bf871b126b35f6764eb2ac78ef004",
+   "receipt_sha256": "4242e4b406c0a5b8864a192bbbd9d76e4af728ece14a5593f9e262c75629ee69",
+   "receipt_source": "c4d_receipts/c4-prod-0002/ordinal-0002/attempt-0001/receipt.json",
+   "reveal_event_hash": "59377de47a49d76137c04cc10e2163023cd1b3da0eedaf19e9ec9e0c2cc06a35",
+   "seal_event_hash": "c1fa24420e411a19e191b6399dafab02f568c1fe7ef766a481907c970b68becd"
+  }
+ ],
+ "read_only": {
+  "enforcement": "mode bits + hash ledger (tamper-evident under any uid, including root: verify_corpus re-derives every binding)",
+  "file_mode": "0o444"
+ },
+ "session_id": "c4-prod-0002",
+ "totals": {
+  "bytes": 15941,
+  "files": 11
+ }
+}

@@ -1,0 +1,32 @@
+{
+ "analysis_version": "csr8-f-analysis-v1",
+ "corpus_ledger_sha256": "e112c392bf8352f23daec29055e9c004fef6daeb69edce6752e1c043b18d8401",
+ "n_rows": 2,
+ "rows": [
+  {
+   "opaque_case_id": "d360c89a16c86ba1f79515658f76331cb3c806cc735c22f401c7a87b687652d3",
+   "packet_id": "335f3213cce87fd482a06dab89ac9735de1967f5ee8b9703603cb0202b84aaed",
+   "row_id": "dae5bf20226f52e1ef4c1229a8ef75dd",
+   "row_sha256": "43203cc0bd5e40264c59068566338e34ad2fa93e70edaff7d1e06488987d577a"
+  },
+  {
+   "opaque_case_id": "27e3af94396c5ba143688720171ede3ec2f0952f823d4e0b6b6e63723a2d50cb",
+   "packet_id": "c67fccc2b211561dbca40d3a3a0aee4a3545781a8d2e12abba1b83f05a9c5ef2",
+   "row_id": "cfd9f9883229ebcebfff5933ee4c91cb",
+   "row_sha256": "71f3dda08f7b1f1d22f350e73c244faaaf12a3fb7b80b96d7dd10ca8daf3607e"
+  }
+ ],
+ "schema": {
+  "T": null,
+  "annotation": null,
+  "chain": null,
+  "decision_clock": null,
+  "evidence": null,
+  "opaque_case_id": null,
+  "packet_id": null,
+  "panel": null,
+  "row_id": null
+ },
+ "session_id": "c4-prod-0002",
+ "source_head_hash": "c1fa24420e411a19e191b6399dafab02f568c1fe7ef766a481907c970b68becd"
+}

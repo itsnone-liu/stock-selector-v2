@@ -1,0 +1,28 @@
+{
+ "censoring": {
+  "outcome_as_of_default": "last frozen calendar day",
+  "reasons": {
+   "OUTCOME_WINDOW_NOT_ELAPSED": "horizon end beyond outcome_as_of or calendar end",
+   "PRICE_MISSING_AT_HORIZON": "no unadj close at horizon date"
+  },
+  "semantics": "right-censored at outcome_as_of: forward_return is null iff censored is true"
+ },
+ "contract_version": "csr8-f-outcome-join-v1",
+ "horizons_trading_days": [
+  5,
+  20,
+  60
+ ],
+ "identity_exposure": "none — outcome rows carry blind join keys only",
+ "join_keys": [
+  "opaque_case_id",
+  "packet_id"
+ ],
+ "n_rows": 6,
+ "price_source": {
+  "per_stock_root": "data/adjustment_baostock/per_stock (frozen universe commitment)",
+  "source_id": "baostock_unadjusted_v1"
+ },
+ "return_definition": "close_to_close unadj: close[T+H]/close[T]-1, fixed 10dp decimal string",
+ "session_id": "c4-prod-0002"
+}
