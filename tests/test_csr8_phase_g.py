@@ -39,53 +39,99 @@ def test_g1_final_report_measured_sections_pass(tmp_path):
     assert all(v == "PASS" for v in b5.values())
     assert rep["chain_replay"]["c6"]["production"] == "REVEAL=2 SEAL=2"
     assert rep["chain_replay"]["d"]["d"] == "PASS"
+    # Stage E 实际重跑并复现提交工件
+    assert rep["chain_replay"]["e"]["e_runner"] == "PASS"
+    assert rep["chain_replay"]["e"]["rerun_structurally_exact"] is True
+    assert rep["chain_replay"]["e"]["checkpoints"] > 0
     # 认证清单最终态
     assert rep["chain_replay"]["certified_files"] > 10000
     assert rep["chain_replay"]["certified_roots"] == 2
     # 全 gate 重跑
     g = rep["gates_rerun"]
     assert g["manifest_anchor"] == "PASS"
-    assert g["package_gate_count"] == 14 and "G-P-MANIFEST" in g["package_gates"]
+    assert g["package_gate_count"] == 15 and "G-P-MANIFEST" in g["package_gates"]
+    assert "G-P-CROSSSTAGE" in g["package_gates"]
     assert g["join_rows_recount"] > 0
     # 生产计数
     assert rep["production_counts"] == {"REVEAL": 2, "SEAL": 2,
                                         "form": "REVEAL=2 SEAL=2"}
-    # anchor 双锚 exact
+    # anchor 双锚 exact：durable 全量纳入 exact 判定
     d = rep["dual_anchor"]
-    heads = set(d["verdict_head_recomputed"].values())
-    assert d["verdict_chain_head"] in heads
-    assert len(d["surfaces"]) >= 5
     rec = d["verdict_head_recomputed"]
-    assert (rec["packaged"] == rec["anchored"]
-            and rec["durable_prefix"] == rec["anchored"])
-    assert d["verdict_records"] <= d["durable_records"]
+    assert set(rec) == {"packaged", "durable_full", "anchored"}
+    assert rec["packaged"] == rec["durable_full"] == rec["anchored"]
+    assert d["verdict_records"] == d["durable_records"] > 100
+    assert len(d["surfaces"]) >= 5
+
+
+def test_g1_grown_durable_fails_anchor(tmp_path, monkeypatch):
+    """终局锚定不允许 durable 增长未被 re-export 吸收：package 快照必须
+    与 durable 全量逐字一致，否则 G-ANCHOR fail-closed。"""
+    if not (fg.fb.CSR / "corpus" / fg.fb.SID / "ledger.json").is_file():
+        pytest.skip("live F artifacts not built yet")
+    lines = fg.fp.DURABLE_VERDICTS.read_text().splitlines()
+    extra = json.dumps({"runId": fg.RUN_ID, "stage": "F", "iteration": 99,
+                        "ts": 9_999_999_999_999, "headCommit": "0" * 39 + "1",
+                        "verdict": {"state": "APPROVE", "stage": "F",
+                                    "iteration": 99}},
+                       ensure_ascii=False, sort_keys=True)
+    fake = tmp_path / "verdicts_grown.jsonl"
+    fake.write_text("\n".join(lines + [extra]) + "\n")
+    monkeypatch.setattr(fg.fp, "DURABLE_VERDICTS", fake)
+    with pytest.raises(RuntimeError, match="G-ANCHOR"):
+        fg.dual_anchor_exact()
 
 
 def test_g1_executor_never_declares_final_frozen(tmp_path, monkeypatch):
-    """执行者永不宣布 FINAL FROZEN：即使全部前置 verdict 已 APPROVE，
-    报告也只承载机器实测与 RESERVED 标记 —— 裁决属于独立审计。"""
+    """执行者永不宣布 FINAL FROZEN：即便全部前置 verdict 已 APPROVE、
+    锚定全 exact，报告也只承载机器实测与 RESERVED 标记 —— 裁决属于
+    独立审计。"""
     if not (fg.fb.CSR / "corpus" / fg.fb.SID / "ledger.json").is_file():
         pytest.skip("live F artifacts not built yet")
-    pkg_lines = [x for x in (fg.fp.PKG / "verdicts.jsonl").read_text()
-                 .splitlines() if x.strip()]
-    stages = {"B5": 900, "C6": 901, "D": 902, "E": 903, "F": 904}
-    extra = [json.dumps({"runId": fg.RUN_ID, "stage": s, "iteration": 99,
-                         "ts": 1759000000 + i, "headCommit": "0" * 39 + "1",
-                         "verdict": {"state": "APPROVE", "stage": s,
-                                     "iteration": 99}},
-                        ensure_ascii=False, sort_keys=True)
-             for i, (s, _) in enumerate(stages.items())]
-    fake = tmp_path / "verdicts_all_approve.jsonl"
-    fake.write_text("\n".join(pkg_lines + extra) + "\n")
-    monkeypatch.setattr(fg.fp, "DURABLE_VERDICTS", fake)
-    rep = fg.final_report(out_path=tmp_path / "g2.json")
-    assert rep["verdict_prerequisites"]["status"] == "PREREQUISITES-COMPLETE"
+    rep = fg.final_report(out_path=tmp_path / "g.json")
+    detail = rep["verdict_prerequisites"]["stages"]
+    complete = all(v == "APPROVE" for v in detail.values())
+    assert rep["verdict_prerequisites"]["status"] == (
+        "PREREQUISITES-COMPLETE" if complete else "PENDING")
     assert rep["verdict_prerequisites"]["owner"] == "INDEPENDENT-AUDIT"
     assert rep["production_infra_final_frozen"] == "RESERVED-TO-INDEPENDENT-AUDIT"
     assert rep["declared_by_executor"] is False
-    # packaged 历史仍是 durable 的 exact 前缀（verdict 只增不改写）
-    assert rep["dual_anchor"]["verdict_records"] == len(pkg_lines)
-    assert rep["dual_anchor"]["durable_records"] == len(pkg_lines) + 5
+    # 裁决态翻转（任一前置退回 REVISE）只改变 prerequisites，不改变 RESERVED
+    lines = [x for x in fg.fp.DURABLE_VERDICTS.read_text().splitlines()
+             if x.strip()]
+    flipped = [x for x in lines
+               if json.loads(x)["stage"] != "F"
+               or json.loads(x)["iteration"] != 18]
+    flipped.append(json.dumps({"runId": fg.RUN_ID, "stage": "F",
+                               "iteration": 99, "ts": 9_999_999_999_998,
+                               "headCommit": "0" * 39 + "2",
+                               "verdict": {"state": "REVISE", "stage": "F",
+                                           "iteration": 99}},
+                              ensure_ascii=False, sort_keys=True))
+    fake = tmp_path / "verdicts_f_revise.jsonl"
+    fake.write_text("\n".join(flipped) + "\n")
+    monkeypatch.setattr(fg.fp, "DURABLE_VERDICTS", fake)
+    got = fg.verdict_prerequisites()
+    assert got["status"] == "PENDING" and got["stages"]["F"] == "REVISE"
+
+
+def test_g1_no_g_report_inside_audit_package():
+    """F 包不得内嵌 G 终局报告副本 —— 跨阶段自引用必然与同包 verdict
+    锚点矛盾（G-P-CROSSSTAGE 的导出侧对应物）。"""
+    if not fg.fp.PKG.is_dir():
+        pytest.skip("audit package not exported yet")
+    hits = [p for p in (fg.fp.PKG / "gates").rglob("g_final_machine_audit.json")]
+    assert hits == []
+    for p in (fg.fp.PKG / "gates").rglob("*.json"):
+        if p.stat().st_size > 2_000_000:
+            continue
+        try:
+            doc = json.loads(p.read_text(errors="replace"))
+        except (json.JSONDecodeError, ValueError):
+            continue
+        if isinstance(doc, dict):
+            assert not ({"production_infra_final_frozen",
+                         "verdict_prerequisites", "dual_anchor"} & set(doc)), p
 
 
 def test_g1_pending_prerequisite_reported_honestly(tmp_path, monkeypatch):

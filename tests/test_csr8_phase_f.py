@@ -298,7 +298,7 @@ def test_f4_audit_package_standalone_reverify_and_tamper(
     m = fp.export(pkg, root)
     assert m["chain_event_count"] == 4 and m["fileCount"] > 30
     v = fp.verify(pkg)
-    assert v["all_pass"] and len(v["gates"]) == 14
+    assert v["all_pass"] and len(v["gates"]) == 15
 
     # real tamper 1: flip a packaged receipt byte
     rec = next(p for p in sorted((pkg / "receipts").rglob("receipt.json")))
@@ -670,7 +670,7 @@ def test_f5_live_artifacts_and_evidence_reverify_readonly():
     assert fb.verify_blinding(fb.CSR)["all_pass"]
     assert set(fo.verify_outcomes(fb.CSR).values()) == {"PASS"}
     v = fp.verify(fp.PKG)
-    assert v["all_pass"] and len(v["gates"]) == 14
+    assert v["all_pass"] and len(v["gates"]) == 15
     dur = fp.DURABLE_VERDICTS.read_text().splitlines()
     assert fp.check_authoritative_history(dur)["records"] >= 116
     ev = json.loads((ROOT / "docs/audit/evidence/f_phase_bridge.json").read_text())

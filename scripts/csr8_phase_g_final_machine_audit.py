@@ -94,6 +94,65 @@ def b5_freeze_gate_rerun():
                                     for k, v in result['gates'].items()}}
 
 
+def stage_e_rerun():
+    """Stage E 实际重跑：完整重放冻结的 E runner 证据矩阵。
+
+    evidence() 在独立沙盒中重建全部 crash/resume 边界（checkpoint 矩阵、
+    journal 丢失后仅凭树恢复、between-boundary kill、kill race、timeout
+    degradation+repair）。沙盒 seal 的 receipt id（uuid4）与事件 ts（墙钟）
+    是每 run 新鲜熵 —— head hash 逐字节复现在构造上不可能；本重跑的
+    判定是结构逐字相等：全部键、边界序、SEALED/idempotent 语义与已固化
+    提交的 E 证据完全一致（64-hex 哈希值归一后比较）。重跑在全新解释器
+    子进程中进行，避免本进程先前 B5/C4/C6/D 校验器对共享 c4d 模块状态
+    的扰动影响沙盒行为；重跑后恢复已提交工件以保持工作树与认证清单一致。
+    """
+    import re
+    import subprocess
+    epath = ROOT / 'docs/audit/evidence/e_phase_runner_matrix.json'
+    committed = epath.read_bytes()
+    r = subprocess.run([sys.executable,
+                        str(ROOT / 'scripts/csr8_phase_e_runner.py'),
+                        '--evidence'], cwd=str(ROOT),
+                       capture_output=True, text=True)
+    if r.returncode != 0:
+        epath.write_bytes(committed)
+        _fail('G-CHAIN: stage E rerun subprocess failed: '
+              f'{r.stderr.strip()[-400:]}')
+    fresh = epath.read_bytes()
+
+    def _norm(obj):
+        if isinstance(obj, dict):
+            out = {}
+            for k, v in obj.items():
+                # watchdog_checks 是墙钟轮询计数（依赖机器时序），只归一为
+                # 标记并在下方断言其为正整数；其余字段要求结构逐字相等。
+                if k == 'watchdog_checks':
+                    if not isinstance(v, int) or v <= 0:
+                        _fail('G-CHAIN: stage E watchdog_checks must be a '
+                              f'positive int, got {v!r}')
+                    out[k] = '<watchdog_checks>'
+                else:
+                    out[k] = _norm(v)
+            return out
+        if isinstance(obj, list):
+            return [_norm(v) for v in obj]
+        if isinstance(obj, str):
+            return re.sub(r'[0-9a-f]{64}', '<hash>', obj)
+        return obj
+    if _norm(json.loads(fresh)) != _norm(json.loads(committed)):
+        epath.write_bytes(committed)
+        _fail('G-CHAIN: stage E rerun does not structurally reproduce the '
+              'committed evidence matrix')
+    epath.write_bytes(committed)
+    art = json.loads(committed)
+    return {'e_runner': 'PASS',
+            'checkpoints': len(art['checkpoints']),
+            'boundary_state_recovery': len(art['boundary_state_recovery']),
+            'between_boundary_kills': len(art['between_boundary_kills']),
+            'kill_race': len(art['kill_race']),
+            'rerun_structurally_exact': True}
+
+
 def chain_replay():
     """全链 replay：SealingLog 重放 + 各冻结阶段域复核。"""
     events = fb.verify_chain(fb.CSR)
@@ -117,8 +176,11 @@ def chain_replay():
     d = dmod.verify()
     if d.get('d') != 'PASS':
         _fail(f'G-CHAIN: stage D verification failed: {d}')
+    e = stage_e_rerun()
+    if e.get('e_runner') != 'PASS':
+        _fail(f'G-CHAIN: stage E rerun failed: {e}')
     return {'events': types, 'b5_freeze': b5, 'c3': c3, 'c4': c4, 'c6': c6,
-            'd': d,
+            'd': d, 'e': e,
             'certified_files': manifest['fileCount'],
             'certified_roots': len(manifest['roots']),
             'protected_artifacts': len(manifest.get('protectedArtifacts', [])),
@@ -200,20 +262,23 @@ def dual_anchor_exact():
             prev = hashlib.sha256((prev + hashlib.sha256(
                 ln.encode()).hexdigest()).encode()).hexdigest()
         return prev
-    if pkg_lines != durable_lines[:len(pkg_lines)]:
-        _fail('G-ANCHOR: packaged verdict history is not an exact prefix of '
-              'the durable history')
+    if pkg_lines != durable_lines:
+        _fail('G-ANCHOR: durable verdict history is not byte-exact with the '
+              'packaged snapshot (durable has grown or diverged — the final '
+              'audit requires the package re-exported against the final '
+              f'durable history: packaged={len(pkg_lines)} '
+              f'durable={len(durable_lines)})')
     pkg_head = _vchain(pkg_lines)
-    durable_prefix_head = _vchain(durable_lines[:len(pkg_lines)])
     durable_full_head = _vchain(durable_lines)
     anchored = pub['payload']['verdict_chain_head']
-    if pkg_head != anchored or durable_prefix_head != anchored:
-        _fail('G-ANCHOR: verdict chain head not exact across surfaces')
+    if pkg_head != anchored or durable_full_head != anchored:
+        _fail('G-ANCHOR: verdict chain head not exact across surfaces '
+              f'(packaged={pkg_head[:12]} durable-full={durable_full_head[:12]}'
+              f' anchored={anchored[:12]})')
     return {'sealing_chain_head': chain_head, 'surfaces': sorted(surfaces),
             'verdict_chain_head': anchored, 'verdict_records': len(pkg_lines),
             'durable_records': len(durable_lines),
             'verdict_head_recomputed': {'packaged': pkg_head,
-                                        'durable_prefix': durable_prefix_head,
                                         'durable_full': durable_full_head,
                                         'anchored': anchored}}
 

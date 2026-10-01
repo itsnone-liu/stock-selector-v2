@@ -241,15 +241,32 @@ def export(pkg=PKG, root=CSR):
     #  - f_phase_audit_package.json: this exporter's own gate report; any
     #    shipped copy is by construction one export stale (its fileCount/
     #    totalBytes describe the PREVIOUS package and conflict with MANIFEST);
+    #  - stage-G final machine audit reports (g_final_machine_audit.json): the
+    #    G report measures the durable verdict state at its own run time; any
+    #    shipped copy anchors a verdict_records/chain-head snapshot that by
+    #    construction conflicts with THIS package's re-exported anchor
+    #    (cross-stage self-reference);
     #  - artifacts carrying a foreign audit run id (stale cross-run
     #    provenance contradicting this package's RUN_ID).
     evidence_root = ROOT / 'docs/audit/evidence'
+    _CROSSSTAGE_KEYS = {'production_infra_final_frozen', 'verdict_prerequisites',
+                        'dual_anchor'}
+
+    def _crossstage(text):
+        try:
+            doc = json.loads(text)
+        except (json.JSONDecodeError, ValueError):
+            return False
+        return isinstance(doc, dict) and bool(_CROSSSTAGE_KEYS & set(doc))
     for src in sorted(evidence_root.rglob('*')):
         if (src.is_file() and src.name != 'verdicts.jsonl'
                 and src.name != 'f_phase_audit_package.json'
+                and src.name != 'g_final_machine_audit.json'
                 and not src.is_relative_to(evidence_root / 'f_audit_package')):
             text = src.read_text(errors='replace') if src.stat().st_size < 2_000_000 else ''
             if any(x != RUN_ID for x in re.findall(r'audit_\d{6,}', text)):
+                continue
+            if text and _crossstage(text):
                 continue
             rel = src.relative_to(evidence_root)
             dst = pkg / 'gates' / rel
@@ -468,6 +485,30 @@ def verify(pkg=PKG):
         fail('G-P-VERDICTS-CHAIN: per-line hash-chain re-verification of the '
              'authoritative verdict history failed')
     gates['G-P-VERDICTS-CHAIN'] = 'PASS'
+
+    # Cross-stage exactness: no packaged gates artifact may carry a
+    # stage-G final-audit view (its verdict_records/chain-head snapshot is
+    # measured at a different time than this package's anchor and would
+    # contradict the very verdict anchor shipped alongside it).
+    _CS_KEYS = {'production_infra_final_frozen', 'verdict_prerequisites',
+                'dual_anchor'}
+    for p in sorted((pkg / 'gates').rglob('*')):
+        if not p.is_file() or p.stat().st_size > 2_000_000:
+            continue
+        try:
+            doc = json.loads(p.read_text(errors='replace'))
+        except (json.JSONDecodeError, ValueError):
+            continue
+        if isinstance(doc, dict) and (_CS_KEYS & set(doc)):
+            fail(f'G-P-CROSSSTAGE: packaged gates artifact {p.name} carries '
+                 'a stage-G final-audit view that may contradict this '
+                 "package's verdict anchor")
+        if (isinstance(doc, dict) and isinstance(doc.get('verdict_records'), int)
+                and doc['verdict_records'] != len(lines)):
+            fail(f'G-P-CROSSSTAGE: packaged gates artifact {p.name} embeds '
+                 f"verdict_records={doc['verdict_records']} but this package "
+                 f'anchors {len(lines)} verdict lines')
+    gates['G-P-CROSSSTAGE'] = 'PASS'
 
     # §9.2 可达性边界覆盖包内全部副本：闭域分类 + annotator 可达面全量
     # 盲态扫描（禁键 + identity token），敏感副本全部哈希锚定于 MANIFEST。

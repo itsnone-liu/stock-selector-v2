@@ -169,6 +169,14 @@
    ],
    "semantic_replay": "PASS"
   },
+  "e": {
+   "between_boundary_kills": 3,
+   "boundary_state_recovery": 9,
+   "checkpoints": 9,
+   "e_runner": "PASS",
+   "kill_race": 4,
+   "rerun_structurally_exact": true
+  },
   "events": [
    "REVEAL_PACKET",
    "SEAL_ANNOTATION",
@@ -193,7 +201,6 @@
   "verdict_head_recomputed": {
    "anchored": "ad3baf889c5ed7bfcc44e11e20043fa59f08a1fe8a9f2250c3df9b432ac748db",
    "durable_full": "ad3baf889c5ed7bfcc44e11e20043fa59f08a1fe8a9f2250c3df9b432ac748db",
-   "durable_prefix": "ad3baf889c5ed7bfcc44e11e20043fa59f08a1fe8a9f2250c3df9b432ac748db",
    "packaged": "ad3baf889c5ed7bfcc44e11e20043fa59f08a1fe8a9f2250c3df9b432ac748db"
   },
   "verdict_records": 116
@@ -235,7 +242,7 @@
    "G-F-OUTCOME-RECOMPUTE",
    "G-F-OUTCOME-SCHEMA"
   ],
-  "package_gate_count": 14,
+  "package_gate_count": 15,
   "package_gates": [
    "G-P-ANALYSIS",
    "G-P-AUTHZ",
@@ -243,6 +250,7 @@
    "G-P-BOUNDARY",
    "G-P-CHAIN",
    "G-P-CORPUS",
+   "G-P-CROSSSTAGE",
    "G-P-ENVELOPE",
    "G-P-GATES",
    "G-P-JOIN",
