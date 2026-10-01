@@ -1,5 +1,5 @@
 {
- "created_at": "2026-10-01T09:53:42+00:00",
+ "created_at": "2026-10-01T10:05:25+00:00",
  "payload": {
   "pairs": 2
  },
@@ -7,7 +7,7 @@
   "sealed_pairs": 2
  },
  "schema_version": "csr8-f-envelope-v2",
- "source_commit": "d0ca1dcaf8ccebdc59441627cd93f10bea7c9c40",
+ "source_commit": "264eec4c3b1e2affa724c9ec272b4ba16e9dde09",
  "source_hashes": {
   "chain_head": "c1fa24420e411a19e191b6399dafab02f568c1fe7ef766a481907c970b68becd",
   "verdicts": "7d8cd6126bb42732d68eae569d95debcadd4097397e2dd9c72a73a6bf5491dec"

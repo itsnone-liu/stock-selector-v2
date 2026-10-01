@@ -794,6 +794,27 @@ def _is_immutable(p):
     return bool(r.returncode == 0 and r.stdout.split() and 'i' in r.stdout.split()[0])
 
 
+def verify_owner_write_barrier(root=CSR, sid=SID):
+    """Real owner/root append probes: every annotator file must reject writes.
+
+    This is deliberately separate from the hash ledger and from the nobody
+    probe.  A mode-only 0600/0444 tree would let its owner (root in the
+    certified tree) append; only the immutable attribute makes every attempt
+    fail, proving the actual §9.1 write barrier.
+    """
+    failures = []
+    for p in annotator_files(root, sid):
+        try:
+            with p.open('ab'):
+                pass
+            failures.append(str(p))
+        except (PermissionError, OSError):
+            pass
+    if failures:
+        fail(f'G-F-DOMAIN-OWNER-RO: owner write succeeded: {failures[:3]}')
+    return 'PASS'
+
+
 ATTEMPT_ARTIFACT_NAMES = {'receipt.json', 'draft_snapshot.bin', 'seal_approval.json'}
 
 
@@ -1109,7 +1130,9 @@ def evidence(root=CSR, out_path=None):
     immutable_count = set_annotator_immutable(root)
     if verify_annotator_immutable(root) != 'PASS':
         fail('G-F-DOMAIN-IMMUTABLE: final annotator freeze failed')
+    verify_owner_write_barrier(root)
     ev['analysis']['gates']['G-F-DOMAIN-IMMUTABLE'] = 'PASS'
+    ev['analysis']['gates']['G-F-DOMAIN-OWNER-RO'] = 'PASS'
     ev['analysis']['immutable_annotator_files'] = immutable_count
     out_path.write_text(json.dumps(ev, ensure_ascii=False, sort_keys=True, indent=1))
     return ev
