@@ -746,6 +746,8 @@ def enforce_domain_modes(root=CSR, sid=SID, price_root=None):
         else:
             new = mode & ~0o222
         if new != mode:
+            if _is_immutable(p):
+                fail(f'G-F-DOMAIN-IMMUTABLE: mode drift on immutable file {p}')
             os.chmod(p, new)
             changed.append({'path': p.relative_to(root).as_posix(), 'class': 'annotator',
                             'from': oct(mode), 'to': oct(new)})
