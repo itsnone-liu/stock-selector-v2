@@ -47,6 +47,10 @@ def resume(root):
 def diagnose(root): return {'mode':'READ_ONLY','state':read_state(root),'events':[e['event_type'] for e in events(root)]}
 def repair(root):
  before=diagnose(root); result=c.recover(root,c.REAL_SESSION); return {'mode':'EXPLICIT_REPAIR','before':before,'result':result,'append':False}
+def verify_recovery_command(root):
+ before=diagnose(root); repaired=repair(root); after=diagnose(root)
+ if before['mode']!='READ_ONLY' or repaired['mode']!='EXPLICIT_REPAIR' or after['mode']!='READ_ONLY': raise RuntimeError('recovery command separation')
+ return {'diagnose_before':before,'repair':repaired,'diagnose_after':after}
 def evidence():
  sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'tests')); from csr8_preseal_sandbox import build_pre_seal_sandbox
  out=[]
@@ -55,6 +59,7 @@ def evidence():
    root=build_pre_seal_sandbox(Path(td),through='B4').root
    s=run(root,point); journal_before=len(s['journal']); s=resume(root); want='SEALED'
    if s['status']!=want or resume(root)['status']!=want or journal_before<3: raise RuntimeError(point)
+   verify_recovery_command(root)
    out.append({'point':point,'status':s['status'],'journal':len(s['journal']),'persisted_before_resume':journal_before})
  with tempfile.TemporaryDirectory(prefix='csr8-watch-') as td:
   root=build_pre_seal_sandbox(Path(td),through='B4').root; w=watchdog(time.monotonic()-10,1,root)
