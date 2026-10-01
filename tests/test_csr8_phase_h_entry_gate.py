@@ -265,6 +265,13 @@ def test_h0_verify_command_is_pure_read_and_passes_end_to_end():
     payload = json.loads(result.stdout.strip().splitlines()[-1])
     assert payload["stage"] == "H0" and payload["iteration"] == 4
     assert payload["state"] == "VERIFIED"
+    # schema pin: downstream audit parsers depend on this exact field set;
+    # any accidental loss or rename fails loudly instead of silently
+    assert set(payload) == {"stage", "iteration", "state", "campaign_id",
+                            "taskbook_checklist", "round0",
+                            "phase_entry_review", "reviewer_session_id",
+                            "independence_transcript_proof",
+                            "verifier_battery"}
     assert payload["phase_entry_review"] == "APPROVE"
     assert payload["independence_transcript_proof"] == "PASS"
     assert payload["round0"]["total"] == 64
