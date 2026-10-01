@@ -36,8 +36,14 @@ def run(root,crash=None,timeout=300):
  persist(root,'SEALED'); return value or read_state(root)
 def resume(root):
  s=read_state(root)
- if s.get('resumed') and s.get('status') in ('SEALED','SEAL_AUTHORIZED'): return s
- result=c.recover(root,c.REAL_SESSION); s.update(status=result,resumed=True,recovery_count=s.get('recovery_count',0)+1); write_state(root,s); return s
+ if s.get('status')=='SAFE_DEGRADED': return s
+ if s.get('resumed') and s.get('status')=='SEALED': return s
+ result=c.recover(root,c.REAL_SESSION); s.update(status=result,recovery_count=s.get('recovery_count',0)+1); write_state(root,s)
+ if result=='SEAL_AUTHORIZED':
+  final=c.seal_transaction(root,c.REAL_SESSION); persist(root,'SEALED'); s=read_state(root); s.update(status='SEALED',resumed=True); write_state(root,s)
+ else:
+  s.update(resumed=True); write_state(root,s)
+ return s
 def diagnose(root): return {'mode':'READ_ONLY','state':read_state(root),'events':[e['event_type'] for e in events(root)]}
 def repair(root):
  before=diagnose(root); result=c.recover(root,c.REAL_SESSION); return {'mode':'EXPLICIT_REPAIR','before':before,'result':result,'append':False}
@@ -47,7 +53,7 @@ def evidence():
  for point in STOPS[2:-1]:
   with tempfile.TemporaryDirectory(prefix='csr8-e17-') as td:
    root=build_pre_seal_sandbox(Path(td),through='B4').root
-   s=run(root,point); journal_before=len(s['journal']); s=resume(root); want='SEAL_AUTHORIZED' if point in STOPS[2:5] else 'SEALED'
+   s=run(root,point); journal_before=len(s['journal']); s=resume(root); want='SEALED'
    if s['status']!=want or resume(root)['status']!=want or journal_before<3: raise RuntimeError(point)
    out.append({'point':point,'status':s['status'],'journal':len(s['journal']),'persisted_before_resume':journal_before})
  with tempfile.TemporaryDirectory(prefix='csr8-watch-') as td:
