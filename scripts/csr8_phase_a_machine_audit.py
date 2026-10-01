@@ -42,13 +42,17 @@ C2_TARGET = ROOT / "scripts/csr8_phase_c2_next_reveal_approval.py"
 C3_TARGET = ROOT / "scripts/csr8_phase_c3_append_r2.py"
 C4_TARGET = ROOT / "scripts/csr8_phase_c4_annotation_receipt.py"
 CERT_MANIFEST = ROOT / "config/audit/certified_live_inputs.json"
-# 阶段边界感知（C1 终态）：annotator/ 工作区已由 POST_SEAL_FINAL 按
-# 协议清理（终态不存在）；c4d_receipts/ 是 B3 起的合法冻结证据域；
-# c4d_proposals/ 自 C1 起合法但 closed-world：域内唯一允许文件是
-# ordinal-2 next_reveal.proposal.json（approval/permit 是 C2 授权点、
-# 其余条目仍禁止）。
+# 阶段边界感知（C1 终态 + Phase H H0 边界感知）：annotator/ 工作区已由
+# POST_SEAL_FINAL 按协议清理（终态不存在）；c4d_receipts/ 是 B3 起的
+# 合法冻结证据域；c4d_proposals/ 自 C1 起合法但 closed-world：ordinal-2
+# proposal 是 C1 授权点产物（authorization2 已 CONSUMED）；ordinal-3
+# proposal 是 Phase H H0 entry gate（taskbook v1.1 §8/§31）用冻结 §7
+# builder 准备的 NEXT_REVEAL_ONLY proposal（PREPARED——尚未
+# authorization、尚未 reveal）；approval/permit 与其余条目仍禁止。
+# 此常量必须与 csr8_phase_a_certify_inputs.py 的清单 allowlist 逐字同步。
 C4D_PROPOSAL_ALLOWLIST = (
     "c4d_proposals/c4-prod-0002/ordinal-0002/next_reveal.proposal.json",
+    "c4d_proposals/c4-prod-0002/ordinal-0003/next_reveal.proposal.json",
 )
 
 

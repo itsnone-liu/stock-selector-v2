@@ -197,14 +197,29 @@ def test_public_blindness_contract_and_anchor_are_machine_checked(tmp_path):
     # top-level annotator is absent because empty directories are not certified.
     assert not mod.REAL_ANNOTATOR.exists()
     assert mod.REAL_RECEIPTS.exists()               # frozen audit trail kept
-    # C1 boundary: the ordinal-2 next-reveal proposal is the sole legal
-    # c4d_proposals entry (selector-only, frozen-builder re-proven);
-    # approval/permit stay absent until the C2 authorization point.
+    # C1 boundary (H0-aware): the ordinal-2 next-reveal proposal is the
+    # C1 authorization-point artifact (selector-only, frozen-builder
+    # re-proven; approval/permit were the C2 authorization point). Since
+    # Phase H H0 (taskbook v1.1 §8/§31) the ordinal-3 NEXT_REVEAL_ONLY
+    # proposal is additionally PREPARED via the frozen §7 builder — once
+    # the live chain is [R1,S1,R2,S2] the closed c4d_proposals world is
+    # exactly the two proposal files.
     proposal_rel = "c4-prod-0002/ordinal-0002/next_reveal.proposal.json"
+    proposal3_rel = "c4-prod-0002/ordinal-0003/next_reveal.proposal.json"
     proposal_entries = sorted(
         p.relative_to(mod.REAL_PROPOSALS_C4D).as_posix()
         for p in mod.REAL_PROPOSALS_C4D.rglob("*") if p.is_file())
-    assert proposal_entries == [proposal_rel], proposal_entries
+    expected_proposals = ([proposal_rel] if len(live_events) == 2
+                          else [proposal_rel, proposal3_rel])
+    assert proposal_entries == expected_proposals, proposal_entries
+    if len(live_events) == 4:
+        # H0-prepared ordinal-3 proposal re-proves via the frozen builder
+        # verifier and binds the sealed prefix head (PREPARED only: no
+        # authorization domain, nothing revealed for ordinal 3).
+        _p3, _p3_bytes = mod._check_proposal(
+            mod.REAL_CSR, mod.REAL_SESSION, 3)
+        assert not (mod.REAL_CSR / "production" / mod.REAL_SESSION /
+                    "authorization" / "ordinal-0003").exists()
     if [e["event_type"] for e in live_events] == [
             "REVEAL_PACKET", "SEAL_ANNOTATION"]:
         c1_proposal, _c1_bytes = mod._check_proposal(
@@ -276,11 +291,12 @@ def test_bridge_machine_audit_script_executes_complete_matrix():
 
 def test_certified_live_inputs_manifest_is_complete_and_forbidden_free():
     """The committed inventory certifies the ENTIRE data/csr8_phase_c tree:
-    the c4d_proposals domain is certified CLOSED-WORLD (since C1 its sole
-    legal entry is the ordinal-2 next_reveal.proposal.json — approval/
-    permit and every other entry stay forbidden), the local tree must
-    match every pinned hash/mode exactly, and the pinned production chain
-    links to the frozen anchor head hash."""
+    the c4d_proposals domain is certified CLOSED-WORLD (since C1 its legal
+    entries are the ordinal-2 proposal — the consumed C1 authorization
+    point — plus, since Phase H H0, the ordinal-3 proposal PREPARED by the
+    frozen builder; approval/permit and every other entry stay forbidden),
+    the local tree must match every pinned hash/mode exactly, and the
+    pinned production chain links to the frozen anchor head hash."""
     import importlib.util
     cert = ROOT / "config/audit/certified_live_inputs.json"
     assert cert.is_file(), "config/audit/certified_live_inputs.json missing"
@@ -315,18 +331,30 @@ def test_certified_live_inputs_manifest_is_complete_and_forbidden_free():
     for r in manifest["roots"]:
         paths += [f"{r['root']}/{f['path']}" for f in r["files"]]
         paths += [f"{r['root']}/{d['path']}" for d in r["dirs"]]
-    # C1 closed-world: c4d_proposals/ is certified with EXACTLY the
-    # allowlisted ordinal-2 proposal subtree — the declared allowlist
-    # equals the certified entries and nothing else may appear there
-    # (approval/permit are the C2 authorization point, other ordinals
-    # are later stages).
+    # C1 closed-world (H0-aware): c4d_proposals/ is certified with
+    # EXACTLY the allowlisted proposal subtree — the declared allowlist
+    # equals the certified entries and nothing else may appear there.
+    # Since Phase H H0 the allowlist holds the ordinal-2 proposal (the
+    # consumed C1 authorization point) AND the ordinal-3 proposal
+    # (PREPARED by the frozen §7 builder, not yet authorized/revealed);
+    # approval/permit and every other ordinal stay forbidden.
     assert manifest.get("forbiddenPrefixes") == []
     c1_allow = manifest.get("c4dProposalAllowlist")
-    assert c1_allow == ["c4d_proposals/c4-prod-0002/ordinal-0002/next_reveal.proposal.json"]
+    assert c1_allow == [
+        "c4d_proposals/c4-prod-0002/ordinal-0002/next_reveal.proposal.json",
+        "c4d_proposals/c4-prod-0002/ordinal-0003/next_reveal.proposal.json",
+    ]
     proposal_domain_files = sorted(
         f"{r['root']}/{f['path']}" for r in manifest["roots"] for f in r["files"]
         if f"{r['root']}/{f['path']}".startswith("data/csr8_phase_c/c4d_proposals/"))
-    assert proposal_domain_files == [proposal_rel], proposal_domain_files
+    proposal3_full = ("data/csr8_phase_c/c4d_proposals/c4-prod-0002/"
+                      "ordinal-0003/next_reveal.proposal.json")
+    assert proposal_domain_files == [proposal_rel, proposal3_full], \
+        proposal_domain_files
+    # H0: the prepared ordinal-3 proposal is itself a protected 0600
+    # artifact of the certified manifest
+    assert proposal3_full in protected
+    assert protected[proposal3_full]["mode"] == 0o600
     # required gate inputs are pinned
     listed = {f"{r['root']}/{f['path']}" for r in manifest["roots"]
               for f in r["files"]}

@@ -54,7 +54,15 @@ def same_chain_progressive_loop(count=3):
         sb=Path(td)/'csr8_phase_c'; shutil.copytree(c.REAL_CSR,sb); sid=SID; trace=[]
         for n in range(3,count+3):
             ev=events(sb); prefix=c._current_prefix_head(sb,sid); cand=c.candidate_for_ordinal(n)
-            c.build_next_reveal_proposal(sb,sid,n,prefix,cand)
+            # H0-aware (taskbook v1.1 §8/§31): the copied live tree may
+            # already carry the Phase H PREPARED NEXT_REVEAL proposal for
+            # the starting ordinal, bound to this exact sealed prefix head.
+            # The frozen one-time builder is O_EXCL by design, so re-prove
+            # the persisted proposal and consume it rather than collide.
+            if c.proposal_path(sb,sid,n).is_file():
+                c._check_proposal(sb,sid,n)
+            else:
+                c.build_next_reveal_proposal(sb,sid,n,prefix,cand)
             c.approve_next_reveal(sb,sid,n); c.materialize_next_permit(sb,sid,n); c.reveal_transaction(sb,sid,n)
             pid=c.sha(f"{cand['opaque_case_id']}|{cand['T']}".encode()); pkt=(c.c4ab.C3_STATE/'packets'/f'{pid}.json').read_bytes()
             c.handoff(sb,sid,cand['opaque_case_id'],cand['T'],bytes_override=pkt); pobj=json.loads(pkt); draft=c.sample_draft(sb,sid)

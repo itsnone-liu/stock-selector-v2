@@ -1,0 +1,178 @@
+{
+ "campaign": {
+  "campaign_id": "hc-94cf4c47b978133f1b64a83dbfb95ac3",
+  "manifest_sha256": "01c6745ffbc5e972b219b7aeb34026d86bf717459c0cc9b1f19e2b717d29ea94",
+  "ordinal3_proposal_sha256": "1443cb61f97b497ecc68b4a84f7bedcbbfdb21235744c7cc0a3fa5a5fe9ecef7",
+  "ordinal3_proposal_state": "PREPARED_NOT_AUTHORIZED_NOT_REVEALED",
+  "review_ledger_head": "f501d7bf2b2e3fa3d2d295fb073ba806b39dd0cc7315e45d4e69d8a0972e0575",
+  "review_ledger_records": 2,
+  "review_packet_sha256": "6f9e45d21f77b85d44ef170049d4287508d51321eb2f6588883e3e229dba8897"
+ },
+ "created_at": "2026-10-01T14:19:50Z",
+ "declaration_note": "进入 H1 的许可是 independent reviewer 的 PHASE_ENTRY APPROVE；执行者只承载机器实测。",
+ "entry_gate": {
+  "authority": {
+   "G5": "BLOCKED",
+   "XP": "BLOCKED_FOR_PIT",
+   "boolean_boundary": {
+    "ALL_GATES_PASS": true,
+    "G5_BLOCKED": true,
+    "XP_BLOCKED_FOR_PIT": true
+   },
+   "c3_authority_gate": "PASS"
+  },
+  "authorizations": {
+   "authorization1": "CONSUMED",
+   "authorization1_binding": "R1.payload.authorization_sha256 == SHA256(first_reveal.json)",
+   "authorization2": "CONSUMED",
+   "authorization2_binding": "chain-derived consumption (exact proposal bytes)"
+  },
+  "c6_dual_cycle": {
+   "authorization1": "CONSUMED",
+   "authorization2": "CONSUMED",
+   "c6": "PASS",
+   "candidate_prefix": 2,
+   "chain": [
+    "REVEAL_PACKET",
+    "SEAL_ANNOTATION",
+    "REVEAL_PACKET",
+    "SEAL_ANNOTATION"
+   ],
+   "crash_recovery": "PASS",
+   "dual_replay": "PASS",
+   "open_reveals": 0,
+   "ordinal1_history": "PASS",
+   "ordinal2_history": "PASS",
+   "outcome_untouched": "PASS",
+   "production": "REVEAL=2 SEAL=2",
+   "r1_s1_exact": "PASS",
+   "r2_s2_exact": "PASS"
+  },
+  "chain": {
+   "c2_full_replay": "PASS",
+   "candidate_gates": {
+    "ordinal1_matches_frozen_first": true,
+    "revealed_prefix": 2,
+    "size": 1717
+   },
+   "candidate_order_size": 1717,
+   "candidate_prefix": 2,
+   "chain": [
+    "REVEAL_PACKET",
+    "SEAL_ANNOTATION",
+    "REVEAL_PACKET",
+    "SEAL_ANNOTATION"
+   ],
+   "open_reveals": 0,
+   "production_head": "c1fa24420e411a19e191b6399dafab02f568c1fe7ef766a481907c970b68becd",
+   "reveal_count": 2,
+   "seal_count": 2,
+   "trusted_head_count": 4
+  },
+  "forensic": {
+   "derive_state": "SEALED",
+   "forensic_findings": 0,
+   "forensic_state": "NONE"
+  },
+  "frozen_marker": {
+   "audited_infra_head": "04c89e7c43fb24e731871608ff40adee83221f64",
+   "freeze_commit_is_ancestor_of_head": true,
+   "freeze_commit_parent_is_audited_head": true,
+   "marker": "PRODUCTION_INFRA_FINAL_FROZEN",
+   "marker_bytes_unchanged_since_freeze_commit": true,
+   "prerequisites": {
+    "B5": "APPROVE",
+    "C6": "APPROVE",
+    "D": "APPROVE",
+    "E": "APPROVE",
+    "F": "APPROVE"
+   },
+   "production_infra_freeze_commit": "cd7f2a5db0fddee824bd1e5ce6da0f8bcd7431ca",
+   "status": "FINAL VERDICT: APPROVE"
+  }
+ },
+ "future_data_accessed": false,
+ "host_id": "RainYun-c438TDGn",
+ "identity_accessed": false,
+ "iteration": 1,
+ "maintenance": {
+  "annotator_files_immutable": 26,
+  "certify_pass1": "certified 2 roots / 10568 files / 813459845 bytes -> config/audit/certified_live_inputs.json",
+  "certify_pass2": "certified 2 roots / 10568 files / 813459764 bytes -> config/audit/certified_live_inputs.json",
+  "ordinal3_proposal_mode": "0o600"
+ },
+ "operation": "PHASE_ENTRY",
+ "outcome_access_note": "outcome/analysis_labeled bytes were only re-hashed by the frozen certified-manifest pinning mechanism; no outcome content was parsed, joined or exposed to any annotation or selection surface",
+ "outcome_accessed": false,
+ "phase_entry_review": {
+  "created_at": "2026-10-01T14:15:28Z",
+  "independence": "reviewer_run_id != executor_run_id (role/context/write separation machine-checked)",
+  "input_commitment_sha256": "6f9e45d21f77b85d44ef170049d4287508d51321eb2f6588883e3e229dba8897",
+  "issues": [],
+  "required_changes": [],
+  "reviewer_run_id": "rev-e93e4aee58681718",
+  "state": "APPROVE"
+ },
+ "round0": {
+  "completed": 2,
+  "definition": "round0_total = frozen candidate total-order size (one ordinal per (case,T) pair); complete when every eligible case has >=1 sealed blinded annotation; completed = sealed pairs on chain",
+  "remaining": 1715,
+  "total": 1717,
+  "unique_cases": 64
+ },
+ "run_id": "audit_20261001135212538",
+ "stage": "H0",
+ "taskbook": {
+  "sha256": "c6143d4ca67ffd9c39166f998675d199d7c41602cb73a36cd4f3e4bb0dae81b8",
+  "version": "v1.1"
+ },
+ "verifier_battery": {
+  "audit_package_gates": [
+   "G-P-ANALYSIS",
+   "G-P-AUTHZ",
+   "G-P-BLIND",
+   "G-P-BOUNDARY",
+   "G-P-CHAIN",
+   "G-P-CORPUS",
+   "G-P-CROSSSTAGE",
+   "G-P-ENVELOPE",
+   "G-P-GATES",
+   "G-P-JOIN",
+   "G-P-MANIFEST",
+   "G-P-RECEIPTS",
+   "G-P-UNIVERSE",
+   "G-P-VERDICTS",
+   "G-P-VERDICTS-CHAIN"
+  ],
+  "blinding_gates": [
+   "G-F-CLOSED",
+   "G-F-DERIVE",
+   "G-F-DOMAIN-HASH",
+   "G-F-DOMAIN-PRIVATE",
+   "G-F-DOMAIN-PROTO",
+   "G-F-DOMAIN-RO",
+   "G-F-FREEZE-LEDGER",
+   "G-F-FUTURE",
+   "G-F-IDENTITY",
+   "G-F-INVERT",
+   "G-F-KEYS",
+   "G-F-MANIFEST",
+   "G-F-NOSYMLINK",
+   "G-F-OSBOUNDARY",
+   "G-F-REACH"
+  ],
+  "certified_files": 10568,
+  "certified_roots": 2,
+  "certified_tree": "PASS",
+  "chain_replay": "PASS",
+  "corpus_gates": [
+   "G-F-CORPUS-ANCHORS",
+   "G-F-CORPUS-CHAIN",
+   "G-F-CORPUS-LEDGER",
+   "G-F-CORPUS-RO",
+   "G-F-CORPUS-WORLD"
+  ],
+  "manifest_anchor": "PASS",
+  "production_head": "c1fa24420e411a19e191b6399dafab02f568c1fe7ef766a481907c970b68becd"
+ }
+}

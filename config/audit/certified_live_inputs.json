@@ -1,8 +1,9 @@
 {
  "c4dProposalAllowlist": [
-  "c4d_proposals/c4-prod-0002/ordinal-0002/next_reveal.proposal.json"
+  "c4d_proposals/c4-prod-0002/ordinal-0002/next_reveal.proposal.json",
+  "c4d_proposals/c4-prod-0002/ordinal-0003/next_reveal.proposal.json"
  ],
- "fileCount": 10563,
+ "fileCount": 10568,
  "forbiddenPrefixes": [],
  "generator": "scripts/csr8_phase_a_certify_inputs.py",
  "protectedArtifacts": [
@@ -17,6 +18,12 @@
    "mode": 384,
    "path": "data/csr8_phase_c/c4d_proposals/c4-prod-0002/ordinal-0002/next_reveal.proposal.json",
    "sha256": "d045778390478d5cdc31bedcf44078fd9307c10fa08d0bc84a18df596cecc578"
+  },
+  {
+   "bytes": 574,
+   "mode": 384,
+   "path": "data/csr8_phase_c/c4d_proposals/c4-prod-0002/ordinal-0003/next_reveal.proposal.json",
+   "sha256": "1443cb61f97b497ecc68b4a84f7bedcbbfdb21235744c7cc0a3fa5a5fe9ecef7"
   },
   {
    "bytes": 358,
@@ -75,7 +82,7 @@
  ],
  "roots": [
   {
-   "dirCount": 41,
+   "dirCount": 46,
    "dirs": [
     {
      "mode": 493,
@@ -139,6 +146,10 @@
     },
     {
      "mode": 448,
+     "path": "c4d_proposals/c4-prod-0002/ordinal-0003"
+    },
+    {
+     "mode": 448,
      "path": "c4d_receipts"
     },
     {
@@ -188,6 +199,22 @@
     {
      "mode": 493,
      "path": "freeze/c4-prod-0002"
+    },
+    {
+     "mode": 448,
+     "path": "h_campaign"
+    },
+    {
+     "mode": 448,
+     "path": "h_campaign/hc-94cf4c47b978133f1b64a83dbfb95ac3"
+    },
+    {
+     "mode": 448,
+     "path": "h_campaign/hc-94cf4c47b978133f1b64a83dbfb95ac3/review_packets"
+    },
+    {
+     "mode": 448,
+     "path": "h_campaign/hc-94cf4c47b978133f1b64a83dbfb95ac3/verdicts"
     },
     {
      "mode": 493,
@@ -242,7 +269,7 @@
      "path": "secret"
     }
    ],
-   "fileCount": 5322,
+   "fileCount": 5327,
    "files": [
     {
      "bytes": 1112,
@@ -31907,6 +31934,12 @@
      "sha256": "d045778390478d5cdc31bedcf44078fd9307c10fa08d0bc84a18df596cecc578"
     },
     {
+     "bytes": 574,
+     "mode": 384,
+     "path": "c4d_proposals/c4-prod-0002/ordinal-0003/next_reveal.proposal.json",
+     "sha256": "1443cb61f97b497ecc68b4a84f7bedcbbfdb21235744c7cc0a3fa5a5fe9ecef7"
+    },
+    {
      "bytes": 1707,
      "mode": 384,
      "path": "c4d_receipts/c4-prod-0002/ordinal-0001/attempt-0001/draft_snapshot.bin",
@@ -32045,10 +32078,34 @@
      "sha256": "7e16bf76cf8a92c850b5fae9bebb2268f1eb1cff6769e365777a0b085da7333d"
     },
     {
-     "bytes": 4500,
+     "bytes": 4710,
      "mode": 292,
      "path": "freeze/c4-prod-0002/domain_freeze.json",
-     "sha256": "94728b9e5555e579825555930bff02edb1aa05972f9402cc9c44057f65c3561d"
+     "sha256": "bc5e74c7a8c877fbfb8ad3567ada93b4ced3c3cb4e30971f866519628bdce031"
+    },
+    {
+     "bytes": 2039,
+     "mode": 384,
+     "path": "h_campaign/hc-94cf4c47b978133f1b64a83dbfb95ac3/campaign_manifest.json",
+     "sha256": "01c6745ffbc5e972b219b7aeb34026d86bf717459c0cc9b1f19e2b717d29ea94"
+    },
+    {
+     "bytes": 2288,
+     "mode": 384,
+     "path": "h_campaign/hc-94cf4c47b978133f1b64a83dbfb95ac3/review_packets/phase_entry.json",
+     "sha256": "6f9e45d21f77b85d44ef170049d4287508d51321eb2f6588883e3e229dba8897"
+    },
+    {
+     "bytes": 921,
+     "mode": 384,
+     "path": "h_campaign/hc-94cf4c47b978133f1b64a83dbfb95ac3/reviews.jsonl",
+     "sha256": "ae12d059f1e41aa28b38da2f5e9b059079b85e20411596d9775bbe5cbdf80f5d"
+    },
+    {
+     "bytes": 349,
+     "mode": 384,
+     "path": "h_campaign/hc-94cf4c47b978133f1b64a83dbfb95ac3/verdicts/phase_entry.verdict.json",
+     "sha256": "c6f40b84d19c5e0c94c579e583791cd9d704a7da4718f168626b5ea962224cc0"
     },
     {
      "bytes": 854,
@@ -32178,7 +32235,7 @@
     }
    ],
    "root": "data/csr8_phase_c",
-   "totalBytes": 349524474
+   "totalBytes": 349530855
   },
   {
    "dirCount": 1,
@@ -63641,6 +63698,6 @@
    "totalBytes": 463928909
   }
  ],
- "totalBytes": 813453383,
+ "totalBytes": 813459764,
  "version": 2
 }
