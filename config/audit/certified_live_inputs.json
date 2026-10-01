@@ -2,7 +2,7 @@
  "c4dProposalAllowlist": [
   "c4d_proposals/c4-prod-0002/ordinal-0002/next_reveal.proposal.json"
  ],
- "fileCount": 10570,
+ "fileCount": 10569,
  "forbiddenPrefixes": [],
  "generator": "scripts/csr8_phase_a_certify_inputs.py",
  "protectedArtifacts": [
@@ -195,23 +195,23 @@
     },
     {
      "mode": 448,
-     "path": "h_campaign/hc-ffb08d91bcad13370194524a0d403521"
+     "path": "h_campaign/hc-c88d2a507bcf569da372deadf4c4ec39"
     },
     {
      "mode": 448,
-     "path": "h_campaign/hc-ffb08d91bcad13370194524a0d403521/executor_state"
+     "path": "h_campaign/hc-c88d2a507bcf569da372deadf4c4ec39/executor_state"
     },
     {
      "mode": 448,
-     "path": "h_campaign/hc-ffb08d91bcad13370194524a0d403521/ordinal_0003"
+     "path": "h_campaign/hc-c88d2a507bcf569da372deadf4c4ec39/ordinal_0003"
     },
     {
      "mode": 448,
-     "path": "h_campaign/hc-ffb08d91bcad13370194524a0d403521/review_packets"
+     "path": "h_campaign/hc-c88d2a507bcf569da372deadf4c4ec39/review_packets"
     },
     {
      "mode": 448,
-     "path": "h_campaign/hc-ffb08d91bcad13370194524a0d403521/verdicts"
+     "path": "h_campaign/hc-c88d2a507bcf569da372deadf4c4ec39/verdicts"
     },
     {
      "mode": 493,
@@ -266,7 +266,7 @@
      "path": "secret"
     }
    ],
-   "fileCount": 5329,
+   "fileCount": 5328,
    "files": [
     {
      "bytes": 1112,
@@ -32075,46 +32075,40 @@
      "sha256": "94728b9e5555e579825555930bff02edb1aa05972f9402cc9c44057f65c3561d"
     },
     {
-     "bytes": 2408,
+     "bytes": 4407,
      "mode": 384,
-     "path": "h_campaign/hc-ffb08d91bcad13370194524a0d403521/campaign_manifest.json",
-     "sha256": "9f229ccde765af19c50c25cb4e1d0bbbbc26898129a0ec81e1033b50f62dc22b"
+     "path": "h_campaign/hc-c88d2a507bcf569da372deadf4c4ec39/campaign_manifest.json",
+     "sha256": "1a7a9cef5504d15601ef0bcc13b5ea1bac1f24e7d34e0231f9608c89663a71b4"
     },
     {
-     "bytes": 681043,
+     "bytes": 4478,
      "mode": 384,
-     "path": "h_campaign/hc-ffb08d91bcad13370194524a0d403521/executor_state/post_review_write_surface.json",
-     "sha256": "bae6f19dd4a7b620ada9d7f5be8b36b0e2398fbb88a7cea162dcb699a7dc701d"
-    },
-    {
-     "bytes": 680732,
-     "mode": 384,
-     "path": "h_campaign/hc-ffb08d91bcad13370194524a0d403521/executor_state/pre_review_write_surface.json",
-     "sha256": "86784787f8adc43a6e5581099915f9ab52c985acbc486ae218f7d985ccc315ec"
+     "path": "h_campaign/hc-c88d2a507bcf569da372deadf4c4ec39/executor_state/pre_review_write_surface.json",
+     "sha256": "1a17a9af1bcfd546e457fb3bb764aea27aa9af32cf9d544743f9d6a8b2250400"
     },
     {
      "bytes": 574,
      "mode": 384,
-     "path": "h_campaign/hc-ffb08d91bcad13370194524a0d403521/ordinal_0003/next_reveal.proposal.staged.json",
+     "path": "h_campaign/hc-c88d2a507bcf569da372deadf4c4ec39/ordinal_0003/next_reveal.proposal.staged.json",
      "sha256": "1443cb61f97b497ecc68b4a84f7bedcbbfdb21235744c7cc0a3fa5a5fe9ecef7"
     },
     {
-     "bytes": 2500,
+     "bytes": 7264,
      "mode": 384,
-     "path": "h_campaign/hc-ffb08d91bcad13370194524a0d403521/review_packets/phase_entry.json",
-     "sha256": "4b9cca263f9d5a64c2be181eebeda0dd559d3c971a1b5a077677432b9f5666fd"
+     "path": "h_campaign/hc-c88d2a507bcf569da372deadf4c4ec39/review_packets/phase_entry.json",
+     "sha256": "abc23d5ed485c048e4792e878ef4f27bfe79900282ffd6c880d1bae9a937d69a"
     },
     {
-     "bytes": 921,
+     "bytes": 1379,
      "mode": 384,
-     "path": "h_campaign/hc-ffb08d91bcad13370194524a0d403521/reviews.jsonl",
-     "sha256": "a9a8ae64bd9455643fb77a4b055cbc2329b3ef6f2ffb86d4bc83e7c1439f9eb6"
+     "path": "h_campaign/hc-c88d2a507bcf569da372deadf4c4ec39/reviews.jsonl",
+     "sha256": "453bfe8b3b664659c69674944d07372b0fef5994f2d811608dd6da25f9ff5506"
     },
     {
-     "bytes": 349,
+     "bytes": 3835,
      "mode": 384,
-     "path": "h_campaign/hc-ffb08d91bcad13370194524a0d403521/verdicts/phase_entry.verdict.json",
-     "sha256": "d5d9dd8c27debdc8a5f73617be1cdc5302903cac40348edca0c7ffddef0b3217"
+     "path": "h_campaign/hc-c88d2a507bcf569da372deadf4c4ec39/verdicts/phase_entry.verdict.json",
+     "sha256": "7a1f9a7bd17326d7c016b76f830779352479752cfb8cf55c8828262dd13a1ed2"
     },
     {
      "bytes": 854,
@@ -32244,7 +32238,7 @@
     }
    ],
    "root": "data/csr8_phase_c",
-   "totalBytes": 350893001
+   "totalBytes": 349546411
   },
   {
    "dirCount": 1,
@@ -63707,6 +63701,6 @@
    "totalBytes": 463928909
   }
  ],
- "totalBytes": 814821910,
+ "totalBytes": 813475320,
  "version": 2
 }

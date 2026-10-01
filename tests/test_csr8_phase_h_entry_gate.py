@@ -5,8 +5,10 @@ these tests pin the PERSISTED campaign state so the pure-read `verify`
 path keeps passing against the live frozen tree:
 
 - the review ledger + PHASE_ENTRY verdict stay well-formed, hash-chained,
-  bound to the exact packet bytes, and reviewer-independent (fast checks,
-  no full-tree hashing);
+  bound to the exact packet bytes, and reviewer-independent. Expectations
+  are derived structurally from the append-only ledger (§6/§15): prior
+  REVISE rounds persist forever, so counts are never pinned to a
+  fresh-campaign happy path (fast checks, no full-tree hashing);
 - the full pure-read `verify` command exits 0 with the machine-measured
   round-0 §10 caliber and an APPROVE verdict (end-to-end).
 """
@@ -38,18 +40,28 @@ def test_h0_ledger_and_verdict_are_persisted_and_independent():
     assert h0.campaign_dir(cid).is_dir()
 
     ledger = h0.verify_ledger(cid)
-    assert ledger["records"] == 2
-    assert len(ledger["verdicts"]) == 1
-    verdict_line = ledger["verdicts"][0]
-    assert verdict_line["operation"] == "PHASE_ENTRY"
-    assert verdict_line["ordinal"] == 3
-    assert verdict_line["sequence"] == 1
-    assert verdict_line["campaign_id"] == cid
-    assert verdict_line["reviewer_run_id"] != h0.EXECUTOR_RUN_ID
+    # append-only lifecycle: genesis + every persisted reviewer round. The
+    # counts are DERIVED, never pinned to a fresh-campaign happy path —
+    # prior REVISE rounds stay in the ledger forever (§6/§15).
+    assert ledger["records"] >= 3
+    verdicts = ledger["verdicts"]
+    assert len(verdicts) >= 2
+    assert [v["sequence"] for v in verdicts] == list(
+        range(1, len(verdicts) + 1))
+    for verdict_line in verdicts:
+        assert verdict_line["operation"] == "PHASE_ENTRY"
+        assert verdict_line["ordinal"] == 3
+        assert verdict_line["campaign_id"] == cid
+    reviewer_ids = [v["reviewer_run_id"] for v in verdicts]
+    assert h0.EXECUTOR_RUN_ID not in reviewer_ids
+    assert len(set(reviewer_ids)) == len(reviewer_ids)  # independent each round
 
-    verdict = h0.verify_verdict_file(cid, ledger["verdicts"])
+    # the persisted verdict file is the LATEST ledger round and binds the
+    # exact CURRENT packet bytes (§5) — no superseded binding may survive
+    verdict = h0.verify_verdict_file(cid, verdicts)
     assert verdict["state"] == "APPROVE"
     assert verdict["issues"] == [] and verdict["required_changes"] == []
+    assert verdict["reviewer_run_id"] == verdicts[-1]["reviewer_run_id"]
     packet = (h0.campaign_dir(cid) / "review_packets" /
               "phase_entry.json").read_bytes()
     assert verdict["input_commitment_sha256"] == h0.sha(packet)
@@ -82,7 +94,7 @@ def test_h0_verify_command_is_pure_read_and_passes_end_to_end():
         cwd=str(ROOT), capture_output=True, text=True, timeout=1800)
     assert result.returncode == 0, result.stdout[-2000:] + result.stderr[-2000:]
     payload = json.loads(result.stdout.strip().splitlines()[-1])
-    assert payload["stage"] == "H0" and payload["iteration"] == 2
+    assert payload["stage"] == "H0" and payload["iteration"] == 3
     assert payload["state"] == "VERIFIED"
     assert payload["phase_entry_review"] == "APPROVE"
     assert payload["round0"]["total"] == 64
