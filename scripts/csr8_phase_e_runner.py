@@ -1,8 +1,14 @@
 #!/usr/bin/env python3
-"""Phase E production runner. The WORKER process (the one executing the real
-transaction) persists runner state at each HARD STOP it stops at, before any
-re-entry; the parent only monitors. Recovery runs in fresh processes from the
-persisted state alone, so evidence does not depend on the parent surviving."""
+"""Phase E production runner.
+
+Write-separation contract (no cross-process state race):
+  - runner_state.json is written ONLY by the worker process executing the
+    real transaction — one fsynced record per HARD STOP, in place, before any
+    re-entry.
+  - watchdog_state.json is written ONLY by the monitoring parent (heartbeat,
+    checks, SAFE_DEGRADED flag). The two files never share a writer, so the
+    watchdog can never clobber recovery state.
+Recovery (resume/repair) runs in fresh processes from persisted state alone."""
 import argparse,json,os,sys,time,tempfile,subprocess
 from pathlib import Path
 sys.path.insert(0,str(Path(__file__).resolve().parent)); import csr8_phase_c_annotation_seal as c
@@ -10,24 +16,34 @@ STOPS=('PREPARE','AUTHORIZED','after_verify','after_derive','after_precondition'
 PASSED=STOPS[2:-1]; PRE=PASSED[:3]
 EVIDENCE_PATH=Path(__file__).resolve().parents[1]/'docs/audit/evidence/e_phase_runner_matrix.json'
 def state_path(root): return Path(root)/'runner_state.json'
-def read_state(root): return json.loads(state_path(root).read_bytes()) if state_path(root).exists() else {'status':'NEW','journal':[]}
-def write_state(root,obj):
- p=state_path(root); p.parent.mkdir(parents=True,exist_ok=True); tmp=p.with_suffix('.tmp'); tmp.write_bytes(c.canon(obj).encode()); fd=os.open(tmp,os.O_RDONLY); os.fsync(fd); os.close(fd); os.replace(tmp,p); os.chmod(p,0o600); fd=os.open(p.parent,os.O_RDONLY); os.fsync(fd); os.close(fd)
+def watch_path(root): return Path(root)/'watchdog_state.json'
+def _read_json(p): return json.loads(p.read_bytes()) if p.exists() else None
+def read_state(root): return _read_json(state_path(root)) or {'status':'NEW','journal':[]}
+def read_watch(root): return _read_json(watch_path(root)) or {}
+def _write(p,obj):
+ p.parent.mkdir(parents=True,exist_ok=True); tmp=p.with_suffix('.tmp'); tmp.write_bytes(c.canon(obj).encode()); fd=os.open(tmp,os.O_RDONLY); os.fsync(fd); os.close(fd); os.replace(tmp,p); os.chmod(p,0o600); fd=os.open(p.parent,os.O_RDONLY); os.fsync(fd); os.close(fd)
+def write_state(root,obj): _write(state_path(root),obj)
+def write_watch(root,obj): _write(watch_path(root),obj)
 def events(root): return [json.loads(x) for x in c.log_path(root,c.REAL_SESSION).read_text().splitlines() if x.strip()]
 def head_hash(root): return c.read_json(c.head_path(root,c.REAL_SESSION)).get('head_hash')
 def persist(root,boundary):
  s=read_state(root); s.update(status=boundary,chain_count=len(events(root)),heartbeat=time.time(),pid=os.getpid()); s['journal'].append({'boundary':boundary,'events':[e['event_type'] for e in events(root)]}); write_state(root,s); return s
-def watchdog(start,timeout,root):
- s=read_state(root); s['heartbeat']=time.time(); s['watchdog_checks']=s.get('watchdog_checks',0)+1
- if time.monotonic()-start>timeout: s.update(status='SAFE_DEGRADED',watchdog={'reason':'TIMEOUT','writes':0,'append':False}); write_state(root,s)
+def degraded(root): return read_watch(root).get('status')=='SAFE_DEGRADED'
+def view(root):
+ s=read_state(root); w=read_watch(root); s['watchdog']=w
+ if w.get('status')=='SAFE_DEGRADED': s['status']='SAFE_DEGRADED'
  return s
+def watchdog(start,timeout,root):
+ w=read_watch(root); w.update(heartbeat=time.time(),checks=w.get('checks',0)+1,pid=os.getpid())
+ if time.monotonic()-start>timeout: w.update(status='SAFE_DEGRADED',reason='TIMEOUT',writes=0,append=False)
+ write_watch(root,w); return w
 def _cmd(root,crash): return [sys.executable,__file__,'--worker','--root',str(root),*(('--crash',crash) if crash else ())]
 def worker(root,crash):
- """Executing process: stops at each pre-append HARD STOP in frozen order,
- persisting state AT the boundary before re-entering; the (post-append) crash
- target is then reached by a single transaction run and persisted in place at
- the moment of the boundary. A full cycle drives through after_append and
- completes via the frozen recovery path."""
+ """Executing process: drives the authorization sequence boundary-by-boundary,
+ persisting runner state AT each HARD STOP before re-entering. Pre-append
+ boundaries are durable-write-free so re-entry is legal; after_append is the
+ first durable boundary; the recovery-path hard stop after_semantic_proof is
+ driven through frozen recover(stop_after=...)."""
  try:
   persist(root,'PREPARE'); persist(root,'AUTHORIZED')
   drive=PRE if (crash is None or PASSED.index(crash)>=3) else PRE[:PRE.index(crash)+1]
@@ -44,38 +60,37 @@ def worker(root,crash):
   print(json.dumps({'kind':'error','value':f'crash boundary {crash} not reached'}),flush=True)
  except BaseException as e: print(json.dumps({'kind':'error','value':repr(e)}),flush=True)
 def invoke(root,crash,timeout):
- """Monitor one worker step. None => safe-degraded: the worker is SIGKILLed;
- whatever partial transaction it left is coordinated later by the explicit
- repair command from the trusted head (no runner-side writes meanwhile)."""
  started=time.monotonic()
  p=subprocess.Popen(_cmd(root,crash),stdout=subprocess.PIPE,text=True)
  while p.poll() is None:
   watchdog(started,timeout,root)
-  if read_state(root).get('status')=='SAFE_DEGRADED': p.kill(); p.wait(); return None
+  if degraded(root): p.kill(); p.wait(); return None
   time.sleep(0.005)
  line=p.stdout.readline().strip(); return json.loads(line) if line else {'kind':'error','value':'worker exited without result'}
 def run(root,crash=None,timeout=300):
  root=Path(root); types=[e['event_type'] for e in events(root)]
  if not types or types[-1]!='REVEAL_PACKET': raise RuntimeError('supplied root must end with an open production REVEAL')
  msg=invoke(root,crash,timeout)
- if msg is None: return read_state(root)
+ if msg is None: return view(root)
  if msg['kind']=='error': raise RuntimeError(msg['value'])
- return read_state(root)
+ return view(root)
 def resume(root):
+ v=view(root)
+ if v.get('status')=='SAFE_DEGRADED': return v          # no action without explicit repair
  s=read_state(root)
- if s.get('status')=='SAFE_DEGRADED': return s   # no action without explicit repair
- if s.get('resumed') and s.get('status')=='SEALED': return s
+ if s.get('resumed') and s.get('status')=='SEALED': return view(root)
  result=c.recover(root,c.REAL_SESSION); s.update(status=result,recovery_count=s.get('recovery_count',0)+1); write_state(root,s)
  if result=='SEAL_AUTHORIZED': c.seal_transaction(root,c.REAL_SESSION); persist(root,'SEALED'); s=read_state(root); s.update(status='SEALED',resumed=True); write_state(root,s)
  else: s.update(resumed=True); write_state(root,s)
- return s
-def diagnose(root): return {'mode':'READ_ONLY','state':read_state(root),'events':[e['event_type'] for e in events(root)],'head_hash':head_hash(root)}
+ return view(root)
+def diagnose(root): return {'mode':'READ_ONLY','runner':read_state(root),'watchdog':read_watch(root),'events':[e['event_type'] for e in events(root)],'head_hash':head_hash(root)}
 def repair(root):
  before=diagnose(root); result=c.recover(root,c.REAL_SESSION)
  s=read_state(root); s.update(status=result); s['journal'].append({'boundary':'REPAIR','phase':result}); write_state(root,s)
  if result=='SEAL_AUTHORIZED':
   c.seal_transaction(root,c.REAL_SESSION); result='SEALED'
   s=read_state(root); s.update(status=result,resumed=True); s['journal'].append({'boundary':'REPAIR','phase':'SEALED'}); write_state(root,s)
+ w=read_watch(root); w.update(status='REPAIRED',repaired_at=time.time()); write_watch(root,w)
  return {'mode':'EXPLICIT_REPAIR','before':before,'result':result,'append':False}
 def _sandbox(td):
  sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'tests')); from csr8_preseal_sandbox import build_pre_seal_sandbox
@@ -86,35 +101,37 @@ def _cli(root,*flags):
 def evidence():
  matrix=[]
  for point in PASSED:
-  with tempfile.TemporaryDirectory(prefix='csr8-e25-m-') as td:
+  with tempfile.TemporaryDirectory(prefix='csr8-e26-m-') as td:
    root=_sandbox(td); run(root,point); order=[j['boundary'] for j in read_state(root)['journal']]
    idx=PASSED.index(point); exp=['PREPARE','AUTHORIZED']+list(PASSED[:min(idx+1,3)])+([point] if idx>=3 else [])
    if order!=exp: raise RuntimeError(f'{point} journal {order} != {exp}')
-   s=resume(root)
-   if s['status']!='SEALED' or resume(root)['status']!='SEALED': raise RuntimeError(point)
-   matrix.append({'crash_at':point,'persisted_boundaries':order,'resume_status':'SEALED','head_hash_after_resume':head_hash(root)})
- with tempfile.TemporaryDirectory(prefix='csr8-e25-d-') as td:
+   s=resume(root); j1=len(read_state(root)['journal']); rc1=read_state(root).get('recovery_count')
+   s2=resume(root); j2=len(read_state(root)['journal']); rc2=read_state(root).get('recovery_count')
+   if s['status']!='SEALED' or s2['status']!='SEALED' or (j1,rc1)!=(j2,rc2): raise RuntimeError(f'{point} resume idempotence')
+   matrix.append({'crash_at':point,'persisted_boundaries':order,'resume_status':'SEALED','idempotent':True,'head_hash_after_resume':head_hash(root)})
+ with tempfile.TemporaryDirectory(prefix='csr8-e26-d-') as td:
   root=_sandbox(td); run(root); st=read_state(root); order=[j['boundary'] for j in st['journal']]
   exp=['PREPARE','AUTHORIZED']+list(PRE)+['after_append','SEALED']
   if order!=exp or st.get('status')!='SEALED': raise RuntimeError(f'full cycle {order} {st.get("status")}')
-  full_cycle={'status':'SEALED','persisted_boundaries':order,'head_hash':head_hash(root)}
+  if not watch_path(root).exists(): raise RuntimeError('watchdog never ran')
+  full_cycle={'status':'SEALED','persisted_boundaries':order,'head_hash':head_hash(root),'watchdog_checks':read_watch(root).get('checks')}
  kill_race=[]
  for delay in (0.02,0.06,0.12,0.2):
-  with tempfile.TemporaryDirectory(prefix='csr8-e25-k-') as td:
+  with tempfile.TemporaryDirectory(prefix='csr8-e26-k-') as td:
    root=_sandbox(td); p=subprocess.Popen(_cmd(root,'after_replay'),stdout=subprocess.DEVNULL); time.sleep(delay); p.kill(); p.wait()
-   killed_boundaries=[j['boundary'] for j in read_state(root)['journal']]
-   rep=_cli(root,'--repair'); fin=_cli(root,'--resume')
-   if rep['result']!='SEALED' or fin['status']!='SEALED': raise RuntimeError(f'kill race {delay}: {rep["result"]}/{fin["status"]}')
-   kill_race.append({'kill_after_s':delay,'boundaries_at_kill':killed_boundaries,'repair':'SEALED','final':'SEALED','head_hash':head_hash(root)})
- with tempfile.TemporaryDirectory(prefix='csr8-e25-t-') as td:
-  root=_sandbox(td); s=run(root,None,timeout=0)
-  if s['status']!='SAFE_DEGRADED' or s['watchdog']['writes'] or s['watchdog']['append']: raise RuntimeError('timeout degradation')
-  j=len(s['journal']); noop=resume(root)
-  if noop['status']!='SAFE_DEGRADED' or len(noop['journal'])!=j: raise RuntimeError('degraded resume must be a no-op')
+   killed=[j['boundary'] for j in read_state(root)['journal']]
+   direct=_cli(root,'--resume'); again=_cli(root,'--resume')
+   if direct['status']!='SEALED' or again['status']!='SEALED': raise RuntimeError(f'kill race {delay}: {direct["status"]}/{again["status"]}')
+   kill_race.append({'kill_after_s':delay,'boundaries_at_kill':killed,'direct_resume':'SEALED','idempotent':True,'head_hash':head_hash(root)})
+ with tempfile.TemporaryDirectory(prefix='csr8-e26-t-') as td:
+  root=_sandbox(td); v=run(root,None,timeout=0)
+  if v['status']!='SAFE_DEGRADED' or v['watchdog'].get('writes') or v['watchdog'].get('append'): raise RuntimeError('timeout degradation')
+  j=len(read_state(root)['journal']); noop=resume(root)
+  if noop['status']!='SAFE_DEGRADED' or len(read_state(root)['journal'])!=j: raise RuntimeError('degraded resume must be a no-op')
   rep=_cli(root,'--repair')
-  if rep['result']!='SEALED': raise RuntimeError('repair coordination')
-  timeout_repair={'degraded':'SAFE_DEGRADED','watchdog':s['watchdog'],'resume_noop':True,'repair_result':'SEALED','head_hash':head_hash(root)}
- art={'runner':'csr8_phase_e_runner','session':c.REAL_SESSION,'persistence':'worker-in-place','checkpoints':matrix,'full_cycle':full_cycle,'kill_race':kill_race,'timeout_repair':timeout_repair}
+  if rep['result']!='SEALED' or read_watch(root).get('status')!='REPAIRED': raise RuntimeError('repair coordination')
+  timeout_repair={'degraded':'SAFE_DEGRADED','watchdog':{'writes':0,'append':False},'resume_noop':True,'repair_result':'SEALED','watch_status_after':'REPAIRED','head_hash':head_hash(root)}
+ art={'runner':'csr8_phase_e_runner','session':c.REAL_SESSION,'persistence':'worker-in-place','write_separation':{'runner_state.json':'worker-only','watchdog_state.json':'monitor-only'},'checkpoints':matrix,'full_cycle':full_cycle,'kill_race':kill_race,'timeout_repair':timeout_repair}
  EVIDENCE_PATH.parent.mkdir(parents=True,exist_ok=True); EVIDENCE_PATH.write_text(json.dumps(art,sort_keys=True,indent=1))
  return art
 def main():

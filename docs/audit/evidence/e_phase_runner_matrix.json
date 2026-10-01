@@ -2,7 +2,8 @@
  "checkpoints": [
   {
    "crash_at": "after_verify",
-   "head_hash_after_resume": "a12235cc47b6e3cbc139418f32d0c3306141b8332280db4c75bb83596b79db48",
+   "head_hash_after_resume": "d6ad892baa1e655be191a5e66b94d150c66ae4763605498f24d972f1773735a9",
+   "idempotent": true,
    "persisted_boundaries": [
     "PREPARE",
     "AUTHORIZED",
@@ -12,7 +13,8 @@
   },
   {
    "crash_at": "after_derive",
-   "head_hash_after_resume": "b0c4b73d937c984f40a41b70c565871825345153a0665270e68c9a5f5270e9ef",
+   "head_hash_after_resume": "e0e9d47c714fd949d889e5a3310d0da8c76c13ac946ae8960e43e2da6d97967b",
+   "idempotent": true,
    "persisted_boundaries": [
     "PREPARE",
     "AUTHORIZED",
@@ -23,7 +25,8 @@
   },
   {
    "crash_at": "after_precondition",
-   "head_hash_after_resume": "8dcb13ca36682894ffa86427d6e0d671298b7015134dcf68ab0be2ac4b461287",
+   "head_hash_after_resume": "9f7160afeb77afc81f76cc823ae83f772403ae26dce63e0e7c54e9c295f9fcdc",
+   "idempotent": true,
    "persisted_boundaries": [
     "PREPARE",
     "AUTHORIZED",
@@ -35,7 +38,8 @@
   },
   {
    "crash_at": "after_append",
-   "head_hash_after_resume": "91f00a1c3eee3cd26dbabeb16c9262edda74686c2f03c04a916743edfabf3354",
+   "head_hash_after_resume": "b4a1667b1527bea4e2b5b4206e595046aa17bdc9627a48415d038497e5c1ee8f",
+   "idempotent": true,
    "persisted_boundaries": [
     "PREPARE",
     "AUTHORIZED",
@@ -48,7 +52,8 @@
   },
   {
    "crash_at": "after_fsync",
-   "head_hash_after_resume": "74537d9602d27b5c67ff111d80ce98b3677204105366addb15000c92f890a1b2",
+   "head_hash_after_resume": "6b1518f56dfb03de0e72ba96f61cc247fe08dd68ee24a309bc5210511bba78ff",
+   "idempotent": true,
    "persisted_boundaries": [
     "PREPARE",
     "AUTHORIZED",
@@ -61,7 +66,8 @@
   },
   {
    "crash_at": "after_replay_verify",
-   "head_hash_after_resume": "24895b36f08fccd37b6583e8176348b9d227a0358b39fd36ca4cfb0807257244",
+   "head_hash_after_resume": "a968a7f6ba5fb3bbbe09bb6223d1d14d26c0c64cddab83be9d3acf93c487962e",
+   "idempotent": true,
    "persisted_boundaries": [
     "PREPARE",
     "AUTHORIZED",
@@ -74,7 +80,8 @@
   },
   {
    "crash_at": "after_replay",
-   "head_hash_after_resume": "9f15c894e45aae588972c8c88b0c33639dc1550f624f5927644ffc6c22162a34",
+   "head_hash_after_resume": "d3b84f351f57db5c22a5542755f03b5645647a0b7fac921185e3de48eb3554b1",
+   "idempotent": true,
    "persisted_boundaries": [
     "PREPARE",
     "AUTHORIZED",
@@ -87,7 +94,8 @@
   },
   {
    "crash_at": "after_anchor",
-   "head_hash_after_resume": "3f0a7dd67fa4c1cf55b9d95cc5a57e7eaa3cb4f2a6c26329a400345e5d0f3ad8",
+   "head_hash_after_resume": "68079f48fdb3e0316c206b548f834e14939e17ac6d417b842c925529ad403baa",
+   "idempotent": true,
    "persisted_boundaries": [
     "PREPARE",
     "AUTHORIZED",
@@ -100,7 +108,8 @@
   },
   {
    "crash_at": "after_cleanup",
-   "head_hash_after_resume": "499e02937d8d7d75d34c0890ac53cc273841114fd6f635be9b69c7e2754adacc",
+   "head_hash_after_resume": "a921701f79be4e225cefc47b38f4ab85ad2c61f4bf12da5f80d49eb2d5840032",
+   "idempotent": true,
    "persisted_boundaries": [
     "PREPARE",
     "AUTHORIZED",
@@ -113,7 +122,7 @@
   }
  ],
  "full_cycle": {
-  "head_hash": "934a0b844b1a70af2d9eeaa1d8f768682b13ef7f75e91c4da646c82a14671854",
+  "head_hash": "ce537c8e7d5d72a2a48010051d4148d656aa1bc806aacae67a69f36c1a6c4e30",
   "persisted_boundaries": [
    "PREPARE",
    "AUTHORIZED",
@@ -123,22 +132,23 @@
    "after_append",
    "SEALED"
   ],
-  "status": "SEALED"
+  "status": "SEALED",
+  "watchdog_checks": 17
  },
  "kill_race": [
   {
    "boundaries_at_kill": [],
-   "final": "SEALED",
-   "head_hash": "fdddd0bff8d412269cac0ba85652b3537c0551bcd9d21b4fc5ae7815645dc41b",
-   "kill_after_s": 0.02,
-   "repair": "SEALED"
+   "direct_resume": "SEALED",
+   "head_hash": "5d2d98e158d0799d93e15dd6709b7e14ebe85f907276dd591132068bb1e283bf",
+   "idempotent": true,
+   "kill_after_s": 0.02
   },
   {
    "boundaries_at_kill": [],
-   "final": "SEALED",
-   "head_hash": "b38ce132b3d9e310012d9436bdc52499de7b0a1bb50b955782372fc114dedefa",
-   "kill_after_s": 0.06,
-   "repair": "SEALED"
+   "direct_resume": "SEALED",
+   "head_hash": "0a926563827c70e09e24fcec11423805c8237337722af70f1a17dcb4cb3a2e30",
+   "idempotent": true,
+   "kill_after_s": 0.06
   },
   {
    "boundaries_at_kill": [
@@ -149,10 +159,10 @@
     "after_precondition",
     "after_replay"
    ],
-   "final": "SEALED",
-   "head_hash": "c5dd5e41f388c4c0eced701cf7c56e67a66db55cae4f73299413d2d5bb5a074d",
-   "kill_after_s": 0.12,
-   "repair": "SEALED"
+   "direct_resume": "SEALED",
+   "head_hash": "fdc1ef87f8747c4a73e289b71edd58e7a6ea53a1d75a5324f4910deb5852ecbb",
+   "idempotent": true,
+   "kill_after_s": 0.12
   },
   {
    "boundaries_at_kill": [
@@ -163,10 +173,10 @@
     "after_precondition",
     "after_replay"
    ],
-   "final": "SEALED",
-   "head_hash": "171dc500b48ae2c8b72e758000904cfc3eced17a385e17511849df7e28f2eda5",
-   "kill_after_s": 0.2,
-   "repair": "SEALED"
+   "direct_resume": "SEALED",
+   "head_hash": "9720eda5b900b977ffd2dd5216f1cd24feb5a68a9088580dbf166dfd16ad4fc1",
+   "idempotent": true,
+   "kill_after_s": 0.2
   }
  ],
  "persistence": "worker-in-place",
@@ -174,13 +184,17 @@
  "session": "c4-prod-0002",
  "timeout_repair": {
   "degraded": "SAFE_DEGRADED",
-  "head_hash": "e2243b729d19e8745bf34c66b0d08c2b52a9be81a427ed3c4364c6c3467cbbc9",
+  "head_hash": "d3c04918783473f6254b768cf382e5332c824b3b8493542aaf8d9f2e58304195",
   "repair_result": "SEALED",
   "resume_noop": true,
+  "watch_status_after": "REPAIRED",
   "watchdog": {
    "append": false,
-   "reason": "TIMEOUT",
    "writes": 0
   }
+ },
+ "write_separation": {
+  "runner_state.json": "worker-only",
+  "watchdog_state.json": "monitor-only"
  }
 }
