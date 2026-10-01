@@ -1,5 +1,5 @@
 {
- "created_at": "2026-10-01T10:05:25+00:00",
+ "created_at": "2026-10-01T11:05:42+00:00",
  "payload": {
   "boundary_annotator_surface": [
    "analysis/analysis_manifest.json",
@@ -26,7 +26,7 @@
   ],
   "boundary_policy": "annotator_surface = corpus/ analysis/ approvals/ (blind by construction); analysis_labeled/ carries post-reveal labels and stays auditor-side with all other sensitive copies",
   "chain_head": "c1fa24420e411a19e191b6399dafab02f568c1fe7ef766a481907c970b68becd",
-  "verdict_chain_head": "a232d1c70c1b1ae1cf750dcf6ea1c2bac7300f03a425ff12de68b0e17affed99",
+  "verdict_chain_head": "ad3baf889c5ed7bfcc44e11e20043fa59f08a1fe8a9f2250c3df9b432ac748db",
   "verdict_line_sha256": [
    "ef8a52832e9c8351594393f5fc95f229b5f375dee510eccf9e0a36c2dd70ed93",
    "95f7de7d615f5ec51aaaa0b7e657ed94726a0fb391f7262057328c5899315d53",
@@ -128,19 +128,34 @@
    "0f83d42349a4e1b2b3c7ca936d5b4ad9558b57f8434b6f9fa4f03d191f68efde",
    "0ac8d737003ec16cf793b506ec341e54ee51514fc69bfb3dd7086f67a0bf8565",
    "473310734efbf37fe2f11d1be908bde29b072ff2a34bde09069b335634947f4b",
-   "fccfc87a87d5453797684e0ba2f9ef64b9eb76810748621f479de06570c27104"
+   "fccfc87a87d5453797684e0ba2f9ef64b9eb76810748621f479de06570c27104",
+   "7dbb02de7d2d6db12b8249ab2ba5e6e13e65df6393cf22cdec2467fa90021516",
+   "ec8936cedcaa726bead9c71c64d22387bc7f1853ac363aaf88f792fef774d192",
+   "9203fef0acd033f743594862821008178f8f1001804495c158364c3f07cc2d1d",
+   "8532a19af8cf0163c3033e389ae93fe2554a46f711ee9ef14b7040707cca6070",
+   "0aa57fbd789623e07b869d61a2b9901ca094e9c0a9845fa922186696f3db5545",
+   "977526294ab5d91e59d21a7e42e80939feb8d1689944c09f49045ee4a4bd1390",
+   "997f781d3c5a1636b74450a8ad0a5df5860d30208aaf38413adbe16d43cbe4d9",
+   "282b9aa1c770826d718f6a54f91866defbfad0ac5fc7e2ffef38117a3a05156d",
+   "45c89d9799ae9e9043b5d011802c41f57c2036e25135c2a29a4236f92c6c1fdb",
+   "f2d5f00ada030d7dd72a3f7d5d3fc0c095f436c70a97083a705463427497561f",
+   "6110e3c716d00f34b9eb1e759cce64392ee0be73ab3713c40232794d9e1181e1",
+   "345d63169a342fc9b8b8ce8c9d21354e21f7fe0fa8859892f1f928286596476f",
+   "b62d9c151e40aeede812b3b6c5e0c779839e530f9d871dd127ff7296020d34b7",
+   "218f61cbdb162270a6eba656561d06d69a49e48ed260a2c73af6481ff9596c7a",
+   "01a7116f49792fe791ba4959f5f951997bdfdb19173ab99756573ff2257a6636"
   ],
-  "verdict_records": 101,
-  "verdicts_sha256": "7d8cd6126bb42732d68eae569d95debcadd4097397e2dd9c72a73a6bf5491dec"
+  "verdict_records": 116,
+  "verdicts_sha256": "2040ee2d22723bfefdca20f391759f9b7b4b66ee8e64e63557ca34bdd4310de5"
  },
  "row_counts": {
   "annotator_surface_files": 21,
-  "verdict_records": 101
+  "verdict_records": 116
  },
  "schema_version": "csr8-f-envelope-v2",
- "source_commit": "264eec4c3b1e2affa724c9ec272b4ba16e9dde09",
+ "source_commit": "e2f93fc93e32cc7598be0b2c6e2789664a08c408",
  "source_hashes": {
   "chain_head": "c1fa24420e411a19e191b6399dafab02f568c1fe7ef766a481907c970b68becd",
-  "verdicts": "7d8cd6126bb42732d68eae569d95debcadd4097397e2dd9c72a73a6bf5491dec"
+  "verdicts": "2040ee2d22723bfefdca20f391759f9b7b4b66ee8e64e63557ca34bdd4310de5"
  }
 }

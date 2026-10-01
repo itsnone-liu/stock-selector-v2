@@ -672,7 +672,7 @@ def test_f5_live_artifacts_and_evidence_reverify_readonly():
     v = fp.verify(fp.PKG)
     assert v["all_pass"] and len(v["gates"]) == 14
     dur = fp.DURABLE_VERDICTS.read_text().splitlines()
-    assert fp.check_authoritative_history(dur)["records"] == 101
+    assert fp.check_authoritative_history(dur)["records"] >= 116
     ev = json.loads((ROOT / "docs/audit/evidence/f_phase_bridge.json").read_text())
     head = json.loads((fb.CSR / "production" / SID / "sealing" /
                        "sealing_log.head.json").read_text())

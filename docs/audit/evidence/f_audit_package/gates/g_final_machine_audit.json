@@ -180,7 +180,7 @@
  "declaration_note": "PRODUCTION INFRA FINAL FROZEN 只能由独立审计宣布；本报告仅承载机器实测事实。",
  "declared_by_executor": false,
  "dual_anchor": {
-  "durable_records": 116,
+  "durable_records": 101,
   "sealing_chain_head": "c1fa24420e411a19e191b6399dafab02f568c1fe7ef766a481907c970b68becd",
   "surfaces": [
    "bridge_evidence_head",
@@ -189,14 +189,14 @@
    "package_public_anchor_head",
    "package_snapshot_head"
   ],
-  "verdict_chain_head": "ad3baf889c5ed7bfcc44e11e20043fa59f08a1fe8a9f2250c3df9b432ac748db",
+  "verdict_chain_head": "a232d1c70c1b1ae1cf750dcf6ea1c2bac7300f03a425ff12de68b0e17affed99",
   "verdict_head_recomputed": {
-   "anchored": "ad3baf889c5ed7bfcc44e11e20043fa59f08a1fe8a9f2250c3df9b432ac748db",
-   "durable_full": "ad3baf889c5ed7bfcc44e11e20043fa59f08a1fe8a9f2250c3df9b432ac748db",
-   "durable_prefix": "ad3baf889c5ed7bfcc44e11e20043fa59f08a1fe8a9f2250c3df9b432ac748db",
-   "packaged": "ad3baf889c5ed7bfcc44e11e20043fa59f08a1fe8a9f2250c3df9b432ac748db"
+   "anchored": "a232d1c70c1b1ae1cf750dcf6ea1c2bac7300f03a425ff12de68b0e17affed99",
+   "durable_full": "a232d1c70c1b1ae1cf750dcf6ea1c2bac7300f03a425ff12de68b0e17affed99",
+   "durable_prefix": "a232d1c70c1b1ae1cf750dcf6ea1c2bac7300f03a425ff12de68b0e17affed99",
+   "packaged": "a232d1c70c1b1ae1cf750dcf6ea1c2bac7300f03a425ff12de68b0e17affed99"
   },
-  "verdict_records": 116
+  "verdict_records": 101
  },
  "gates_rerun": {
   "blinding": [
@@ -268,8 +268,8 @@
    "C6": "APPROVE",
    "D": "APPROVE",
    "E": "APPROVE",
-   "F": "APPROVE"
+   "F": "REVISE"
   },
-  "status": "PREREQUISITES-COMPLETE"
+  "status": "PENDING"
  }
 }
