@@ -1,5 +1,5 @@
 {
- "created_at": "2026-10-01T05:59:33+00:00",
+ "created_at": "2026-10-01T06:28:57+00:00",
  "payload": {
   "source": "gates/f_phase_bridge.json"
  },
@@ -7,7 +7,7 @@
   "gate_files_shipped": 14
  },
  "schema_version": "csr8-f-envelope-v2",
- "source_commit": "ccde09402b55b2b9e627182bb434132238b4f67b",
+ "source_commit": "9d3f5a040345bb22c795ec94b89d8e18a9d5ed9e",
  "source_hashes": {
   "chain_head": "c1fa24420e411a19e191b6399dafab02f568c1fe7ef766a481907c970b68becd",
   "verdicts": "7d8cd6126bb42732d68eae569d95debcadd4097397e2dd9c72a73a6bf5491dec"

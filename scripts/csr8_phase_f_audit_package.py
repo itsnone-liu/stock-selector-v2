@@ -488,8 +488,19 @@ def verify(pkg=PKG):
         and x != 'MANIFEST.json')
     if sensitive_missing:
         fail(f'G-P-BOUNDARY: sensitive copies not hash-anchored: {sensitive_missing[:3]}')
+    # §9.2 全可达面扫描——无任何后缀跳过：annotator 可达面内每一个文件
+    # （含 .bin/.parquet/.txt/.md 等任意二进制/文本形态）的原始字节都要
+    # 过带前缀证券代码正则；可解析的 .json/.jsonl 另加结构化键/值走查。
+    n_scanned = 0
     for rel in derived_annot:
         ap = pkg / rel
+        raw_text = ap.read_bytes().decode('utf-8', errors='replace')
+        n_scanned += 1
+        prefixed = sorted({t for t in re.findall(
+            r'(?:sz|sh|bj)\.\d{6}', raw_text)} & set(p_codes))
+        if prefixed:
+            fail(f'G-P-BOUNDARY: identity codes in annotator-surface {rel} '
+                 f'(raw byte scan): {prefixed}')
         if ap.suffix not in ('.json', '.jsonl'):
             continue
         text_keys, text_strings = set(), []
@@ -506,6 +517,8 @@ def verify(pkg=PKG):
                       if t in p_codes or f'sz.{t}' in p_codes or f'sh.{t}' in p_codes)
         if hitc:
             fail(f'G-P-BOUNDARY: identity tokens in annotator-surface {rel}: {hitc}')
+    if n_scanned != len(derived_annot):
+        fail('G-P-BOUNDARY: full-surface scan did not cover every annotator file')
     gates['G-P-BOUNDARY'] = 'PASS'
 
     # gates evidence is a closed-world inventory, not a partial allowlist —

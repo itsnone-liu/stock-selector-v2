@@ -88,6 +88,43 @@ def test_f1_immutable_corpus_ledger_and_real_tamper_detection(sandbox):
     assert set(fb.verify_corpus(root).values()) == {"PASS"}
 
 
+def test_f1_domain_readonly_is_uniform_no_exempt_files(sandbox):
+    """§9.1 硬条件以无例外谓词执行：G-F-DOMAIN-RO 检查每一个 annotator
+    文件（含 0600 协议件）的 group/other 写位；协议件被放宽到 0640 也必须
+    当场失败——不存在逃过只读判定的"例外集"。"""
+    import stat as stat_mod
+    root, _, _ = sandbox
+    gates = fb.verify_domain_freeze(root)
+    assert set(gates.values()) == {"PASS"}
+    # 每个 annotator 文件都无 group/other 写位（统一谓词，无豁免名单）
+    for p in fb.annotator_files(root):
+        assert stat_mod.S_IMODE(os.stat(p).st_mode) & 0o022 == 0, p
+    # 协议 0600 件（旧实现的豁免集成员）被放宽 → G-F-DOMAIN-RO 失败
+    exempt = fb.protocol_0600_set(root)
+    proto = next(p for p in fb.annotator_files(root)
+                 if p.relative_to(root).as_posix() in exempt)
+    os.chmod(proto, 0o660)   # group 写位：统一只读谓词必须当场失败
+    with pytest.raises(RuntimeError, match="G-F-DOMAIN-RO"):
+        fb.verify_domain_freeze(root)
+    os.chmod(proto, 0o600)
+    assert set(fb.verify_domain_freeze(root).values()) == {"PASS"}
+
+
+def test_f1_os_probe_attempts_every_annotator_file(sandbox):
+    """§9.1 全量真实渗透：uid-65534 对 annotator 域每一个文件做真实
+    append 写入尝试 + 每个 annotator 目录做 rogue 建档尝试，全部必须
+    PERMISSION_DENIED；抽样探测不允许通过。"""
+    root, _, _ = sandbox
+    out = fb.verify_blinding(root)
+    files = {str(p) for p in fb.annotator_files(root)}
+    writes = [a for a in out["attempts"]
+              if a.get("op") == "write" and a.get("uid") == 65534]
+    assert {a["path"] for a in writes} == files
+    creates = [a for a in out["attempts"] if a.get("op") == "create"]
+    assert creates and all(a["got"] == "PERMISSION_DENIED" for a in creates)
+    assert all(a["got"] == "PERMISSION_DENIED" for a in writes)
+
+
 def test_f1_corpus_bytes_bind_to_chain(sandbox):
     root, _, _ = sandbox
     cdir = fb.corpus_dir(root)
@@ -451,6 +488,38 @@ def test_b5b_package_boundary_and_verdict_chain_tamper(tmp_path, sandbox, monkey
         json.dumps(m2, ensure_ascii=False, sort_keys=True, indent=1))
     with pytest.raises(RuntimeError, match="G-P-VERDICTS-CHAIN"):
         fp.verify(pkg2)
+
+    # 渗透 3（后缀跳过废除证明）：非 JSON 形态泄漏——parquet 二进制尾部
+    # 注入带前缀代码，并配平 ledger/MANIFEST —— 原始字节全量扫描必须识破。
+    pkg3 = tmp_path / "pkg3"
+    fp.export(pkg3, root)
+    assert fp.verify(pkg3)["all_pass"]
+    pq = pkg3 / "corpus/phase_c_annotation_corpus.parquet"
+    pq.write_bytes(pq.read_bytes() + b"\nsz.301042\n")
+    lp3 = pkg3 / "corpus/ledger.json"
+    led3 = json.loads(lp3.read_text())
+    ent3 = next(f for f in led3["files"]
+                if f["path"] == "phase_c_annotation_corpus.parquet")
+    ent3["sha256"] = fp.sha_file(pq)
+    ent3["bytes"] = pq.stat().st_size
+    led3["file_hashes"] = {f["path"]: f["sha256"] for f in led3["files"]}
+    led3["totals"] = {"files": len(led3["files"]),
+                      "bytes": sum(f["bytes"] for f in led3["files"])}
+    lp3.write_text(json.dumps(led3, ensure_ascii=False, sort_keys=True, indent=1))
+
+    def rehash3(rel):
+        m3 = json.loads((pkg3 / "MANIFEST.json").read_text())
+        e3 = next(f for f in m3["files"] if f["path"] == rel)
+        e3["sha256"] = fp.sha_file(pkg3 / rel)
+        e3["bytes"] = (pkg3 / rel).stat().st_size
+        (pkg3 / "MANIFEST.json").write_text(
+            json.dumps(m3, ensure_ascii=False, sort_keys=True, indent=1))
+
+    rehash3("corpus/phase_c_annotation_corpus.parquet")
+    rehash3("corpus/ledger.json")
+    with pytest.raises(RuntimeError,
+                       match="G-P-BOUNDARY: identity codes in annotator-surface"):
+        fp.verify(pkg3)
 
 
 def test_b5c_package_stale_gates_and_placeholder_envelope(tmp_path, sandbox, monkeypatch):

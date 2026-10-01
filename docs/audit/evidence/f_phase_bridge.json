@@ -80,23 +80,363 @@
     "uid": 65534
    },
    {
-    "attempt": "OS boundary corpus-write",
+    "attempt": "OS boundary domain-write:c4d_proposals/c4-prod-0002/ordinal-0002/next_reveal.proposal.json",
     "expect": "PERMISSION_DENIED",
     "got": "PERMISSION_DENIED",
-    "kind": "corpus-write",
+    "kind": "domain-write:c4d_proposals/c4-prod-0002/ordinal-0002/next_reveal.proposal.json",
     "ok": true,
     "op": "write",
-    "path": "/root/project/workspace/stock-selector-v2/data/csr8_phase_c/corpus/c4-prod-0002/pairs/ordinal-0001/reveal_packet.json",
+    "path": "/root/project/workspace/stock-selector-v2/data/csr8_phase_c/c4d_proposals/c4-prod-0002/ordinal-0002/next_reveal.proposal.json",
     "uid": 65534
    },
    {
-    "attempt": "OS boundary annotator-write",
+    "attempt": "OS boundary domain-rogue:c4d_proposals/c4-prod-0002/ordinal-0002",
     "expect": "PERMISSION_DENIED",
     "got": "PERMISSION_DENIED",
-    "kind": "annotator-write",
+    "kind": "domain-rogue:c4d_proposals/c4-prod-0002/ordinal-0002",
+    "ok": true,
+    "op": "create",
+    "path": "/root/project/workspace/stock-selector-v2/data/csr8_phase_c/c4d_proposals/c4-prod-0002/ordinal-0002/._rogue_probe",
+    "uid": 65534
+   },
+   {
+    "attempt": "OS boundary domain-write:c4d_receipts/c4-prod-0002/ordinal-0001/attempt-0001/draft_snapshot.bin",
+    "expect": "PERMISSION_DENIED",
+    "got": "PERMISSION_DENIED",
+    "kind": "domain-write:c4d_receipts/c4-prod-0002/ordinal-0001/attempt-0001/draft_snapshot.bin",
+    "ok": true,
+    "op": "write",
+    "path": "/root/project/workspace/stock-selector-v2/data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0001/attempt-0001/draft_snapshot.bin",
+    "uid": 65534
+   },
+   {
+    "attempt": "OS boundary domain-rogue:c4d_receipts/c4-prod-0002/ordinal-0001/attempt-0001",
+    "expect": "PERMISSION_DENIED",
+    "got": "PERMISSION_DENIED",
+    "kind": "domain-rogue:c4d_receipts/c4-prod-0002/ordinal-0001/attempt-0001",
+    "ok": true,
+    "op": "create",
+    "path": "/root/project/workspace/stock-selector-v2/data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0001/attempt-0001/._rogue_probe",
+    "uid": 65534
+   },
+   {
+    "attempt": "OS boundary domain-write:c4d_receipts/c4-prod-0002/ordinal-0001/attempt-0001/receipt.json",
+    "expect": "PERMISSION_DENIED",
+    "got": "PERMISSION_DENIED",
+    "kind": "domain-write:c4d_receipts/c4-prod-0002/ordinal-0001/attempt-0001/receipt.json",
+    "ok": true,
+    "op": "write",
+    "path": "/root/project/workspace/stock-selector-v2/data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0001/attempt-0001/receipt.json",
+    "uid": 65534
+   },
+   {
+    "attempt": "OS boundary domain-write:c4d_receipts/c4-prod-0002/ordinal-0001/attempt-0001/seal_approval.json",
+    "expect": "PERMISSION_DENIED",
+    "got": "PERMISSION_DENIED",
+    "kind": "domain-write:c4d_receipts/c4-prod-0002/ordinal-0001/attempt-0001/seal_approval.json",
+    "ok": true,
+    "op": "write",
+    "path": "/root/project/workspace/stock-selector-v2/data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0001/attempt-0001/seal_approval.json",
+    "uid": 65534
+   },
+   {
+    "attempt": "OS boundary domain-write:c4d_receipts/c4-prod-0002/ordinal-0002/annotation_draft.json",
+    "expect": "PERMISSION_DENIED",
+    "got": "PERMISSION_DENIED",
+    "kind": "domain-write:c4d_receipts/c4-prod-0002/ordinal-0002/annotation_draft.json",
     "ok": true,
     "op": "write",
     "path": "/root/project/workspace/stock-selector-v2/data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0002/annotation_draft.json",
+    "uid": 65534
+   },
+   {
+    "attempt": "OS boundary domain-rogue:c4d_receipts/c4-prod-0002/ordinal-0002",
+    "expect": "PERMISSION_DENIED",
+    "got": "PERMISSION_DENIED",
+    "kind": "domain-rogue:c4d_receipts/c4-prod-0002/ordinal-0002",
+    "ok": true,
+    "op": "create",
+    "path": "/root/project/workspace/stock-selector-v2/data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0002/._rogue_probe",
+    "uid": 65534
+   },
+   {
+    "attempt": "OS boundary domain-write:c4d_receipts/c4-prod-0002/ordinal-0002/annotation_session_registry.json",
+    "expect": "PERMISSION_DENIED",
+    "got": "PERMISSION_DENIED",
+    "kind": "domain-write:c4d_receipts/c4-prod-0002/ordinal-0002/annotation_session_registry.json",
+    "ok": true,
+    "op": "write",
+    "path": "/root/project/workspace/stock-selector-v2/data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0002/annotation_session_registry.json",
+    "uid": 65534
+   },
+   {
+    "attempt": "OS boundary domain-write:c4d_receipts/c4-prod-0002/ordinal-0002/attempt-0001/draft_snapshot.bin",
+    "expect": "PERMISSION_DENIED",
+    "got": "PERMISSION_DENIED",
+    "kind": "domain-write:c4d_receipts/c4-prod-0002/ordinal-0002/attempt-0001/draft_snapshot.bin",
+    "ok": true,
+    "op": "write",
+    "path": "/root/project/workspace/stock-selector-v2/data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0002/attempt-0001/draft_snapshot.bin",
+    "uid": 65534
+   },
+   {
+    "attempt": "OS boundary domain-rogue:c4d_receipts/c4-prod-0002/ordinal-0002/attempt-0001",
+    "expect": "PERMISSION_DENIED",
+    "got": "PERMISSION_DENIED",
+    "kind": "domain-rogue:c4d_receipts/c4-prod-0002/ordinal-0002/attempt-0001",
+    "ok": true,
+    "op": "create",
+    "path": "/root/project/workspace/stock-selector-v2/data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0002/attempt-0001/._rogue_probe",
+    "uid": 65534
+   },
+   {
+    "attempt": "OS boundary domain-write:c4d_receipts/c4-prod-0002/ordinal-0002/attempt-0001/receipt.json",
+    "expect": "PERMISSION_DENIED",
+    "got": "PERMISSION_DENIED",
+    "kind": "domain-write:c4d_receipts/c4-prod-0002/ordinal-0002/attempt-0001/receipt.json",
+    "ok": true,
+    "op": "write",
+    "path": "/root/project/workspace/stock-selector-v2/data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0002/attempt-0001/receipt.json",
+    "uid": 65534
+   },
+   {
+    "attempt": "OS boundary domain-write:c4d_receipts/c4-prod-0002/ordinal-0002/attempt-0001/seal_approval.json",
+    "expect": "PERMISSION_DENIED",
+    "got": "PERMISSION_DENIED",
+    "kind": "domain-write:c4d_receipts/c4-prod-0002/ordinal-0002/attempt-0001/seal_approval.json",
+    "ok": true,
+    "op": "write",
+    "path": "/root/project/workspace/stock-selector-v2/data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0002/attempt-0001/seal_approval.json",
+    "uid": 65534
+   },
+   {
+    "attempt": "OS boundary domain-write:c4d_receipts/c4-prod-0002/ordinal-0002/packet.json",
+    "expect": "PERMISSION_DENIED",
+    "got": "PERMISSION_DENIED",
+    "kind": "domain-write:c4d_receipts/c4-prod-0002/ordinal-0002/packet.json",
+    "ok": true,
+    "op": "write",
+    "path": "/root/project/workspace/stock-selector-v2/data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0002/packet.json",
+    "uid": 65534
+   },
+   {
+    "attempt": "OS boundary domain-write:production/c4-prod-0002/authorization/first_reveal.approval.json",
+    "expect": "PERMISSION_DENIED",
+    "got": "PERMISSION_DENIED",
+    "kind": "domain-write:production/c4-prod-0002/authorization/first_reveal.approval.json",
+    "ok": true,
+    "op": "write",
+    "path": "/root/project/workspace/stock-selector-v2/data/csr8_phase_c/production/c4-prod-0002/authorization/first_reveal.approval.json",
+    "uid": 65534
+   },
+   {
+    "attempt": "OS boundary domain-rogue:production/c4-prod-0002/authorization",
+    "expect": "PERMISSION_DENIED",
+    "got": "PERMISSION_DENIED",
+    "kind": "domain-rogue:production/c4-prod-0002/authorization",
+    "ok": true,
+    "op": "create",
+    "path": "/root/project/workspace/stock-selector-v2/data/csr8_phase_c/production/c4-prod-0002/authorization/._rogue_probe",
+    "uid": 65534
+   },
+   {
+    "attempt": "OS boundary domain-write:production/c4-prod-0002/authorization/first_reveal.json",
+    "expect": "PERMISSION_DENIED",
+    "got": "PERMISSION_DENIED",
+    "kind": "domain-write:production/c4-prod-0002/authorization/first_reveal.json",
+    "ok": true,
+    "op": "write",
+    "path": "/root/project/workspace/stock-selector-v2/data/csr8_phase_c/production/c4-prod-0002/authorization/first_reveal.json",
+    "uid": 65534
+   },
+   {
+    "attempt": "OS boundary domain-write:production/c4-prod-0002/authorization/ordinal-0002/next_reveal.approval.json",
+    "expect": "PERMISSION_DENIED",
+    "got": "PERMISSION_DENIED",
+    "kind": "domain-write:production/c4-prod-0002/authorization/ordinal-0002/next_reveal.approval.json",
+    "ok": true,
+    "op": "write",
+    "path": "/root/project/workspace/stock-selector-v2/data/csr8_phase_c/production/c4-prod-0002/authorization/ordinal-0002/next_reveal.approval.json",
+    "uid": 65534
+   },
+   {
+    "attempt": "OS boundary domain-rogue:production/c4-prod-0002/authorization/ordinal-0002",
+    "expect": "PERMISSION_DENIED",
+    "got": "PERMISSION_DENIED",
+    "kind": "domain-rogue:production/c4-prod-0002/authorization/ordinal-0002",
+    "ok": true,
+    "op": "create",
+    "path": "/root/project/workspace/stock-selector-v2/data/csr8_phase_c/production/c4-prod-0002/authorization/ordinal-0002/._rogue_probe",
+    "uid": 65534
+   },
+   {
+    "attempt": "OS boundary domain-write:production/c4-prod-0002/authorization/ordinal-0002/next_reveal.permit.json",
+    "expect": "PERMISSION_DENIED",
+    "got": "PERMISSION_DENIED",
+    "kind": "domain-write:production/c4-prod-0002/authorization/ordinal-0002/next_reveal.permit.json",
+    "ok": true,
+    "op": "write",
+    "path": "/root/project/workspace/stock-selector-v2/data/csr8_phase_c/production/c4-prod-0002/authorization/ordinal-0002/next_reveal.permit.json",
+    "uid": 65534
+   },
+   {
+    "attempt": "OS boundary domain-write:production/c4-prod-0002/first_candidate_record.json",
+    "expect": "PERMISSION_DENIED",
+    "got": "PERMISSION_DENIED",
+    "kind": "domain-write:production/c4-prod-0002/first_candidate_record.json",
+    "ok": true,
+    "op": "write",
+    "path": "/root/project/workspace/stock-selector-v2/data/csr8_phase_c/production/c4-prod-0002/first_candidate_record.json",
+    "uid": 65534
+   },
+   {
+    "attempt": "OS boundary domain-rogue:production/c4-prod-0002",
+    "expect": "PERMISSION_DENIED",
+    "got": "PERMISSION_DENIED",
+    "kind": "domain-rogue:production/c4-prod-0002",
+    "ok": true,
+    "op": "create",
+    "path": "/root/project/workspace/stock-selector-v2/data/csr8_phase_c/production/c4-prod-0002/._rogue_probe",
+    "uid": 65534
+   },
+   {
+    "attempt": "OS boundary domain-write:production/c4-prod-0002/sealing/bytes/reveal_packet/0.bin",
+    "expect": "PERMISSION_DENIED",
+    "got": "PERMISSION_DENIED",
+    "kind": "domain-write:production/c4-prod-0002/sealing/bytes/reveal_packet/0.bin",
+    "ok": true,
+    "op": "write",
+    "path": "/root/project/workspace/stock-selector-v2/data/csr8_phase_c/production/c4-prod-0002/sealing/bytes/reveal_packet/0.bin",
+    "uid": 65534
+   },
+   {
+    "attempt": "OS boundary domain-rogue:production/c4-prod-0002/sealing/bytes/reveal_packet",
+    "expect": "PERMISSION_DENIED",
+    "got": "PERMISSION_DENIED",
+    "kind": "domain-rogue:production/c4-prod-0002/sealing/bytes/reveal_packet",
+    "ok": true,
+    "op": "create",
+    "path": "/root/project/workspace/stock-selector-v2/data/csr8_phase_c/production/c4-prod-0002/sealing/bytes/reveal_packet/._rogue_probe",
+    "uid": 65534
+   },
+   {
+    "attempt": "OS boundary domain-write:production/c4-prod-0002/sealing/bytes/reveal_packet/2.bin",
+    "expect": "PERMISSION_DENIED",
+    "got": "PERMISSION_DENIED",
+    "kind": "domain-write:production/c4-prod-0002/sealing/bytes/reveal_packet/2.bin",
+    "ok": true,
+    "op": "write",
+    "path": "/root/project/workspace/stock-selector-v2/data/csr8_phase_c/production/c4-prod-0002/sealing/bytes/reveal_packet/2.bin",
+    "uid": 65534
+   },
+   {
+    "attempt": "OS boundary domain-write:production/c4-prod-0002/sealing/bytes/seal_annotation/1.bin",
+    "expect": "PERMISSION_DENIED",
+    "got": "PERMISSION_DENIED",
+    "kind": "domain-write:production/c4-prod-0002/sealing/bytes/seal_annotation/1.bin",
+    "ok": true,
+    "op": "write",
+    "path": "/root/project/workspace/stock-selector-v2/data/csr8_phase_c/production/c4-prod-0002/sealing/bytes/seal_annotation/1.bin",
+    "uid": 65534
+   },
+   {
+    "attempt": "OS boundary domain-rogue:production/c4-prod-0002/sealing/bytes/seal_annotation",
+    "expect": "PERMISSION_DENIED",
+    "got": "PERMISSION_DENIED",
+    "kind": "domain-rogue:production/c4-prod-0002/sealing/bytes/seal_annotation",
+    "ok": true,
+    "op": "create",
+    "path": "/root/project/workspace/stock-selector-v2/data/csr8_phase_c/production/c4-prod-0002/sealing/bytes/seal_annotation/._rogue_probe",
+    "uid": 65534
+   },
+   {
+    "attempt": "OS boundary domain-write:production/c4-prod-0002/sealing/bytes/seal_annotation/3.bin",
+    "expect": "PERMISSION_DENIED",
+    "got": "PERMISSION_DENIED",
+    "kind": "domain-write:production/c4-prod-0002/sealing/bytes/seal_annotation/3.bin",
+    "ok": true,
+    "op": "write",
+    "path": "/root/project/workspace/stock-selector-v2/data/csr8_phase_c/production/c4-prod-0002/sealing/bytes/seal_annotation/3.bin",
+    "uid": 65534
+   },
+   {
+    "attempt": "OS boundary domain-write:production/c4-prod-0002/sealing/sealing_log.head.json",
+    "expect": "PERMISSION_DENIED",
+    "got": "PERMISSION_DENIED",
+    "kind": "domain-write:production/c4-prod-0002/sealing/sealing_log.head.json",
+    "ok": true,
+    "op": "write",
+    "path": "/root/project/workspace/stock-selector-v2/data/csr8_phase_c/production/c4-prod-0002/sealing/sealing_log.head.json",
+    "uid": 65534
+   },
+   {
+    "attempt": "OS boundary domain-rogue:production/c4-prod-0002/sealing",
+    "expect": "PERMISSION_DENIED",
+    "got": "PERMISSION_DENIED",
+    "kind": "domain-rogue:production/c4-prod-0002/sealing",
+    "ok": true,
+    "op": "create",
+    "path": "/root/project/workspace/stock-selector-v2/data/csr8_phase_c/production/c4-prod-0002/sealing/._rogue_probe",
+    "uid": 65534
+   },
+   {
+    "attempt": "OS boundary domain-write:production/c4-prod-0002/sealing/sealing_log.jsonl",
+    "expect": "PERMISSION_DENIED",
+    "got": "PERMISSION_DENIED",
+    "kind": "domain-write:production/c4-prod-0002/sealing/sealing_log.jsonl",
+    "ok": true,
+    "op": "write",
+    "path": "/root/project/workspace/stock-selector-v2/data/csr8_phase_c/production/c4-prod-0002/sealing/sealing_log.jsonl",
+    "uid": 65534
+   },
+   {
+    "attempt": "OS boundary domain-write:production/c4-prod-0002/session_manifest.json",
+    "expect": "PERMISSION_DENIED",
+    "got": "PERMISSION_DENIED",
+    "kind": "domain-write:production/c4-prod-0002/session_manifest.json",
+    "ok": true,
+    "op": "write",
+    "path": "/root/project/workspace/stock-selector-v2/data/csr8_phase_c/production/c4-prod-0002/session_manifest.json",
+    "uid": 65534
+   },
+   {
+    "attempt": "OS boundary domain-write:secret/packet_plan.json",
+    "expect": "PERMISSION_DENIED",
+    "got": "PERMISSION_DENIED",
+    "kind": "domain-write:secret/packet_plan.json",
+    "ok": true,
+    "op": "write",
+    "path": "/root/project/workspace/stock-selector-v2/data/csr8_phase_c/secret/packet_plan.json",
+    "uid": 65534
+   },
+   {
+    "attempt": "OS boundary domain-rogue:secret",
+    "expect": "PERMISSION_DENIED",
+    "got": "PERMISSION_DENIED",
+    "kind": "domain-rogue:secret",
+    "ok": true,
+    "op": "create",
+    "path": "/root/project/workspace/stock-selector-v2/data/csr8_phase_c/secret/._rogue_probe",
+    "uid": 65534
+   },
+   {
+    "attempt": "OS boundary domain-write:secret/projected_case84.jsonl",
+    "expect": "PERMISSION_DENIED",
+    "got": "PERMISSION_DENIED",
+    "kind": "domain-write:secret/projected_case84.jsonl",
+    "ok": true,
+    "op": "write",
+    "path": "/root/project/workspace/stock-selector-v2/data/csr8_phase_c/secret/projected_case84.jsonl",
+    "uid": 65534
+   },
+   {
+    "attempt": "OS boundary domain-write:secret/secret_salt",
+    "expect": "PERMISSION_DENIED",
+    "got": "PERMISSION_DENIED",
+    "kind": "domain-write:secret/secret_salt",
+    "ok": true,
+    "op": "write",
+    "path": "/root/project/workspace/stock-selector-v2/data/csr8_phase_c/secret/secret_salt",
     "uid": 65534
    },
    {

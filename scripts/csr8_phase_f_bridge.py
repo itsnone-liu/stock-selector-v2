@@ -560,6 +560,15 @@ def verify_blinding(root=CSR, sid=SID, universe=UNIVERSE):
     os_attempts = os_level_probe(root, sid)
     if not all(a['ok'] for a in os_attempts):
         fail(f'G-F-OSBOUNDARY: real OS boundary attempt failed: {os_attempts}')
+    # §9.1 全量覆盖断言：探测必须触及每一个 annotator 域文件（防止探测
+    # 退化回抽样而"通过"），不允许任何文件逃过真实写入尝试。
+    probe_written = {a['path'] for a in os_attempts
+                     if a['op'] == 'write'}
+    uncovered = [str(p) for p in annotator_files(root, sid)
+                 if str(p) not in probe_written]
+    if uncovered:
+        fail(f'G-F-OSBOUNDARY: probe did not attempt every annotator file: '
+             f'{uncovered[:3]}')
     attempts.extend({'attempt': 'OS boundary ' + a['kind'], **a}
                      for a in os_attempts)
     gates['G-F-OSBOUNDARY'] = 'PASS'
@@ -880,18 +889,26 @@ def verify_domain_freeze(root=CSR, sid=SID, price_root=None):
     gates = {}
     exempt = protocol_0600_set(root, sid)
     files = list(annotator_files(root, sid))
+    # §9.1 readonly hard condition — NO exemptions inside the gate: no
+    # annotator file may carry group/other write bits (0444 sealed evidence
+    # and 0600 protocol artifacts both satisfy this uniformly).  This check
+    # runs FIRST so a write-bit relaxation on any protocol artifact is caught
+    # as a readonly violation, not just a protocol-conformance drift.
+    # Owner-write on the protocol set is frozen C4-D/C6 contract conformance
+    # (PROTO gate below) and is separately refuted as a write capability by
+    # the full-coverage uid-65534 append probe in G-F-OSBOUNDARY: every single
+    # annotator file write-attempt must be PERMISSION_DENIED.
+    bad = [str(p) for p in files
+           if stat.S_IMODE(os.stat(p).st_mode) & 0o022]
+    if bad:
+        fail(f'G-F-DOMAIN-RO: annotator files writable (group/other): {bad[:3]}')
+    gates['G-F-DOMAIN-RO'] = 'PASS'
     bad_proto = [str(p) for p in files
                  if p.relative_to(root).as_posix() in exempt
                  and stat.S_IMODE(os.stat(p).st_mode) != 0o600]
     if bad_proto:
         fail(f'G-F-DOMAIN-PROTO: protocol artifacts must be exactly 0600: {bad_proto[:3]}')
     gates['G-F-DOMAIN-PROTO'] = 'PASS'
-    bad = [str(p) for p in files
-           if p.relative_to(root).as_posix() not in exempt
-           and stat.S_IMODE(os.stat(p).st_mode) & 0o222]
-    if bad:
-        fail(f'G-F-DOMAIN-RO: annotator files writable: {bad[:3]}')
-    gates['G-F-DOMAIN-RO'] = 'PASS'
     hashes = {p.relative_to(root).as_posix(): sha(p.read_bytes())
               for p in files}
     fm = json.loads((root / 'freeze' / sid / 'domain_freeze.json').read_text())
@@ -916,6 +933,8 @@ out=[]
 for s in json.loads(sys.argv[1]):
     try:
         if s['op']=='read': open(s['path'],'rb').read(16)
+        elif s['op']=='create':
+            open(s['path'],'xb'); import os as _os; _os.unlink(s['path'])
         else: open(s['path'],'ab')
         got='OK'
     except PermissionError: got='PERMISSION_DENIED'
@@ -926,11 +945,17 @@ print(json.dumps(out))
 
 
 def os_level_probe(root=CSR, sid=SID, price_root=None):
-    """Run real read/write attempts as uid nobody; no function guard involved."""
+    """Run real read/write attempts as uid nobody; no function guard involved.
+
+    §9.1 hard condition is proven at FULL COVERAGE, not by sampling: an
+    append-write attempt is made against EVERY file in the annotator domain
+    (sealed 0444 evidence and 0600 protocol artifacts alike — no exemption
+    list), plus a rogue-file creation attempt in every annotator directory.
+    Every one must be PERMISSION_DENIED.
+    """
     import subprocess
     import tempfile
     root = Path(root)
-    cdir = corpus_dir(root, sid)
     pr = _price_root_for(root, price_root)
     specs = [
         # analysis rows and ledger are the permitted analysis-side corpus views;
@@ -942,9 +967,15 @@ def os_level_probe(root=CSR, sid=SID, price_root=None):
         (root/f'outcomes/{sid}/outcomes.jsonl', 'read', 'PERMISSION_DENIED', 'outcome-read'),
         (root/f'analysis_labeled/{sid}/analysis_labeled.jsonl', 'read', 'PERMISSION_DENIED', 'labeled-read'),
         (pr/'sh.601328.json.gz', 'read', 'PERMISSION_DENIED', 'identity-read'),
-        (cdir/'pairs/ordinal-0001/reveal_packet.json', 'write', 'PERMISSION_DENIED', 'corpus-write'),
-        (root/f'c4d_receipts/{sid}/ordinal-0002/annotation_draft.json', 'write', 'PERMISSION_DENIED', 'annotator-write'),
     ]
+    seen_roots = set()
+    for p in sorted(annotator_files(root, sid)):
+        rel = p.relative_to(root).as_posix()
+        specs.append((p, 'write', 'PERMISSION_DENIED', f'domain-write:{rel}'))
+        if p.parent not in seen_roots:
+            seen_roots.add(p.parent)
+            specs.append((p.parent / '._rogue_probe', 'create', 'PERMISSION_DENIED',
+                          f"domain-rogue:{p.parent.relative_to(root).as_posix()}"))
     payload = [{'path': str(p), 'op': op} for p, op, _, _ in specs]
     def demote():
         os.setgid(65534); os.setuid(65534)
