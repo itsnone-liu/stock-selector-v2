@@ -2,7 +2,7 @@
  "c4dProposalAllowlist": [
   "c4d_proposals/c4-prod-0002/ordinal-0002/next_reveal.proposal.json"
  ],
- "fileCount": 10569,
+ "fileCount": 10570,
  "forbiddenPrefixes": [],
  "generator": "scripts/csr8_phase_a_certify_inputs.py",
  "protectedArtifacts": [
@@ -266,7 +266,7 @@
      "path": "secret"
     }
    ],
-   "fileCount": 5328,
+   "fileCount": 5329,
    "files": [
     {
      "bytes": 1112,
@@ -32078,13 +32078,19 @@
      "bytes": 4407,
      "mode": 384,
      "path": "h_campaign/hc-c88d2a507bcf569da372deadf4c4ec39/campaign_manifest.json",
-     "sha256": "1a7a9cef5504d15601ef0bcc13b5ea1bac1f24e7d34e0231f9608c89663a71b4"
+     "sha256": "9248aec0b27dcea3b079703aee60ecebd5117759b3c9d85e059dc9ca569c95c1"
+    },
+    {
+     "bytes": 4547,
+     "mode": 384,
+     "path": "h_campaign/hc-c88d2a507bcf569da372deadf4c4ec39/executor_state/post_review_write_surface.json",
+     "sha256": "db33bf3c9e2c2395f8fedacebe79a5319ab2968cac38134c5606cb7639a991ee"
     },
     {
      "bytes": 4478,
      "mode": 384,
      "path": "h_campaign/hc-c88d2a507bcf569da372deadf4c4ec39/executor_state/pre_review_write_surface.json",
-     "sha256": "1a17a9af1bcfd546e457fb3bb764aea27aa9af32cf9d544743f9d6a8b2250400"
+     "sha256": "8c76ae349106d8c2b37b8f873eb90a60b169faafba3dfb77dd670dae0775d2d9"
     },
     {
      "bytes": 574,
@@ -32093,22 +32099,22 @@
      "sha256": "1443cb61f97b497ecc68b4a84f7bedcbbfdb21235744c7cc0a3fa5a5fe9ecef7"
     },
     {
-     "bytes": 7264,
+     "bytes": 7119,
      "mode": 384,
      "path": "h_campaign/hc-c88d2a507bcf569da372deadf4c4ec39/review_packets/phase_entry.json",
-     "sha256": "abc23d5ed485c048e4792e878ef4f27bfe79900282ffd6c880d1bae9a937d69a"
+     "sha256": "585694107c190c2816d6ac3c193c45ab48e0baff26ff4807919e385c891ffea1"
     },
     {
-     "bytes": 1379,
+     "bytes": 1839,
      "mode": 384,
      "path": "h_campaign/hc-c88d2a507bcf569da372deadf4c4ec39/reviews.jsonl",
-     "sha256": "453bfe8b3b664659c69674944d07372b0fef5994f2d811608dd6da25f9ff5506"
+     "sha256": "79e8554e07749892b0472e787e388451dc78bd29324ed2ed04fc576955aaad4a"
     },
     {
-     "bytes": 3835,
+     "bytes": 349,
      "mode": 384,
      "path": "h_campaign/hc-c88d2a507bcf569da372deadf4c4ec39/verdicts/phase_entry.verdict.json",
-     "sha256": "7a1f9a7bd17326d7c016b76f830779352479752cfb8cf55c8828262dd13a1ed2"
+     "sha256": "daf47ae5304fe6bfdf9a58a12928d1bb3907de8762e7c87d5009b16499eccc4e"
     },
     {
      "bytes": 854,
@@ -32238,7 +32244,7 @@
     }
    ],
    "root": "data/csr8_phase_c",
-   "totalBytes": 349546411
+   "totalBytes": 349547787
   },
   {
    "dirCount": 1,
@@ -63701,6 +63707,6 @@
    "totalBytes": 463928909
   }
  ],
- "totalBytes": 813475320,
+ "totalBytes": 813476696,
  "version": 2
 }

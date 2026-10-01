@@ -1,0 +1,249 @@
+{
+ "campaign": {
+  "campaign_id": "hc-c88d2a507bcf569da372deadf4c4ec39",
+  "input_commitment_sha256": "585694107c190c2816d6ac3c193c45ab48e0baff26ff4807919e385c891ffea1",
+  "manifest_sha256": "9248aec0b27dcea3b079703aee60ecebd5117759b3c9d85e059dc9ca569c95c1",
+  "ordinal3_proposal_staged_sha256": "1443cb61f97b497ecc68b4a84f7bedcbbfdb21235744c7cc0a3fa5a5fe9ecef7",
+  "ordinal3_proposal_state": "STAGED_PREPARED_NOT_AUTHORIZED_NOT_REVEALED",
+  "review_ledger_head": "606bf5f23011b6745c404c6f93326f882de6b61a11faf23265e6f82f94f4a21e",
+  "review_ledger_records": 4,
+  "review_packet_sha256": "585694107c190c2816d6ac3c193c45ab48e0baff26ff4807919e385c891ffea1"
+ },
+ "certification": {
+  "mechanism": "UNMODIFIED frozen certify script",
+  "output": "certified 2 roots / 10570 files / 813476696 bytes -> config/audit/certified_live_inputs.json"
+ },
+ "created_at": "2026-10-01T20:35:17Z",
+ "declaration_note": "进入 H1 的许可是 independent reviewer 的 PHASE_ENTRY APPROVE；执行者只承载机器实测。",
+ "entry_gate": {
+  "authority": {
+   "G5": "BLOCKED",
+   "XP": "BLOCKED_FOR_PIT",
+   "boolean_boundary": {
+    "ALL_GATES_PASS": true,
+    "G5_BLOCKED": true,
+    "XP_BLOCKED_FOR_PIT": true
+   },
+   "c3_authority_gate": "PASS"
+  },
+  "authorizations": {
+   "authorization1": "CONSUMED",
+   "authorization1_binding": "R1.payload.authorization_sha256 == SHA256(first_reveal.json)",
+   "authorization2": "CONSUMED",
+   "authorization2_binding": "chain-derived consumption (exact proposal bytes)"
+  },
+  "c6_dual_cycle": {
+   "authorization1": "CONSUMED",
+   "authorization2": "CONSUMED",
+   "c6": "PASS",
+   "candidate_prefix": 2,
+   "chain": [
+    "REVEAL_PACKET",
+    "SEAL_ANNOTATION",
+    "REVEAL_PACKET",
+    "SEAL_ANNOTATION"
+   ],
+   "crash_recovery": "PASS",
+   "dual_replay": "PASS",
+   "execution_isolation": "dedicated subprocess (crash-recovery whole-tree copy happens inside the isolated frozen-tool process, never in-process)",
+   "open_reveals": 0,
+   "ordinal1_history": "PASS",
+   "ordinal2_history": "PASS",
+   "outcome_untouched": "PASS",
+   "outcome_untouched_note": "outcome_untouched is a constant relayed by the frozen C6 verifier, not a fresh Phase-H measurement",
+   "production": "REVEAL=2 SEAL=2",
+   "r1_s1_exact": "PASS",
+   "r2_s2_exact": "PASS"
+  },
+  "chain": {
+   "c2_full_replay": "PASS",
+   "candidate_gates": {
+    "ordinal1_matches_frozen_first": true,
+    "revealed_prefix": 2,
+    "size": 1717
+   },
+   "candidate_order_size": 1717,
+   "candidate_prefix": 2,
+   "chain": [
+    "REVEAL_PACKET",
+    "SEAL_ANNOTATION",
+    "REVEAL_PACKET",
+    "SEAL_ANNOTATION"
+   ],
+   "open_reveals": 0,
+   "production_head": "c1fa24420e411a19e191b6399dafab02f568c1fe7ef766a481907c970b68becd",
+   "reveal_count": 2,
+   "seal_count": 2,
+   "trusted_head_count": 4
+  },
+  "forensic": {
+   "derive_state": "SEALED",
+   "forensic_findings": 0,
+   "forensic_state": "NONE"
+  },
+  "frozen_infra": {
+   "audit_layer_drift_disclosure": {
+    "basis": "git diff --name-only <freeze-commit> plus working-tree porcelain vs the freeze commit; frozen-boundary files (above) excluded from the drift set by the zero-drift check",
+    "files": {
+     ".dsh-audit-task.json": "harness bookkeeping file (non-§2, outside audit surface)",
+     "config/audit/certified_live_inputs.json": "designed certify absorption (regenerated manifest)",
+     "docs/audit/evidence/h_phase_entry_gate.json": "phase-h machine evidence (regenerated and committed each iteration; absent at the freeze commit)",
+     "scripts/csr8_phase_f_audit_package.py": "audit-tool repair: cross-stage export exclusion list (not in §2)",
+     "scripts/csr8_phase_h_entry_gate.py": "phase-h entry-gate tooling (new, not in §2 frozen enumeration)",
+     "tests/test_csr8_phase_a.py": "audit test realignment (c4d closed-world + staged-proposal shape)",
+     "tests/test_csr8_phase_c2_approval.py": "audit test realignment (stage-aware skip after C2 rotation)",
+     "tests/test_csr8_phase_h_entry_gate.py": "phase-h tooling test realignment"
+    },
+    "frozen_boundary_files_changed": 0
+   },
+   "checked": 7,
+   "frozen_infra_files_unchanged_since_freeze_commit": true
+  },
+  "frozen_marker": {
+   "audited_infra_head": "04c89e7c43fb24e731871608ff40adee83221f64",
+   "freeze_commit_is_ancestor_of_head": true,
+   "freeze_commit_parent_is_audited_head": true,
+   "marker": "PRODUCTION_INFRA_FINAL_FROZEN",
+   "marker_bytes_unchanged_since_freeze_commit": true,
+   "prerequisites": {
+    "B5": "APPROVE",
+    "C6": "APPROVE",
+    "D": "APPROVE",
+    "E": "APPROVE",
+    "F": "APPROVE"
+   },
+   "production_infra_freeze_commit": "cd7f2a5db0fddee824bd1e5ce6da0f8bcd7431ca",
+   "status": "FINAL VERDICT: APPROVE"
+  },
+  "taskbook_binding": {
+   "audit_protocol_taskbook_hash": "ddeb1ec260fa",
+   "bytes": 16523,
+   "machine_binding": "PASS — sha256(source file bytes) == frozen constant, re-verified every run",
+   "path": "/root/dsh-ws/.feishu-files/20261001134014-CSR8_PHASE_H_AUTONOMOUS_PRODUCTION_ANNOTATION_TASKBOOK_v1.1.md",
+   "sha256": "c6143d4ca67ffd9c39166f998675d199d7c41602cb73a36cd4f3e4bb0dae81b8"
+  }
+ },
+ "forbidden_read_guard": {
+  "existing_fd_wraps": 28,
+  "isolated_frozen_processes": [
+   "scripts/csr8_phase_a_certify_inputs.py (subprocess; certified-manifest hash pinning)",
+   "scripts/csr8_phase_a_machine_audit.py (subprocess; certified closed-world check — byte-materializes certified files in its own /tmp tree and runs its own internal C6 crash-recovery whole-tree copy)",
+   "scripts/csr8_phase_c6_seal_s2.py (dedicated subprocess; its crash-recovery probe copies the whole tree inside that isolated process)"
+  ],
+  "mechanism": "dynamic open-interception over the executor process: builtins.open/io.open (incl. DirEntry via .path), os.open (read flags; dir_fd refused), io.open_code; non-path arguments fail closed; spans command execution (not module import)",
+  "opened_paths_by_zone": {
+   "analysis": 2,
+   "c3_preflight": 1,
+   "c4_public": 1,
+   "c4d_proposals": 1,
+   "c4d_receipts": 9,
+   "corpus": 5,
+   "freeze": 1,
+   "h_campaign": 7,
+   "production": 15,
+   "secret": 3
+  },
+  "reviewer_process": "independent process under its own blinding constraints",
+  "violated_files": [],
+  "violations": 0
+ },
+ "future_data_accessed": false,
+ "host_id": "RainYun-c438TDGn",
+ "identity_access_note": "no identity resolver touched; opaque ids and one-way packet commitments only",
+ "identity_accessed": false,
+ "iteration": 3,
+ "operation": "PHASE_ENTRY",
+ "outcome_read_policy": {
+  "hash_pinning_only": "outcome/analysis_labeled bytes are touched ONLY inside isolated frozen-tool SUBPROCESSES — the unmodified certify + machine-audit scripts (certified-manifest hash pinning; the machine audit additionally byte-materializes certified files into its own /tmp tree and runs its internal C6 crash-recovery whole-tree copy) and the dedicated C6 subprocess (its own whole-tree copy) — never opened, parsed, joined or exposed by any in-process Phase H code path; the secret/ zone is opened in-process only by frozen taskbook-required modules (candidate-order derivation), never by Phase H owned code, and every in-process open is enumerated by zone in the guard summary",
+  "in_process_guarantee": "a dynamic ForbiddenReadGuard intercepts every in-process file open during command execution and fails closed (G-H0-FORBIDDEN-READ) on any read under outcomes/ or analysis_labeled/",
+  "outcome_join_rederivations": 0,
+  "phase_h_executor_analysis_labeled_reads": 0,
+  "phase_h_executor_direct_outcome_reads": 0,
+  "removed_verifiers": [
+   "fb.verify_corpus — verifies the exported labeled corpus, i.e. re-derives the outcome join (forbidden for Phase H)",
+   "fp.verify — audit-package gate battery includes corpus/join gates (forbidden for Phase H)",
+   "fb.verify_manifest_anchor (in-process) — hashes every certified file INCLUDING forbidden-zone bytes to anchor the manifest; replaced by the frozen machine-audit subprocess which performs the same manifest↔tree closed-world comparison"
+  ]
+ },
+ "phase_entry_review": {
+  "created_at": "2026-10-01T20:22:51Z",
+  "independence_machine_proof": {
+   "executor_packet_regeneration": {
+    "disclosure": "executor-owned packet regeneration between the snapshots (the pre-snapshot predates this round's regeneration — known sequencing weakness, disclosed); allowed ONLY because the current packet bytes are exactly those bound by the newest ledger verdict, machine-proving the regeneration preceded the reviewer write",
+    "path": "h_campaign/hc-c88d2a507bcf569da372deadf4c4ec39/review_packets/phase_entry.json",
+    "post_commitment": "585694107c190c2816d6ac3c193c45ab48e0baff26ff4807919e385c891ffea1",
+    "pre_commitment": "4c25201cce30ecf65317cda86eb3a9bbe18a3012da0ca7f09c93707a431cc6b3"
+   },
+   "frozen_annotator_domain_unchanged": true,
+   "proof": "pre/post write-surface snapshot diff over the review-surface zones (annotator frozen domain + campaign domain); the reviewer ledger append and verdict write are machine-observed; any executor-owned packet regeneration is disclosed and proven to predate the review via the newest-verdict binding; forbidden zones are never opened",
+   "reviewer_wrote_exactly": [
+    "h_campaign/hc-c88d2a507bcf569da372deadf4c4ec39/reviews.jsonl",
+    "h_campaign/hc-c88d2a507bcf569da372deadf4c4ec39/verdicts/phase_entry.verdict.json"
+   ]
+  },
+  "input_commitment_sha256": "585694107c190c2816d6ac3c193c45ab48e0baff26ff4807919e385c891ffea1",
+  "issues": [],
+  "required_changes": [],
+  "reviewer_run_id": "rev-1143efbf43abd4ed",
+  "state": "APPROVE"
+ },
+ "remediation_note": "iteration-1 rejected by external audit (frozen-infra edits, mutating verify, leading reviewer prompt, wrong round-0 caliber); its live-domain ordinal-0003 proposal and campaign hc-94cf4c47b978133f1b64a83dbfb95ac3 were removed, the freeze ledger + certified manifest restored byte-identical to the cd7f2a5 frozen state before this iteration re-bootstrapped. iteration-2 (campaign hc-ffb08d91bcad13370194524a0d403521) was rejected for two blockers, both remediated here: (1) the H0 write-surface snapshots and leak-scan allowlist hashed EVERY file under data/csr8_phase_c — including outcomes/ and analysis_labeled/ — and the battery ran fb.verify_corpus + fp.verify (outcome-join re-derivations) while the evidence declared outcome_accessed=false; iteration 3 restricts every executor read to the review-surface zones, drops both join-deriving verifiers, and records the precise machine-checked outcome-read policy instead of a blanket denial; (2) the taskbook was recorded only as a hardcoded digest; iteration 3 machine-binds it by hashing the source file bytes at every gate run (G-H0-TASKBOOK, fail-closed). The superseded iteration-2 campaign was removed as operator-error remediation and this iteration re-bootstrapped with a fresh campaign id. Within iteration 3 the first review round returned REVISE (reviewer rev-c19555f5d873debf, packet ab17ca2b8bd93d8016fdebd9c354ba71a41668247ce914cd0d512d5616488e18, ledger line hash 1dc9d038eb7de0314d5679157f197ab6d1ac4c6062968115747f7a2549153c): (i) battery() still called fb.verify_manifest_anchor() in-process, which hash-opens forbidden-zone bytes and would have tripped this script's own ForbiddenReadGuard after an APPROVE — removed, anchoring now covered by the frozen machine-audit subprocess; (ii) the committed test suite and on-disk certified manifest still reflected iteration 2 — tests realigned to iteration 3 and the manifest regenerated by the unmodified certify run in postreview. The REVISE-round campaign state was superseded and re-bootstrapped; no verdict carries over. Round 2 returned REVISE (rev-57099ff6fb682e29 on packet c3082960c13d369aa314507dd739e16cf849c3cb6b51a8b856a321141afd526c; remediated, round re-bootstrapped). Round 3: independent reviewer rev-1143efbf43abd4ed APPROVE binding the exact live packet 585694107c190c2816d6ac3c193c45ab48e0baff26ff4807919e385c891ffea (ledger sequence 3). Two executor-side verification defects disclosed and remediated BEFORE postreview consumed the APPROVE (no reviewer or ledger byte touched): (a) the iteration-3 round-bookkeeping fields (review_revision_count / campaign_review_round / prior_review_verdicts) were re-derived from the live ledger, so any legitimate reviewer append structurally invalidated the persisted manifest/packet — replaced with as-of-round derivation plus fail-closed consistency checks (campaign_round_state), including the rule that the newest ledger verdict must bind the exact persisted packet bytes; (b) the pre-review write-surface snapshot (17:43:49Z) predates the round-3 packet regeneration (18:11:30Z) and pins the superseded intermediate commitment 4c25201c — the write-surface proof now runs under reconstructed-baseline semantics: the executor-owned packet regeneration is exempted ONLY because the current packet bytes equal the newest ledger verdict binding (machine proof the regeneration preceded the review) and is disclosed in independence_machine_proof; the reviewer writes themselves are machine-observed as exactly reviews.jsonl (append) + the verdict file, and a vacuous proof (either write missing from the diff) fails closed",
+ "round0": {
+  "caliber": "taskbook §10: round0 completes when EVERY eligible case has >=1 complete sealed blinded annotation; caliber = unique eligible cases, not (case,T) pairs",
+  "completed": 2,
+  "pair_order_size": 1717,
+  "remaining": 62,
+  "total": 64
+ },
+ "run_id": "audit_20261001135212538",
+ "stage": "H0",
+ "taskbook": {
+  "sha256": "c6143d4ca67ffd9c39166f998675d199d7c41602cb73a36cd4f3e4bb0dae81b8",
+  "source_byte_binding": {
+   "audit_protocol_taskbook_hash": "ddeb1ec260fa",
+   "bytes": 16523,
+   "machine_binding": "PASS — sha256(source file bytes) == frozen constant, re-verified every run",
+   "path": "/root/dsh-ws/.feishu-files/20261001134014-CSR8_PHASE_H_AUTONOMOUS_PRODUCTION_ANNOTATION_TASKBOOK_v1.1.md",
+   "sha256": "c6143d4ca67ffd9c39166f998675d199d7c41602cb73a36cd4f3e4bb0dae81b8"
+  },
+  "version": "v1.1"
+ },
+ "verifier_battery": {
+  "blinding_gates": [
+   "G-F-CLOSED",
+   "G-F-DERIVE",
+   "G-F-DOMAIN-HASH",
+   "G-F-DOMAIN-PRIVATE",
+   "G-F-DOMAIN-PROTO",
+   "G-F-DOMAIN-RO",
+   "G-F-FREEZE-LEDGER",
+   "G-F-FUTURE",
+   "G-F-IDENTITY",
+   "G-F-INVERT",
+   "G-F-KEYS",
+   "G-F-MANIFEST",
+   "G-F-NOSYMLINK",
+   "G-F-OSBOUNDARY",
+   "G-F-REACH"
+  ],
+  "certified_files": 10570,
+  "certified_roots": 2,
+  "certified_tree": "PASS (frozen machine-audit subprocess: manifest↔tree closed-world byte/mode/set equality incl. c3/c4/c6/d gates)",
+  "chain_replay": "PASS",
+  "manifest_anchor": "covered by the frozen machine-audit subprocess (certified closed-world); the in-process fb.verify_manifest_anchor call was removed because it hash-opens forbidden-zone bytes",
+  "outcome_read_policy": {
+   "hash_pinning_only": "outcome/analysis_labeled bytes are touched ONLY inside isolated frozen-tool SUBPROCESSES — the unmodified certify + machine-audit scripts (certified-manifest hash pinning; the machine audit additionally byte-materializes certified files into its own /tmp tree and runs its internal C6 crash-recovery whole-tree copy) and the dedicated C6 subprocess (its own whole-tree copy) — never opened, parsed, joined or exposed by any in-process Phase H code path; the secret/ zone is opened in-process only by frozen taskbook-required modules (candidate-order derivation), never by Phase H owned code, and every in-process open is enumerated by zone in the guard summary",
+   "in_process_guarantee": "a dynamic ForbiddenReadGuard intercepts every in-process file open during command execution and fails closed (G-H0-FORBIDDEN-READ) on any read under outcomes/ or analysis_labeled/",
+   "outcome_join_rederivations": 0,
+   "phase_h_executor_analysis_labeled_reads": 0,
+   "phase_h_executor_direct_outcome_reads": 0,
+   "removed_verifiers": [
+    "fb.verify_corpus — verifies the exported labeled corpus, i.e. re-derives the outcome join (forbidden for Phase H)",
+    "fp.verify — audit-package gate battery includes corpus/join gates (forbidden for Phase H)",
+    "fb.verify_manifest_anchor (in-process) — hashes every certified file INCLUDING forbidden-zone bytes to anchor the manifest; replaced by the frozen machine-audit subprocess which performs the same manifest↔tree closed-world comparison"
+   ]
+  },
+  "production_head": "c1fa24420e411a19e191b6399dafab02f568c1fe7ef766a481907c970b68becd",
+  "production_snapshot": "REVEAL=2 SEAL=2"
+ }
+}

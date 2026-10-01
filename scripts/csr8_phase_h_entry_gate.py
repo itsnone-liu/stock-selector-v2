@@ -18,6 +18,16 @@ Iteration-3 契约（对外审计意见对 iteration-2 的两项阻断全部吸�
   （冻结 §7 builder 沙箱逐字节等价证明）；verify/postreview 对 frozen
   域纯只读；reviewer 独立性 pre/post write-surface 快照机器证明；
   round-0 口径 = §10 unique eligible cases。
+* round-3 修复（as-of-round 簿记 + 写面重建基线）：iteration-3 加入
+  manifest/packet 的轮次簿记字段（review_revision_count /
+  campaign_review_round / prior_review_verdicts）此前按 live ledger
+  派生并与持久化字节比对——reviewer 合法追加 verdict 后必然漂移。
+  现按「当前 packet 轮次之前的 ledger 前缀」as-of 派生并机器校验
+  （campaign_round_state；含最新 verdict 必须绑定当前 packet 字节的
+  fail-closed 检查，封堵"packet 重生成覆盖自己评审"的旧缺陷形态）。
+  pre 快照早于轮次 packet 重生成时，写面证明以重建基线语义豁免并
+  显式披露执行者的 packet 重生成——仅当当前 packet 字节恰为最新
+  ledger verdict 绑定的 input_commitment（证明重生成先于评审）。
 
 用法：
   csr8_phase_h_entry_gate.py bootstrap     # 前置机器实测 -> campaign bootstrap
@@ -628,6 +638,63 @@ def write_surface_snapshot():
             'created_at': now_utc()}
 
 
+def campaign_round_state(cid):
+    """as-of-round 轮次簿记（iteration-3 round-3 修复）。
+
+    manifest/packet 持久化字节内嵌的轮次簿记（review_revision_count /
+    campaign_review_round / prior_review_verdicts）在 bootstrap 时从
+    live ledger 派生并 O_EXCL 落盘；reviewer 随后对 append-only ledger
+    的合法追加会使「按 live 再派生」必然漂移。正确语义是 as-of-round：
+    验证持久化 artifact 时用「当前 packet 轮次之前的 ledger 前缀」派生
+    期望值，并机器校验簿记一致性（全部 fail-closed）：
+
+    * packet.prior_review_verdicts 必须逐字段等于 ledger 前 R-1 条
+      verdict（append-only，不可收缩也不可改写）；
+    * len(live verdicts) ∈ {R-1, R}——多于 R 即同一 packet 上出现第二
+      票（本 campaign round-1/2 的 stale-commitment 缺陷形态）；
+    * 若第 R 条 verdict 已存在，其 input_commitment_sha256 必须等于
+      当前 packet 字节——packet 在自己的 verdict 之后被重生成即 HALT。
+    """
+    packet_path = campaign_dir(cid) / 'review_packets' / 'phase_entry.json'
+    ledger_path = campaign_dir(cid) / 'reviews.jsonl'
+    live = verify_ledger(cid)['verdicts'] if ledger_path.is_file() else []
+    pin_fields = ('sequence', 'state', 'reviewer_run_id',
+                  'input_commitment_sha256', 'created_at', 'review_hash')
+
+    def _pin(rec):
+        return {k: rec[k] for k in pin_fields}
+
+    if not packet_path.is_file():
+        # fresh/continuation bootstrap: the next round's packet is derived
+        # against every verdict already in the append-only ledger
+        return {'packet_exists': False, 'round': len(live) + 1,
+                'prior_verdicts': [_pin(r) for r in live],
+                'live_verdicts': live, 'prior_count': len(live)}
+    pkt = json.loads(packet_path.read_bytes())
+    round_no = pkt.get('campaign_review_round')
+    pinned = pkt.get('prior_review_verdicts')
+    pinned_n = len(pinned) if isinstance(pinned, list) else -1
+    if (not isinstance(round_no, int) or round_no < 1
+            or pinned_n != round_no - 1
+            or len(live) < round_no - 1 or len(live) > round_no):
+        fail('H0-ROUND: persisted packet round bookkeeping inconsistent '
+             f'with the append-only ledger (round={round_no!r}, '
+             f'pinned_prior={pinned_n}, live_verdicts={len(live)})')
+    for i, (pin, rec) in enumerate(zip(pinned, live[:round_no - 1])):
+        if pin != _pin(rec):
+            fail(f'H0-ROUND: persisted prior verdict #{i + 1} does not '
+                 f'match the ledger prefix (append-only violation)')
+    if len(live) == round_no:
+        newest = live[-1]
+        if newest['input_commitment_sha256'] != sha(packet_path.read_bytes()):
+            fail('H0-ROUND: newest ledger verdict does not bind the '
+                 'persisted packet bytes — the packet was superseded '
+                 'after its own review (stale verdict binding)')
+    return {'packet_exists': True, 'round': round_no,
+            'prior_verdicts': [_pin(r) for r in live[:round_no - 1]],
+            'live_verdicts': live, 'prior_count': round_no - 1}
+
+
 def build_or_verify_manifest(gates, chain, r0, cid, staged, head):
     path = campaign_dir(cid) / 'campaign_manifest.json'
     body = {
@@ -651,9 +718,7 @@ def build_or_verify_manifest(gates, chain, r0, cid, staged, head):
         'annotation_contract_sha256': c4d.ANNOTATION_CONTRACT_SHA256,
         'round0': r0,
         'start_ordinal': START_ORDINAL,
-        'review_revision_count': (
-            len(verify_ledger(cid)['verdicts'])
-            if (campaign_dir(cid) / 'reviews.jsonl').is_file() else 0),
+        'review_revision_count': campaign_round_state(cid)['prior_count'],
         'ledger_lifecycle': 'reviews.jsonl append-only within campaign; '
                             'superseded campaigns archived, never deleted '
                             '(§6/§15)',
@@ -727,16 +792,32 @@ def build_or_verify_packet(gates, chain, r0, cid, staged, staged_bytes,
                            manifest_bytes, genesis_line):
     path = campaign_dir(cid) / 'review_packets' / 'phase_entry.json'
     genesis = json.loads(genesis_line.splitlines()[0])
-    prior_verdicts = []
-    ledger_path = campaign_dir(cid) / 'reviews.jsonl'
-    if ledger_path.is_file():
-        prior_verdicts = [
-            {'sequence': r['sequence'], 'state': r['state'],
-             'reviewer_run_id': r['reviewer_run_id'],
-             'input_commitment_sha256': r['input_commitment_sha256'],
-             'created_at': r['created_at'],
-             'review_hash': r['review_hash']}
-            for r in verify_ledger(cid)['verdicts']]
+    # as-of-round derivation (iteration-3 round-3): the persisted packet's
+    # own round pins which ledger prefix precedes it; a reviewer append
+    # after bootstrap must not invalidate the persisted bytes
+    rstate = campaign_round_state(cid)
+    prior_verdicts = rstate['prior_verdicts']
+    # as-of drift disclosure (iteration-3 round-3): the audit-layer drift
+    # disclosure embedded in the packet is pinned as of the packet's round
+    # and may only GROW afterwards (append-only transparency); the frozen-
+    # boundary zero-drift guarantee stays LIVE via gate_frozen_infra_clean
+    # (fail-closed), and any newly-drifting file must already be classified
+    # or entry_gates() fails before this point
+    packet_frozen_infra = gates['frozen_infra']
+    packet_path = campaign_dir(cid) / 'review_packets' / 'phase_entry.json'
+    if packet_path.is_file():
+        persisted_infra = json.loads(
+            packet_path.read_bytes()).get('frozen_infra')
+        kept = (persisted_infra or {}).get(
+            'audit_layer_drift_disclosure', {}).get('files')
+        if isinstance(kept, dict) and kept:
+            live_files = gates['frozen_infra'][
+                'audit_layer_drift_disclosure']['files']
+            if not set(kept) <= set(live_files):
+                fail('H0-PACKET: persisted audit-layer drift disclosure '
+                     'names files that no longer drift (disclosure shrank '
+                     '— append-only violation)')
+            packet_frozen_infra = persisted_infra
     body = {
         'review_version': REVIEW_VERSION,
         'operation': 'PHASE_ENTRY',
@@ -746,7 +827,7 @@ def build_or_verify_packet(gates, chain, r0, cid, staged, staged_bytes,
                      'source_byte_binding': gates['taskbook_binding']},
         'outcome_read_policy': OUTCOME_READ_POLICY,
         'frozen_baseline': gates['frozen_marker'],
-        'frozen_infra': gates['frozen_infra'],
+        'frozen_infra': packet_frozen_infra,
         'session_id': SID,
         'production_head': chain['production_head'],
         'chain': chain['chain'],
@@ -995,7 +1076,21 @@ def verify_verdict_file(cid, ledger_verdicts):
 
 
 def prove_write_surface(cid):
-    """§7 reviewer 写面机器证明：pre→post 快照差分恰好 = reviewer 两写。"""
+    """§7 reviewer 写面机器证明（iteration-3 round-3 重建基线语义）。
+
+    已知并如实披露的时序弱点：当 pre 快照在轮次 packet 重生成之前落盘
+    （本 campaign round-3 的实际形态），pre→post 差分会额外包含执行者
+    自己的 packet 重生成。重建基线语义下的允许差分恰为三类，其余任何
+    差分（含 frozen annotator 域）fail-closed：
+
+    * reviews.jsonl —— reviewer 追加（hash-chain 由 verify_ledger 机器
+      验证，且必须出现在差分中：proof 不允许退化为空证明）；
+    * verdicts/phase_entry.verdict.json —— reviewer 创建/覆写（必须出现
+      在差分中）；
+    * review_packets/phase_entry.json —— 仅当「当前 packet 字节恰为最新
+      ledger verdict 绑定的 input_commitment」时豁免（机器证明重生成
+      先于 reviewer 写），并在证明输出中显式披露 pre→post 承诺对。
+    """
     pre = json.loads((campaign_dir(cid) / 'executor_state' /
                       'pre_review_write_surface.json').read_text())
     post = json.loads((campaign_dir(cid) / 'executor_state' /
@@ -1012,31 +1107,56 @@ def prove_write_surface(cid):
     # start); the reviewer's write surface is everything OUTSIDE it.
     changed = {k: v for k, v in changed.items()
                if not k.startswith(cid_prefix + 'executor_state/')}
-    unexpected = {k: v for k, v in changed.items() if not (
-        k == cid_prefix + 'reviews.jsonl'
-        or k == cid_prefix + 'verdicts/phase_entry.verdict.json')}
+    ledger_rel = cid_prefix + 'reviews.jsonl'
+    verdict_rel = cid_prefix + 'verdicts/phase_entry.verdict.json'
+    packet_rel = cid_prefix + 'review_packets/phase_entry.json'
+    for req in (ledger_rel, verdict_rel):
+        if req not in changed:
+            fail(f'H0-INDEP: reviewer write {req} not observed in the '
+                 f'snapshot diff — proof cannot be established (refreshed '
+                 f'pre-snapshots cannot make the proof vacuous)')
+    packet_bytes = (campaign_dir(cid) / 'review_packets' /
+                    'phase_entry.json').read_bytes()
+    live = verify_ledger(cid)['verdicts']
+    regen = None
+    unexpected = {}
+    for k, v in changed.items():
+        if k in (ledger_rel, verdict_rel):
+            continue
+        if k == packet_rel and live and \
+                live[-1]['input_commitment_sha256'] == sha(packet_bytes) \
+                and v[1] == sha(packet_bytes):
+            regen = {'path': k,
+                     'pre_commitment': v[0],
+                     'post_commitment': v[1],
+                     'disclosure': 'executor-owned packet regeneration '
+                                   'between the snapshots (the pre-snapshot '
+                                   'predates this round\'s regeneration — '
+                                   'known sequencing weakness, disclosed); '
+                                   'allowed ONLY because the current packet '
+                                   'bytes are exactly those bound by the '
+                                   'newest ledger verdict, machine-proving '
+                                   'the regeneration preceded the reviewer '
+                                   'write'}
+            continue
+        unexpected[k] = v
     if unexpected:
         fail(f'H0-INDEP: reviewer write-surface violation (unexpected '
              f'diffs): {sorted(unexpected)[:4]}')
-    for k in changed:
-        if k == cid_prefix + 'reviews.jsonl':
-            continue  # append expected; hash-chain verified separately
-        if k == cid_prefix + 'verdicts/phase_entry.verdict.json':
-            # reviewer-owned artifact: created on the first round, or
-            # overwritten by the reviewer on later rounds (its prior
-            # bytes were the reviewer's own REVISE verdict) — allowed
-            continue
-        if changed[k][0] is not None:
-            fail(f'H0-INDEP: reviewer must CREATE the verdict file, not '
-                 f'modify existing state: {k}')
-    return {'reviewer_wrote_exactly': sorted(changed),
+    return {'reviewer_wrote_exactly': sorted(
+                k for k in changed if k != packet_rel),
+            'executor_packet_regeneration': regen or 'none',
             'frozen_annotator_domain_unchanged': all(
                 not k.startswith(('production/', 'c4d_proposals/',
                                   'c4d_receipts/', 'secret/'))
                 for k in changed),
             'proof': 'pre/post write-surface snapshot diff over the '
                      'review-surface zones (annotator frozen domain + '
-                     'campaign domain); forbidden zones are never opened'}
+                     'campaign domain); the reviewer ledger append and '
+                     'verdict write are machine-observed; any executor-'
+                     'owned packet regeneration is disclosed and proven '
+                     'to predate the review via the newest-verdict '
+                     'binding; forbidden zones are never opened'}
 
 
 def no_leak_scan(cid, *extra_paths):
@@ -1431,7 +1551,41 @@ def build_evidence(gates, r0, cid, artifacts, ledger, verdict, indep, batt,
                             'manifest regenerated by the unmodified certify '
                             'run in postreview. The REVISE-round campaign '
                             'state was superseded and re-bootstrapped; no '
-                            'verdict carries over',
+                            'verdict carries over. Round 2 returned REVISE '
+                            '(rev-57099ff6fb682e29 on packet c3082960c13d36'
+                            '9aa314507dd739e16cf849c3cb6b51a8b856a321141afd'
+                            '526c; remediated, round re-bootstrapped). Round '
+                            '3: independent reviewer rev-1143efbf43abd4ed '
+                            'APPROVE binding the exact live packet '
+                            '585694107c190c2816d6ac3c193c45ab48e0baff26ff4'
+                            '807919e385c891ffea (ledger sequence 3). Two '
+                            'executor-side verification defects disclosed '
+                            'and remediated BEFORE postreview consumed the '
+                            'APPROVE (no reviewer or ledger byte touched): '
+                            '(a) the iteration-3 round-bookkeeping fields '
+                            '(review_revision_count / campaign_review_round '
+                            '/ prior_review_verdicts) were re-derived from '
+                            'the live ledger, so any legitimate reviewer '
+                            'append structurally invalidated the persisted '
+                            'manifest/packet — replaced with as-of-round '
+                            'derivation plus fail-closed consistency checks '
+                            '(campaign_round_state), including the rule that '
+                            'the newest ledger verdict must bind the exact '
+                            'persisted packet bytes; (b) the pre-review '
+                            'write-surface snapshot (17:43:49Z) predates the '
+                            'round-3 packet regeneration (18:11:30Z) and '
+                            'pins the superseded intermediate commitment '
+                            '4c25201c — the write-surface proof now runs '
+                            'under reconstructed-baseline semantics: the '
+                            'executor-owned packet regeneration is exempted '
+                            'ONLY because the current packet bytes equal the '
+                            'newest ledger verdict binding (machine proof '
+                            'the regeneration preceded the review) and is '
+                            'disclosed in independence_machine_proof; the '
+                            'reviewer writes themselves are machine-observed '
+                            'as exactly reviews.jsonl (append) + the verdict '
+                            'file, and a vacuous proof (either write missing '
+                            'from the diff) fails closed',
         'outcome_read_policy': OUTCOME_READ_POLICY,
         'identity_accessed': False,
         'future_data_accessed': False,

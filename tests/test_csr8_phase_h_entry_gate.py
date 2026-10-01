@@ -19,6 +19,8 @@ import subprocess
 import sys
 from pathlib import Path
 
+import pytest
+
 ROOT = Path(__file__).resolve().parents[1]
 
 
@@ -85,6 +87,75 @@ def test_h0_ledger_and_verdict_are_persisted_and_independent():
         for p in h0.c4d.REAL_PROPOSALS_C4D.rglob("*") if p.is_file())
     assert live_proposals == [
         "c4-prod-0002/ordinal-0002/next_reveal.proposal.json"]
+
+
+def test_h0_round_bookkeeping_is_as_of_round():
+    """iteration-3 round-3 修复：轮次簿记 as-of-round 派生 + fail-closed
+    一致性（reviewer 合法追加 verdict 不得使持久化 manifest/packet 漂移；
+    最新 verdict 必须绑定当前 packet 字节）。"""
+    h0 = _load_h0()
+    gates = h0.entry_gates()
+    chain = gates["chain"]
+    r0 = h0.round0_facts(chain)
+    cid = h0.derive_campaign_id(chain, r0)
+
+    rstate = h0.campaign_round_state(cid)
+    assert rstate["packet_exists"] is True
+    assert rstate["round"] >= 3
+    assert len(rstate["prior_verdicts"]) == rstate["round"] - 1
+    assert rstate["prior_count"] == rstate["round"] - 1
+    live = rstate["live_verdicts"]
+    assert len(live) in (rstate["round"] - 1, rstate["round"])
+    if len(live) == rstate["round"]:
+        packet = (h0.campaign_dir(cid) / "review_packets" /
+                  "phase_entry.json").read_bytes()
+        assert live[-1]["input_commitment_sha256"] == h0.sha(packet)
+
+    # the persisted manifest and packet VERIFY byte-exact under as-of-round
+    # derivation even though the reviewer appended a verdict after they
+    # were persisted (the pre-fix code structurally could not pass here)
+    staged, staged_bytes, _ = h0.build_staged_proposal_via_frozen_builder()
+    manifest_bytes, mstate = h0.build_or_verify_manifest(
+        gates, chain, r0, cid, staged, chain["production_head"])
+    assert mstate == "VERIFIED"
+    genesis_line = (h0.campaign_dir(cid) / "reviews.jsonl"
+                    ).read_bytes().splitlines()[0]
+    packet_bytes, pstate = h0.build_or_verify_packet(
+        gates, chain, r0, cid, staged, staged_bytes, manifest_bytes,
+        genesis_line)
+    assert pstate == "VERIFIED"
+    assert json.loads(packet_bytes)["campaign_review_round"] == \
+        rstate["round"]
+
+
+def test_h0_write_surface_proof_reconstructed_baseline():
+    """写面证明重建基线语义：reviewer 两写必须被机器观察到；执行者
+    packet 重生成仅在「当前 packet == 最新 verdict 绑定」时豁免并披露；
+    任何其余差分 fail-closed。post 快照由 postreview 落盘（未运行时跳过）。
+    """
+    h0 = _load_h0()
+    gates = h0.entry_gates()
+    chain = gates["chain"]
+    r0 = h0.round0_facts(chain)
+    cid = h0.derive_campaign_id(chain, r0)
+    post = h0.campaign_dir(cid) / "executor_state" / \
+        "post_review_write_surface.json"
+    if not post.is_file():
+        pytest.skip("postreview has not run for the live campaign yet")
+
+    proof = h0.prove_write_surface(cid)
+    reviewer_writes = proof["reviewer_wrote_exactly"]
+    assert f"h_campaign/{cid}/reviews.jsonl" in reviewer_writes
+    assert f"h_campaign/{cid}/verdicts/phase_entry.verdict.json" in \
+        reviewer_writes
+    regen = proof["executor_packet_regeneration"]
+    if regen != "none":
+        packet = (h0.campaign_dir(cid) / "review_packets" /
+                  "phase_entry.json").read_bytes()
+        assert regen["post_commitment"] == h0.sha(packet)
+        assert h0.verify_ledger(cid)["verdicts"][-1][
+            "input_commitment_sha256"] == h0.sha(packet)
+    assert proof["frozen_annotator_domain_unchanged"] is True
 
 
 def test_h0_verify_command_is_pure_read_and_passes_end_to_end():
