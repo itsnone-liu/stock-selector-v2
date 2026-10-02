@@ -1,0 +1,10 @@
+{
+  "status": "PASS",
+  "checks": {
+    "valid_map": true,
+    "wrong_context": true,
+    "extra_key": true,
+    "missing_hypothesis": true,
+    "duplicate_ref": true
+  }
+}
