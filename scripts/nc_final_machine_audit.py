@@ -74,6 +74,9 @@ def main():
         'support_contract_v2':
             json.loads((OUT / 'support_contract_test_report_v2.json')
                        .read_text()).get('status') == 'PASS',
+        'support_contract_v2_1':
+            json.loads((OUT / 'support_contract_test_report_v2_1.json')
+                       .read_text()).get('status') == 'PASS',
     }
     files = [
         'config/csr/national_actor_registry_v1.json',

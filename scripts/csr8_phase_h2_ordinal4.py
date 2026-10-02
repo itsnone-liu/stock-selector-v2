@@ -82,11 +82,12 @@ SIDECAR = CAMPAIGN / 'h2' / 'national_context' / \
     'ordinal-0004-national-ctx-v1.json'
 SUPPORT_MAP = CAMPAIGN / 'h2' / 'context_support_map.json'
 NC_BUILDER = ROOT / 'scripts' / 'build_national_capital_context.py'
-# NC-ERRATUM-1 (H2-CANARY-FIX1): annotate builds sidecars with the v1e
-# successor builder (explicit stock_layer_summary enum, in-band); the
-# frozen v1 builder above remains the verifier for the sealed prefix.
-NC_BUILDER_V1E = (ROOT / 'scripts'
-                  / 'build_national_capital_context_v1e.py')
+# NC-ERRATUM-1.1 (H2-CANARY-FIX1): annotate builds sidecars with the
+# v1e1 successor builder (current-disclosure-only stock_layer_summary
+# enum, in-band); the frozen v1 builder above remains the verifier for
+# the sealed prefix.
+NC_BUILDER_V1E1 = (ROOT / 'scripts'
+                   / 'build_national_capital_context_v1e1.py')
 NC_PREFLIGHT_EVIDENCE = ROOT / 'docs' / 'audit' / 'evidence' / \
     'national_capital_context_preflight.json'
 NC_FREEZE_EVIDENCE = ROOT / 'docs' / 'audit' / 'evidence' / \
@@ -493,7 +494,7 @@ def cmd_annotate():
         fail('sidecar already exists (O_EXCL)')
     SIDECAR.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
     res = subprocess.run(
-        [sys.executable, str(NC_BUILDER_V1E), '--ordinal', str(ORDINAL),
+        [sys.executable, str(NC_BUILDER_V1E1), '--ordinal', str(ORDINAL),
          '--out', str(SIDECAR)],
         check=True, capture_output=True, text=True, cwd=str(ROOT))
     if not SIDECAR.is_file():
@@ -505,7 +506,7 @@ def cmd_annotate():
     import tempfile as _tf
     _tmp = Path(_tf.mkdtemp()) / 'sidecar.json'
     subprocess.run(
-        [sys.executable, str(NC_BUILDER_V1E), '--ordinal', str(ORDINAL),
+        [sys.executable, str(NC_BUILDER_V1E1), '--ordinal', str(ORDINAL),
          '--out', str(_tmp)],
         check=True, capture_output=True, text=True, cwd=str(ROOT))
     if _tmp.read_bytes() != SIDECAR.read_bytes():
@@ -513,8 +514,8 @@ def cmd_annotate():
              'G-H2-ANNOTATE')
     if sidecar.get('packet_id') != r4['payload']['packet_id']:
         fail('sidecar does not bind the R4 packet_id', 'G-H2-ANNOTATE')
-    if sidecar.get('context_version') != 'csr8-national-capital-v1e':
-        fail('sidecar is not a v1e (NC-ERRATUM-1) sidecar',
+    if sidecar.get('context_version') != 'csr8-national-capital-v1e1':
+        fail('sidecar is not a v1e1 (NC-ERRATUM-1.1) sidecar',
              'G-H2-ANNOTATE')
     # commitment self-consistency (builder-independent re-proof)
     recomputed = hashlib.sha256(c4d.canon(

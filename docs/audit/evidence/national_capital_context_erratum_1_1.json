@@ -1,0 +1,34 @@
+{
+  "erratum_id": "NC-ERRATUM-1.1",
+  "title": "stock_layer_summary decision corrected to CURRENT-DISCLOSURE-ONLY",
+  "status": "FROZEN",
+  "created_at": "2026-10-02T09:40:00Z",
+  "ordered_by": "independent re-review of H2-CANARY-FIX1 commit 8da4b3a (user, 2026-10-02): six of seven items PASS; single semantic blocker in the v1e summary decision",
+  "supersedes": "the builder of NC-ERRATUM-1 only (scripts/build_national_capital_context_v1e.py, sha eb334a5c001a2995eee786a48b5c55a28623ab44a0083dcdf85056a8eab27d66 — kept byte-frozen as history); all other NC-ERRATUM-1 items (envelope, support-map rule, protocol v2, frozen-audit binding, dynamic snapshot) are UNCHANGED and confirmed PASS",
+  "effective_from_ordinal": 5,
+  "bug": "v1e decided NATIONAL_ACTORS_PRESENT from actors = latest_by UNION previous_by. A case whose previous complete top-10 disclosed a tracked actor but whose LATEST complete top-10 discloses none was mislabelled NATIONAL_ACTORS_PRESENT while its own record carried state=NOT_DISCLOSED_IN_TOP10 — self-contradictory.",
+  "correct_rule": {
+    "latest cell unavailable": "SOURCE_UNAVAILABLE",
+    "no cell with available_date <= T": "NO_PIT_VISIBLE_REPORT",
+    "latest SUCCESS_NONEMPTY and latest_by non-empty": "NATIONAL_ACTORS_PRESENT",
+    "latest SUCCESS_NONEMPTY and latest_by empty": "NOT_DISCLOSED_IN_LATEST_VISIBLE_TOP10"
+  },
+  "record_generation_unchanged": "the latest/previous actor union still produces stock records; an actor present in the previous report and absent from the latest complete top-10 emits state=NOT_DISCLOSED_IN_TOP10 (the disappearance evidence itself)",
+  "disappearance_regression": "docs/audit/evidence/support_contract_test_report_v2_1.json — full-path injected fixture (previous complete report discloses A-TEST-FIXTURE; latest complete report discloses none) asserts stock_layer_summary == NOT_DISCLOSED_IN_LATEST_VISIBLE_TOP10 (explicitly != NATIONAL_ACTORS_PRESENT), one stock record for the actor, record state == NOT_DISCLOSED_IN_TOP10; plus pure-decision spot checks for all four branches and a full-path SOURCE_UNAVAILABLE fixture",
+  "artifacts_sha256": {
+    "scripts/build_national_capital_context_v1e1.py": "e747704f27bede7569ce800ac46e16a7bc4e5aad03d136049710ed176988b16d",
+    "scripts/test_nc_erratum_positive_case.py": "bound via scripts_sha256 inside the report below",
+    "docs/audit/evidence/support_contract_test_report_v2_1.json": "84113bd348327193007bd4a4c2f0b7d37016b4f87d3a691095f70fc88f9fca55",
+    "scripts/csr8_phase_h2_ordinal4.py": "6567c4633524d06bc4d028b7dc2e354921ba5a098d979c6649f8502b601744a0 (annotate now builds v1e1; sealed-prefix verify unchanged, still frozen-v1 re-proof)",
+    "scripts/nc_final_machine_audit.py": "98c9777a0d27320911b673fa14f422db680998cf5391d52437eb95b730186742 (adds support_contract_v2_1 prerequisite check)"
+  },
+  "context_version": "csr8-national-capital-v1e1 (sidecars self-identify the corrected summary contract; record arrays remain byte-equal to v1/v1e for the same ordinal)",
+  "v1e1_reference_outputs_ordinals_1_4": {
+    "1": "NOT_DISCLOSED_IN_LATEST_VISIBLE_TOP10",
+    "2": "NO_PIT_VISIBLE_REPORT",
+    "3": "NATIONAL_ACTORS_PRESENT (actor is in the LATEST report: state STABLE, current period set)",
+    "4": "NOT_DISCLOSED_IN_LATEST_VISIBLE_TOP10",
+    "note": "the real candidates 1-4 exercise no previous-only-actor case — hence the injected disappearance regression; the sealed v1 sidecar commitment for ordinal-4 remains 365b2d5b0aaf742f… (frozen builder reproduces it)"
+  },
+  "ordinal_5_requirements": "as NC-ERRATUM-1, with the builder replaced by scripts/build_national_capital_context_v1e1.py and context_version csr8-national-capital-v1e1"
+}

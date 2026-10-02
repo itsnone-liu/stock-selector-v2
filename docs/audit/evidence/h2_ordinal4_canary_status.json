@@ -23,7 +23,7 @@
   "disposition": {
     "phase_i_corpus": "ordinal-4 annotation EXCLUDED from the Phase I main analysis corpus",
     "evidence_profile_first_full_contract_ordinal": 5,
-    "governance": "docs/audit/evidence/national_capital_context_erratum_1.json (NC-ERRATUM-1, effective_from_ordinal=5); docs/audit/protocols/reviewer_independence_v2.md"
+    "governance": "docs/audit/evidence/national_capital_context_erratum_1.json (NC-ERRATUM-1, effective_from_ordinal=5); docs/audit/protocols/reviewer_independence_v2.md; superseding builder correction: docs/audit/evidence/national_capital_context_erratum_1_1.json (NC-ERRATUM-1.1 — current-disclosure-only stock_layer_summary, builder v1e1)"
   },
   "overall_state": {
     "H-PRE": "COMPLETE / FROZEN",
