@@ -1,0 +1,26 @@
+{
+  "record": "GENERIC RUNNER FIX5 STATUS",
+  "status": "READY_FOR_USER_REVIEW",
+  "base_commit": "2d43996",
+  "ordinal_6": "PASS / sealed history unchanged / not rerun",
+  "source_capture": {
+    "api": "capture_pre_spawn_snapshot(executor_transcript_path, executor_session_id, snapshot_path, anchor_path)",
+    "source": "real transcript file bytes, not caller-supplied prefix",
+    "snapshot": "O_EXCL mode 0600, fsync, then mode 0400",
+    "anchor": "separate O_EXCL mode 0600, fsync, then mode 0400",
+    "provenance": ["executor_session_id", "source_path", "source_device", "source_inode", "source_prefix_bytes", "cutoff", "snapshot_sha256"],
+    "scan": "only captured pre-spawn source prefix"
+  },
+  "previous_batch": "CLI previous IDs remain supported; batch gate requires explicit ledger and evidence",
+  "regressions": {
+    "source_capture": "PASS",
+    "fake_id": "PASS",
+    "ledger_mismatch": "PASS",
+    "cutoff_length": "PASS",
+    "previous_overlap": "PASS",
+    "hard_batch_completion": "PASS",
+    "ordinal_6_runner_verify": "ORDINAL_COMPLETE",
+    "all_python_compile": "PASS"
+  },
+  "gate": "batch H NOT_READY pending independent review and explicit user unlock"
+}
