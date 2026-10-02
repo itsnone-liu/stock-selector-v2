@@ -62,9 +62,56 @@ def load_ledger(path):
         if i and row.get('prev_review_hash')!=rows[i-1].get('review_hash'): raise ValueError('ledger chain break')
     return rows
 
+def _read_dsh_snapshot(snap, anchor_path=None):
+    """DSH-v4 branch: the frozen raw zstd capture is the trust root; the
+    decoded transcript text is a derived product and is re-derived here —
+    never trusted from the snapshot alone (ruling 2026-10-02)."""
+    import csr8_batch_h_recovery_novelty as rec
+    req=('executor_session_id','live_source_path','source_device','source_inode',
+         'frozen_capture_path','raw_zstd_sha256','raw_zstd_bytes',
+         'pre_spawn_sequence_cutoff','decoder','decoded_sha256','decoded_bytes',
+         'source_prefix_bytes','transcript_prefix','pre_spawn_transcript_sha256',
+         'pre_spawn_transcript_length')
+    if any(k not in snap for k in req): raise ValueError('invalid DSH snapshot: missing fields')
+    if snap['pre_spawn_sequence_cutoff']!=snap['raw_zstd_bytes']:
+        raise ValueError('invalid DSH snapshot: cutoff != raw EOF')
+    frozen=Path(snap['frozen_capture_path'])
+    if not frozen.is_file(): raise ValueError('DSH frozen capture missing')
+    raw=frozen.read_bytes()
+    if len(raw)!=snap['raw_zstd_bytes'] or digest(raw)!=snap['raw_zstd_sha256']:
+        raise ValueError('DSH frozen capture hash/length mismatch')
+    dec=snap.get('decoder') or {}
+    here=Path(__file__).resolve().parent
+    if dec.get('decoder_module_sha256')!=digest((here/'csr8_batch_h_recovery_novelty.py').read_bytes()):
+        raise ValueError('decoder module hash mismatch')
+    if dec.get('entry_gate_sha256')!=digest((here/'csr8_phase_h_entry_gate.py').read_bytes()):
+        raise ValueError('decoder entry-gate hash mismatch')
+    decoded=rec.decode_transcript_bytes(raw)
+    if len(decoded)!=snap['decoded_bytes'] or digest(decoded)!=snap['decoded_sha256']:
+        raise ValueError('DSH decoded re-derivation mismatch')
+    if snap['pre_spawn_transcript_length']!=len(decoded) or snap['pre_spawn_transcript_sha256']!=digest(decoded):
+        raise ValueError('DSH decoded pin mismatch')
+    if snap['source_prefix_bytes']!=len(decoded): raise ValueError('DSH source length mismatch')
+    p=snap['transcript_prefix']
+    if not isinstance(p,str) or p.encode('utf-8')!=decoded:
+        raise ValueError('DSH transcript_prefix is not the derived decode product')
+    if anchor_path is not None:
+        a=json.loads(Path(anchor_path).read_text()); data=canon(snap).encode()
+        if a.get('anchor_version')!=DSH_ANCHOR_VERSION or a.get('snapshot_sha256')!=digest(data):
+            raise ValueError('anchor mismatch')
+        for k in ('executor_session_id','live_source_path','source_device','source_inode',
+                  'frozen_capture_path','raw_zstd_sha256','raw_zstd_bytes',
+                  'decoded_sha256','pre_spawn_sequence_cutoff'):
+            if a.get(k)!=snap.get(k): raise ValueError('anchor provenance mismatch')
+    view=dict(snap); view['source_path']=snap['frozen_capture_path']
+    return view,p
+
 def _read_snapshot(snap, anchor_path=None):
     if isinstance(snap,(str,Path)): snap=json.loads(Path(snap).read_text())
-    if not isinstance(snap,dict) or snap.get('snapshot_version')!=SNAPSHOT_VERSION: raise ValueError('invalid snapshot')
+    if not isinstance(snap,dict): raise ValueError('invalid snapshot')
+    if snap.get('snapshot_version')==DSH_SNAPSHOT_VERSION:
+        return _read_dsh_snapshot(snap,anchor_path)
+    if snap.get('snapshot_version')!=SNAPSHOT_VERSION: raise ValueError('invalid snapshot')
     p=snap.get('transcript_prefix'); cutoff=snap.get('pre_spawn_sequence_cutoff')
     if not isinstance(p,str) or not p or not isinstance(cutoff,int) or cutoff<0: raise ValueError('missing source cutoff')
     raw=p.encode()
@@ -94,13 +141,21 @@ def reviewer_id_novelty_spot_check(batch_start, previous_ids, samples, ledger_pa
         pr,ps=row['reviewer_run_id'] in p,row['reviewer_session_id'] in p
         if pr or ps: raise ValueError('premature reviewer ID')
         ids += [row['reviewer_run_id'],row['reviewer_session_id']]
-        evidence.append({'ordinal':s['ordinal'],'reviewer_operation':s['reviewer_operation'],'ledger_sequence':seq,'review_hash':row['review_hash'],'reviewer_run_id':row['reviewer_run_id'],'reviewer_session_id':row['reviewer_session_id'],'executor_session_id':snap['executor_session_id'],'source_path':snap['source_path'],'source_prefix_bytes':snap['source_prefix_bytes'],'pre_spawn_transcript_sha256':snap['pre_spawn_transcript_sha256'],'pre_spawn_transcript_length':snap['pre_spawn_transcript_length'],'pre_spawn_sequence_cutoff':snap['pre_spawn_sequence_cutoff'],'snapshot_anchor_path':s['snapshot_anchor_path'],'premature_run_id_found':False,'premature_session_id_found':False})
+        ev={'ordinal':s['ordinal'],'reviewer_operation':s['reviewer_operation'],'ledger_sequence':seq,'review_hash':row['review_hash'],'reviewer_run_id':row['reviewer_run_id'],'reviewer_session_id':row['reviewer_session_id'],'executor_session_id':snap['executor_session_id'],'source_path':snap['source_path'],'source_prefix_bytes':snap['source_prefix_bytes'],'pre_spawn_transcript_sha256':snap['pre_spawn_transcript_sha256'],'pre_spawn_transcript_length':snap['pre_spawn_transcript_length'],'pre_spawn_sequence_cutoff':snap['pre_spawn_sequence_cutoff'],'snapshot_anchor_path':s['snapshot_anchor_path'],'premature_run_id_found':False,'premature_session_id_found':False}
+        for k in ('frozen_capture_path','raw_zstd_sha256','raw_zstd_bytes','decoded_sha256','live_source_path'):
+            if snap.get(k) is not None: ev[k]=snap[k]
+        evidence.append(ev)
     if len(ids)!=len(set(ids)) or set(previous_ids)&set(ids): raise ValueError('reviewer duplicate/previous overlap')
     return {'status':'PASS','batch_start':batch_start,'batch_end':end,'batch_size':completed_count,'checked_samples':len(samples),'novelty':True,'evidence':evidence,'attestation_level':'PLATFORM_OPAQUE_SUBAGENT'}
 
-def complete_batch(batch_start,completed_ordinals,novelty_evidence,ledger_path,previous_ids=()):
+def complete_batch(batch_start,completed_ordinals,novelty_evidence,ledger_path,previous_ids=(),previous_batch_record=None):
     end=batch_boundary(batch_start,len(completed_ordinals))
     if list(completed_ordinals)!=list(range(batch_start,end+1)): raise ValueError('non-contiguous batch')
+    if previous_batch_record is not None:
+        derived=derive_previous_ids(previous_batch_record)
+        if previous_ids and tuple(sorted(previous_ids))!=tuple(derived):
+            raise ValueError('manual previous_ids conflict with previous_batch_record derivation')
+        previous_ids=derived
     return {'status':'BATCH_COMPLETE','batch_start':batch_start,'batch_end':end,'novelty_gate':reviewer_id_novelty_spot_check(batch_start,previous_ids,novelty_evidence,ledger_path)}
 
 def complete_batch_recovery(batch_start,completed_ordinals,evidence_path,ledger_path,previous_ids=()):
@@ -191,11 +246,14 @@ def derive_previous_ids(previous_batch_record_path):
     return sorted(set(ids))
 
 def main():
-    ap=argparse.ArgumentParser(); ap.add_argument('--batch-start',type=int,required=True); ap.add_argument('--completed-ordinal',type=int,action='append',required=True); ap.add_argument('--novelty-evidence-json',required=True); ap.add_argument('--ledger',required=True); ap.add_argument('--previous-id',action='append',default=[])
+    ap=argparse.ArgumentParser(); ap.add_argument('--batch-start',type=int,required=True); ap.add_argument('--completed-ordinal',type=int,action='append',required=True); ap.add_argument('--novelty-evidence-json',required=True); ap.add_argument('--ledger',required=True); ap.add_argument('--previous-id',action='append',default=[],help='DEPRECATED: only empty use (first batch) or recovery branch; batch 2+ must use --previous-batch-record')
+    ap.add_argument('--previous-batch-record',default=None,help='prior BATCH_COMPLETE record path; previous IDs are derived from it, never hand-assembled')
     ap.add_argument('--recovery',action='store_true',help='BATCH-H-RECOVERY-ERRATUM-1 branch: novelty-evidence-json is the recovery evidence file')
     a=ap.parse_args()
+    if not a.recovery and a.previous_batch_record and a.previous_id:
+        raise SystemExit('refusing manual --previous-id together with --previous-batch-record')
     if a.recovery:
         print(json.dumps(complete_batch_recovery(a.batch_start,a.completed_ordinal,a.novelty_evidence_json,a.ledger,a.previous_id),sort_keys=True,separators=(',',':')))
     else:
-        print(json.dumps(complete_batch(a.batch_start,a.completed_ordinal,json.loads(Path(a.novelty_evidence_json).read_text()),a.ledger,a.previous_id),sort_keys=True,separators=(',',':')))
+        print(json.dumps(complete_batch(a.batch_start,a.completed_ordinal,json.loads(Path(a.novelty_evidence_json).read_text()),a.ledger,a.previous_id,previous_batch_record=a.previous_batch_record),sort_keys=True,separators=(',',':')))
 if __name__=='__main__': main()
