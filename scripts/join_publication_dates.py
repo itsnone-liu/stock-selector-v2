@@ -15,7 +15,7 @@ def main():
  for r in rows:
   p=pub.get((r['stock_code'],r['report_period']))
   if p and p.get('publication_date'):
-   r['publication_date']=p['publication_date']; r['available_date']=next_trade(p['publication_date'],cal); r['publication_source']=p['publication_source']; r['pit_status']='AVAILABLE_PIT'
+   pd=p['publication_date']; pd=f'{pd[:4]}-{pd[4:6]}-{pd[6:]}' if len(pd)==8 and pd.isdigit() else pd; r['publication_date']=pd; r['available_date']=next_trade(pd,cal); r['publication_source']=p['publication_source']; r['pit_status']='AVAILABLE_PIT'
   else: r['publication_date']='UNKNOWN'; r['available_date']='UNKNOWN'; r['publication_source']='UNKNOWN'; r['pit_status']='UNKNOWN_PUBLICATION_DATE'
  OUT.parent.mkdir(parents=True,exist_ok=True)
  fields=list(rows[0])

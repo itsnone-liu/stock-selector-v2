@@ -39,10 +39,10 @@ These are generated files under ignored `data/` and `output/research/` trees. Th
 
 - `report_period` is never used as `available_date`.
 - Holding publication dates are joined from captured financial-report metadata.
-- `available_date` is conservatively the next frozen exchange trading day.
-- ETF share `available_date` follows the same conservative next-trading-day rule.
+- `available_date` is strictly the first frozen exchange trading day after publication/observation (`>`; never same-day).
+- ETF share `availability_status` is `AVAILABLE_PIT` when such a date exists; the frozen-calendar tail is `OUTSIDE_FROZEN_CALENDAR` with an empty date and is excluded from H context.
 - ETF share expansion/contraction is a background proxy and is never attributed to a named national-capital actor.
-- Empty or incomplete tables remain `UNKNOWN`/source-empty; they are not converted to absence evidence.
+- Empty or incomplete tables are machine-classified `UNAVAILABLE` with `absence_semantics=UNKNOWN`; they are never converted to absence evidence.
 
 ## Current readiness and machine-audit queue
 

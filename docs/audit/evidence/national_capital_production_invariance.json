@@ -7,10 +7,13 @@
     "candidate_prefix_unchanged": true,
     "candidate_order_size_unchanged": true,
     "candidate_commitment_unchanged": true,
+    "c2_full_replay": true,
+    "semantic_replay": true,
+    "ordinal_1_to_3_history": true,
     "no_r4_s4": true
   },
   "passed": true,
   "production_invariance": "PASS",
-  "current_git_head": "bb8f8d633112f9c3e68c00110622c769df78a489",
+  "current_git_head": "16665f899cb097d68a3a7f088ee29fc633119c9f",
   "note": "git head is expected to advance during H-PRE; production head and candidate commitments must not"
 }

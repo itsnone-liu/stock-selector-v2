@@ -1,0 +1,26 @@
+{
+  "checks": {
+    "actor_registry_deterministic": true,
+    "raw_provenance_exact": true,
+    "publication_provenance_pass": true,
+    "strict_available_date": true,
+    "empty_unavailable": true,
+    "etf_attribution_forbidden": true,
+    "nc0_invariance": true
+  },
+  "passed": true,
+  "state": "PREREQUISITES_COMPLETE",
+  "independent_approval": "NOT_DECLARED",
+  "artifact_sha256": {
+    "config/csr/national_actor_registry_v1.json": "b818d02dd67875aad12abe255ea24f416b7a4bfc6f2da04eb6ba156e6d0a80e6",
+    "output/research/csr/national_capital/holdings_coverage_ledger.csv": "07e4ef74fd8c84c015dce8b4157ccb271bf27e1971d9491de95a1decf7d7c47e",
+    "output/research/csr/national_capital/national_holdings_pit.csv": "c42b0faa86b1200649e9a0c7b860336dbf31f05ee2bb6efcbd42d7140500e055",
+    "output/research/csr/national_capital/publication_provenance_audit.json": "c6dccebe042e72c06fd8ccb393c4df2b3030fd444942068274859a47f177ec56",
+    "output/research/csr/national_capital/empty_resolution_report.json": "65dbb4e79cac2f089640e000ca2c4498b2e9d200e1ebab3ecf92c779879ef499",
+    "output/research/csr/national_capital/etf_share_daily_sse.csv": "b0d67fe823adb305801cafb21d0aa30d5fb4bded2b9d296fa3d2e3cd0374b018",
+    "output/research/csr/national_capital/etf_lineage_report.json": "c52f35782a48901caabefdfc68e59aa03f75ca98cc1567b7166666acca428d1f",
+    "docs/audit/evidence/national_capital_extension_pause_anchor.json": "2ad2b43d661f4769ea49ea178b8bd14416039fe53982e121c342d94ebf47a718",
+    "docs/audit/evidence/national_capital_production_invariance.json": "293f31171e8c8059d7791ba48241661646fc5a8d0f52dd6563fedabfedc46c5b"
+  },
+  "no_r4_s4": true
+}

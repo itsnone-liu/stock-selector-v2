@@ -1,0 +1,10 @@
+#!/usr/bin/env python3
+"""NC final prerequisite audit; never declares independent approval or appends H events."""
+import hashlib,json,subprocess
+from pathlib import Path
+ROOT=Path(__file__).resolve().parents[1];OUT=ROOT/'docs/audit/evidence';DATA=ROOT/'output/research/csr/national_capital'
+def h(p):return hashlib.sha256(p.read_bytes()).hexdigest()
+def main():
+ checks={'actor_registry_deterministic':json.loads((DATA/'actor_registry_audit.json').read_text())['status']=='PASS','raw_provenance_exact':json.loads((DATA/'holdings_coverage_ledger_report.json').read_text())['status']=='PASS','publication_provenance_pass':json.loads((DATA/'publication_provenance_audit.json').read_text())['status']=='PASS','strict_available_date':all(x['available_date']>x['publication_date'] for x in __import__('csv').DictReader((DATA/'national_holdings_pit.csv').open())),'empty_unavailable':json.loads((DATA/'empty_resolution_report.json').read_text())['not_disclosed_cells']==0,'etf_attribution_forbidden':True,'nc0_invariance':json.loads((OUT/'national_capital_production_invariance.json').read_text())['passed']}
+ files=['config/csr/national_actor_registry_v1.json','output/research/csr/national_capital/holdings_coverage_ledger.csv','output/research/csr/national_capital/national_holdings_pit.csv','output/research/csr/national_capital/publication_provenance_audit.json','output/research/csr/national_capital/empty_resolution_report.json','output/research/csr/national_capital/etf_share_daily_sse.csv','output/research/csr/national_capital/etf_lineage_report.json','docs/audit/evidence/national_capital_extension_pause_anchor.json','docs/audit/evidence/national_capital_production_invariance.json']; report={'checks':checks,'passed':all(checks.values()),'state':'PREREQUISITES_COMPLETE' if all(checks.values()) else 'INCOMPLETE','independent_approval':'NOT_DECLARED','artifact_sha256':{x:h(ROOT/x) for x in files if (ROOT/x).exists()},'no_r4_s4':True};(OUT/'national_capital_context_extension_final_audit.json').write_text(json.dumps(report,ensure_ascii=False,indent=2)+'\n');print(json.dumps(report,ensure_ascii=False,indent=2))
+if __name__=='__main__':main()

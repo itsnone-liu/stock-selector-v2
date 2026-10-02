@@ -1,0 +1,10 @@
+{
+  "ordinal": 4,
+  "packet_id": "eb9b2de22514ba51aad7888dd342a2189465ef90798568816f2a42037db3d1e1",
+  "deterministic": true,
+  "commitment_exact": true,
+  "forbidden_keys": false,
+  "no_r4_created": true,
+  "status": "PASS",
+  "context_commitment_sha256": "225e697ec32761e31169f8d6f9dc10c60596f65c49f622fe8a46dbfa2c48c4da"
+}
