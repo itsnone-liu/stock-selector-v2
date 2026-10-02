@@ -1,0 +1,34 @@
+{
+  "allowed_roots": [
+    "data/csr8_phase_c/c4d_proposals/c4-prod-0002/",
+    "data/csr8_phase_c/h_campaign/hc-46195669974db3b25610bef4d047d927/",
+    "docs/audit/evidence/"
+  ],
+  "builder": "scripts/phase_i_i0_inventory.py",
+  "builder_sha256": "798daf04c718fc8be0c495bf8e0f0e488db52590c955d90ae5e012093133dbab",
+  "forbidden_data_classes": [
+    "outcome",
+    "forward price/path",
+    "future-derived fields",
+    "post-seal derived path"
+  ],
+  "forbidden_source_literals": [
+    "Read-only Phase-I I0 inventory.\n\nThis script intentionally has no outcome reader. It inventories sealed CSR8\nmetadata and public annotation/context commitments only. It never opens\ncaptures, transcript prefixes, prices, forward paths, receipts"
+  ],
+  "i1_frozen": false,
+  "i2_ready": false,
+  "imports": [
+    "import ast, hashlib, json, re, sys",
+    "from collections import Counter",
+    "from pathlib import Path"
+  ],
+  "outcome_unlock": "NOT_AUTHORIZED",
+  "read_operations": [
+    "Path(__file__).read_text()",
+    "p.read_text()",
+    "h.rglob('*')",
+    "p.read_bytes()"
+  ],
+  "report_type": "I0_NO_OUTCOME_DEPENDENCY",
+  "status": "PASS"
+}
