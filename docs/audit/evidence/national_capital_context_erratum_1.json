@@ -1,0 +1,78 @@
+{
+  "erratum_id": "NC-ERRATUM-1",
+  "title": "NATIONAL_CTX_V1e: explicit stock-layer disclosure summary and support-contract revision",
+  "status": "FROZEN",
+  "created_at": "2026-10-02T09:05:00Z",
+  "ordered_by": "H2 ordinal-4 canary closed-loop review (user, 2026-10-02): transaction canary PASS, evidence profile REVISE",
+  "scope": "annotation evidence-profile contract only; sealed R1..R4/S1..S4 bytes, C1/C3/C4 infrastructure and the NC freeze marker are untouched",
+  "effective_from_ordinal": 5,
+  "findings_addressed": [
+    {
+      "id": 1,
+      "severity": "P0",
+      "finding": "ANNOTATION verdict bound only draft_sha256; sidecar and support map were not exact-hash review objects",
+      "resolution": "frozen annotation review envelope (packet+context+support_map+draft composite), scripts/csr8_phase_h_review_envelope.py; ANNOTATION input_commitment_sha256 from ordinal-5 onward MUST equal annotation_envelope_sha256(...)"
+    },
+    {
+      "id": 2,
+      "severity": "P0",
+      "finding": "executor derived NO_NATIONAL_ACTOR_IN_LATEST_VISIBLE_TOP10 via a selector-side bypass (_stock_layer_summary) outside NATIONAL_CTX, and H05 wording claimed absence of holdings",
+      "resolution": "v1e builder emits the summary enum in-band (SOURCE_UNAVAILABLE | NO_PIT_VISIBLE_REPORT | NOT_DISCLOSED_IN_LATEST_VISIBLE_TOP10 | NATIONAL_ACTORS_PRESENT); selector-side bypass deleted from the H executor; disclosure-semantics wording mandated (non-disclosure is NOT evidence of absence)"
+    },
+    {
+      "id": 3,
+      "severity": "P1",
+      "finding": "support-map global-uniqueness rule self-contradicts once stock records > 0 (one record legitimately backs rt_H01/rt_H02/rt_H05/rt_H06)",
+      "resolution": "per-hypothesis dedup; ordinal-generic binding; proven on a real stock>0 positive case (ordinal-3) plus SOURCE_UNAVAILABLE fixture and a within-hypothesis duplicate negative control"
+    },
+    {
+      "id": 4,
+      "severity": "P1",
+      "finding": "reviewer independence silently downgraded from the H0 transcript-anchored mechanism",
+      "resolution": "Reviewer Independence Protocol v2 frozen at docs/audit/protocols/reviewer_independence_v2.md (TRANSCRIPT_ANCHORED vs PLATFORM_OPAQUE_SUBAGENT proof boundaries); H2 usage recorded under PLATFORM_OPAQUE_SUBAGENT with PROTOCOL_ERRATUM status"
+    },
+    {
+      "id": 5,
+      "severity": "P1",
+      "finding": "NC freeze marker's final_audit_sha256 no longer matched HEAD bytes of national_capital_context_extension_final_audit.json after the R4 append rewrote no_r4_s4",
+      "resolution": "frozen audit bytes restored at HEAD (sha below == freeze marker binding, verified fail-closed by every future nc_final run); live status now written separately to docs/audit/evidence/national_capital_context_post_resume_status.json"
+    }
+  ],
+  "semantics": {
+    "stock_layer_summary_enum": {
+      "SOURCE_UNAVAILABLE": "latest PIT-visible cell exists but source status != SUCCESS_NONEMPTY (v1 S-000000 branch)",
+      "NO_PIT_VISIBLE_REPORT": "no holdings cell has available_date <= T",
+      "NOT_DISCLOSED_IN_LATEST_VISIBLE_TOP10": "latest PIT-visible complete top-10 discloses no tracked national actor — a DISCLOSURE fact, NOT evidence that holdings do not exist",
+      "NATIONAL_ACTORS_PRESENT": "at least one tracked national actor appears in the latest/previous visible union"
+    },
+    "support_map_duplicate_rule": "duplicates forbidden WITHIN one hypothesis reference list; cross-hypothesis reuse of the same context record is legal",
+    "annotation_envelope": "sha256(canon({version:csr8-annotation-review-envelope-v1, packet_sha256, context_commitment_sha256, support_map_sha256, draft_sha256})) over the four live artifacts"
+  },
+  "artifacts_sha256": {
+    "scripts/build_national_capital_context.py": "4111658f19fe81ab6ea3006cef51e246a4988d314d4b6dd90916cb62678a75f7 (frozen v1 verifier for the sealed prefix; UNCHANGED)",
+    "scripts/build_national_capital_context_v1e.py": "eb334a5c001a2995eee786a48b5c55a28623ab44a0083dcdf85056a8eab27d66",
+    "scripts/validate_context_support_map.py": "7a347bf79207ef222feeb6bbac349a4da356d6fb8cea4d9dcddabc6340c809bd (revised)",
+    "scripts/csr8_phase_h_review_envelope.py": "65cd884d0b3bd36f8e8974bb988f3fae510b1e268e8a900cfe42007204bfdbf8",
+    "scripts/test_nc_erratum_positive_case.py": "see docs/audit/evidence/support_contract_test_report_v2.json scripts_sha256",
+    "scripts/csr8_phase_h2_ordinal4.py": "0a4a0aa20430416987c9e62ad442a5ea9e47a1a1b06c6eb8fdf21f7d88196fdf (bypass deleted; annotate on v1e; verify keeps frozen v1 re-proof of the sealed prefix)",
+    "scripts/nc_final_machine_audit.py": "49ee64603bc3268d61f9219cdeacf2b74fedc7185663832384bf0aaade31e71b (frozen-bytes verification + separate post-resume status file)",
+    "scripts/csr8_phase_a_machine_audit.py": "ae350d2249658d57ab16a50ef04a3e2bfcb118c8c77008b1d37a7564b5aff160 (dynamic production_snapshot)",
+    "docs/audit/evidence/support_contract_test_report_v2.json": "76cec2d1fb122955a378abbf27f4b8b8ded6ada1882a030e5fc27f45778e0981",
+    "docs/audit/protocols/reviewer_independence_v2.md": "77611a61087a86abb7d43bd688cd12543ed212d969080ba2d1d5c14802acacfd",
+    "docs/audit/evidence/national_capital_context_extension_final_audit.json": "34a463dcbf945b9823e4f5c70a0018583729b9ff262a4bd7c08b27cf5be9b07b (== freeze marker final_audit_sha256, restored at HEAD)"
+  },
+  "v1e_reference_outputs_ordinals_1_4": {
+    "1": {"stock_layer_summary": "NOT_DISCLOSED_IN_LATEST_VISIBLE_TOP10", "context_commitment_sha256_prefix": "40cb74225138f9d9"},
+    "2": {"stock_layer_summary": "NO_PIT_VISIBLE_REPORT", "context_commitment_sha256_prefix": "a09254080b828923"},
+    "3": {"stock_layer_summary": "NATIONAL_ACTORS_PRESENT", "context_commitment_sha256_prefix": "f3496d9a9b5519ce"},
+    "4": {"stock_layer_summary": "NOT_DISCLOSED_IN_LATEST_VISIBLE_TOP10", "context_commitment_sha256_prefix": "f0dd819176588243", "note": "sealed v1 sidecar commitment stays 365b2d5b0aaf742f… (frozen builder reproduces it)"}
+  },
+  "records_equivalence": "for ordinals 1-4 the v1e builder emits record arrays identical to the frozen v1 builder (only context_version/summary/summary-period/commitment differ) — verified in support_contract_test_report_v2.json",
+  "ordinal_4_retroactive_envelope_reference": "233c0900c4dae5784893c5d3dcaa471ff99edfbaa109b73ca369f354a370f1f5 (documentation only; the sealed ordinal-4 ANNOTATION verdict keeps its historical draft-only binding under PROTOCOL_ERRATUM)",
+  "ordinal_5_requirements": [
+    "sidecar built by scripts/build_national_capital_context_v1e.py (context_version csr8-national-capital-v1e, stock_layer_summary in-band)",
+    "ANNOTATION verdict input_commitment_sha256 == annotation_envelope_sha256(packet, context, support_map, draft)",
+    "support map validated by the revised per-hypothesis rule",
+    "review operations under Reviewer Independence Protocol v2"
+  ]
+}

@@ -1,5 +1,8 @@
 {
+  "record_kind": "POST_RESUME_STATUS",
+  "note": "live status after the NC freeze; the frozen H-PRE audit record stays byte-identical to the freeze marker binding and is verified, never rewritten",
   "checks": {
+    "frozen_audit_bytes_bound": true,
     "actor_registry_deterministic": true,
     "raw_provenance_exact": true,
     "publication_provenance_pass": true,
@@ -8,7 +11,8 @@
     "etf_attribution_forbidden": true,
     "nc0_invariance": true,
     "context_preflight": true,
-    "support_contract": true
+    "support_contract": true,
+    "support_contract_v2": true
   },
   "passed": true,
   "state": "PREREQUISITES_COMPLETE",
@@ -24,5 +28,6 @@
     "docs/audit/evidence/national_capital_extension_pause_anchor.json": "2ad2b43d661f4769ea49ea178b8bd14416039fe53982e121c342d94ebf47a718",
     "docs/audit/evidence/national_capital_production_invariance.json": "560145da4d6b18df67f2182c05af11a0380856959265cb06c21604cee69d773c"
   },
-  "no_r4_s4": true
+  "production_chain_events": 8,
+  "no_r4_s4": false
 }

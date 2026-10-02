@@ -1,0 +1,37 @@
+{
+  "test": "NC-ERRATUM-1 support contract (H2-CANARY-FIX1 item 4)",
+  "status": "PASS",
+  "results": {
+    "v1e_records_equivalence": {
+      "1": true,
+      "2": true,
+      "3": true,
+      "4": true
+    },
+    "summary_coverage_ordinals_1_4": {
+      "1": "NOT_DISCLOSED_IN_LATEST_VISIBLE_TOP10",
+      "2": "NO_PIT_VISIBLE_REPORT",
+      "3": "NATIONAL_ACTORS_PRESENT",
+      "4": "NOT_DISCLOSED_IN_LATEST_VISIBLE_TOP10"
+    },
+    "positive_case": {
+      "ordinal": 3,
+      "stock_records": 1,
+      "market_records": 9,
+      "stock_layer_summary": "NATIONAL_ACTORS_PRESENT",
+      "cross_hypothesis_reuse": "PASS",
+      "old_global_uniqueness_would_reject": true
+    },
+    "source_unavailable_fixture": "PASS",
+    "negative_control_within_hypothesis_dup": "FAIL_CLOSED_OK",
+    "annotation_envelope": {
+      "version": "csr8-annotation-review-envelope-v1",
+      "ordinal4_reference": "233c0900c4dae5784893c5d3dcaa471ff99edfbaa109b73ca369f354a370f1f5"
+    }
+  },
+  "scripts_sha256": {
+    "build_national_capital_context_v1e.py": "eb334a5c001a2995eee786a48b5c55a28623ab44a0083dcdf85056a8eab27d66",
+    "validate_context_support_map.py": "7a347bf79207ef222feeb6bbac349a4da356d6fb8cea4d9dcddabc6340c809bd",
+    "csr8_phase_h_review_envelope.py": "65cd884d0b3bd36f8e8974bb988f3fae510b1e268e8a900cfe42007204bfdbf8"
+  }
+}

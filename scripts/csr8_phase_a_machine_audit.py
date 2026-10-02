@@ -362,7 +362,11 @@ def main():
             raise RuntimeError('C6 dual-cycle verification did not pass')
         snapshot = 'REVEAL=2 SEAL=2'
     else:
-        c6 = {'c6': 'NOT_RUN'}; snapshot = 'REVEAL=2 SEAL=1'
+        c6 = {'c6': 'NOT_RUN'}
+    # H2-CANARY-FIX1 item 7: snapshot counts derive from the live
+    # persisted chain (stale hardcoded phase values removed)
+    snapshot = (f"REVEAL={types.count('REVEAL_PACKET')} "
+                f"SEAL={types.count('SEAL_ANNOTATION')}")
     if len(events) == 4:
         spec = importlib.util.spec_from_file_location('d_audit', ROOT / 'scripts/csr8_phase_d_progressive_loop.py')
         dmod = importlib.util.module_from_spec(spec); spec.loader.exec_module(dmod)

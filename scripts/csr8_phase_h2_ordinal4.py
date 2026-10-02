@@ -50,7 +50,6 @@ evidence_profile = BASE_V1+NATIONAL_CTX_V1）。
 
 import argparse
 import datetime as _dt
-import csv
 import hashlib
 import json
 import os
@@ -83,6 +82,11 @@ SIDECAR = CAMPAIGN / 'h2' / 'national_context' / \
     'ordinal-0004-national-ctx-v1.json'
 SUPPORT_MAP = CAMPAIGN / 'h2' / 'context_support_map.json'
 NC_BUILDER = ROOT / 'scripts' / 'build_national_capital_context.py'
+# NC-ERRATUM-1 (H2-CANARY-FIX1): annotate builds sidecars with the v1e
+# successor builder (explicit stock_layer_summary enum, in-band); the
+# frozen v1 builder above remains the verifier for the sealed prefix.
+NC_BUILDER_V1E = (ROOT / 'scripts'
+                  / 'build_national_capital_context_v1e.py')
 NC_PREFLIGHT_EVIDENCE = ROOT / 'docs' / 'audit' / 'evidence' / \
     'national_capital_context_preflight.json'
 NC_FREEZE_EVIDENCE = ROOT / 'docs' / 'audit' / 'evidence' / \
@@ -426,60 +430,6 @@ def _candidate_pool_bytes():
     return (c4ab_mod.c4ab.C3_STATE / 'packets' / f'{pid}.json').read_bytes()
 
 
-def _stock_layer_summary():
-    """Blinded selector-side derivation (identity never leaves this
-    function): classify the stock capital layer for the ordinal-4
-    candidate at T.  Returns an enum string + latest visible period."""
-    cand = c4d.candidate_for_ordinal(ORDINAL)
-    ocid, T = cand['opaque_case_id'], cand['T']
-    salt = c4d.c1.load_salt()
-    plan = json.loads(c4d.c1.PLAN_FILE.read_text())
-    matches = [e for e in plan['entries']
-               if c4d.c1.opaque_case_id(salt, e['case_key']) == ocid
-               and e['T'] == T]
-    if len(matches) != 1:
-        fail('candidate identity resolution is not unique',
-             'G-H2-ANNOTATE')
-    stock_code = matches[0]['case_key'].split('|')[1]
-    out = ROOT / 'output' / 'research' / 'csr' / 'national_capital'
-    ledger = [r for r in csv.DictReader(
-        (out / 'holdings_coverage_ledger.csv').open())
-        if r['stock_code'] == stock_code]
-    pit = [r for r in csv.DictReader(
-        (out / 'national_holdings_pit.csv').open())
-        if r['stock_code'] == stock_code]
-    pub = {(r['stock_code'], r['report_period']): r for r in
-           csv.DictReader((out / 'publication_dates.csv').open())}
-    cal = sorted(x.strip() for x in
-                 (ROOT / 'output/research/csr/08_pilot_cases/phase_b/'
-                  'ingest_rt/frozen_exchange_calendar.csv')
-                 .read_text().splitlines()[3:] if x.strip())
-
-    def avail(period):
-        rs = [r for r in pit if r['report_period'] == period
-              and r.get('available_date') not in ('', 'UNKNOWN')]
-        if rs:
-            return min(r['available_date'] for r in rs)
-        d = pub.get((stock_code, period), {}).get('publication_date', '')
-        d = f'{d[:4]}-{d[4:6]}-{d[6:]}' if len(d) == 8 else d
-        return next((x for x in cal if x > d), '')
-
-    cells = sorted(
-        [(avail(r['report_period']), r['report_period'], r['source_status'])
-         for r in ledger if avail(r['report_period'])
-         and avail(r['report_period']) <= T])
-    if not cells:
-        return 'NO_PIT_VISIBLE_REPORT', ''
-    _, period, status = cells[-1]
-    if status != 'SUCCESS_NONEMPTY':
-        return 'SOURCE_UNAVAILABLE', period
-    actors = [r for r in pit if r['report_period'] == period
-              and r.get('actor_id')]
-    if actors:
-        return 'NATIONAL_ACTORS_PRESENT', period
-    return 'NO_NATIONAL_ACTOR_IN_LATEST_VISIBLE_TOP10', period
-
-
 def _validate_support_map(m, sidecar, pool_sha):
     if not isinstance(m, dict) or set(m) != SUPPORT_MAP_TOP:
         fail(f'support map closed-world schema violation: '
@@ -510,8 +460,14 @@ def _validate_support_map(m, sidecar, pool_sha):
     if not all(isinstance(x, str) and x in ids for x in refs):
         fail('support map references unknown context records',
              'G-H2-SUPPORT')
-    if len(refs) != len(set(refs)):
-        fail('support map has duplicate references', 'G-H2-SUPPORT')
+    # NC-ERRATUM-1 (H2-CANARY-FIX1 item 4): the SAME context record MAY
+    # support several hypotheses (one stock record legitimately backs
+    # rt_H01/rt_H02/rt_H05/rt_H06); duplicates are only forbidden
+    # WITHIN a single hypothesis reference list.
+    for hid, jrefs in m['judgments'].items():
+        if len(jrefs) != len(set(jrefs)):
+            fail(f'support map has duplicate references within '
+                 f'{hid}', 'G-H2-SUPPORT')
     return len(refs)
 
 
@@ -529,24 +485,27 @@ def cmd_annotate():
         fail('annotator domain already populated (one-shot annotate)')
     c4d.handoff(CSR, SID, bytes_override=pool)
 
-    # NATIONAL_CTX_V1 sidecar via the FROZEN NC builder (subprocess,
-    # blinded stdout: out/packet_id/records/commitment only)
+    # NATIONAL_CTX_V1e sidecar via the erratum builder (NC-ERRATUM-1:
+    # explicit stock_layer_summary enum in-band; NO selector-side
+    # derivation is permitted anywhere in the annotation path —
+    # H2-CANARY-FIX1 item 2)
     if SIDECAR.exists():
         fail('sidecar already exists (O_EXCL)')
     SIDECAR.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
     res = subprocess.run(
-        [sys.executable, str(NC_BUILDER), '--ordinal', str(ORDINAL),
+        [sys.executable, str(NC_BUILDER_V1E), '--ordinal', str(ORDINAL),
          '--out', str(SIDECAR)],
         check=True, capture_output=True, text=True, cwd=str(ROOT))
     if not SIDECAR.is_file():
         fail('NC builder did not produce the sidecar', 'G-H2-ANNOTATE')
     os.chmod(SIDECAR, 0o600)
     sidecar = json.loads(SIDECAR.read_bytes())
-    # determinism: the frozen builder must reproduce byte-identical output
+    # determinism: the erratum builder must reproduce byte-identical
+    # output
     import tempfile as _tf
     _tmp = Path(_tf.mkdtemp()) / 'sidecar.json'
     subprocess.run(
-        [sys.executable, str(NC_BUILDER), '--ordinal', str(ORDINAL),
+        [sys.executable, str(NC_BUILDER_V1E), '--ordinal', str(ORDINAL),
          '--out', str(_tmp)],
         check=True, capture_output=True, text=True, cwd=str(ROOT))
     if _tmp.read_bytes() != SIDECAR.read_bytes():
@@ -554,16 +513,29 @@ def cmd_annotate():
              'G-H2-ANNOTATE')
     if sidecar.get('packet_id') != r4['payload']['packet_id']:
         fail('sidecar does not bind the R4 packet_id', 'G-H2-ANNOTATE')
-    pre = json.loads(NC_PREFLIGHT_EVIDENCE.read_bytes())
-    if sidecar.get('context_commitment_sha256') != \
-            pre.get('context_commitment_sha256'):
-        fail('sidecar commitment != frozen NC preflight commitment',
+    if sidecar.get('context_version') != 'csr8-national-capital-v1e':
+        fail('sidecar is not a v1e (NC-ERRATUM-1) sidecar',
              'G-H2-ANNOTATE')
+    # commitment self-consistency (builder-independent re-proof)
+    recomputed = hashlib.sha256(c4d.canon(
+        {k: v for k, v in sidecar.items()
+         if k != 'context_commitment_sha256'}).encode()).hexdigest()
+    if recomputed != sidecar.get('context_commitment_sha256'):
+        fail('sidecar commitment is not self-consistent',
+             'G-H2-ANNOTATE')
+    summary = sidecar.get('stock_layer_summary')
+    if summary not in (
+            'SOURCE_UNAVAILABLE', 'NO_PIT_VISIBLE_REPORT',
+            'NOT_DISCLOSED_IN_LATEST_VISIBLE_TOP10',
+            'NATIONAL_ACTORS_PRESENT'):
+        fail('sidecar lacks a valid stock_layer_summary enum '
+             '(NC-ERRATUM-1 contract)', 'G-H2-ANNOTATE')
+    latest_period = sidecar.get(
+        'stock_layer_summary_report_period', '')
     if sidecar.get('evidence_profile') != EVIDENCE_PROFILE:
         fail('sidecar evidence_profile mismatch', 'G-H2-ANNOTATE')
     n_stock = len(sidecar['stock_capital_records'])
     n_market = len(sidecar['market_etf_records'])
-    summary, latest_period = _stock_layer_summary()
 
     # annotation session registry (opaque session id; blinded bindings)
     reg_path = c4d.annot_dom(CSR, SID) / 'annotation_session_registry.json'
@@ -592,9 +564,15 @@ def cmd_annotate():
     # blinded LLM annotation (executor judgment over blinded surfaces
     # only): every judgment cites packet pointers; national-context
     # linkage is recorded separately in the support map.
-    stock_note = (f'NATIONAL_CTX_V1 stock layer at T: {summary}'
+    # disclosure-semantics wording (NC-ERRATUM-1): a NOT_DISCLOSED_*
+    # summary is a disclosure fact, NOT evidence of absence.
+    stock_note = (f'NATIONAL_CTX_V1e stock layer at T: {summary}'
                   + (f' (period {latest_period})' if latest_period else '')
-                  + f'; stock records: {n_stock}.')
+                  + f'; stock records: {n_stock}.'
+                  + (' Non-disclosure in the latest PIT-visible top-10 '
+                     'is not evidence that holdings do not exist.'
+                     if summary == 'NOT_DISCLOSED_IN_LATEST_VISIBLE_TOP10'
+                     else ''))
     market_note = (f'market layer: {n_market} SSE ETF share snapshots '
                    'PIT-visible to T, actor attribution FORBIDDEN.')
     judgments = [
@@ -626,8 +604,10 @@ def cmd_annotate():
          'observability': 'OBSERVABLE',
          'support': 'NOT_OBSERVED',
          'evidence_refs': ['/as_of/T'],
-         'evidence_note': ('No national-actor holdings at T, so no '
-                           'distribution evidence. ' + stock_note)},
+         'evidence_note': ('No national-actor holdings disclosed in the '
+                           'latest PIT-visible report at T, so no '
+                           'distribution evidence; non-disclosure is not '
+                           'evidence of absence. ' + stock_note)},
         {'hypothesis_id': 'rt_H06',
          'observability': 'OBSERVABLE',
          'support': 'NOT_OBSERVED',
@@ -903,7 +883,10 @@ def cmd_verify():
         fail('annotator workspace not cleaned', 'G-H2-CLEANUP')
     c4d.post_seal_final(CSR, SID)
 
-    # NC extension re-proof: sidecar + support map against R4 payload
+    # NC extension re-proof against the SEALED v1 sidecar (ordinal-4 was
+    # sealed under the pre-erratum contract; NC-ERRATUM-1 applies from
+    # ordinal-5 — see docs/audit/evidence/national_capital_context_
+    # erratum_1.json and h2_ordinal4_canary_status.json)
     r4 = reveals[3]
     od = c4d.ordinal_dir(CSR, SID, ORDINAL)
     sidecar_ev = json.loads((od / 'national_ctx_v1.json').read_bytes())
@@ -912,6 +895,16 @@ def cmd_verify():
     if sidecar_ev.get('packet_id') != r4['payload']['packet_id'] or \
             sidecar_ev.get('ordinal') != ORDINAL:
         fail('archived sidecar does not bind R4 packet', 'G-H2-NC')
+    # frozen-builder re-proof of the sealed v1 sidecar bytes
+    import tempfile as _tf2
+    _tmp2 = Path(_tf2.mkdtemp()) / 'sealed_sidecar.json'
+    subprocess.run(
+        [sys.executable, str(NC_BUILDER), '--ordinal', str(ORDINAL),
+         '--out', str(_tmp2)],
+        check=True, capture_output=True, text=True, cwd=str(ROOT))
+    if _tmp2.read_bytes() != (od / 'national_ctx_v1.json').read_bytes():
+        fail('sealed v1 sidecar is not reproducible by the frozen '
+             'builder', 'G-H2-NC')
     if sidecar_ev.get('context_commitment_sha256') != \
             pre.get('context_commitment_sha256'):
         fail('archived sidecar commitment != frozen preflight',
