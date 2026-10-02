@@ -13,7 +13,7 @@ CLI:
   --build-manifest --captures-root PATH --manifest OUT.json
   --verify --archive X.tar.gz --manifest M.json --samples samples.json
 """
-import argparse, hashlib, json, sys, tarfile, tempfile
+import argparse, hashlib, json, re, sys, tarfile, tempfile
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -21,8 +21,22 @@ import csr8_batch_h_orchestrator as orch
 
 ARCHIVE_ID = 'batch-h-b2-evidence-archive-v1'
 
+
+def batch_name_for_root(root):
+    name = Path(root).name
+    if not re.fullmatch(r'batch[1-9][0-9]*', name):
+        raise ValueError('captures root must be captures/batchN, got: %s' % root)
+    return name
+
+
 def archive_id_for_root(root):
-    return 'batch-h-b3-evidence-archive-v1' if Path(root).name == 'batch3' else ARCHIVE_ID
+    return 'batch-h-b%s-evidence-archive-v1' % batch_name_for_root(root)[5:]
+
+
+def archive_id_for_batch(batch):
+    if not re.fullmatch(r'batch[1-9][0-9]*', batch):
+        raise ValueError('invalid batch name: %s' % batch)
+    return 'batch-h-b%s-evidence-archive-v1' % batch[5:]
 
 OPS = {'next_reveal': 'NEXT_REVEAL', 'annotation': 'ANNOTATION',
        'receipt': 'RECEIPT', 'seal': 'SEAL', 'post_seal': 'POST_SEAL'}
@@ -34,7 +48,7 @@ def digest(b): return hashlib.sha256(b).hexdigest()
 def classify(rel):
     p = Path(rel)
     parts = p.parts
-    if len(parts) != 4 or parts[0] != 'captures' or parts[1] not in ('batch2', 'batch3'):
+    if len(parts) != 4 or parts[0] != 'captures' or not re.fullmatch(r'batch[1-9][0-9]*', parts[1]):
         raise ValueError('unexpected path in archive: %s' % rel)
     fname = parts[-1]
     if parts[2] == 'frozen':
@@ -97,9 +111,10 @@ def _safe_members(tf):
 
 def verify(archive_path, manifest_path, samples_path, descriptor_path=None):
     m = json.loads(Path(manifest_path).read_text())
-    if m.get('archive_id') not in (ARCHIVE_ID, 'batch-h-b3-evidence-archive-v1'):
-        raise ValueError('unknown archive id')
-    batch_root = 'batch3' if m['archive_id'].endswith('b3-evidence-archive-v1') else 'batch2'
+    match = re.fullmatch(r'batch-h-b([1-9][0-9]*)-evidence-archive-v1', m.get('archive_id', ''))
+    batch_root = 'batch' + match.group(1) if match else None
+    if not match or m['archive_id'] != archive_id_for_batch(batch_root):
+        raise ValueError('unknown or non-canonical archive id')
     if descriptor_path:
         d = json.loads(Path(descriptor_path).read_text())
         rc = d['root_commitment']
@@ -134,18 +149,24 @@ def verify(archive_path, manifest_path, samples_path, descriptor_path=None):
             if s['reviewer_run_id'] in prefix or s['reviewer_session_id'] in prefix:
                 raise ValueError('premature ID resurfaces in archive verify')
             verified += 1
-        # Batch 2 has the ordinal-21 failed-spawn incident; Batch 3 has no incident.
-        inc = [f for f in m['files'] if f['ordinal'] == 21 and f['operation'] == 'RECEIPT' and f['attempt'] == 1]
-        if batch_root == 'batch2':
-            if len(inc) != 3:
-                raise ValueError('incident capture set incomplete: %d files' % len(inc))
-            orch._read_snapshot(root / 'captures/batch2/o21/receipt.snapshot.json',
-                                root / 'captures/batch2/o21/receipt.anchor.json')
-            incident_status = 'VERIFIED'
-        else:
-            if inc:
-                raise ValueError('unexpected incident capture in clean batch3 archive')
-            incident_status = 'NONE'
+        # Incident captures are discovered from manifest metadata, not batch number.
+        incident_sets = {(f['ordinal'], f['operation'], f['attempt'])
+                         for f in m['files'] if f['attempt'] > 1}
+        # A retry attempt is retained as evidence; its attempt-1 counterpart is
+        # an incident only when the manifest contains the complete triplet.
+        incident_status = 'NONE'
+        for ordinal, operation, attempt in sorted(incident_sets):
+            if attempt != 2:
+                continue
+            base = [f for f in m['files'] if f['ordinal'] == ordinal and f['operation'] == operation and f['attempt'] == 1]
+            retry = [f for f in m['files'] if f['ordinal'] == ordinal and f['operation'] == operation and f['attempt'] == 2]
+            if len(base) == 3 and len(retry) == 3:
+                snap = next(f['path'] for f in base if f['role'] == 'snapshot')
+                anch = next(f['path'] for f in base if f['role'] == 'anchor')
+                orch._read_snapshot(root / snap, root / anch)
+                incident_status = 'VERIFIED'
+            elif base or retry:
+                raise ValueError('incomplete retry/incident capture set: %s' % ((ordinal, operation),))
         verdict = {'status': 'PASS', 'archive_id': m['archive_id'],
                    'manifest_sha256': digest(Path(manifest_path).read_bytes()),
                    'archive_sha256': digest(Path(archive_path).read_bytes()),
