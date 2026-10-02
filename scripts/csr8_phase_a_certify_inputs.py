@@ -84,6 +84,8 @@ PROTECTED_ARTIFACTS = (
 # 域是后续阶段，均仍禁止）。
 C4D_PROPOSAL_ALLOWLIST = (
     'c4d_proposals/c4-prod-0002/ordinal-0002/next_reveal.proposal.json',
+    'c4d_proposals/c4-prod-0002/ordinal-0003/next_reveal.proposal.json',
+    'c4d_proposals/c4-prod-0002/ordinal-0004/next_reveal.proposal.json',
 )
 
 

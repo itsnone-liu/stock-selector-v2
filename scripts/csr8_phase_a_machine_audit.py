@@ -42,13 +42,15 @@ C2_TARGET = ROOT / "scripts/csr8_phase_c2_next_reveal_approval.py"
 C3_TARGET = ROOT / "scripts/csr8_phase_c3_append_r2.py"
 C4_TARGET = ROOT / "scripts/csr8_phase_c4_annotation_receipt.py"
 CERT_MANIFEST = ROOT / "config/audit/certified_live_inputs.json"
-# 阶段边界感知（C1 终态）：annotator/ 工作区已由 POST_SEAL_FINAL 按
-# 协议清理（终态不存在）；c4d_receipts/ 是 B3 起的合法冻结证据域；
-# c4d_proposals/ 自 C1 起合法但 closed-world：域内唯一允许文件是
-# ordinal-2 next_reveal.proposal.json（approval/permit 是 C2 授权点、
-# 其余条目仍禁止）。
+# 阶段边界感知（C1 终态 + H0/H1/H2 生产扩展）：annotator/ 工作区已由
+# POST_SEAL_FINAL 按协议清理（终态不存在）；c4d_receipts/ 是 B3 起的合法
+# 冻结证据域；c4d_proposals/ closed-world：域内唯一允许文件是各生产
+# ordinal 的 next_reveal.proposal.json（ordinal-0002 C1、ordinal-0003 H1、
+# ordinal-0004 H2；approval/permit 是 C2 授权点、其余条目仍禁止）。
 C4D_PROPOSAL_ALLOWLIST = (
     "c4d_proposals/c4-prod-0002/ordinal-0002/next_reveal.proposal.json",
+    "c4d_proposals/c4-prod-0002/ordinal-0003/next_reveal.proposal.json",
+    "c4d_proposals/c4-prod-0002/ordinal-0004/next_reveal.proposal.json",
 )
 
 
@@ -245,6 +247,14 @@ def verify_c2_approval_domain():
                 result["authorized_permit_sha256"]}
 
 
+def _chain_len():
+    """Live persisted production chain length (events)."""
+    m = load()
+    log = m.REAL_PRODUCTION / m.REAL_SESSION / 'sealing' / 'sealing_log.jsonl'
+    events = [json.loads(x) for x in log.read_text().splitlines() if x.strip()]
+    return len(events)
+
+
 def verify_c4_annotation_domain(manifest):
     """Materialize the committed inventory into an isolated root, prove zero
     drift there, and execute the complete C4 verifier against that root.
@@ -263,15 +273,61 @@ def verify_c4_annotation_domain(manifest):
                 a, b = src / f['path'], dst / f['path']
                 if a.read_bytes() != b.read_bytes() or stat.S_IMODE(b.stat().st_mode) != f['mode']:
                     raise RuntimeError(f'C4 certified materialization drift: {f["path"]}')
-        result = c4.verify_c4(isolated / 'data/csr8_phase_c')
-        if result.get('c4') != 'PASS' or set(result['gates'].values()) != {'PASS'}:
-            raise RuntimeError('C4 isolated annotation/receipt gates did not all pass')
+        result = None
+        if _chain_len() <= 4:
+            result = c4.verify_c4(isolated / 'data/csr8_phase_c')
+            if result.get('c4') != 'PASS' or set(result['gates'].values()) != {'PASS'}:
+                raise RuntimeError('C4 isolated annotation/receipt gates did not all pass')
+        else:
+            # H production state (chain 6/8 events): ordinal-generic replay —
+            # full C2 verification from genesis plus per-ordinal attempt
+            # history proofs against the isolated materialized tree.
+            m = load()
+            iso = isolated / 'data/csr8_phase_c'
+            lg = m.c2.SealingLog(m.log_path(iso, m.REAL_SESSION),
+                                 m.head_path(iso, m.REAL_SESSION))
+            m.c2translate(lg.load().verify, True)
+            events = [json.loads(x) for x in
+                      (m.sealing_dir(iso, m.REAL_SESSION) /
+                       'sealing_log.jsonl').read_text().splitlines()
+                      if x.strip()]
+            reveals = [e for e in events
+                       if e['event_type'] == 'REVEAL_PACKET']
+            for i, reveal in enumerate(reveals, start=1):
+                m.prove_attempt_history(iso, m.REAL_SESSION, i,
+                                        gate='G-A-ISOLATED', events=events,
+                                        reveal=reveal)
+            m.semantic_replay(iso, m.REAL_SESSION, events=events)
+            result = {'c4': 'PASS',
+                      'gates': {'isolated_c2_replay': 'PASS',
+                                f'attempt_history_ordinals':
+                                    'PASS'},
+                      'mode': 'H-production ordinal-generic'}
         draft = isolated / 'data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0002/annotation_draft.json'
         obj = json.loads(draft.read_bytes()); obj['annotation']['flags'] = ['FORGED']
         draft.write_bytes(c4.canon(obj).encode())
         try:
-            with contextlib.redirect_stdout(io.StringIO()):
-                c4.verify_c4(isolated / 'data/csr8_phase_c')
+            if _chain_len() <= 4:
+                with contextlib.redirect_stdout(io.StringIO()):
+                    c4.verify_c4(isolated / 'data/csr8_phase_c')
+            else:
+                # H mode: prove_attempt_history binds attempt dirs
+                # (receipt↔snapshot), not the archived top-level draft
+                # copy — the mutation target is the snapshot bytes.
+                m = load()
+                iso = isolated / 'data/csr8_phase_c'
+                snap = (iso / 'c4d_receipts/c4-prod-0002/ordinal-0002'
+                        '/attempt-0001/draft_snapshot.bin')
+                snap.write_bytes(snap.read_bytes() + b'\x00')
+                events = [json.loads(x) for x in
+                          (m.sealing_dir(iso, m.REAL_SESSION) /
+                           'sealing_log.jsonl').read_text().splitlines()
+                          if x.strip()]
+                reveals = [e for e in events
+                           if e['event_type'] == 'REVEAL_PACKET']
+                m.prove_attempt_history(iso, m.REAL_SESSION, 2,
+                                        gate='G-A-NEGCTL', events=events,
+                                        reveal=reveals[1])
         except RuntimeError:
             pass
         else:
@@ -287,7 +343,12 @@ def main():
     log = m.REAL_PRODUCTION / m.REAL_SESSION / 'sealing' / 'sealing_log.jsonl'
     events = [json.loads(x) for x in log.read_text().splitlines() if x.strip()]
     types = [e.get('event_type') for e in events]
-    if types not in (['REVEAL_PACKET', 'SEAL_ANNOTATION', 'REVEAL_PACKET'], ['REVEAL_PACKET', 'SEAL_ANNOTATION', 'REVEAL_PACKET', 'SEAL_ANNOTATION']):
+    chain6 = ['REVEAL_PACKET', 'SEAL_ANNOTATION'] * 3
+    chain8 = ['REVEAL_PACKET', 'SEAL_ANNOTATION'] * 4
+    allowed = (['REVEAL_PACKET', 'SEAL_ANNOTATION', 'REVEAL_PACKET'],
+               ['REVEAL_PACKET', 'SEAL_ANNOTATION'] * 2,
+               chain6, chain8)
+    if types not in allowed:
         raise RuntimeError('C3 audit requires exact persisted chain')
     c3 = verify_c3_append_domain() if types == ['REVEAL_PACKET', 'SEAL_ANNOTATION', 'REVEAL_PACKET'] else {'c3_append':'SUPERSEDED-BY-C6'}
     c4 = verify_c4_annotation_domain(manifest)

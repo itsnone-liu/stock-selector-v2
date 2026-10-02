@@ -1,6 +1,8 @@
 {
   "c4dProposalAllowlist": [
-    "c4d_proposals/c4-prod-0002/ordinal-0002/next_reveal.proposal.json"
+    "c4d_proposals/c4-prod-0002/ordinal-0002/next_reveal.proposal.json",
+    "c4d_proposals/c4-prod-0002/ordinal-0003/next_reveal.proposal.json",
+    "c4d_proposals/c4-prod-0002/ordinal-0004/next_reveal.proposal.json"
   ],
   "campaignClosure": {
     "campaign_dirs": 12,
@@ -9,7 +11,7 @@
     "closed_by": "scripts/csr8_phase_h_close_certified_tree.py",
     "scope": "h_campaign/ + h_campaign_archive/ entries only (review-surface reads under the ForbiddenReadGuard; forbidden-zone pins carried byte-identically from the last audit-layer certification, never opened)"
   },
-  "fileCount": 10595,
+  "fileCount": 10616,
   "forbiddenPrefixes": [],
   "generator": "scripts/csr8_phase_a_certify_inputs.py",
   "h1Closure": {
@@ -18,6 +20,13 @@
     "scope": "production/ + c4d_proposals/ + c4d_receipts/ + c4_public/ + h_campaign/ entries only; forbidden-read zones (secret/, outcomes/, analysis_labeled/, corpus/) carried byte-identically from the last audit-layer certification, never opened, never re-hashed",
     "zone_dirs": 32,
     "zone_files": 50
+  },
+  "h2Closure": {
+    "closed_at": "2026-10-02T08:09:24Z",
+    "closed_by": "scripts/csr8_phase_h2_certified_update.py",
+    "scope": "production/ + c4d_proposals/ + c4d_receipts/ + c4_public/ + h_campaign/ entries only (ordinal-4 H2 canary: R4/S4 chain append, bin hardening seq>=6, h2/ review surface); forbidden-read zones (secret/, outcomes/, analysis_labeled/, corpus/) carried byte-identically from the last audit-layer certification, never opened, never re-hashed",
+    "zone_dirs": 40,
+    "zone_files": 71
   },
   "protectedArtifacts": [
     {
@@ -89,7 +98,7 @@
   ],
   "roots": [
     {
-      "dirCount": 60,
+      "dirCount": 68,
       "dirs": [
         {
           "mode": 493,
@@ -157,6 +166,10 @@
         },
         {
           "mode": 448,
+          "path": "c4d_proposals/c4-prod-0002/ordinal-0004"
+        },
+        {
+          "mode": 448,
           "path": "c4d_receipts"
         },
         {
@@ -186,6 +199,14 @@
         {
           "mode": 448,
           "path": "c4d_receipts/c4-prod-0002/ordinal-0003/attempt-0001"
+        },
+        {
+          "mode": 448,
+          "path": "c4d_receipts/c4-prod-0002/ordinal-0004"
+        },
+        {
+          "mode": 448,
+          "path": "c4d_receipts/c4-prod-0002/ordinal-0004/attempt-0001"
         },
         {
           "mode": 493,
@@ -238,6 +259,22 @@
         {
           "mode": 448,
           "path": "h_campaign/hc-46195669974db3b25610bef4d047d927/h1/reviews"
+        },
+        {
+          "mode": 493,
+          "path": "h_campaign/hc-46195669974db3b25610bef4d047d927/h2"
+        },
+        {
+          "mode": 448,
+          "path": "h_campaign/hc-46195669974db3b25610bef4d047d927/h2/national_context"
+        },
+        {
+          "mode": 448,
+          "path": "h_campaign/hc-46195669974db3b25610bef4d047d927/h2/packets"
+        },
+        {
+          "mode": 448,
+          "path": "h_campaign/hc-46195669974db3b25610bef4d047d927/h2/reviews"
         },
         {
           "mode": 448,
@@ -309,6 +346,10 @@
         },
         {
           "mode": 448,
+          "path": "production/c4-prod-0002/authorization/ordinal-0004"
+        },
+        {
+          "mode": 448,
           "path": "production/c4-prod-0002/sealing"
         },
         {
@@ -332,7 +373,7 @@
           "path": "secret"
         }
       ],
-      "fileCount": 5354,
+      "fileCount": 5375,
       "files": [
         {
           "bytes": 1112,
@@ -31982,7 +32023,7 @@
           "bytes": 223,
           "mode": 384,
           "path": "c4_public/c4d_seal_anchor.json",
-          "sha256": "0ddb7d4fae1ba197f75bd0963cc28c7cede314146d68646f98b60784f59ef76c"
+          "sha256": "f7cca083a96278024a0de58ecd4bb0f540d3dd0cfa4d4ee5faa6f68acb88f360"
         },
         {
           "bytes": 477,
@@ -32001,6 +32042,12 @@
           "mode": 384,
           "path": "c4d_proposals/c4-prod-0002/ordinal-0003/next_reveal.proposal.json",
           "sha256": "1443cb61f97b497ecc68b4a84f7bedcbbfdb21235744c7cc0a3fa5a5fe9ecef7"
+        },
+        {
+          "bytes": 574,
+          "mode": 384,
+          "path": "c4d_proposals/c4-prod-0002/ordinal-0004/next_reveal.proposal.json",
+          "sha256": "a3fb80a140ec647551888dd7613e7fb629c4cd3cccce2dd3d018bb07059936c2"
         },
         {
           "bytes": 1707,
@@ -32091,6 +32138,54 @@
           "mode": 384,
           "path": "c4d_receipts/c4-prod-0002/ordinal-0003/packet.json",
           "sha256": "afb94bd107bce06925173bae3b04d7a0cc321b5620a9026c6b45d90984f9d22b"
+        },
+        {
+          "bytes": 2642,
+          "mode": 384,
+          "path": "c4d_receipts/c4-prod-0002/ordinal-0004/annotation_draft.json",
+          "sha256": "9efb056876a8ea8d3987e1b8d516f789c952f3b0a43b076fbec0e7e7e8bb0b1d"
+        },
+        {
+          "bytes": 816,
+          "mode": 384,
+          "path": "c4d_receipts/c4-prod-0002/ordinal-0004/annotation_session_registry.json",
+          "sha256": "c556e3f785f775b47ffb18af9fb7b790b82963930020c587a6722ba10ddf0251"
+        },
+        {
+          "bytes": 2642,
+          "mode": 384,
+          "path": "c4d_receipts/c4-prod-0002/ordinal-0004/attempt-0001/draft_snapshot.bin",
+          "sha256": "9efb056876a8ea8d3987e1b8d516f789c952f3b0a43b076fbec0e7e7e8bb0b1d"
+        },
+        {
+          "bytes": 2815,
+          "mode": 384,
+          "path": "c4d_receipts/c4-prod-0002/ordinal-0004/attempt-0001/receipt.json",
+          "sha256": "c8f42f71970a8d5fe4b9ea86dd54746e7b274a813647cb5c2e9d16e2d20649b9"
+        },
+        {
+          "bytes": 357,
+          "mode": 384,
+          "path": "c4d_receipts/c4-prod-0002/ordinal-0004/attempt-0001/seal_approval.json",
+          "sha256": "3ba18fb0f061e7549ac9fb640b65a742fe358d1918369ebdcfb720c4ed539a81"
+        },
+        {
+          "bytes": 409,
+          "mode": 384,
+          "path": "c4d_receipts/c4-prod-0002/ordinal-0004/context_support_map.json",
+          "sha256": "0a34008e602b0e142d99fdaeeefd54eb53f6b2171773b02d1d65164097c16cc4"
+        },
+        {
+          "bytes": 6018,
+          "mode": 384,
+          "path": "c4d_receipts/c4-prod-0002/ordinal-0004/national_ctx_v1.json",
+          "sha256": "b5bd3b37aaf5d6b00f1986b60787cb34bc1755a3e50c9ab2e0bee90863dfc553"
+        },
+        {
+          "bytes": 3122,
+          "mode": 384,
+          "path": "c4d_receipts/c4-prod-0002/ordinal-0004/packet.json",
+          "sha256": "22c7cc8a1f9dec5c85c08b400a15509e9350c528650de1f4567b860296bb9f0b"
         },
         {
           "bytes": 7700,
@@ -32237,6 +32332,54 @@
           "sha256": "73106e34e93ff88dc37b79d7b056a2b931fa9886e3579e2603d0265d403adf7d"
         },
         {
+          "bytes": 409,
+          "mode": 384,
+          "path": "h_campaign/hc-46195669974db3b25610bef4d047d927/h2/context_support_map.json",
+          "sha256": "0a34008e602b0e142d99fdaeeefd54eb53f6b2171773b02d1d65164097c16cc4"
+        },
+        {
+          "bytes": 6018,
+          "mode": 384,
+          "path": "h_campaign/hc-46195669974db3b25610bef4d047d927/h2/national_context/ordinal-0004-national-ctx-v1.json",
+          "sha256": "b5bd3b37aaf5d6b00f1986b60787cb34bc1755a3e50c9ab2e0bee90863dfc553"
+        },
+        {
+          "bytes": 2214,
+          "mode": 384,
+          "path": "h_campaign/hc-46195669974db3b25610bef4d047d927/h2/packets/ordinal-0004-next-reveal.json",
+          "sha256": "8bb74e486ba9ec7c5ae7ea8f1a05a39ac0c31359a7cfee2ccc0a420cd5fda7dd"
+        },
+        {
+          "bytes": 372,
+          "mode": 384,
+          "path": "h_campaign/hc-46195669974db3b25610bef4d047d927/h2/reviews/ANNOTATION.verdict.json",
+          "sha256": "ea506d1e152c976dd6e3a8a204b57b95983955e2500f9350bdc0f570a6e9c523"
+        },
+        {
+          "bytes": 374,
+          "mode": 384,
+          "path": "h_campaign/hc-46195669974db3b25610bef4d047d927/h2/reviews/NEXT_REVEAL.verdict.json",
+          "sha256": "700f42fe5341d4dd168a2037cef22c05c16d604e2a3cc3d2df00e6bcae87f576"
+        },
+        {
+          "bytes": 370,
+          "mode": 384,
+          "path": "h_campaign/hc-46195669974db3b25610bef4d047d927/h2/reviews/POST_SEAL.verdict.json",
+          "sha256": "a3c5e05501424a20af8bb622972ee6d4c9bd33a836d1d9361373029559917ea3"
+        },
+        {
+          "bytes": 366,
+          "mode": 384,
+          "path": "h_campaign/hc-46195669974db3b25610bef4d047d927/h2/reviews/RECEIPT.verdict.json",
+          "sha256": "49d2c172020cb305a74a8826e2057a90ab51e9d1c5257014c45808406296d19a"
+        },
+        {
+          "bytes": 360,
+          "mode": 384,
+          "path": "h_campaign/hc-46195669974db3b25610bef4d047d927/h2/reviews/SEAL.verdict.json",
+          "sha256": "05ce44412b0518eb59581d5a5a1ee1a13fa1fa7b87b8fc251093d87f9896d33b"
+        },
+        {
           "bytes": 574,
           "mode": 384,
           "path": "h_campaign/hc-46195669974db3b25610bef4d047d927/ordinal_0003/next_reveal.proposal.staged.json",
@@ -32249,10 +32392,10 @@
           "sha256": "521a9eb3e7258f6f5ef7b1c8797e19bbc417ec111bce4f9c7e39c32d397c3198"
         },
         {
-          "bytes": 3752,
+          "bytes": 6471,
           "mode": 384,
           "path": "h_campaign/hc-46195669974db3b25610bef4d047d927/reviews.jsonl",
-          "sha256": "98e0787effa95977670d45f883a7a402902875fc155c6474c45571c969182f08"
+          "sha256": "f75c26765bcb8ccd5c4a0397b0eacd0f4539f5acdf47298641bd181751fd3252"
         },
         {
           "bytes": 410,
@@ -32375,6 +32518,18 @@
           "sha256": "1443cb61f97b497ecc68b4a84f7bedcbbfdb21235744c7cc0a3fa5a5fe9ecef7"
         },
         {
+          "bytes": 358,
+          "mode": 384,
+          "path": "production/c4-prod-0002/authorization/ordinal-0004/next_reveal.approval.json",
+          "sha256": "e2d1310dcd26c0387fb5d4430cacdc5a6a89732778077e72d1cb908eb794ea1d"
+        },
+        {
+          "bytes": 574,
+          "mode": 384,
+          "path": "production/c4-prod-0002/authorization/ordinal-0004/next_reveal.permit.json",
+          "sha256": "a3fb80a140ec647551888dd7613e7fb629c4cd3cccce2dd3d018bb07059936c2"
+        },
+        {
           "bytes": 327,
           "mode": 256,
           "path": "production/c4-prod-0002/first_candidate_record.json",
@@ -32399,6 +32554,12 @@
           "sha256": "afb94bd107bce06925173bae3b04d7a0cc321b5620a9026c6b45d90984f9d22b"
         },
         {
+          "bytes": 3122,
+          "mode": 256,
+          "path": "production/c4-prod-0002/sealing/bytes/reveal_packet/6.bin",
+          "sha256": "22c7cc8a1f9dec5c85c08b400a15509e9350c528650de1f4567b860296bb9f0b"
+        },
+        {
           "bytes": 1880,
           "mode": 256,
           "path": "production/c4-prod-0002/sealing/bytes/seal_annotation/1.bin",
@@ -32417,16 +32578,22 @@
           "sha256": "35a5001210ce303b5e9a07add6c6b32aa7df519a8d191180ce9aad44c208442a"
         },
         {
+          "bytes": 2815,
+          "mode": 256,
+          "path": "production/c4-prod-0002/sealing/bytes/seal_annotation/7.bin",
+          "sha256": "c8f42f71970a8d5fe4b9ea86dd54746e7b274a813647cb5c2e9d16e2d20649b9"
+        },
+        {
           "bytes": 90,
           "mode": 256,
           "path": "production/c4-prod-0002/sealing/sealing_log.head.json",
-          "sha256": "8ccf653d11a83caa7fa1e9d5f9fee4ad35659774af7599303730a878ea6ed3c1"
+          "sha256": "6bb55782b959cffc814d86f20d19e7f4f3e1958244e022fa869c7c61b573132b"
         },
         {
-          "bytes": 4346,
+          "bytes": 5827,
           "mode": 256,
           "path": "production/c4-prod-0002/sealing/sealing_log.jsonl",
-          "sha256": "f8372fe14ed9e5ee848c53298757b8b41bc702978fed84a307ce9f83f5bc26b1"
+          "sha256": "1cc7becab3c92d5cddf38f0202b85863683be71ba00e123b0afb2559f4f2e0ad"
         },
         {
           "bytes": 1001,
@@ -32460,7 +32627,7 @@
         }
       ],
       "root": "data/csr8_phase_c",
-      "totalBytes": 349595454
+      "totalBytes": 349636401
     },
     {
       "dirCount": 1,
@@ -63923,6 +64090,6 @@
       "totalBytes": 463928909
     }
   ],
-  "totalBytes": 813524363,
+  "totalBytes": 813565310,
   "version": 2
 }
