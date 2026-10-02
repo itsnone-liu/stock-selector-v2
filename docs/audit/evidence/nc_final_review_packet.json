@@ -1,12 +1,12 @@
 {
   "review_version": "csr8-nc-final-review-v1",
   "operation": "NC_FINAL",
-  "audit_target_commit": "f4e8b8fadaa1bde06c1028b462c195b7f61fec52",
-  "base_infra_freeze": "NC-FIX3_REVIEW_TARGET",
+  "audit_target_commit": "93320541fd7fcb29d05508b933af2d0a38405102",
+  "base_infra_freeze": "cd7f2a5db0fddee824bd1e5ce6da0f8bcd7431ca",
   "nc0_pause_head": "37f625beec6ca022a791bfc26e99d6fbc38943b8a5a43e6fce14fc2b0ca198a8",
-  "final_audit_sha256": "070a8b6cea997bfaed055a2dd4d4ed71f6ac2d117a164e18b31db37a9e203859",
-  "context_preflight_sha256": "e86ea32d8576588822c53438557234900ec4452998f047aa341e4fd7e3af35b8",
-  "support_contract_report_sha256": "2896660782e0401b41ab315848e3e37e37eb548a09ce1684204336fe019aa7f4",
+  "final_audit_sha256": "f35d3c1823b57336f9ed6b5edd261d7dd46e4b186db35a2e864c6e0718bf504f",
+  "context_preflight_sha256": "3efb2f1b0a30bca5ebe9e84d55ef2fd0dfb2295b66a03ba6416314267a7769ec",
+  "support_contract_report_sha256": "f80a56a00bea91402dfb89c8de0dd18489e05fecf4141117853c70a4a9cf182b",
   "artifact_commitments": {
     "config/csr/national_actor_registry_v1.json": "b818d02dd67875aad12abe255ea24f416b7a4bfc6f2da04eb6ba156e6d0a80e6",
     "output/research/csr/national_capital/holdings_coverage_ledger.csv": "07e4ef74fd8c84c015dce8b4157ccb271bf27e1971d9491de95a1decf7d7c47e",
@@ -29,8 +29,8 @@
     },
     "passed": true,
     "production_invariance": "PASS",
-    "current_git_head": "8f8d76b92f874365070953fe4d78b31169243b4e"
+    "current_git_head": "93320541fd7fcb29d05508b933af2d0a38405102"
   },
   "no_r4_s4": true,
-  "review_packet_sha256": "baeabaf7917e15c0bcf414298e6f81c08caa0154549dc72eb2778977b07bd2c0"
+  "review_packet_sha256": "85dc1acd273a7ae432480467c347726d751af08da896627b5adc0319c5fe9d42"
 }

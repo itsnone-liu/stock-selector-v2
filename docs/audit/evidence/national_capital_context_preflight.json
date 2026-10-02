@@ -1,15 +1,18 @@
 {
   "ordinal": 4,
-  "packet_id": "eb9b2de22514ba51aad7888dd342a2189465ef90798568816f2a42037db3d1e1",
-  "deterministic": true,
-  "commitment_exact": true,
-  "forbidden_keys": false,
-  "no_r4_created": true,
-  "live_chain_still_6_events": true,
-  "candidate_binding_exact": true,
-  "as_of_exact": true,
-  "all_available_date_le_T": true,
-  "etf_actor_attribution_forbidden": true,
+  "packet_id": "a0a9369fc8959af8d0adc2675b620f938e2b4704bf84eccfcb889e5b61c843e5",
+  "checks": {
+    "candidate_binding_exact": true,
+    "as_of_exact": true,
+    "deterministic_bytes": true,
+    "context_commitment_exact": true,
+    "recursive_forbidden_key_scan": true,
+    "all_available_date_le_T": true,
+    "no_outside_calendar_rows": true,
+    "etf_actor_attribution_forbidden": true,
+    "live_chain_still_6_events": true,
+    "no_r4_s4": true
+  },
   "status": "PASS",
-  "context_commitment_sha256": "a3310bf2c6ef34773b47a404c56d33370961c8564b0db2c6999f5f5b48dcdc16"
+  "context_commitment_sha256": "365b2d5b0aaf742ffe1692440fb453dadeb40c7d474fccab7aa2d576c6c168c7"
 }
