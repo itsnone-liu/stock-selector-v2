@@ -242,7 +242,30 @@ def require_verdict(op, expected_sha, gate):
 
 
 def packet_sha():
+    """SHA of the NEXT_REVEAL review packet (not the C3 pool)."""
     return sha(PACKET.read_bytes())
+
+
+def current_reveal_packet_sha(evs=None):
+    """The annotation envelope's packet component: revealed C3 pool bytes."""
+    evs = events() if evs is None else evs
+    reveals = [e for e in evs if e.get('event_type') == 'REVEAL_PACKET']
+    if not reveals:
+        fail('current reveal event missing', 'G-H3-ENVELOPE')
+    value = reveals[-1].get('payload', {}).get('packet_sha256')
+    if not isinstance(value, str) or len(value) != 64 or \
+            any(c not in '0123456789abcdef' for c in value):
+        fail('current reveal packet_sha256 is not lowercase sha256',
+             'G-H3-ENVELOPE')
+    return value
+
+
+def annotation_envelope_for_current_reveal(sidecar, support_path, draft_path,
+                                            evs=None):
+    return annotation_envelope_sha256(
+        current_reveal_packet_sha(evs),
+        sidecar['context_commitment_sha256'],
+        sha(support_path), sha(draft_path))
 
 
 # ---------------------------------------------------------------------------
@@ -792,9 +815,8 @@ def cmd_receipt():
         fail('active draft missing')
     dbytes = dp.read_bytes()
     sidecar = json.loads(SIDECAR.read_bytes())
-    envelope = annotation_envelope_sha256(
-        packet_sha(), sidecar['context_commitment_sha256'],
-        sha(SUPPORT_MAP.read_bytes()), sha(dbytes))
+    envelope = annotation_envelope_for_current_reveal(
+        sidecar, SUPPORT_MAP, dp, evs)
     require_verdict('ANNOTATION', envelope, 'G-H3-RECEIPT')
 
     od = c4d.ordinal_dir(CSR, SID, ORDINAL)
@@ -1006,11 +1028,9 @@ def cmd_verify():
     # verdicts: all five operations, exact bindings; ANNOTATION binds
     # the composite envelope rather than draft bytes alone.
     draft_ev = (od / 'annotation_draft.json').read_bytes()
-    envelope_ev = annotation_envelope_sha256(
-        r5['payload']['packet_sha256'],
-        sidecar_ev['context_commitment_sha256'],
-        sha((od / 'context_support_map.json').read_bytes()),
-        sha(draft_ev))
+    envelope_ev = annotation_envelope_for_current_reveal(
+        sidecar_ev, od / 'context_support_map.json',
+        od / 'annotation_draft.json', evs)
     require_verdict('NEXT_REVEAL', packet_sha(), 'G-H3-VERDICTS')
     require_verdict('ANNOTATION', envelope_ev, 'G-H3-VERDICTS')
     require_verdict('RECEIPT', sha(rbytes), 'G-H3-VERDICTS')

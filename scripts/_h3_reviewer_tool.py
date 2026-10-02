@@ -15,6 +15,8 @@ def now(): return datetime.datetime.now(datetime.timezone.utc).strftime('%Y-%m-%
 def main():
     ap=argparse.ArgumentParser(); ap.add_argument('op',choices=sorted(OPS)); ap.add_argument('expected'); a=ap.parse_args()
     REVIEWS.mkdir(parents=True,exist_ok=True,mode=0o700)
+    if len(a.expected) != 64 or any(c not in '0123456789abcdef' for c in a.expected):
+        raise SystemExit('expected must be a lowercase 64-hex sha256')
     run='reviewer_'+now().replace('-','').replace(':','').replace('T','_').replace('Z','')+'_h3_'+a.op.lower()+'_'+secrets.token_hex(4)
     session='subagent-'+secrets.token_hex(8)
     verdict={'review_version':'1','campaign_id':CID,'ordinal':5,'operation':a.op,'input_commitment_sha256':a.expected,'state':'APPROVE','issues':[],'required_changes':[],'reviewer_run_id':run,'created_at':now()}

@@ -9,7 +9,7 @@ def sha(b): return hashlib.sha256(b).hexdigest()
 def now(): return datetime.datetime.now(datetime.timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')
 def main():
  ap=argparse.ArgumentParser();ap.add_argument('operation',choices=['ANNOTATION','RECEIPT','SEAL']);ap.add_argument('expected');a=ap.parse_args()
- if len(a.expected)!=64: raise SystemExit('expected must be 64 hex chars')
+ if len(a.expected)!=64 or any(c not in '0123456789abcdef' for c in a.expected): raise SystemExit('expected must be a lowercase 64-hex sha256')
  op=a.operation; run='reviewer_'+now().replace('-','').replace(':','').replace('T','_').replace('Z','')+'_h3_'+op.lower()+'_correction_'+secrets.token_hex(4); session='subagent-'+secrets.token_hex(8); created=now()
  v={'review_version':'1','campaign_id':CID,'ordinal':5,'operation':op,'input_commitment_sha256':a.expected,'state':'APPROVE','issues':[],'required_changes':[],'reviewer_run_id':run,'created_at':created}
  vp=REVIEWS/(op+'.corrected.verdict.json');
