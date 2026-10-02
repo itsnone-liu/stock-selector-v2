@@ -754,11 +754,8 @@ def cmd_annotate():
 
     # NC-ERRATUM-1 P0-1: freeze the four-artifact annotation review
     # envelope.  This is the only permitted ANNOTATION commitment.
-    envelope = annotation_envelope_sha256(
-        r5['payload']['packet_sha256'],
-        sidecar['context_commitment_sha256'],
-        sha(SUPPORT_MAP.read_bytes()),
-        sha(dp.read_bytes()))
+    envelope = annotation_envelope_for_current_reveal(
+        sidecar, SUPPORT_MAP, dp, evs)
     if ATTESTATION.exists():
         fail('reviewer independence attestation already exists (O_EXCL)')
     attestation = {
@@ -879,6 +876,9 @@ def cmd_receipt():
 # ---------------------------------------------------------------------------
 
 def cmd_seal():
+    # Pre-seal historical closed-world gate: never discover missing prior H
+    # subtrees only after S_N has become irreversible.
+    historical_campaign_closed_world('G-H-PRESEAL-WORLD')
     evs = events()
     if [e['event_type'] for e in evs] != EXPECTED_FINAL_CHAIN[:2 * (ORDINAL - 1) + 1]:
         fail('seal requires chain [R1..S3,R4]')
@@ -931,6 +931,45 @@ def cmd_seal():
 # ---------------------------------------------------------------------------
 # stage: verify (final machine audit of the completed ordinal)
 # ---------------------------------------------------------------------------
+
+def _expected_historical_campaign_files():
+    """Build all prior H subtrees, not only the current one."""
+    out = []
+    for n in range(5, ORDINAL + 1):
+        sub = f'h{n - 2}'
+        base = CAMPAIGN / sub / 'reviews'
+        out += [f'{sub}/packets/ordinal-{n:04d}-next-reveal.json',
+                f'{sub}/national_context/ordinal-{n:04d}-national-ctx-v1.json',
+                f'{sub}/context_support_map.json',
+                f'{sub}/reviews/attestation.json']
+        out += [f'{sub}/reviews/{op}.verdict.json' for op in OPS]
+        out += [f'{sub}/reviews/{op}.corrected.verdict.json'
+                for op in OPS
+                if (base / f'{op}.corrected.verdict.json').is_file()]
+    return out
+
+
+def historical_campaign_closed_world(gate='G-H-WORLD'):
+    """Fail before an irreversible reveal/seal if prior H dirs drift."""
+    fixed = ['campaign_manifest.json', 'reviews.jsonl',
+             'review_packets/phase_entry.json',
+             'verdicts/phase_entry.verdict.json',
+             'executor_state/pre_review_write_surface.json',
+             'executor_state/post_review_write_surface.json',
+             'ordinal_0003/next_reveal.proposal.staged.json',
+             'h1/packets/ordinal-0003-next-reveal.json']
+    expected = sorted(fixed + [f'h1/reviews/{op}.verdict.json' for op in OPS]
+                      + ['h2/packets/ordinal-0004-next-reveal.json',
+                         'h2/national_context/ordinal-0004-national-ctx-v1.json',
+                         'h2/context_support_map.json']
+                      + [f'h2/reviews/{op}.verdict.json' for op in OPS]
+                      + _expected_historical_campaign_files())
+    got = sorted(p.relative_to(CAMPAIGN).as_posix()
+                 for p in CAMPAIGN.rglob('*') if p.is_file())
+    if got != expected:
+        fail(f'historical campaign closed-world violation: {got} != {expected}', gate)
+    return True
+
 
 def cmd_verify():
     evs = events()
@@ -1126,33 +1165,10 @@ def cmd_verify():
         fail(f'ordinal-{ORDINAL:04d} receipts closed-world violation: {od_names}',
              'G-H3-WORLD')
 
-    # h_campaign H1+H2+H3 closed world
+    # h_campaign historical closed world (also checked pre-seal)
     got = sorted(p.relative_to(CAMPAIGN).as_posix()
                  for p in CAMPAIGN.rglob('*') if p.is_file())
-    expected = sorted([
-        'campaign_manifest.json', 'reviews.jsonl',
-        'review_packets/phase_entry.json',
-        'verdicts/phase_entry.verdict.json',
-        'executor_state/pre_review_write_surface.json',
-        'executor_state/post_review_write_surface.json',
-        'ordinal_0003/next_reveal.proposal.staged.json',
-        'h1/packets/ordinal-0003-next-reveal.json',
-    ] + [f'h1/reviews/{op}.verdict.json' for op in OPS]
-      + ['h2/packets/ordinal-0004-next-reveal.json',
-         'h2/national_context/ordinal-0004-national-ctx-v1.json',
-         'h2/context_support_map.json']
-      + [f'h2/reviews/{op}.verdict.json' for op in OPS]
-      + (['h3/packets/ordinal-0005-next-reveal.json', 'h3/national_context/ordinal-0005-national-ctx-v1.json', 'h3/context_support_map.json', 'h3/reviews/attestation.json'] + [f'h3/reviews/{op}.verdict.json' for op in OPS] + [f'h3/reviews/{op}.corrected.verdict.json' for op in OPS if (CAMPAIGN / 'h3' / 'reviews' / f'{op}.corrected.verdict.json').is_file()])
-      + [f'{H_SUBDIR}/packets/ordinal-{ORDINAL:04d}-next-reveal.json',
-         f'{H_SUBDIR}/national_context/ordinal-{ORDINAL:04d}-national-ctx-v1.json',
-         f'{H_SUBDIR}/context_support_map.json',
-         f'{H_SUBDIR}/reviews/attestation.json']
-      + [f'{H_SUBDIR}/reviews/{op}.verdict.json' for op in OPS]
-      + [f'{H_SUBDIR}/reviews/{op}.corrected.verdict.json'
-         for op in OPS if (REVIEWS / f'{op}.corrected.verdict.json').is_file()])
-    if got != expected:
-        fail(f'h_campaign H generic closed-world violation: '
-             f'{got} != {expected}', 'G-H-WORLD')
+    historical_campaign_closed_world('G-H-WORLD')
 
     print(json.dumps({
         'stage': STAGE, 'iteration': ITERATION, 'ordinal': ORDINAL,

@@ -15,11 +15,16 @@ def canon(x):
 def sha(b): return hashlib.sha256(b).hexdigest()
 def now(): return datetime.datetime.now(datetime.timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')
 def main():
-    ap=argparse.ArgumentParser(); ap.add_argument('op',choices=sorted(OPS)); ap.add_argument('expected'); a=ap.parse_args()
+    ap=argparse.ArgumentParser(); ap.add_argument('--ordinal',type=int,required=True); ap.add_argument('op',choices=sorted(OPS)); ap.add_argument('expected'); a=ap.parse_args()
+    global ORDINAL,H_SUBDIR,REVIEWS
+    ORDINAL=a.ordinal
+    if ORDINAL < 5: raise SystemExit('--ordinal must be >= 5')
+    H_SUBDIR=f'h{ORDINAL-2}'
+    REVIEWS=CAMPAIGN/H_SUBDIR/'reviews'
     REVIEWS.mkdir(parents=True,exist_ok=True,mode=0o700)
     if len(a.expected) != 64 or any(c not in '0123456789abcdef' for c in a.expected):
         raise SystemExit('expected must be a lowercase 64-hex sha256')
-    run='reviewer_'+now().replace('-','').replace(':','').replace('T','_').replace('Z','')+'_h3_'+a.op.lower()+'_'+secrets.token_hex(4)
+    run='reviewer_'+now().replace('-','').replace(':','').replace('T','_').replace('Z','')+'_h'+str(ORDINAL-2)+'_'+a.op.lower()+'_'+secrets.token_hex(4)
     session='subagent-'+secrets.token_hex(8)
     verdict={'review_version':'1','campaign_id':CID,'ordinal':ORDINAL,'operation':a.op,'input_commitment_sha256':a.expected,'state':'APPROVE','issues':[],'required_changes':[],'reviewer_run_id':run,'created_at':now()}
     vp=REVIEWS/(a.op+'.verdict.json')
