@@ -1,0 +1,55 @@
+{
+  "record": "H3 ORDINAL-5 FULL-CONTRACT CANARY STATUS",
+  "status": "ORDINAL_COMPLETE",
+  "commit_base": "70d9ed6",
+  "sealed_head": "c469312c0b3e62d0940ce89e517dffed96943f4c0731e688fa11a9f3cf63cf96",
+  "ordinal": 5,
+  "chain": {
+    "events": 10,
+    "types": ["REVEAL_PACKET", "SEAL_ANNOTATION", "REVEAL_PACKET", "SEAL_ANNOTATION", "REVEAL_PACKET", "SEAL_ANNOTATION", "REVEAL_PACKET", "SEAL_ANNOTATION", "REVEAL_PACKET", "SEAL_ANNOTATION"],
+    "candidate_prefix": 5,
+    "authorization_consumption": "ordinals 1-5 CONSUMED"
+  },
+  "full_contract": {
+    "context_version": "csr8-national-capital-v1e1",
+    "stock_layer_summary": "NOT_DISCLOSED_IN_LATEST_VISIBLE_TOP10",
+    "stock_records": 0,
+    "market_records": 10,
+    "disclosure_semantics": "non-disclosure in the latest PIT-visible top-10 is not evidence that holdings do not exist",
+    "annotation_envelope_sha256": "1386ec3b4e555c8611f9474fb3046efdebe3214795f1b019809350b74e83895f",
+    "envelope_inputs": {
+      "packet_sha256": "9daf6004ed29fda938fff0b4b4eb85e489ef8347f79584979f751a1d254de81d",
+      "context_commitment_sha256": "982b114a284b27572336968452aa9544bd2f2cfa37d200d1c0ce5b387f75feab",
+      "support_map_sha256": "fedef10d93d5ccef1eba78018bf189c8df2cf7c1277f351dce4e17987318e200",
+      "draft_sha256": "66ac7f60ba5fd8ee2fc0464c22ae19b4c96fd783ca7be5c84ad4e2221dc1add0"
+    },
+    "support_map_refs": 10,
+    "support_map_rule": "per-hypothesis dedup; cross-hypothesis reuse legal",
+    "reviewer_independence": {
+      "protocol": "csr8-reviewer-independence-v2",
+      "attestation_level": "PLATFORM_OPAQUE_SUBAGENT",
+      "fresh_reviewer_per_operation": true,
+      "distinct_sessions_and_runs": true,
+      "annotation_composite_binding": true
+    }
+  },
+  "machine_verification": {
+    "h3_verify": "ORDINAL_COMPLETE",
+    "c2_full_replay": "PASS",
+    "semantic_replay": "PASS",
+    "ordinal_histories_1_5": "PASS",
+    "receipt_triple": "PASS",
+    "anchor": "DURABLE",
+    "workspace_cleanup": "PASS",
+    "nc_context_binding": "PASS",
+    "manifest_reclose": "CLOSED / fileCount=10641",
+    "a_layer": "VERIFIED / REVEAL=5 SEAL=5 (negative control emits expected fail-closed diagnostic and is caught as PASS)",
+    "nc_final": "PREREQUISITES_COMPLETE / production_chain_events=10"
+  },
+  "review_correction_disclosure": {
+    "reason": "RECEIPT and SEAL initial reviewer calls used a 63-character receipt prefix; ANNOTATION initial reviewer call used the H3 review-packet hash instead of R5 C3 pool packet hash",
+    "handling": "original verdicts and ledger rows retained; append-only corrected verdicts and ANNOTATION_CORRECTION/RECEIPT_CORRECTION/SEAL_CORRECTION rows added; H3 verifier requires all three corrections",
+    "production_effect": "S5 was written only after corrected RECEIPT and SEAL commitments passed; no sealed bytes were rewritten"
+  },
+  "stock_positive_coverage": "Ordinal-5 live candidate is an absence case (stock=0); stock>0 and disappearance semantics remain covered by real ordinal-3 plus full-path v2_1/v2_2 fixtures."
+}

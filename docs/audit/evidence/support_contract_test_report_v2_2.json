@@ -1,0 +1,17 @@
+{
+  "status": "PASS",
+  "test": "disappearance fixture precision v2_2",
+  "latest_publication_row": {
+    "report_period": "2021-03-31",
+    "publication_date": "20210430"
+  },
+  "calendar_fallback_date": "2021-05-06",
+  "assertions": {
+    "summary": "NOT_DISCLOSED_IN_LATEST_VISIBLE_TOP10",
+    "summary_not_present": true,
+    "summary_report_period": "2021-03-31",
+    "records": 1,
+    "record_state": "NOT_DISCLOSED_IN_TOP10",
+    "current_ratio_empty": true
+  }
+}
