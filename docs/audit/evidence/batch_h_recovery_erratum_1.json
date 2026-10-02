@@ -1,0 +1,48 @@
+{
+  "erratum_id": "BATCH-H-RECOVERY-ERRATUM-1",
+  "title": "Batch H 第一批（ordinal 7–14）reviewer novelty 恢复证据合同",
+  "approved_by": "用户 2026-10-02 明确裁定（本 session 用户消息原文）",
+  "frozen": true,
+  "scope": {
+    "batch": "first Batch H batch",
+    "ordinals": [7, 8, 9, 10, 11, 12, 13, 14],
+    "only_for_these_ordinals": true,
+    "future_batches": "ordinal 15–22 起必须使用 capture_pre_spawn_dsh_snapshot（真实 DSH session.jsonl.zstd、spawn 前、EOF 时序），不得沿用本恢复模式"
+  },
+  "background": {
+    "what_happened": "ordinal 7–14 的全部 production 阶段已在 reviewer-gated 流程下完成并 finalize（28-event 链 R1/S1..R14/S14），但每个 sampled reviewer spawn 之前没有调用 FIX5 capture_pre_spawn_snapshot 冻结 pre-spawn transcript 状态。",
+    "what_is_missing": "实时 pre-spawn snapshot/anchor（FIX5/FIX6 证据形态）。",
+    "what_is_NOT_claimed": "本恢复绝不声称当时进行过实时 capture；不生成、不追溯伪造任何 FIX5/FIX6 形态的 pre-spawn snapshot。"
+  },
+  "contract": {
+    "attestation_level": "PLATFORM_OPAQUE_SUBAGENT",
+    "novelty_evidence_mode": "APPEND_ONLY_RECOVERED_PREFIX",
+    "realtime_pre_spawn_capture": "NOT_AVAILABLE",
+    "coverage": "ordinal 7–14 的全部 reviewer ledger rows（含 ANNOTATION_CORRECTION 与全部操作类型），不做事后抽样，避免选择偏差",
+    "proof_obligations": [
+      "executor transcript 捕获必须是 DSH session.jsonl.zstd 的字节精确冻结副本（quiescent 原子复制：read→stat→read→比对一致才接受），并以 sha256/长度/设备/inode 固定",
+      "解码必须使用冻结的 H0 multi-frame zstd 解码器（csr8_phase_h_entry_gate._zstd_lib），解码器身份以文件 sha256 固定",
+      "每条 reviewer row 至少机器绑定：ordinal/operation、ledger_sequence/review_hash、reviewer_run_id/reviewer_session_id、executor_session_id、raw transcript path/sha256/byte length、source device/inode、decoder identity/hash、decoded sha256/byte length",
+      "对每条 row：run_id 与 session_id 在恢复域内的首次出现 decoded-byte 偏移；recovered_prefix_cutoff = min(两偏移)；recovered_prefix_sha256；run_id/session_id 在 cutoff 前缺席均为真",
+      "ID 在恢复域内完全不存在时，如实记录 NO_OCCURRENCE_IN_COMPLETE_TRANSCRIPT，不得伪造 first-occurrence",
+      "尽力加强：唯一定位该 row 的 reviewer spawn 标记（_h3_reviewer_tool.py --ordinal N OP / _h3_review_correction.py --ordinal N），并验证 spawn 偏移 < ID 首次出现偏移",
+      "恢复域边界 = 恢复合同批准消息在 transcript 中的首次出现位置（APPEND_ONLY_RECOVERED_PREFIX），所有搜索限定在边界之前；边界之后 executor 自身的分析输出会回显 ID，不得计入",
+      "complete_batch 增加显式 recovery branch：仅当恢复证据通过独立 re-derive verifier（冻结副本 sha、ledger 链、全量覆盖、row 绑定、缺席布尔、ID 唯一/previous 重叠）后才允许产出 BATCH_COMPLETE，且 evidence_mode 必须如实标注"
+    ],
+    "forbidden": [
+      "生成任何冒充实时 pre-spawn capture 的 snapshot/anchor",
+      "改写 sealed 历史或既有 ledger 行",
+      "用边界之后的 transcript 内容（executor 自己的回显）伪造或掩盖 first-occurrence",
+      "抽样式恢复（必须全量 rows）"
+    ]
+  },
+  "empirical_deviation_from_ruling_premise": {
+    "finding": "裁定前提假定了 executor transcript 物理字节层 append-only。实测（2026-10-02，session-e16514e1-2960-41c8-b3a3-a957b38b3400）：同一 inode 下 turn 边界之间 raw/decoded 前缀逐字节稳定，但两次探针之间观测到中段按时间序插入约 723KB（晚刷写的记录插入到其时间序位置），既有内容偏移整体后移。物理层不是纯字节 append。",
+    "consequence": "恢复证据不依赖 live 文件字节前缀稳定性，改为：①字节精确冻结副本（sha256 固定，可永久复验）+ ②记录序论证（marker < first-occurrence < boundary，在冻结副本内机器验证）+ ③ID 由 reviewer 进程 secrets.token_hex 生成、executor 在 spawn 前不可能知晓（协议层前提，与 H0 同一信任锚：harness transcript 执行者不可伪造）。",
+    "still_true": "逻辑记录序在重排中保持（marker/ID/boundary 的相对顺序在每次解码中均成立），且 ID 不可能出现在早于其 spawn 的记录中，与物理重排无关。"
+  },
+  "status_board_effect": {
+    "before": "production execution PASS / batch completion INCOMPLETE",
+    "after_verify_pass": "BATCH_COMPLETE，evidence_mode=APPEND_ONLY_RECOVERED_PREFIX，realtime_pre_spawn_capture=NOT_AVAILABLE（永久如实标注）"
+  }
+}

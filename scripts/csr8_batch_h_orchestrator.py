@@ -103,7 +103,99 @@ def complete_batch(batch_start,completed_ordinals,novelty_evidence,ledger_path,p
     if list(completed_ordinals)!=list(range(batch_start,end+1)): raise ValueError('non-contiguous batch')
     return {'status':'BATCH_COMPLETE','batch_start':batch_start,'batch_end':end,'novelty_gate':reviewer_id_novelty_spot_check(batch_start,previous_ids,novelty_evidence,ledger_path)}
 
+def complete_batch_recovery(batch_start,completed_ordinals,evidence_path,ledger_path,previous_ids=()):
+    """BATCH-H-RECOVERY-ERRATUM-1 explicit recovery branch (ordinal 7-14 ONLY).
+
+    Hard gates: batch contiguity; independent re-derivation of APPEND_ONLY_
+    RECOVERED_PREFIX evidence from the frozen transcript capture; full ledger
+    coverage of every batch-ordinal row (no sampling); ID uniqueness and
+    previous-batch overlap.  Realtime pre-spawn capture stays NOT_AVAILABLE
+    and is reported as such — never rewritten as if captured.
+    """
+    import csr8_batch_h_recovery_novelty as rec
+    end=batch_boundary(batch_start,len(completed_ordinals))
+    if list(completed_ordinals)!=list(range(batch_start,end+1)): raise ValueError('non-contiguous batch')
+    gate=rec.verify_recovery_evidence(evidence_path,ledger_path,previous_ids)
+    rows=load_ledger(ledger_path)
+    expected=len([r for r in rows if batch_start<=r.get('ordinal',-1)<=end])
+    if gate['rows_checked']!=expected: raise ValueError('recovery coverage gap: %d of %d ledger rows'%(gate['rows_checked'],expected))
+    if gate['batch_start']!=batch_start or gate['batch_end']!=end: raise ValueError('recovery batch range mismatch')
+    return {'status':'BATCH_COMPLETE','evidence_mode':'APPEND_ONLY_RECOVERED_PREFIX',
+            'erratum_id':'BATCH-H-RECOVERY-ERRATUM-1','realtime_pre_spawn_capture':'NOT_AVAILABLE',
+            'attestation_level':'PLATFORM_OPAQUE_SUBAGENT','batch_start':batch_start,'batch_end':end,
+            'novelty_gate':gate}
+
+DSH_SNAPSHOT_VERSION='csr8-reviewer-novelty-snapshot-v4-dsh-zstd'
+DSH_ANCHOR_VERSION='csr8-reviewer-novelty-anchor-v2-dsh'
+
+def capture_pre_spawn_dsh_snapshot(dsh_session_jsonl_zstd,executor_session_id,snapshot_path,anchor_path,frozen_path,sequence_cutoff=None):
+    """PRE-SPAWN capture from the REAL DSH zstd source (approved for ordinal 15-22).
+
+    Pipeline (ruling 2026-10-02): freeze quiescent raw bytes [0:EOF] of the
+    live session.jsonl.zstd (trust root, O_EXCL 0600->fsync->0400), pin raw
+    zstd sha256/length/inode/device, decode with the frozen H0 multi-frame
+    decoder, pin decoded sha256/length + decoder identity, then write snapshot
+    + anchor.  FIX6 EOF rule applies to the zstd source: an explicit cutoff
+    must equal the raw EOF at freeze.  The decoded text in the snapshot is a
+    derived product; the frozen raw capture is the trust root.
+    """
+    import csr8_batch_h_recovery_novelty as rec
+    prov=rec.freeze_transcript(dsh_session_jsonl_zstd,frozen_path)
+    if sequence_cutoff is not None and sequence_cutoff!=prov['raw_zstd_bytes']:
+        raise ValueError('pre-spawn cutoff must equal current zstd EOF')
+    raw=Path(prov['frozen_path']).read_bytes()
+    if digest(raw)!=prov['raw_zstd_sha256']: raise ValueError('frozen capture hash drift')
+    decoded=rec.decode_transcript_bytes(raw)
+    sess=rec._pin_session_record(decoded)
+    if sess['session_id']!=executor_session_id: raise ValueError('dsh transcript session != executor session')
+    out=Path(snapshot_path); out.parent.mkdir(parents=True,exist_ok=True)
+    snap={'snapshot_version':DSH_SNAPSHOT_VERSION,'executor_session_id':executor_session_id,
+          'live_source_path':prov['live_path'],'source_device':prov['live_device'],'source_inode':prov['live_inode'],
+          'frozen_capture_path':prov['frozen_path'],'raw_zstd_sha256':prov['raw_zstd_sha256'],
+          'raw_zstd_bytes':prov['raw_zstd_bytes'],'pre_spawn_sequence_cutoff':prov['raw_zstd_bytes'],
+          'decoder':{'decoder':'csr8_phase_h_entry_gate._zstd_lib + csr8_batch_h_recovery_novelty.decode_transcript_bytes',
+                     'decoder_module_sha256':digest(Path(__file__).with_name('csr8_batch_h_recovery_novelty.py').read_bytes()),
+                     'entry_gate_sha256':digest(Path(__file__).with_name('csr8_phase_h_entry_gate.py').read_bytes())},
+          'decoded_sha256':digest(decoded),'decoded_bytes':len(decoded),
+          'source_prefix_bytes':len(decoded),'transcript_prefix':decoded.decode('utf-8'),
+          'pre_spawn_transcript_sha256':digest(decoded),'pre_spawn_transcript_length':len(decoded),
+          'captured_at_unix':prov['captured_at_unix']}
+    data=canon(snap).encode(); fd=os.open(out,os.O_WRONLY|os.O_CREAT|os.O_EXCL,0o600)
+    try: os.write(fd,data); os.fsync(fd)
+    finally: os.close(fd)
+    os.chmod(out,0o400)
+    ap=Path(anchor_path); ap.parent.mkdir(parents=True,exist_ok=True)
+    anch={'anchor_version':DSH_ANCHOR_VERSION,'executor_session_id':executor_session_id,
+          'live_source_path':prov['live_path'],'source_device':prov['live_device'],'source_inode':prov['live_inode'],
+          'frozen_capture_path':prov['frozen_path'],'raw_zstd_sha256':prov['raw_zstd_sha256'],
+          'raw_zstd_bytes':prov['raw_zstd_bytes'],'decoded_sha256':digest(decoded),
+          'pre_spawn_sequence_cutoff':prov['raw_zstd_bytes'],'snapshot_sha256':digest(data)}
+    afd=os.open(ap,os.O_WRONLY|os.O_CREAT|os.O_EXCL,0o600)
+    try: os.write(afd,canon(anch).encode()); os.fsync(afd)
+    finally: os.close(afd)
+    os.chmod(ap,0o400)
+    for p in (out.parent,ap.parent):
+        d=os.open(p,os.O_RDONLY); os.fsync(d); os.close(d)
+    return snap,anch
+
+def derive_previous_ids(previous_batch_record_path):
+    """Derive previous reviewer IDs from a prior BATCH_COMPLETE record (ruling:
+    previous_ids must not be hand-typed across batches)."""
+    rec=json.loads(Path(previous_batch_record_path).read_text())
+    if rec.get('status')!='BATCH_COMPLETE': raise ValueError('previous record is not BATCH_COMPLETE')
+    gate=rec.get('novelty_gate') or {}
+    ids=[]
+    for row in gate.get('rows') or gate.get('evidence') or []:
+        ids += [row['reviewer_run_id'],row['reviewer_session_id']]
+    if not ids: raise ValueError('previous record carries no reviewer IDs')
+    return sorted(set(ids))
+
 def main():
-    ap=argparse.ArgumentParser(); ap.add_argument('--batch-start',type=int,required=True); ap.add_argument('--completed-ordinal',type=int,action='append',required=True); ap.add_argument('--novelty-evidence-json',required=True); ap.add_argument('--ledger',required=True); ap.add_argument('--previous-id',action='append',default=[]); a=ap.parse_args()
-    print(json.dumps(complete_batch(a.batch_start,a.completed_ordinal,json.loads(Path(a.novelty_evidence_json).read_text()),a.ledger,a.previous_id),sort_keys=True,separators=(',',':')))
+    ap=argparse.ArgumentParser(); ap.add_argument('--batch-start',type=int,required=True); ap.add_argument('--completed-ordinal',type=int,action='append',required=True); ap.add_argument('--novelty-evidence-json',required=True); ap.add_argument('--ledger',required=True); ap.add_argument('--previous-id',action='append',default=[])
+    ap.add_argument('--recovery',action='store_true',help='BATCH-H-RECOVERY-ERRATUM-1 branch: novelty-evidence-json is the recovery evidence file')
+    a=ap.parse_args()
+    if a.recovery:
+        print(json.dumps(complete_batch_recovery(a.batch_start,a.completed_ordinal,a.novelty_evidence_json,a.ledger,a.previous_id),sort_keys=True,separators=(',',':')))
+    else:
+        print(json.dumps(complete_batch(a.batch_start,a.completed_ordinal,json.loads(Path(a.novelty_evidence_json).read_text()),a.ledger,a.previous_id),sort_keys=True,separators=(',',':')))
 if __name__=='__main__': main()

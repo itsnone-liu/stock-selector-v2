@@ -1,0 +1,51 @@
+{
+  "artifact": "batch_h_batch1_recovery_status",
+  "batch": "first Batch H batch",
+  "ordinals": [7, 8, 9, 10, 11, 12, 13, 14],
+  "execution": {
+    "production_chain_events": 28,
+    "chain_shape": "R1/S1..R14/S14",
+    "production_head_sha256": "289f56a8de886abd6ef86922bf4a42ee9a0e0638da944a21b046075a9f03853f",
+    "ordinals_finalized": "7-14 all ORDINAL_COMPLETE / FINALIZED",
+    "ordinal_histories": "1-14 PASS",
+    "c2_full_replay": "PASS",
+    "ordinal_5_6_sealed_history_modified": false
+  },
+  "batch_completion": {
+    "status": "BATCH_COMPLETE",
+    "evidence_mode": "APPEND_ONLY_RECOVERED_PREFIX",
+    "erratum_id": "BATCH-H-RECOVERY-ERRATUM-1",
+    "realtime_pre_spawn_capture": "NOT_AVAILABLE",
+    "attestation_level": "PLATFORM_OPAQUE_SUBAGENT",
+    "previous_ids": [],
+    "rows_checked": 41,
+    "coverage": "ALL ledger rows ordinal 7-14 (sequences 25-65, incl. ordinal-7 ANNOTATION_CORRECTION)",
+    "ids_with_machine_first_occurrence": 12,
+    "ids_no_occurrence_in_complete_transcript": 70,
+    "spawn_marker_precedes_ids_all_rows": true,
+    "completion_record": "docs/audit/evidence/batch_h_batch1_completion.json",
+    "evidence": "docs/audit/evidence/batch_h_batch1_recovery/recovery_evidence.json",
+    "frozen_transcript_capture": "docs/audit/evidence/batch_h_batch1_recovery/transcript_frozen/session.jsonl.zstd",
+    "erratum": "docs/audit/evidence/batch_h_recovery_erratum_1.json"
+  },
+  "empirical_note": {
+    "transcript_physical_layer": "NOT byte-append-only across turn boundaries (late record insertion at chronological positions observed; same inode stable within turn)",
+    "recovery_anchor": "quiescent frozen capture (sha256-pinned, 0400) + record-order proof (marker < first-occurrence < boundary) + reviewer-side ID generation premise",
+    "boundary": "first occurrence of APPEND_ONLY_RECOVERED_PREFIX (recovery-contract approval message), domain bytes 20502877 at generation, domain_sha256 192467705d14a96858a90ad1bef3a9dbd43d2107863d47a90559a73f49eabbe8"
+  },
+  "regressions": {
+    "test_runner_batch_novelty_gate": "PASS",
+    "test_batch_h_recovery_novelty": "6 PASS",
+    "test_complete_batch_recovery_branch": "5 PASS",
+    "test_runner_preseal_closed_world": "PASS",
+    "test_runner_ordinal7_closed_world": "PASS",
+    "test_h3_envelope_packet_binding": "PASS",
+    "a_layer_machine_audit": "certified_inputs VERIFIED, c4 PASS, production REVEAL=14 SEAL=14",
+    "nc_final_machine_audit": "passed"
+  },
+  "next_batch": {
+    "ordinals": "15-22",
+    "pipeline": "APPROVED: capture_pre_spawn_dsh_snapshot on real DSH session.jsonl.zstd, pre-spawn, EOF-pinned, frozen raw copy as trust root",
+    "previous_ids": "must be derived via derive_previous_ids(batch_h_batch1_completion.json), never hand-typed"
+  }
+}
