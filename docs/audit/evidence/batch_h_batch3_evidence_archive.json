@@ -6,6 +6,8 @@
     "kind": "hash-pinned_durable_github_release_asset",
     "platform_immutability": false,
     "release_tag": "batch-h-b3-evidence-archive-v1",
+    "release_id": 401929930,
+    "tag_target_commit": "b30fecd962cedfccb87555f2322251f250b61eb1",
     "asset_name": "batch_h_b3_evidence.tar.gz",
     "browser_download_url": "https://github.com/itsnone-liu/stock-selector-v2/releases/download/batch-h-b3-evidence-archive-v1/batch_h_b3_evidence.tar.gz"
   },
@@ -33,5 +35,5 @@
       "chain_per_sample": "frozen raw zstd sha256/length -> FIX6 EOF binding -> decoder module hash re-pin -> frozen re-decode -> decoded sha256/length -> transcript_prefix equality -> anchor v2 provenance cross-check"
     }
   },
-  "batch_close_out": "Batch 3: EXECUTION CLOSED / EVIDENCE ARCHIVE PENDING"
+  "batch_close_out": "Batch 3: EXECUTION CLOSED / EVIDENCE ARCHIVED"
 }

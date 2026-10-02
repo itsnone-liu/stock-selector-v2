@@ -1,0 +1,45 @@
+{
+  "artifact": "batch_h_batch3_status",
+  "batch": "third Batch H batch",
+  "ordinals": [23, 24, 25, 26, 27, 28, 29, 30],
+  "execution": {
+    "production_chain_events": 60,
+    "chain_shape": "R1/S1..R30/S30 (ordinals 1-30 cumulative)",
+    "production_head_sha256": "cf9665411b3e3cf64a5b91ef0a199f7316be0b116fe9d223e87dba06d7f8f727",
+    "ordinals_finalized": "23-30 all ORDINAL_COMPLETE / FINALIZED",
+    "ordinal_histories": "1-30 PASS",
+    "c2_full_replay": "PASS",
+    "batch_1_and_2_sealed_history_modified": false
+  },
+  "reviewer_gates": {
+    "ledger_rows": 40,
+    "sequences": "106-145",
+    "per_ordinal": "NEXT_REVEAL / ANNOTATION / RECEIPT / SEAL / POST_SEAL (5x8)",
+    "pre_spawn_dsh_captures": 40,
+    "capture_success_rate": "40/40",
+    "failed_spawns_wrote_ledger": false,
+    "incidents": []
+  },
+  "batch_completion": {
+    "status": "BATCH_COMPLETE",
+    "evidence_mode": "REALTIME_PRE_SPAWN_DSH_CAPTURE",
+    "snapshot_version": "csr8-reviewer-novelty-snapshot-v4-dsh-zstd",
+    "attestation_level": "PLATFORM_OPAQUE_SUBAGENT",
+    "samples_checked": 40,
+    "previous_record": "docs/audit/evidence/batch_h_batch2_completion.json",
+    "previous_ids": "derived from Batch-2 completion artifact (80 current-batch unique reviewer IDs; overlap 0)",
+    "completion_record": "docs/audit/evidence/batch_h_batch3_completion.json",
+    "samples_file": "docs/audit/evidence/batch_h_batch3_samples.json",
+    "captures_root": "captures/batch3/ (session-local, gitignored until archive; frozen copies + snapshots + anchors)"
+  },
+  "evidence_archive": {
+    "archive_id": "batch-h-b3-evidence-archive-v1",
+    "close_out": "EXECUTION CLOSED / EVIDENCE ARCHIVED",
+    "descriptor": "docs/audit/evidence/batch_h_batch3_evidence_archive.json",
+    "manifest": "docs/audit/evidence/batch_h_batch3_evidence_manifest.json",
+    "release_tag": "batch-h-b3-evidence-archive-v1",
+    "archive_sha256": "60576f17d81bacd695e81dc8acdfa02a79d1b4380c0dbcdde733296eaf52218e",
+    "archive_bytes": 599686551,
+    "independent_replay_from_archive": "PASS (120 files closed-world, 40/40 samples full DSH-v4 chain, no failed-attempt incident)"
+  }
+}
