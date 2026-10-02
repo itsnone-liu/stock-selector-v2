@@ -1,0 +1,8 @@
+{
+  "artifact":"batch_h_batch4_status",
+  "ordinals":[31,32,33,34,35,36,37,38],
+  "execution":{"production_chain_events":76,"chain_shape":"R1/S1..R38/S38","production_head_sha256":"930b19e8231ec87e0dddd891971620643beda11b8fa959a6d6103c09fe4af8bc","ordinals_finalized":"31-38 all ORDINAL_COMPLETE / FINALIZED","ordinal_histories":"1-38 PASS","c2_full_replay":"PASS","sealed_history_7_30_modified":false},
+  "reviewer_gates":{"ledger_rows":40,"sequences":"146-185","per_ordinal":"NEXT_REVEAL / ANNOTATION / RECEIPT / SEAL / POST_SEAL (5x8)","pre_spawn_dsh_captures":40,"capture_success_rate":"40/40","failed_spawns":0},
+  "batch_completion":{"status":"BATCH_COMPLETE","evidence_mode":"REALTIME_PRE_SPAWN_DSH_CAPTURE","samples_checked":40,"previous_record":"docs/audit/evidence/batch_h_batch3_completion.json","previous_ids":"artifact-derived from Batch-3 completion","completion_record":"docs/audit/evidence/batch_h_batch4_completion.json"},
+  "evidence_archive":{"archive_id":"batch-h-b4-evidence-archive-v1","close_out":"EXECUTION CLOSED / EVIDENCE ARCHIVED","descriptor":"docs/audit/evidence/batch_h_batch4_evidence_archive.json","manifest":"docs/audit/evidence/batch_h_batch4_evidence_manifest.json","release_id":401972458,"archive_sha256":"777969d45569696574a19b0afe8dae21518076a5e8b25fe5f54adb0d4f84189d","archive_bytes":642950678,"files":120,"capture_sets":40,"uncompressed_bytes":1647634479,"independent_replay":"PASS (120 files closed-world, 40/40 DSH-v4, incident NONE)","roundtrip_download":"PASS"}
+}
