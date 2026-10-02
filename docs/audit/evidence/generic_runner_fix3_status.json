@@ -1,0 +1,26 @@
+{
+  "record": "GENERIC RUNNER FIX3 STATUS",
+  "status": "READY_FOR_USER_REVIEW",
+  "base_commit": "8c05de9",
+  "ordinal_6": "PASS / sealed history unchanged / not rerun",
+  "novelty_gate": {
+    "snapshot_protocol": "pre-spawn immutable transcript prefix, then post-review ID check",
+    "missing_snapshot": "FAIL_CLOSED",
+    "scan_scope": "pre-spawn prefix only",
+    "evidence_fields": ["reviewer_operation", "reviewer_run_id", "reviewer_session_id", "pre_spawn_transcript_sha256", "pre_spawn_transcript_length", "pre_spawn_sequence_cutoff", "premature_run_id_found", "premature_session_id_found"],
+    "batch_boundary": "batch_start + completed_count - 1",
+    "completion_gate": "complete_batch() requires contiguous eight ordinals and novelty evidence"
+  },
+  "regressions": {
+    "legal_prefix": "PASS",
+    "premature_run_id": "PASS",
+    "premature_session_id": "PASS",
+    "missing_transcript": "PASS",
+    "duplicate_empty": "PASS",
+    "hard_batch_completion": "PASS",
+    "preseal_closed_world": "PASS",
+    "ordinal_6_runner_verify": "ORDINAL_COMPLETE",
+    "all_python_compile": "PASS"
+  },
+  "gate": "batch H NOT_READY pending independent review and explicit user unlock"
+}
