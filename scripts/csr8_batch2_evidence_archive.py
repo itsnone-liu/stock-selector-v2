@@ -20,6 +20,10 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import csr8_batch_h_orchestrator as orch
 
 ARCHIVE_ID = 'batch-h-b2-evidence-archive-v1'
+
+def archive_id_for_root(root):
+    return 'batch-h-b3-evidence-archive-v1' if Path(root).name == 'batch3' else ARCHIVE_ID
+
 OPS = {'next_reveal': 'NEXT_REVEAL', 'annotation': 'ANNOTATION',
        'receipt': 'RECEIPT', 'seal': 'SEAL', 'post_seal': 'POST_SEAL'}
 
@@ -30,7 +34,7 @@ def digest(b): return hashlib.sha256(b).hexdigest()
 def classify(rel):
     p = Path(rel)
     parts = p.parts
-    if len(parts) != 4 or parts[0] != 'captures' or parts[1] != 'batch2':
+    if len(parts) != 4 or parts[0] != 'captures' or parts[1] not in ('batch2', 'batch3'):
         raise ValueError('unexpected path in archive: %s' % rel)
     fname = parts[-1]
     if parts[2] == 'frozen':
@@ -61,30 +65,53 @@ def build_manifest(captures_root, out_path):
     for p in sorted(root.rglob('*')):
         if not p.is_file():
             continue
-        rel = 'captures/batch2/' + p.relative_to(root).as_posix()
+        rel = 'captures/' + root.name + '/' + p.relative_to(root).as_posix()
         b = p.read_bytes()
         o, op, attempt, role = classify(rel)
         files.append({'path': rel, 'bytes': len(b), 'sha256': digest(b),
                       'ordinal': o, 'operation': op, 'attempt': attempt, 'role': role})
-    m = {'archive_id': ARCHIVE_ID,
+    m = {'archive_id': archive_id_for_root(root),
          'file_count': len(files),
          'total_bytes': sum(f['bytes'] for f in files),
          'capture_sets': len({(f['ordinal'], f['operation'], f['attempt']) for f in files}),
          'files': files}
     Path(out_path).write_text(json.dumps(m, ensure_ascii=False, sort_keys=True, separators=(',', ':')))
-    print(json.dumps({'status': 'BUILT', 'archive_id': ARCHIVE_ID, 'file_count': m['file_count'],
+    print(json.dumps({'status': 'BUILT', 'archive_id': m['archive_id'], 'file_count': m['file_count'],
                       'capture_sets': m['capture_sets'], 'total_bytes': m['total_bytes'],
                       'manifest_sha256': digest(Path(out_path).read_bytes())}))
 
 
-def verify(archive_path, manifest_path, samples_path):
+def _safe_members(tf):
+    """Closed-world members: regular files + plain dirs only, no traversal."""
+    from pathlib import PurePosixPath
+    safe = []
+    for mm in tf.getmembers():
+        if not (mm.isfile() or mm.isdir()):
+            raise ValueError('archive contains non-regular member: %s' % mm.name)
+        pp = PurePosixPath(mm.name)
+        if pp.is_absolute() or any(part == '..' for part in pp.parts):
+            raise ValueError('archive path traversal attempt: %s' % mm.name)
+        safe.append(mm)
+    return safe
+
+
+def verify(archive_path, manifest_path, samples_path, descriptor_path=None):
     m = json.loads(Path(manifest_path).read_text())
-    if m.get('archive_id') != ARCHIVE_ID:
+    if m.get('archive_id') not in (ARCHIVE_ID, 'batch-h-b3-evidence-archive-v1'):
         raise ValueError('unknown archive id')
+    batch_root = 'batch3' if m['archive_id'].endswith('b3-evidence-archive-v1') else 'batch2'
+    if descriptor_path:
+        d = json.loads(Path(descriptor_path).read_text())
+        rc = d['root_commitment']
+        ab = Path(archive_path).read_bytes()
+        if rc['archive_sha256'] != digest(ab) or rc['archive_bytes'] != len(ab):
+            raise ValueError('archive bytes do not match descriptor root commitment')
+        if rc['manifest_sha256'] != digest(Path(manifest_path).read_bytes()):
+            raise ValueError('manifest bytes do not match descriptor root commitment')
     expected = {f['path']: f for f in m['files']}
     with tempfile.TemporaryDirectory() as td:
         with tarfile.open(archive_path, 'r:gz') as tf:
-            names = [mm.name for mm in tf.getmembers() if mm.isfile()]
+            names = [mm.name for mm in _safe_members(tf) if mm.isfile()]
             extra = set(names) - set(expected)
             missing = set(expected) - set(names)
             if extra or missing:
@@ -107,17 +134,23 @@ def verify(archive_path, manifest_path, samples_path):
             if s['reviewer_run_id'] in prefix or s['reviewer_session_id'] in prefix:
                 raise ValueError('premature ID resurfaces in archive verify')
             verified += 1
-        # incident capture (ordinal-21 RECEIPT attempt 1, failed spawn) integrity
+        # Batch 2 has the ordinal-21 failed-spawn incident; Batch 3 has no incident.
         inc = [f for f in m['files'] if f['ordinal'] == 21 and f['operation'] == 'RECEIPT' and f['attempt'] == 1]
-        if len(inc) != 3:
-            raise ValueError('incident capture set incomplete: %d files' % len(inc))
-        orch._read_snapshot(root / 'captures/batch2/o21/receipt.snapshot.json',
-                            root / 'captures/batch2/o21/receipt.anchor.json')
-        verdict = {'status': 'PASS', 'archive_id': ARCHIVE_ID,
+        if batch_root == 'batch2':
+            if len(inc) != 3:
+                raise ValueError('incident capture set incomplete: %d files' % len(inc))
+            orch._read_snapshot(root / 'captures/batch2/o21/receipt.snapshot.json',
+                                root / 'captures/batch2/o21/receipt.anchor.json')
+            incident_status = 'VERIFIED'
+        else:
+            if inc:
+                raise ValueError('unexpected incident capture in clean batch3 archive')
+            incident_status = 'NONE'
+        verdict = {'status': 'PASS', 'archive_id': m['archive_id'],
                    'manifest_sha256': digest(Path(manifest_path).read_bytes()),
                    'archive_sha256': digest(Path(archive_path).read_bytes()),
                    'files_verified': len(m['files']), 'samples_verified': verified,
-                   'incident_capture': 'VERIFIED', 'closed_world': 'PASS'}
+                   'incident_capture': incident_status, 'closed_world': 'PASS'}
         print(json.dumps(verdict, sort_keys=True, separators=(',', ':')))
 
 
@@ -129,11 +162,12 @@ def main():
     ap.add_argument('--manifest', required=True)
     ap.add_argument('--archive')
     ap.add_argument('--samples')
+    ap.add_argument('--descriptor', help='batch_h_*_evidence_archive.json; verify archive+manifest against its root commitment')
     a = ap.parse_args()
     if a.build_manifest:
         build_manifest(a.captures_root, a.manifest)
     elif a.verify:
-        verify(a.archive, a.manifest, a.samples)
+        verify(a.archive, a.manifest, a.samples, descriptor_path=a.descriptor)
     else:
         raise SystemExit('choose --build-manifest or --verify')
 
