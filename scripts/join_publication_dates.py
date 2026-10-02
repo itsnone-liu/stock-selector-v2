@@ -7,7 +7,7 @@ ROOT=Path(__file__).resolve().parents[1]; IN=ROOT/'output/research/csr/national_
 def next_trade(d,cal):
  d=d.replace('-','')
  for x in cal:
-  if x.replace('-','')>=d: return x
+  if x.replace('-','')>d: return x
  return ''
 def main():
  pub={(x['stock_code'],x['report_period']):x for x in csv.DictReader(PUB.open())}; cal=sorted(x.strip() for x in CAL.read_text().splitlines()[3:] if x.strip())

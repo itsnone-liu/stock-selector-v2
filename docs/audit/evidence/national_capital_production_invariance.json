@@ -1,0 +1,16 @@
+{
+  "anchor": "docs/audit/evidence/national_capital_extension_pause_anchor.json",
+  "checks": {
+    "chain_exact": true,
+    "counts": true,
+    "head_unchanged": true,
+    "candidate_prefix_unchanged": true,
+    "candidate_order_size_unchanged": true,
+    "candidate_commitment_unchanged": true,
+    "no_r4_s4": true
+  },
+  "passed": true,
+  "production_invariance": "PASS",
+  "current_git_head": "bb8f8d633112f9c3e68c00110622c769df78a489",
+  "note": "git head is expected to advance during H-PRE; production head and candidate commitments must not"
+}

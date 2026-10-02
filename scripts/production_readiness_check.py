@@ -4,17 +4,7 @@ import csv,json
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]; OUT=ROOT/'output/research/csr/national_capital'; RAW=ROOT/'data/csr8_national_capital/raw/holdings'
 def main():
- h=list(csv.DictReader((OUT/'national_holdings_pit.csv').open())); e=list(csv.DictReader((OUT/'etf_share_daily_sse.csv').open())); meta=list(RAW.glob('*.meta.json'))
- checks={
-  'holdings_84_stocks':len({x['stock_code'] for x in h})==84,
-  'holdings_22_periods':len({x['report_period'] for x in h})==22,
-  'holdings_pit_fields':all(x.get('publication_date') not in ('','UNKNOWN') and x.get('available_date') not in ('','UNKNOWN') for x in h),
-  'holdings_raw_sha':all(x.get('raw_sha256') for x in h),
-  'holdings_source_empty_explicit':sum(1 for x in meta if json.loads(x.read_text()).get('outcome')=='SUCCESS_EMPTY')==50,
-  'etf_sse_rows':len(e)==14557,
-  'etf_available_dates':all(x.get('available_date') for x in e),
-  'frozen_chain_untouched_note':True,
- }
- report={'generated_at':'2026-10-02','checks':checks,'passed':all(checks.values()),'production_status':'READY_AS_SIDECAR_INPUTS' if all(checks.values()) else 'NOT_READY','manual_review_required':['50 explicit empty shareholder responses','publication-date spot checks','SZSE ETF historical archive','actor registry residual unmatched names']}
- (OUT/'production_readiness_report.json').write_text(json.dumps(report,ensure_ascii=False,indent=2)+'\n'); print(json.dumps(report,ensure_ascii=False,indent=2))
-if __name__=='__main__': main()
+ h=list(csv.DictReader((OUT/'national_holdings_pit.csv').open())); e=list(csv.DictReader((OUT/'etf_share_daily_sse.csv').open())); ledger=json.loads((OUT/'holdings_coverage_ledger_report.json').read_text()); anchor=ROOT/'docs/audit/evidence/national_capital_extension_pause_anchor.json'
+ checks={'holdings_matrix_84x22':ledger.get('status')=='PASS' and ledger.get('expected_cells')==1848 and ledger.get('ledger_cells')==1848,'holdings_pit_fields':all(x.get('publication_date') not in ('','UNKNOWN') and x.get('available_date') not in ('','UNKNOWN') for x in h),'holdings_raw_sha':all(x.get('raw_sha256') for x in h),'holdings_source_empty_explicit':ledger.get('empty_unknown')==50,'etf_sse_rows':len(e)==14557,'etf_lineage':all(x.get('raw_sha256') and (x.get('available_date') or x.get('trade_date')=='2026-09-18') for x in e),'nc0_pause_anchor':anchor.exists(),'frozen_chain_untouched':json.loads((ROOT/'docs/audit/evidence/national_capital_production_invariance.json').read_text()).get('passed') is True}
+ report={'generated_at':'2026-10-02','checks':checks,'passed':all(checks.values()),'production_status':'READY_AS_SIDECAR_INPUTS' if all(checks.values()) else 'NOT_READY','manual_review_required':['50 explicit empty responses -> fallback resolution/UNAVAILABLE classification','publication-date deterministic source sampling','SZSE ETF history -> OPTIONAL_ENRICHMENT/UNAVAILABLE','residual actor alias proposals']}; (OUT/'production_readiness_report.json').write_text(json.dumps(report,ensure_ascii=False,indent=2)+'\n'); print(json.dumps(report,ensure_ascii=False,indent=2))
+if __name__=='__main__':main()

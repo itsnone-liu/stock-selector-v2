@@ -1,0 +1,32 @@
+{
+  "anchor_version": "csr8-national-capital-nc0-v1",
+  "created_at": "2026-10-02T06:03:02.383085+00:00",
+  "status": "H_PRE_PAUSED",
+  "production_chain": [
+    "REVEAL_PACKET",
+    "SEAL_ANNOTATION",
+    "REVEAL_PACKET",
+    "SEAL_ANNOTATION",
+    "REVEAL_PACKET",
+    "SEAL_ANNOTATION"
+  ],
+  "reveal_count": 3,
+  "seal_count": 3,
+  "open_reveals": 0,
+  "candidate_prefix": 3,
+  "candidate_order_size": 1717,
+  "production_head": "37f625beec6ca022a791bfc26e99d6fbc38943b8a5a43e6fce14fc2b0ca198a8",
+  "sealing_log_head_sha256": "8ccf653d11a83caa7fa1e9d5f9fee4ad35659774af7599303730a878ea6ed3c1",
+  "campaign_id": "hc-46195669974db3b25610bef4d047d927",
+  "review_ledger_head": "98e0787effa95977670d45f883a7a402902875fc155c6474c45571c969182f08",
+  "candidate_order_commitment": "e1b41cf681672cc5fe39e95f9c2f9dc0c038db57fab42f6c1411ddfb2baaf176",
+  "git_head": "bb8f8d633112f9c3e68c00110622c769df78a489",
+  "no_r4": true,
+  "no_s4": true,
+  "machine_checks": {
+    "chain_exact": "PASS",
+    "candidate_prefix": "PASS",
+    "semantic_replay": "DEFERRED_TO_FROZEN_H_GATE",
+    "ordinal_1_to_3_history": "DEFERRED_TO_FROZEN_H_GATE"
+  }
+}

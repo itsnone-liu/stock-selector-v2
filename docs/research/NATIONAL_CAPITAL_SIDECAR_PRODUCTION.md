@@ -44,15 +44,17 @@ These are generated files under ignored `data/` and `output/research/` trees. Th
 - ETF share expansion/contraction is a background proxy and is never attributed to a named national-capital actor.
 - Empty or incomplete tables remain `UNKNOWN`/source-empty; they are not converted to absence evidence.
 
-## Current readiness and manual review
+## Current readiness and machine-audit queue
 
 `production_readiness_report.json` is the machine-readable gate. The prepared sidecar is suitable as an input to a later context builder, not as permission to rewrite frozen packets or Phase H artifacts.
 
-Manual review remains required for:
+The following are explicit machine-auditable states, not silent manual overrides:
 
-1. 50 explicit empty historical shareholder responses;
-2. spot checks of publication dates against issuer/exchange announcements;
-3. residual unmatched actor names;
-4. historical SZSE ETF share archive or an approved paid source.
+1. 50 empty historical shareholder cells are classified `UNAVAILABLE` with `absence_semantics=UNKNOWN`; they are not absence evidence.
+2. Publication-date provenance is captured and is subject to deterministic source sampling against issuer/exchange metadata.
+3. Residual actor names remain `UNMATCHED`; LLM output may propose aliases but cannot alter the runtime registry.
+4. Historical SZSE ETF shares are `OPTIONAL_ENRICHMENT`/`UNAVAILABLE` until an approved source is captured.
+
+The NC0 pause anchor and production-invariance report must pass before any later context-builder integration.
 
 Do not commit the generated raw/CSV data unless a separate data-release policy explicitly requires it.
