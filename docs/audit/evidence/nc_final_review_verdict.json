@@ -1,0 +1,10 @@
+{
+  "review_version": "csr8-nc-final-review-v1",
+  "operation": "NC_FINAL",
+  "input_commitment_sha256": "915a8514cce60911e1a0cc5ec1a7f7e8bb3602abfd9a37884ce5e3690b987bb1",
+  "state": "APPROVE",
+  "issues": [],
+  "required_changes": [],
+  "reviewer_run_id": "chatgpt-nc-final-6580e02",
+  "created_at": "2026-10-02T07:30:00Z"
+}

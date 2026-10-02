@@ -1,0 +1,21 @@
+{
+  "status": "NATIONAL_CAPITAL_CONTEXT_EXTENSION_FROZEN",
+  "declared_by": "INDEPENDENT_LLM_AUDIT",
+  "final_verdict": "APPROVE",
+  "audited_commit": "6580e02de19dddcc2fe67129df2f6c99dd23b7d7",
+  "base_infra_freeze": "cd7f2a5db0fddee824bd1e5ce6da0f8bcd7431ca",
+  "nc_fix1_base": "bb8f8d633112f9c3e68c00110622c769df78a489",
+  "nc0_pause_production_head": "37f625beec6ca022a791bfc26e99d6fbc38943b8a5a43e6fce14fc2b0ca198a8",
+  "effective_from_ordinal": 4,
+  "past_ordinals_mutated": false,
+  "production_head_unchanged": true,
+  "candidate_order_unchanged": true,
+  "final_audit_sha256": "34a463dcbf945b9823e4f5c70a0018583729b9ff262a4bd7c08b27cf5be9b07b",
+  "context_preflight_sha256": "3efb2f1b0a30bca5ebe9e84d55ef2fd0dfb2295b66a03ba6416314267a7769ec",
+  "support_contract_report_sha256": "f80a56a00bea91402dfb89c8de0dd18489e05fecf4141117853c70a4a9cf182b",
+  "review_packet_sha256": "915a8514cce60911e1a0cc5ec1a7f7e8bb3602abfd9a37884ce5e3690b987bb1",
+  "review_verdict_sha256": "ed08a6248b8abdf23e970692f2bafaee2a4181e0afca0eb67d9841421042877a",
+  "actor_registry_sha256": "b818d02dd67875aad12abe255ea24f416b7a4bfc6f2da04eb6ba156e6d0a80e6",
+  "holdings_pit_sha256": "c42b0faa86b1200649e9a0c7b860336dbf31f05ee2bb6efcbd42d7140500e055",
+  "etf_share_sha256": "b0d67fe823adb305801cafb21d0aa30d5fb4bded2b9d296fa3d2e3cd0374b018"
+}
