@@ -1,10 +1,10 @@
 {
   "review_version": "csr8-nc-final-review-v1",
   "operation": "NC_FINAL",
-  "audit_target_commit": "af4be7ad2e535ebd720961010f309553dbef4171",
+  "audit_target_commit": "6580e02de19dddcc2fe67129df2f6c99dd23b7d7",
   "base_infra_freeze": "cd7f2a5db0fddee824bd1e5ce6da0f8bcd7431ca",
   "nc0_pause_head": "37f625beec6ca022a791bfc26e99d6fbc38943b8a5a43e6fce14fc2b0ca198a8",
-  "final_audit_sha256": "c3baef409354f25c8f14bacbf43c3da7179534cd8a149a3c4577d7987a2aa680",
+  "final_audit_sha256": "34a463dcbf945b9823e4f5c70a0018583729b9ff262a4bd7c08b27cf5be9b07b",
   "context_preflight_sha256": "3efb2f1b0a30bca5ebe9e84d55ef2fd0dfb2295b66a03ba6416314267a7769ec",
   "support_contract_report_sha256": "f80a56a00bea91402dfb89c8de0dd18489e05fecf4141117853c70a4a9cf182b",
   "artifact_commitments": {
@@ -29,8 +29,8 @@
     },
     "passed": true,
     "production_invariance": "PASS",
-    "current_git_head": "83920b2b1cdcae804447b52f003831571beb039b"
+    "current_git_head": "6580e02de19dddcc2fe67129df2f6c99dd23b7d7"
   },
   "no_r4_s4": true,
-  "review_packet_sha256": "a2a9c2440d020efd5cd0acb779b36b6bc4099cfeb922645232494dd179e3f13a"
+  "review_packet_sha256": "915a8514cce60911e1a0cc5ec1a7f7e8bb3602abfd9a37884ce5e3690b987bb1"
 }
