@@ -1,0 +1,11 @@
+{
+  "version": "csr8-national-actor-registry-v1",
+  "actors": [
+    {"actor_id":"A1-HUIJIN","canonical_name":"中央汇金","aliases":["中央汇金投资有限责任公司","中央汇金资产管理有限责任公司","中央汇金投资有限公司","华夏基金-中央汇金资产管理有限责任公司-华夏基金-汇金资管单一资产管理计划"],"actor_class":"national_capital","actor_group":"汇金系"},
+    {"actor_id":"A1-ZHENGJIN","canonical_name":"证金公司","aliases":["中国证券金融股份有限公司","中国证券金融有限责任公司"],"actor_class":"national_capital","actor_group":"证金系"},
+    {"actor_id":"A2-SSF","canonical_name":"社保基金","aliases":["全国社会保障基金理事会","全国社会保障基金理事会(社保基金会)","全国社保基金","全国社保基金四一三组合","全国社保基金一一八组合","全国社保基金四一八组合","全国社保基金四一四组合","全国社保基金四零三组合","全国社保基金一一三组合","全国社保基金一零七组合","全国社保基金一一四组合","全国社保基金一零四组合","全国社保基金五零三组合","全国社保基金六零二组合","全国社保基金一一六组合","全国社保基金一一五组合","全国社保基金一零一组合","全国社保基金一一零组合"],"actor_class":"strategic_capital","actor_group":"社保系"},
+    {"actor_id":"A2-PENSION","canonical_name":"养老金","aliases":["基本养老保险基金","基本养老保险基金八零二组合","基本养老保险基金一零零一组合","基本养老保险基金一二零一组合","基本养老保险基金一零零三组合","基本养老保险基金八零五组合","基本养老保险基金一二零二组合","基本养老保险基金一二零八组合","基本养老保险基金一五零二二组合"],"actor_class":"strategic_capital","actor_group":"养老金系"},
+    {"actor_id":"A1-SAFE","canonical_name":"外管局系","aliases":["梧桐树投资平台有限责任公司","北京凤山投资有限责任公司","北京坤藤投资有限责任公司"],"actor_class":"national_capital","actor_group":"外管局系"},
+    {"actor_id":"A1-BIGFUND","canonical_name":"国家大基金","aliases":["国家集成电路产业投资基金股份有限公司","国家集成电路产业投资基金二期股份有限公司","国家集成电路产业投资基金三期股份有限公司","华芯投资管理有限责任公司-国家集成电路产业投资基金二期股份有限公司"],"actor_class":"strategic_capital","actor_group":"大基金系"}
+  ]
+}
