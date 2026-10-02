@@ -1,0 +1,34 @@
+{
+  "record": "GENERIC RUNNER FIX4 STATUS",
+  "status": "READY_FOR_USER_REVIEW",
+  "base_commit": "2340ad7",
+  "ordinal_6": "PASS / sealed history unchanged / not rerun",
+  "ledger_binding": {
+    "source": "reviews.jsonl",
+    "checks": ["sequence", "review_hash", "prev_review_hash", "ordinal", "operation", "run_id", "session_id"],
+    "fake_ids": "FAIL_CLOSED",
+    "ledger_mismatch": "FAIL_CLOSED"
+  },
+  "snapshot": {
+    "version": "csr8-reviewer-novelty-snapshot-v2",
+    "persistence": "O_EXCL mode 0600 when path is supplied",
+    "required": ["sha256", "UTF-8 byte length", "sequence cutoff"],
+    "scan_scope": "pre-spawn prefix only"
+  },
+  "cli": {
+    "ledger": "required",
+    "previous_id": "repeatable and passed to complete_batch",
+    "boundary": "batch_start + eight completed ordinals - 1"
+  },
+  "regressions": {
+    "fake_id": "PASS",
+    "ledger_mismatch": "PASS",
+    "missing_cutoff": "PASS",
+    "length_mismatch": "PASS",
+    "previous_overlap": "PASS",
+    "hard_batch_completion": "PASS",
+    "ordinal_6_runner_verify": "ORDINAL_COMPLETE",
+    "all_python_compile": "PASS"
+  },
+  "gate": "batch H NOT_READY pending independent review and explicit user unlock"
+}
