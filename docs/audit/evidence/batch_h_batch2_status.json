@@ -1,0 +1,43 @@
+{
+  "artifact": "batch_h_batch2_status",
+  "batch": "second Batch H batch",
+  "ordinals": [15, 16, 17, 18, 19, 20, 21, 22],
+  "execution": {
+    "production_chain_events": 44,
+    "chain_shape": "R1/S1..R22/S22 (ordinals 1-22 cumulative)",
+    "production_head_sha256": "779203d03cd6bb60efbec66f818af7bf5a2bbab24d54e1949914bc751de66c18",
+    "ordinals_finalized": "15-22 all ORDINAL_COMPLETE / FINALIZED",
+    "ordinal_histories": "1-22 PASS",
+    "c2_full_replay": "PASS",
+    "batch_1_sealed_history_modified": false
+  },
+  "reviewer_gates": {
+    "ledger_rows": 40,
+    "sequences": "66-105",
+    "per_ordinal": "NEXT_REVEAL / ANNOTATION / RECEIPT / SEAL / POST_SEAL (5x8)",
+    "pre_spawn_dsh_captures": 41,
+    "capture_success_rate": "41/41 (one retry capture for ordinal-21 RECEIPT)",
+    "failed_spawns_wrote_ledger": false,
+    "incidents": [
+      {
+        "ordinal": 21,
+        "gate": "RECEIPT",
+        "event": "first reviewer spawn transcribed the 64-hex commitment as 63-hex; reviewer tool fail-closed (no verdict, no ledger row); fresh capture taken; re-spawn APPROVE (seq 98)",
+        "ledger_impact": "none"
+      }
+    ]
+  },
+  "batch_completion": {
+    "status": "BATCH_COMPLETE",
+    "evidence_mode": "REALTIME_PRE_SPAWN_DSH_CAPTURE",
+    "snapshot_version": "csr8-reviewer-novelty-snapshot-v4-dsh-zstd",
+    "attestation_level": "PLATFORM_OPAQUE_SUBAGENT",
+    "samples_checked": 40,
+    "trust_root": "frozen raw session.jsonl.zstd captures (sha256-pinned, 0400); decoded transcript re-derived at verification for every sample",
+    "previous_ids": "derived from docs/audit/evidence/batch_h_batch1_completion.json via derive_previous_ids (82 IDs, overlap 0)",
+    "current_batch_unique_ids": 80,
+    "completion_record": "docs/audit/evidence/batch_h_batch2_completion.json",
+    "samples_file": "docs/audit/evidence/batch_h_batch2_samples.json",
+    "captures_root": "captures/batch2/ (session-local, gitignored; frozen copies + snapshots + anchors)"
+  }
+}

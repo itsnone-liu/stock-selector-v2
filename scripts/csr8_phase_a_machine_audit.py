@@ -61,6 +61,14 @@ C4D_PROPOSAL_ALLOWLIST = (
     "c4d_proposals/c4-prod-0002/ordinal-0012/next_reveal.proposal.json",
     "c4d_proposals/c4-prod-0002/ordinal-0013/next_reveal.proposal.json",
     "c4d_proposals/c4-prod-0002/ordinal-0014/next_reveal.proposal.json",
+    "c4d_proposals/c4-prod-0002/ordinal-0015/next_reveal.proposal.json",
+    "c4d_proposals/c4-prod-0002/ordinal-0016/next_reveal.proposal.json",
+    "c4d_proposals/c4-prod-0002/ordinal-0017/next_reveal.proposal.json",
+    "c4d_proposals/c4-prod-0002/ordinal-0018/next_reveal.proposal.json",
+    "c4d_proposals/c4-prod-0002/ordinal-0019/next_reveal.proposal.json",
+    "c4d_proposals/c4-prod-0002/ordinal-0020/next_reveal.proposal.json",
+    "c4d_proposals/c4-prod-0002/ordinal-0021/next_reveal.proposal.json",
+    "c4d_proposals/c4-prod-0002/ordinal-0022/next_reveal.proposal.json",
 )
 
 
@@ -360,7 +368,7 @@ def main():
                # H-campaign generic-runner extensions (sealed R/S pairs only):
                # every length 2n for n=4..14 is legal once ordinals 1..n are
                # finalized; the runner's own closed-world gates bind the rest.
-               *[['REVEAL_PACKET', 'SEAL_ANNOTATION'] * n for n in range(4, 15)])
+               *[['REVEAL_PACKET', 'SEAL_ANNOTATION'] * n for n in range(4, 23)])
     if types not in allowed:
         raise RuntimeError('C3 audit requires exact persisted chain')
     c3 = verify_c3_append_domain() if types == ['REVEAL_PACKET', 'SEAL_ANNOTATION', 'REVEAL_PACKET'] else {'c3_append':'SUPERSEDED-BY-C6'}
