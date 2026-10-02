@@ -1,0 +1,45 @@
+{
+  "artifact": "batch_h_batch2_evidence_archive",
+  "archive_id": "batch-h-b2-evidence-archive-v1",
+  "purpose": "Durable trust roots for BATCH_COMPLETE of Batch H second batch (ordinal 15-22). Ruling 2026-10-02: runtime proof passed but captures/ was gitignored, so future independent replay from git alone was NOT POSSIBLE; this archive closes that durability gap without re-running any production ordinal.",
+  "location": {
+    "kind": "github_release_asset",
+    "release_tag": "batch-h-b2-evidence-archive-v1",
+    "release_id": 401891119,
+    "asset_name": "batch_h_b2_evidence.tar.gz",
+    "browser_download_url": "https://github.com/itsnone-liu/stock-selector-v2/releases/download/batch-h-b2-evidence-archive-v1/batch_h_b2_evidence.tar.gz",
+    "tag_target_commit": "41c54af0ff5fd4adc5b656c26b6eeb8ef13e9030"
+  },
+  "root_commitment": {
+    "archive_sha256": "f44a9e0f4049f2c9bfacf420a6477543028125ebf1a48ff5c2905eda996d2881",
+    "archive_bytes": 586599454,
+    "manifest_sha256": "6b65b0bd6548c8ac5b570ce7ab3007c865f93b7bc1b2f674062bbcdd052204ba",
+    "manifest_path": "docs/audit/evidence/batch_h_batch2_evidence_manifest.json",
+    "file_count": 123,
+    "capture_sets": 41,
+    "uncompressed_total_bytes": 1496654716
+  },
+  "contents": {
+    "official_samples": "40 capture sets (frozen raw zstd + snapshot.json + anchor.json) for ledger rows seq 66-105; ordinal-21 RECEIPT uses the retry capture (attempt 2)",
+    "incident_capture": {
+      "ordinal": 21,
+      "operation": "RECEIPT",
+      "attempt": 1,
+      "event": "first reviewer spawn transcribed 64-hex commitment as 63-hex; reviewer tool fail-closed before verdict; no ledger row",
+      "files": ["captures/batch2/o21/receipt.snapshot.json", "captures/batch2/o21/receipt.anchor.json", "captures/batch2/frozen/o21_receipt.session.jsonl.zstd"],
+      "status": "INCLUDED_AND_VERIFIED"
+    }
+  },
+  "independent_replay": {
+    "verifier": "python3 scripts/csr8_batch2_evidence_archive.py --verify --archive batch_h_b2_evidence.tar.gz --manifest docs/audit/evidence/batch_h_batch2_evidence_manifest.json --samples docs/audit/evidence/batch_h_batch2_samples.json",
+    "result": {
+      "status": "PASS",
+      "closed_world": "PASS",
+      "files_verified": 123,
+      "samples_verified": 40,
+      "incident_capture": "VERIFIED",
+      "chain_per_sample": "frozen raw zstd sha256/length -> FIX6 EOF binding -> decoder module hash re-pin -> frozen re-decode -> decoded sha256/length -> transcript_prefix equality -> anchor v2 provenance cross-check"
+    }
+  },
+  "batch_close_out": "Batch 2: EXECUTION CLOSED / EVIDENCE ARCHIVED (REVISE resolved)"
+}

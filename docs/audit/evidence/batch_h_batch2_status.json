@@ -39,5 +39,14 @@
     "completion_record": "docs/audit/evidence/batch_h_batch2_completion.json",
     "samples_file": "docs/audit/evidence/batch_h_batch2_samples.json",
     "captures_root": "captures/batch2/ (session-local, gitignored; frozen copies + snapshots + anchors)"
+  },
+  "evidence_archive": {
+    "archive_id": "batch-h-b2-evidence-archive-v1",
+    "close_out": "EXECUTION CLOSED / EVIDENCE ARCHIVED",
+    "descriptor": "docs/audit/evidence/batch_h_batch2_evidence_archive.json",
+    "manifest": "docs/audit/evidence/batch_h_batch2_evidence_manifest.json",
+    "release_tag": "batch-h-b2-evidence-archive-v1",
+    "archive_sha256": "f44a9e0f4049f2c9bfacf420a6477543028125ebf1a48ff5c2905eda996d2881",
+    "independent_replay_from_archive": "PASS (123 files closed-world, 40/40 samples full DSH-v4 chain, incident capture verified)"
   }
 }
