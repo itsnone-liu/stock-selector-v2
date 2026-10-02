@@ -22,7 +22,7 @@
     "output/research/csr/national_capital/etf_share_daily_sse.csv": "b0d67fe823adb305801cafb21d0aa30d5fb4bded2b9d296fa3d2e3cd0374b018",
     "output/research/csr/national_capital/etf_lineage_report.json": "c52f35782a48901caabefdfc68e59aa03f75ca98cc1567b7166666acca428d1f",
     "docs/audit/evidence/national_capital_extension_pause_anchor.json": "2ad2b43d661f4769ea49ea178b8bd14416039fe53982e121c342d94ebf47a718",
-    "docs/audit/evidence/national_capital_production_invariance.json": "293f31171e8c8059d7791ba48241661646fc5a8d0f52dd6563fedabfedc46c5b"
+    "docs/audit/evidence/national_capital_production_invariance.json": "94aed109eea234f2f087eabc6ffbba51d72a4daf18b99d1123a8211f27c78de8"
   },
   "no_r4_s4": true
 }
