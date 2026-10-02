@@ -932,8 +932,8 @@ def cmd_seal():
 # stage: verify (final machine audit of the completed ordinal)
 # ---------------------------------------------------------------------------
 
-def _expected_historical_campaign_files():
-    """Build all prior H subtrees, not only the current one."""
+def _expected_historical_campaign_files(final=False):
+    """Build H subtree expectations with stage-aware current ordinal."""
     out = []
     for n in range(5, ORDINAL + 1):
         sub = f'h{n - 2}'
@@ -942,15 +942,16 @@ def _expected_historical_campaign_files():
                 f'{sub}/national_context/ordinal-{n:04d}-national-ctx-v1.json',
                 f'{sub}/context_support_map.json',
                 f'{sub}/reviews/attestation.json']
-        out += [f'{sub}/reviews/{op}.verdict.json' for op in OPS]
+        stage_ops = OPS if (final or n < ORDINAL) else ('NEXT_REVEAL', 'ANNOTATION', 'RECEIPT', 'SEAL')
+        out += [f'{sub}/reviews/{op}.verdict.json' for op in stage_ops]
         out += [f'{sub}/reviews/{op}.corrected.verdict.json'
-                for op in OPS
+                for op in stage_ops
                 if (base / f'{op}.corrected.verdict.json').is_file()]
     return out
 
 
-def historical_campaign_closed_world(gate='G-H-WORLD'):
-    """Fail before an irreversible reveal/seal if prior H dirs drift."""
+def historical_campaign_closed_world(gate='G-H-WORLD', final=False):
+    """Fail before seal or final verify using stage-aware current files."""
     fixed = ['campaign_manifest.json', 'reviews.jsonl',
              'review_packets/phase_entry.json',
              'verdicts/phase_entry.verdict.json',
@@ -963,7 +964,7 @@ def historical_campaign_closed_world(gate='G-H-WORLD'):
                          'h2/national_context/ordinal-0004-national-ctx-v1.json',
                          'h2/context_support_map.json']
                       + [f'h2/reviews/{op}.verdict.json' for op in OPS]
-                      + _expected_historical_campaign_files())
+                      + _expected_historical_campaign_files(final=final))
     got = sorted(p.relative_to(CAMPAIGN).as_posix()
                  for p in CAMPAIGN.rglob('*') if p.is_file())
     if got != expected:
@@ -1168,7 +1169,7 @@ def cmd_verify():
     # h_campaign historical closed world (also checked pre-seal)
     got = sorted(p.relative_to(CAMPAIGN).as_posix()
                  for p in CAMPAIGN.rglob('*') if p.is_file())
-    historical_campaign_closed_world('G-H-WORLD')
+    historical_campaign_closed_world('G-H-WORLD', final=True)
 
     print(json.dumps({
         'stage': STAGE, 'iteration': ITERATION, 'ordinal': ORDINAL,

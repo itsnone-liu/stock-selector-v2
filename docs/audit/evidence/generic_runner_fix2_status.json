@@ -1,0 +1,29 @@
+{
+  "record": "GENERIC RUNNER FIX2 STATUS",
+  "status": "READY_FOR_USER_REVIEW",
+  "base_commit": "9920a88",
+  "ordinal_6": "PASS / sealed history unchanged / not rerun",
+  "fixes": {
+    "stage_aware_closed_world": "PRE_SEAL current ordinal requires NEXT_REVEAL, ANNOTATION, RECEIPT, SEAL only; FINAL_VERIFY requires POST_SEAL too; prior ordinals require complete five-operation set",
+    "preseal_regression": "synthetic ordinal-7 file-face proves h5 POST_SEAL absent before S7 while h5 SEAL present and prior h4 POST_SEAL required",
+    "correction_writer": "_h3_review_correction.py requires --ordinal N, rejects N<5, writes h(N-2), and run id is dynamic",
+    "batch_novelty_production_gate": "csr8_batch_h_orchestrator.py checks declared ids against executor transcript for premature occurrence and uses batch_start + completed_count - 1",
+    "unique_envelope": "annotate, receipt, verify all use annotation_envelope_for_current_reveal"
+  },
+  "batch_novelty_contract": {
+    "batch_size": 8,
+    "example_batch": "ordinal 7..14, boundary 14",
+    "not_global_modulo": true,
+    "attestation_level": "PLATFORM_OPAQUE_SUBAGENT"
+  },
+  "regressions": {
+    "preseal_closed_world": "PASS",
+    "transcript_positive": "PASS",
+    "premature_id_negative": "PASS",
+    "duplicate_id_negative": "PASS",
+    "empty_id_negative": "PASS",
+    "ordinal_6_runner_verify": "ORDINAL_COMPLETE",
+    "all_python_compile": "PASS"
+  },
+  "gate": "batch H NOT_READY pending independent review of FIX2"
+}

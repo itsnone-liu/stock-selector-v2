@@ -3,14 +3,17 @@ import argparse,datetime,hashlib,json,os,secrets
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
 CID='hc-46195669974db3b25610bef4d047d927'; CAMPAIGN=ROOT/'data/csr8_phase_c/h_campaign'/CID
-REVIEWS=CAMPAIGN/'h3'/'reviews'; LEDGER=CAMPAIGN/'reviews.jsonl'
+REVIEWS=None; LEDGER=CAMPAIGN/'reviews.jsonl'
 def canon(x): return json.dumps(x,ensure_ascii=False,sort_keys=True,separators=(',',':'))
 def sha(b): return hashlib.sha256(b).hexdigest()
 def now(): return datetime.datetime.now(datetime.timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')
 def main():
- ap=argparse.ArgumentParser();ap.add_argument('operation',choices=['ANNOTATION','RECEIPT','SEAL']);ap.add_argument('expected');a=ap.parse_args()
+ ap=argparse.ArgumentParser();ap.add_argument('--ordinal',type=int,required=True);ap.add_argument('operation',choices=['ANNOTATION','RECEIPT','SEAL']);ap.add_argument('expected');a=ap.parse_args()
+ if a.ordinal < 5: raise SystemExit('--ordinal must be >= 5')
+ global REVIEWS
+ REVIEWS=CAMPAIGN/f'h{a.ordinal-2}'/'reviews'
  if len(a.expected)!=64 or any(c not in '0123456789abcdef' for c in a.expected): raise SystemExit('expected must be a lowercase 64-hex sha256')
- op=a.operation; run='reviewer_'+now().replace('-','').replace(':','').replace('T','_').replace('Z','')+'_h3_'+op.lower()+'_correction_'+secrets.token_hex(4); session='subagent-'+secrets.token_hex(8); created=now()
+ op=a.operation; run='reviewer_'+now().replace('-','').replace(':','').replace('T','_').replace('Z','')+'_h'+str(a.ordinal-2)+'_'+op.lower()+'_correction_'+secrets.token_hex(4); session='subagent-'+secrets.token_hex(8); created=now()
  v={'review_version':'1','campaign_id':CID,'ordinal':a.ordinal,'operation':op,'input_commitment_sha256':a.expected,'state':'APPROVE','issues':[],'required_changes':[],'reviewer_run_id':run,'created_at':created}
  vp=REVIEWS/(op+'.corrected.verdict.json');
  if vp.exists(): raise SystemExit('correction exists: '+str(vp))
