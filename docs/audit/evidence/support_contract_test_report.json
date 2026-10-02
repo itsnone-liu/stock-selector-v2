@@ -5,6 +5,9 @@
     "wrong_context": true,
     "extra_key": true,
     "missing_hypothesis": true,
-    "duplicate_ref": true
+    "duplicate_ref": true,
+    "wrong_packet": true,
+    "unknown_record_id": true,
+    "wrong_ordinal": true
   }
 }
