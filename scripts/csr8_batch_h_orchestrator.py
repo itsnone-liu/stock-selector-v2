@@ -17,8 +17,10 @@ def capture_pre_spawn_snapshot(transcript_path, executor_session_id, snapshot_pa
     src=Path(transcript_path); out=Path(snapshot_path); anchor=Path(anchor_path)
     if not executor_session_id or not src.is_file(): raise ValueError('real transcript source required')
     st=os.stat(src); raw=src.read_bytes()
-    if sequence_cutoff is None: sequence_cutoff=len(raw)
-    if not isinstance(sequence_cutoff,int) or sequence_cutoff<0 or sequence_cutoff>len(raw): raise ValueError('invalid source cutoff')
+    eof = len(raw)
+    if sequence_cutoff is None: sequence_cutoff = eof
+    if not isinstance(sequence_cutoff,int) or sequence_cutoff != eof:
+        raise ValueError('pre-spawn cutoff must equal current transcript EOF')
     prefix=raw[:sequence_cutoff]; out.parent.mkdir(parents=True,exist_ok=True); anchor.parent.mkdir(parents=True,exist_ok=True)
     snap={'snapshot_version':SNAPSHOT_VERSION,'executor_session_id':executor_session_id,
           'source_path':str(src.resolve()),'source_device':st.st_dev,'source_inode':st.st_ino,

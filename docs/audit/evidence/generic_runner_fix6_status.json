@@ -1,0 +1,18 @@
+{
+  "record": "GENERIC RUNNER FIX6 STATUS",
+  "status": "READY_FOR_USER_REVIEW",
+  "base_commit": "f83fc57",
+  "ordinal_6": "PASS / sealed history unchanged / not rerun",
+  "fix": "capture_pre_spawn_snapshot now forces sequence_cutoff == current source EOF; None maps to EOF; shorter and longer caller values fail closed",
+  "regressions": {
+    "cutoff_less_than_eof": "PASS_FAIL_CLOSED",
+    "cutoff_greater_than_eof": "PASS_FAIL_CLOSED",
+    "source_capture": "PASS",
+    "ledger_binding": "PASS",
+    "previous_overlap": "PASS_FAIL_CLOSED",
+    "hard_batch_completion": "PASS",
+    "ordinal_6_runner_verify": "ORDINAL_COMPLETE",
+    "all_python_compile": "PASS"
+  },
+  "gate": "batch H remains NOT_READY pending explicit user unlock"
+}

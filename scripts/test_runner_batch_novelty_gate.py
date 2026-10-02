@@ -16,7 +16,11 @@ def rejects(fn):
  except ValueError:return
  raise AssertionError('negative control accepted')
 def main():
- p,b=ledger_file();snap,a=fixture(b);ok=reviewer_id_novelty_spot_check(7,['old'],[sample(b,snap,a)],str(p));assert ok['evidence'][0]['source_prefix_bytes']==len('executor prior transcript'.encode())
+ p,b=ledger_file()
+ d=Path(tempfile.mkdtemp()); src=d/'executor.transcript'; src.write_text('abc')
+ rejects(lambda: capture_pre_spawn_snapshot(src,'executor-session',d/'short.json',d/'short-anchor.json',2))
+ rejects(lambda: capture_pre_spawn_snapshot(src,'executor-session',d/'long.json',d/'long-anchor.json',4))
+ snap,a=fixture(b);ok=reviewer_id_novelty_spot_check(7,['old'],[sample(b,snap,a)],str(p));assert ok['evidence'][0]['source_prefix_bytes']==len('executor prior transcript'.encode())
  x=sample(b,snap,a);x['reviewer_run_id']='fake';rejects(lambda:reviewer_id_novelty_spot_check(7,[],[x],str(p)))
  x=sample(b,snap,a);x['review_hash']='f'*64;rejects(lambda:reviewer_id_novelty_spot_check(7,[],[x],str(p)))
  bad=dict(snap);bad['pre_spawn_sequence_cutoff']=None;rejects(lambda:reviewer_id_novelty_spot_check(7,[],[dict(sample(b,snap,a),pre_spawn_snapshot=bad)],str(p)))
