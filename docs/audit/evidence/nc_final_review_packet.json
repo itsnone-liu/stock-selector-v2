@@ -1,12 +1,12 @@
 {
   "review_version": "csr8-nc-final-review-v1",
   "operation": "NC_FINAL",
-  "audit_target_commit": "17fc9a22decde48985352e36376758c45474c02b",
+  "audit_target_commit": "55cce2a7d80ac1a09e6e096da8412bf3532aba6a",
   "base_infra_freeze": "NC-FIX3_REVIEW_TARGET",
   "nc0_pause_head": "37f625beec6ca022a791bfc26e99d6fbc38943b8a5a43e6fce14fc2b0ca198a8",
   "final_audit_sha256": "94b2eebd16d6f9ea2cf95fa7c2050ccb148b3fcdf9ef7b8c2e793ef31a59f392",
   "context_preflight_sha256": "e86ea32d8576588822c53438557234900ec4452998f047aa341e4fd7e3af35b8",
-  "support_contract_report_sha256": "PENDING_SUPPORT_CONTRACT_TEST",
+  "support_contract_report_sha256": "2896660782e0401b41ab315848e3e37e37eb548a09ce1684204336fe019aa7f4",
   "artifact_commitments": {
     "config/csr/national_actor_registry_v1.json": "b818d02dd67875aad12abe255ea24f416b7a4bfc6f2da04eb6ba156e6d0a80e6",
     "output/research/csr/national_capital/holdings_coverage_ledger.csv": "07e4ef74fd8c84c015dce8b4157ccb271bf27e1971d9491de95a1decf7d7c47e",
@@ -33,5 +33,5 @@
     "note": "git head is expected to advance during H-PRE; production head and candidate commitments must not"
   },
   "no_r4_s4": true,
-  "review_packet_sha256": "d2d7c47d03d592d659a253ed3c68d08ae4ced155698169dc8f674ba721e83893"
+  "review_packet_sha256": "39c2b14885d095f1a8ce4ce1328bc8d851b380df5e9e9aade241267c674ddb4d"
 }
