@@ -11,7 +11,9 @@ def read_completion(L,o):
  b=1+(o-7)//8 if o>=7 else 1
  p=OUT/f'batch_h_batch{b}_completion.json'
  d=L.json(p,'BATCH_COMPLETE binding')
- if not (d.get('batch_start', -1) <= o <= d.get('batch_end', -1)):
+ if d.get('status')!='BATCH_COMPLETE':
+  raise RuntimeError(f'ordinal {o} completion artifact is not BATCH_COMPLETE')
+ if not (d.get('batch_start',-1)<=o<=d.get('batch_end',-1)):
   raise RuntimeError(f'ordinal {o} outside completion range')
  rows=[]
  def walk(x):
@@ -66,6 +68,7 @@ def main():
   completion=None; batch_ok=False
   if o>=7:
    p,d=read_completion(L,o); completion=d; batch_ok=True
+   required['batch_status_complete']=True
   rp,sp,event_path=event_proof(L,o)
   # Runtime event log absence is an explicit historical/source limitation, never inferred positions.
   required={'proposal':prop_sha,'packet':packet_sha,'draft':draft_sha,'context':digest(f.get('context',(None,b''))[1]),'support':support_sha,'receipt':digest(f.get('receipt',(None,b''))[1]),'seal_approval':digest(f.get('seal',(None,b''))[1]),'annotation_contract_sha256':contract,'annotation_envelope_sha256':envelope,'context_commitment_sha256':context_commit,'verified_R_event':rp is not None,'verified_S_event':sp is not None,'batch_range_binding':batch_ok,'batch_ordinal_present':batch_ok,'batch_complete_binding':batch_ok,'envelope_recomputed':envelope is not None,'envelope_matches_review_verdict':envelope_matches_review}
