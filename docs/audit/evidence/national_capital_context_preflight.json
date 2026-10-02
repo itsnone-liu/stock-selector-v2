@@ -5,6 +5,11 @@
   "commitment_exact": true,
   "forbidden_keys": false,
   "no_r4_created": true,
+  "live_chain_still_6_events": true,
+  "candidate_binding_exact": true,
+  "as_of_exact": true,
+  "all_available_date_le_T": true,
+  "etf_actor_attribution_forbidden": true,
   "status": "PASS",
-  "context_commitment_sha256": "225e697ec32761e31169f8d6f9dc10c60596f65c49f622fe8a46dbfa2c48c4da"
+  "context_commitment_sha256": "a3310bf2c6ef34773b47a404c56d33370961c8564b0db2c6999f5f5b48dcdc16"
 }

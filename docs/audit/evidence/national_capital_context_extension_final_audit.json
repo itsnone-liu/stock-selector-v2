@@ -6,7 +6,9 @@
     "strict_available_date": true,
     "empty_unavailable": true,
     "etf_attribution_forbidden": true,
-    "nc0_invariance": true
+    "nc0_invariance": true,
+    "context_preflight": true,
+    "support_contract": true
   },
   "passed": true,
   "state": "PREREQUISITES_COMPLETE",
