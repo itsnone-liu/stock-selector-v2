@@ -52,6 +52,7 @@ C4D_PROPOSAL_ALLOWLIST = (
     "c4d_proposals/c4-prod-0002/ordinal-0003/next_reveal.proposal.json",
     "c4d_proposals/c4-prod-0002/ordinal-0004/next_reveal.proposal.json",
     "c4d_proposals/c4-prod-0002/ordinal-0005/next_reveal.proposal.json",
+    "c4d_proposals/c4-prod-0002/ordinal-0006/next_reveal.proposal.json",
 )
 
 
@@ -347,9 +348,10 @@ def main():
     chain6 = ['REVEAL_PACKET', 'SEAL_ANNOTATION'] * 3
     chain8 = ['REVEAL_PACKET', 'SEAL_ANNOTATION'] * 4
     chain10 = ['REVEAL_PACKET', 'SEAL_ANNOTATION'] * 5
+    chain12 = ['REVEAL_PACKET', 'SEAL_ANNOTATION'] * 6
     allowed = (['REVEAL_PACKET', 'SEAL_ANNOTATION', 'REVEAL_PACKET'],
                ['REVEAL_PACKET', 'SEAL_ANNOTATION'] * 2,
-               chain6, chain8, chain10)
+               chain6, chain8, chain10, chain12)
     if types not in allowed:
         raise RuntimeError('C3 audit requires exact persisted chain')
     c3 = verify_c3_append_domain() if types == ['REVEAL_PACKET', 'SEAL_ANNOTATION', 'REVEAL_PACKET'] else {'c3_append':'SUPERSEDED-BY-C6'}

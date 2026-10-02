@@ -1,0 +1,42 @@
+{
+  "record": "ORDINAL-6 GENERIC-RUNNER REPLACEMENT CANARY",
+  "status": "ORDINAL_COMPLETE",
+  "runner": "scripts/csr8_phase_h_runner.py --ordinal 6",
+  "chain": {"events": 12, "candidate_prefix": 6, "head": "8c8f0f68d6e37632932cb6af9824f98dc70e6db976613d5caf663cfbc7117e08"},
+  "contract": {
+    "context_version": "csr8-national-capital-v1e1",
+    "stock_layer_summary": "NO_PIT_VISIBLE_REPORT",
+    "stock_records": 0,
+    "market_records": 9,
+    "annotation_envelope_sha256": "0cea4d79b178a3b1e6c44423532cf53dbf6496b1b1a65a1a230b5d2fd297cbcd",
+    "current_reveal_packet_sha256": "ff8a41b215467d6721413409109725b784e337d73b468b16ca8a5ee2409f00f5",
+    "support_map_refs": 9,
+    "reviewer_protocol": "csr8-reviewer-independence-v2 / PLATFORM_OPAQUE_SUBAGENT"
+  },
+  "boundary_order": [
+    "NEXT_REVEAL APPROVE before authorize",
+    "ANNOTATION composite envelope APPROVE before receipt",
+    "RECEIPT exact hash APPROVE before seal",
+    "SEAL exact hash APPROVE before S6",
+    "POST_SEAL head hash APPROVE before final verify"
+  ],
+  "verification": {
+    "runner_verify": "ORDINAL_COMPLETE",
+    "c2_full_replay": "PASS",
+    "semantic_replay": "PASS",
+    "ordinal_histories_1_6": "PASS",
+    "receipt_triple": "PASS",
+    "anchor": "DURABLE",
+    "workspace_cleanup": "PASS",
+    "nc_final": "PREREQUISITES_COMPLETE / 12 events",
+    "a_layer": "VERIFIED / REVEAL=6 SEAL=6; expected negative-control diagnostic caught as PASS",
+    "certified_manifest": "CLOSED / fileCount=10663"
+  },
+  "runner_hardening": {
+    "single_envelope_path": "current_reveal_packet_sha + annotation_envelope_for_current_reveal",
+    "commitment_validation": "reviewer and correction writers require lowercase 64-hex SHA256",
+    "reviewer_distinctness": "run_id and declared session_id checked across active attempts and corrections",
+    "ordinal_parameterization": "prefix, authorization, chain, H campaign closed-world and history reports derive from --ordinal"
+  },
+  "gate": "ordinal-6 independent review next; batch H remains NOT_READY until user approval"
+}
