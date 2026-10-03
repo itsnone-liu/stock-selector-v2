@@ -1,0 +1,42 @@
+{
+ "archive_id": "batch-h-b12-evidence-archive-v1",
+ "artifact": "batch_h_batch12_evidence_archive",
+ "batch_rule": {
+  "note": "full 8-ordinal batch (89-96) under continuous-production authorization (user 2026-10-03); ordinal 129+ remains HOLD",
+  "pre_admission_annotation_guard": "entire batch produced under the guard (commit 2651d59) with zero corrections and zero guard rejections"
+ },
+ "location": {
+  "asset_name": "batch_h_b12_evidence.tar.gz",
+  "kind": "hash-pinned_durable_github_release_asset",
+  "platform_immutability": false,
+  "release_tag": "batch-h-b12-evidence-archive-v1"
+ },
+ "production_events_disclosed": {
+  "o96_reviewer_interpretation_divergence": "first fresh NEXT_REVEAL reviewer rejected fail-closed pre-admission treating the uniform packet-template marker proposal.created_at=2099-01-02T00:00:00Z as future data (zero verdict, zero ledger mutation); independent verification confirmed the marker is identical across all 94 packets o1..o96 (synthetic template metadata, interpretation documented in prior batch reviews o82/o91); fresh reviewer with independently-verified uniformity context admitted seq231 exactly once",
+  "batch_clean_production": "no organic guard rejections, no corrections, no retry capture sets in this batch"
+ },
+ "purpose": "Hash-pinned durable trust roots for Batch 12 ordinal 89-96 BATCH_COMPLETE (fourth continuous-production batch; zero corrections, guard path throughout).",
+ "root_commitment": {
+  "archive_bytes": 1022760982,
+  "archive_sha256": "88bf7e5c771cc8cda8213b3e67a74a97dbdfb13f4895a5f82db533eef6ac84f7",
+  "capture_sets": 40,
+  "closed_world": "PASS",
+  "file_count": 120,
+  "incident_capture": "NONE",
+  "manifest_path": "docs/audit/evidence/batch_h_batch12_evidence_manifest.json",
+  "manifest_sha256": "d332aa494ea76206d44a8386ed6efe1f6659bdead02ffc7efb51366633dbb796",
+  "samples_verified": 10
+ },
+ "scope": {
+  "epoch_id": 2,
+  "ledger": "reviews_epoch2.jsonl",
+  "ledger_rows": "seq 196-235 (o89-o96 five OPS each)",
+  "production_head_after_batch": "a6c3989a290ce94b7a588c014ff2202deb25a575d8a792232ca04e7b84fb94bb",
+  "sealing_chain": "192 events / 96 alternating pairs"
+ },
+ "verification": {
+  "details": "120 files byte-verified; 10 samples full DSH-v4 trust-root re-verified; no premature reviewer IDs; no retry/incident capture sets (clean batch)",
+  "result": "PASS",
+  "verifier": "scripts/csr8_batch2_evidence_archive.py --verify"
+ }
+}

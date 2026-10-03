@@ -1,0 +1,34 @@
+{
+ "artifact": "batch_h_batch12_status",
+ "ordinals": [
+  89,
+  90,
+  91,
+  92,
+  93,
+  94,
+  95,
+  96
+ ],
+ "batch_kind": "FULL_BATCH_CONTINUOUS_PRODUCTION",
+ "execution": {
+  "production_chain_events": 192,
+  "chain_shape": "R1/S1..R96/S96",
+  "production_head_sha256": "a6c3989a290ce94b7a588c014ff2202deb25a575d8a792232ca04e7b84fb94bb",
+  "ordinals_finalized": "89-96 all ORDINAL_COMPLETE / FINALIZED, zero corrections (guard path throughout)",
+  "ordinal_histories": "1-96 PASS",
+  "c2_full_replay": "PASS (per-ordinal verify)",
+  "semantic_replay": "PASS (per-ordinal verify)",
+  "sealed_history_modified": false
+ },
+ "reviewer_gates": {
+  "ledger": "reviews_epoch2.jsonl (epoch 2)",
+  "ledger_rows_for_batch": "seq 196-235",
+  "per_ordinal": "o89..o96 five OPS each, all APPROVE",
+  "novelty_gate": "PASS 10/10 capture-bound samples; previous-ID derivation from batch-11 record",
+  "pre_admission_annotation_guard": "live; all o89-o96 annotations guard-admitted exactly once (binding envelope), zero guard rejections this batch",
+  "fail_closed_events": "1 (o96 NEXT_REVEAL reviewer-interpretation divergence: first fresh reviewer rejected fail-closed pre-admission treating the uniform proposal.created_at=2099-01-02T00:00:00Z packet-template marker as future data — zero verdict, zero ledger mutation; independent verification confirmed the marker is uniform across all 94 packets o1..o96 (synthetic template metadata, documented in prior batch reviews); fresh reviewer admitted seq231)"
+ },
+ "legacy_ledger": "reviews.jsonl byte-frozen, untouched",
+ "captures_root": "captures/batch12/o89..o96 (outside campaign closed-world)"
+}
