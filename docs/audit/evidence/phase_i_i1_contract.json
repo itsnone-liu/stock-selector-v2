@@ -1,0 +1,236 @@
+{
+  "canonicalization": "sha256 of json.dumps(contract, ensure_ascii=False, sort_keys=True, separators=(\",\",\":\")) evaluated with unlock_gate.i1_contract_sha256 set to the empty string; verification replaces that field with \"\" and recomputes",
+  "contract": {
+    "contract_version": "phase-i-i1-readout-contract-v1",
+    "corpus": {
+      "historical_prefix_ordinals": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "historical_prefix_policy": "descriptive only; separate stratum; never pooled with ordinary pilot",
+      "lineage_binding": "docs/audit/evidence/phase_i_i0_2_evidence_derived_lineage.json",
+      "ordinary_pilot_case_count": 32,
+      "ordinary_pilot_ordinals": [
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33,
+        34,
+        35,
+        36,
+        37,
+        38
+      ],
+      "unit": "one sealed ordinal = one case"
+    },
+    "decision_rubric": {
+      "binding": "exactly one of A/B/C recorded with evidence, cell counts, and limitations; pilot is not confirmatory",
+      "effect_size_reporting": "per-cell median and MAD of R5; pairwise Cliff's delta for two-cell comparisons; no significance-threshold gate",
+      "evaluated_on": "primary endpoint R5 across primary explanatory variables; descriptive, non-confirmatory",
+      "gate_A_continue_64_128": "at least one qualifying variable shows a between-cell difference in median R5 whose sign is consistent across R3 and R10 for the same cell pair, AND complete-R5 fraction >= 80%, AND every frozen vocabulary level is either observed or explicitly labeled sparse",
+      "gate_B_taxonomy_v2": "a qualifying variable exists but no consistent-sign difference across R3/R10, OR complete-R5 fraction < 80% for structural reasons, OR all annotation-derived variables remain near-constant so only context variables carry signal",
+      "gate_C_pause_batch_h": "no variable qualifies (fewer than two cells with n >= 5) AND context variables show no descriptive structure in R5",
+      "minimum_interpretable_cell_n": 5,
+      "variable_qualifies": "at least two distinct value cells each with n >= 5 complete R5 observations"
+    },
+    "eligible_observation_clock": {
+      "H_k": "k-th eligible observation after T, k in {1,3,5,10}",
+      "clock": "exchange trading sessions of the mapped instrument",
+      "eligible_observation": "a session date d with d > T, present in the instrument hfq series, with finite positive hfq close",
+      "max_look_forward_sessions": 60,
+      "right_censor_rule": "if fewer than k eligible observations within 60 exchange sessions after T -> endpoint status right_censored for that k",
+      "skip_rule": "session present for the exchange but absent/invalid for the instrument -> skipped, logged with reason; never counted as zero return",
+      "trading_calendar_proxy": "union of session dates across the frozen baostock store universe"
+    },
+    "endpoints": {
+      "missing_data": {
+        "censoring_denominator": "censored cases stay in the corpus ledger and are excluded only from the affected endpoint summary with both counts reported",
+        "duplicate_session_rule": "duplicate session rows -> data_error for that case, quarantine before unlock-phase computation completes",
+        "imputation": "none",
+        "outlier_deletion": "none",
+        "winsorization": "none"
+      },
+      "primary": {
+        "formula": "ln(P5_hfq / P0_hfq)",
+        "horizon": 5,
+        "name": "R5",
+        "status_domain": [
+          "complete",
+          "right_censored",
+          "origin_unresolved",
+          "data_error"
+        ]
+      },
+      "secondary": {
+        "MAE10": "min over eligible i in 1..10 of (P_i/P0 - 1), simple return",
+        "MAE5": "min over eligible i in 1..5 of (P_i/P0 - 1), simple return",
+        "MFE10": "max over eligible i in 1..10 of (P_i/P0 - 1), simple return",
+        "MFE5": "max over eligible i in 1..5 of (P_i/P0 - 1), simple return",
+        "R1": "ln(P1_hfq / P0_hfq)",
+        "R10": "ln(P10_hfq / P0_hfq)",
+        "R3": "ln(P3_hfq / P0_hfq)",
+        "first_hit_band_5_10": "first eligible i in 1..10 reaching (P_i/P0-1) >= +0.05 or <= -0.05; ties by earliest session; band = up/down/none, session index recorded",
+        "return_convention": "R* are natural-log gross ratios; MFE/MAE and band thresholds are simple returns; never mixed in one endpoint"
+      }
+    },
+    "explanatory_variables": {
+      "descriptive_only": [
+        {
+          "json_path": "/sealed/market_etf_records/*/state",
+          "name": "etf_state_vector",
+          "reason": "per-slot cells too sparse for a 32-case pilot"
+        },
+        {
+          "json_path": "/sealed/stock_layer_summary_report_period",
+          "name": "stock_layer_report_period_recency",
+          "reason": "empty string tied to NO_PIT_VISIBLE_REPORT; redundant, descriptive"
+        },
+        {
+          "i0_distribution": {
+            "NOT_OBSERVED": 190,
+            "SUPPORTED_PARTIAL": 2
+          },
+          "json_path": "/annotation/rt_judgments/*/support",
+          "name": "annotation_rt_support",
+          "reason": "near-zero variation: coverage diagnostic only"
+        },
+        {
+          "i0_distribution": {
+            "OBSERVABLE": 192
+          },
+          "json_path": "/annotation/rt_judgments/*/observability",
+          "name": "annotation_rt_observability",
+          "reason": "constant"
+        },
+        {
+          "i0_distribution": {
+            "2": 32
+          },
+          "name": "support_reference_count",
+          "reason": "constant, zero discrimination"
+        },
+        {
+          "json_paths": [
+            "/sealed/packet_id",
+            "/sealed/packet_sha256",
+            "/sealed/production_head",
+            "/sealed/reveal_count",
+            "/sealed/seal_count"
+          ],
+          "name": "provenance_fields",
+          "reason": "audit lineage only"
+        }
+      ],
+      "prespecified_blocking": [
+        {
+          "definition": "calendar year of /sealed/as_of/T in {2021,2022,2023,2024,2025,2026}",
+          "name": "era",
+          "role": "blocking/stratification only; never an interpretive variable"
+        }
+      ],
+      "primary": [
+        {
+          "i0_distribution": {
+            "NATIONAL_ACTORS_PRESENT": 2,
+            "NOT_DISCLOSED_IN_LATEST_VISIBLE_TOP10": 25,
+            "NO_PIT_VISIBLE_REPORT": 5
+          },
+          "json_path": "/sealed/stock_layer_summary",
+          "missing_handling": "none expected; any unseen value at unlock -> coverage incident, not pooled",
+          "name": "stock_layer_summary",
+          "vocabulary": [
+            "NOT_DISCLOSED_IN_LATEST_VISIBLE_TOP10",
+            "NO_PIT_VISIBLE_REPORT",
+            "NATIONAL_ACTORS_PRESENT"
+          ]
+        },
+        {
+          "definition": "count of /sealed/market_etf_records/*/state == EXPANSION",
+          "derived_from_sealed_context_only": true,
+          "name": "etf_expansion_count",
+          "range": "0..9"
+        },
+        {
+          "definition": "count of /sealed/market_etf_records/*/state == CONTRACTION",
+          "derived_from_sealed_context_only": true,
+          "name": "etf_contraction_count",
+          "range": "0..9"
+        }
+      ],
+      "selection_basis": "chosen from I0/I0.1/I0.2 outcome-free cross-case distributions before any outcome read; near-zero-variation annotation fields are frozen as descriptive diagnostics"
+    },
+    "interpretation_limits": [
+      "32 cases are a pilot; no stable probabilities, thresholds, or trading rules",
+      "association is not causation; annotation variables are descriptive strata",
+      "sparse cells are reported as sparse, never as null or strong evidence"
+    ],
+    "origin": {
+      "P0": "hfq_adjusted close of the mapped instrument on T",
+      "P0_identity_cross_check": "unadjusted close on T in the frozen price store must equal the packet price_panel last value on T (machine check at unlock)",
+      "T_semantics": "blinded anchor date carried in the sealed packet; decision clock CLOSE_AFTER_T",
+      "T_source_path": "/sealed/as_of/T",
+      "origin_unresolved_rule": "if T row missing or cross-check fails -> origin_unresolved, excluded from endpoint numerators, kept in denominator ledger"
+    },
+    "pinned_input_hashes": {
+      "phase_i_i0_1_sealed_case_lineage.json": "8f359390c7495bf94ab8963d3350173450824a5bf003acb911b78242e7717b29",
+      "phase_i_i0_2_evidence_derived_lineage.json": "a9972c425a0e03c6a3ed0ca22cbf67334921b1eb048270b8a47554834a8206d0",
+      "phase_i_i0_corpus_inventory.json": "effae1ebdf6ac119002bf118217a16f842911737df1e61197a39b76e47855772",
+      "scripts/csr8_phase_h_review_envelope.py": "65cd884d0b3bd36f8e8974bb988f3fae510b1e268e8a900cfe42007204bfdbf8",
+      "scripts/csr8_phase_h_runner.py": "a23c0727fca8b052a67afd6bf3053e809eb24faf0b83d1570d099e71dc52630d"
+    },
+    "price_source": {
+      "adjustment": "hfq (adjustflag=1, backward/hou-fu-quan adjusted close)",
+      "coverage": "2021-01-04 .. 2026-09-18 (fetch window 2021-01-01 .. 2026-09-19)",
+      "dataset": "data/adjustment_baostock/per_stock/<code>.json.gz",
+      "fetch_manifest_sha256": "f16b764e6a3358269eef229dde06f9ae37df8fd8a20ac6852fc39f9ceeade6b3",
+      "fields": "date,open,high,low,close,volume,amount,turn,pctChg",
+      "provider": "baostock",
+      "selector_mapping_secret": {
+        "path": "data/csr8_phase_c/secret/packet_plan.json",
+        "policy": "contents NOT read during I1; consulted only inside the logged I2 unlock ceremony",
+        "sha256": "6a3051cb26cea71849838a42a17a76836a431e841a6f146a8f4a214bb1278a34"
+      }
+    },
+    "status": "FROZEN_CANDIDATE_PENDING_I2_UNLOCK_GATE",
+    "unlock_gate": {
+      "i1_contract_sha256": "7f244cdccabd7edf8d738f93424fcae0606bee6c6a3e2a7251342bf0dde117bf",
+      "requirements_for_I2": [
+        "this contract committed and its canonical sha256 frozen",
+        "PHASE-I SEALED INPUT ARCHIVE completed with closed-world manifest, archive sha256, hash-pinned durable release asset, and round-trip replay PASS, covering the I0.2 runtime read manifest files plus sealing_log plus batch completion bindings plus the price-source fetch manifest",
+        "price source and selector-mapping secret hashes still match the pins above at unlock time",
+        "unlock ceremony reads only through a logged runtime read manifest"
+      ]
+    }
+  },
+  "contract_sha256": "7f244cdccabd7edf8d738f93424fcae0606bee6c6a3e2a7251342bf0dde117bf",
+  "i2_ready": false,
+  "outcome_unlock": "NOT_AUTHORIZED",
+  "report_type": "PHASE_I_I1_CANONICAL_READOUT_CONTRACT"
+}
