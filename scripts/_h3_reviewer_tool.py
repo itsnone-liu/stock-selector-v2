@@ -4,6 +4,8 @@ from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(Path(__file__).resolve().parent))
 import csr8_ledger_epoch2 as epoch2
+import csr8_phase_c_annotation_seal as c4d
+from csr8_phase_h_review_envelope import annotation_envelope_sha256
 CID='hc-46195669974db3b25610bef4d047d927'
 ORDINAL=int(os.environ.get('CSR8_H_ORDINAL','6'))
 H_SUBDIR=f'h{ORDINAL-2}'
@@ -35,6 +37,29 @@ def append_review(ordinal, rec):
     with path.open('a') as f: f.write(canon(rec)+'\n')
     os.chmod(path,0o600)
     return seq
+def live_annotation_envelope(ordinal):
+    """PRE-ADMISSION BINDING GUARD (P0 fix after o65/o66 admitted wrong
+    commitments): machine-recompute the exact live ANNOTATION envelope from
+    the current sealing log, sidecar, support map and live draft. Identical
+    formula to runner cmd_receipt, so a reviewer cannot admit a commitment
+    the receipt gate would later reject. Only ANNOTATION is guarded; other
+    ops admit commitments the runner already exact-binds at their gates."""
+    sub=f'h{ordinal-2}'
+    base=ROOT/'data/csr8_phase_c/h_campaign'/CID
+    sidecar_path=base/sub/'national_context'/f'ordinal-{ordinal:04d}-national-ctx-v1.json'
+    support_path=base/sub/'context_support_map.json'
+    draft_path=c4d.draft_path(c4d.REAL_CSR,c4d.REAL_SESSION)
+    for p in (sidecar_path,support_path,draft_path):
+        if not p.is_file(): raise SystemExit('guard: required live artifact missing: '+str(p))
+    log_path=c4d.log_path(c4d.REAL_CSR,c4d.REAL_SESSION)
+    if not log_path.is_file(): raise SystemExit('guard: sealing log missing')
+    sidecar=json.loads(sidecar_path.read_bytes())
+    evs=[json.loads(x) for x in log_path.read_text().splitlines() if x.strip()]
+    reveals=[e for e in evs if e.get('event_type')=='REVEAL_PACKET']
+    if not reveals: raise SystemExit('guard: no REVEAL_PACKET in sealing log')
+    pkt=reveals[-1].get('payload',{}).get('packet_sha256')
+    if not isinstance(pkt,str) or len(pkt)!=64: raise SystemExit('guard: reveal packet sha malformed')
+    return annotation_envelope_sha256(pkt,sidecar['context_commitment_sha256'],sha(support_path.read_bytes()),sha(draft_path.read_bytes()))
 def main():
     ap=argparse.ArgumentParser(); ap.add_argument('--ordinal',type=int,required=True); ap.add_argument('op',choices=sorted(OPS)); ap.add_argument('expected'); a=ap.parse_args()
     global ORDINAL,H_SUBDIR,REVIEWS
@@ -45,6 +70,17 @@ def main():
     REVIEWS.mkdir(parents=True,exist_ok=True,mode=0o700)
     if len(a.expected) != 64 or any(c not in '0123456789abcdef' for c in a.expected):
         raise SystemExit('expected must be a lowercase 64-hex sha256')
+    # PRE-ADMISSION BINDING GUARD: for ANNOTATION the machine recomputes the
+    # live envelope exactly as runner cmd_receipt will, and refuses admission
+    # (zero verdict file, zero ledger row) when the reviewer's commitment
+    # does not bind it. Post-o65/o66 P0 hardening; applies before any write.
+    if a.op == 'ANNOTATION':
+        live = live_annotation_envelope(ORDINAL)
+        if a.expected != live:
+            raise SystemExit(
+                'guard: ANNOTATION commitment does not bind the live envelope '
+                '(live=' + live + ', offered=' + a.expected + '); admission '
+                'refused — no verdict written, no ledger row appended')
     run='reviewer_'+now().replace('-','').replace(':','').replace('T','_').replace('Z','')+'_h'+str(ORDINAL-2)+'_'+a.op.lower()+'_'+secrets.token_hex(4)
     session='subagent-'+secrets.token_hex(8)
     verdict={'review_version':'1','campaign_id':CID,'ordinal':ORDINAL,'operation':a.op,'input_commitment_sha256':a.expected,'state':'APPROVE','issues':[],'required_changes':[],'reviewer_run_id':run,'created_at':now()}
