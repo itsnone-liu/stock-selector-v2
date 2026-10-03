@@ -1,0 +1,45 @@
+{
+ "archive_id": "batch-h-b9-evidence-archive-v1",
+ "artifact": "batch_h_batch9_evidence_archive",
+ "batch_rule": {
+  "note": "full 8-ordinal batch (65-72) under continuous-production authorization (user 2026-10-03); ordinal 129+ remains HOLD",
+  "pre_admission_annotation_guard": "live from o67 (commit 2651d59): reviewer tool recomputes the live ANNOTATION envelope at admission time and refuses any non-binding commitment with zero verdict file and zero ledger row; verified by authorized negative/positive tests at o67; o67-72 produced with zero corrections"
+ },
+ "location": {
+  "asset_name": "batch_h_b9_evidence.tar.gz",
+  "kind": "hash-pinned_durable_github_release_asset",
+  "platform_immutability": false,
+  "release_tag": "batch-h-b9-evidence-archive-v1"
+ },
+ "production_events_disclosed": {
+  "o65_annotation_wrong_commitment_and_correction": "delegated attempt admitted wrong ANNOTATION commitment at seq75; receipt gate G-H3-RECEIPT stopped before make_receipt; user-authorized fresh independent correction appended ANNOTATION_CORRECTION seq76 binding live envelope 1604a9a5...a7b4c97; original seq75 retained; receipt/seal/post_seal seq77-79; ORDINAL_COMPLETE",
+  "o65_seal_closed_world_stop_and_capture_relocation": "first seal attempt failed closed at G-H-PRESEAL-WORLD because pre-spawn captures were written inside the campaign closed-world tree; only capture files relocated out (frozen zstd trust roots byte-identical); seal then succeeded",
+  "o66_annotation_wrong_commitment_and_correction": "second admitted wrong ANNOTATION commitment at seq81 vs live envelope 35caf60b...abcb37; receipt gate stopped; user-authorized correction seq82 (original seq81 retained); receipt/seal/post_seal seq83-85; ORDINAL_COMPLETE",
+  "o67_guard_negative_positive_tests": "authorized pre-admission guard tests: wrong hash rejected (exit 1, no verdict file, epoch2 row-count/head unchanged); correct hash admitted exactly one verdict + one row (seq87)",
+  "capture_path_relocation_disclosure": "capture artifacts originally written inside the campaign tree were relocated to captures/batch9; snapshot/anchor frozen_capture_path fields were rewritten consistently to the canonical frozen/ layout (frozen zstd bytes, hashes, lengths, device/inode provenance unchanged and re-verified by the archive verifier)"
+ },
+ "purpose": "Hash-pinned durable trust roots for Batch 9 ordinal 65-72 BATCH_COMPLETE (first continuous-production batch; includes two authorized append-only corrections and the guard-cleared o67-72 run).",
+ "root_commitment": {
+  "archive_bytes": 1034915248,
+  "archive_sha256": "01d6851b984b9254a5a5bb2dea33a7f2ae46598d2db641977320b7366ab79840",
+  "capture_sets": 43,
+  "closed_world": "PASS",
+  "file_count": 129,
+  "incident_capture": "VERIFIED",
+  "manifest_path": "docs/audit/evidence/batch_h_batch9_evidence_manifest.json",
+  "manifest_sha256": "ef15f5b336ca81d1bd89f633fb494d4fcbb3a5ec26da8ae1ad93ff44fe4ab82b",
+  "samples_verified": 10
+ },
+ "scope": {
+  "epoch_id": 2,
+  "ledger": "reviews_epoch2.jsonl",
+  "ledger_rows": "seq 74-115 (o65 five OPS + correction seq76, o66 five OPS + correction seq82, o67-o72 five OPS each)",
+  "production_head_after_batch": "fed36ce70a7e3e056f4dd5c19c1e7479c99f80065faa5569c8e40b7a096d3322",
+  "sealing_chain": "144 events / 72 alternating pairs"
+ },
+ "verification": {
+  "details": "129 files byte-verified; 10 samples full DSH-v4 trust-root re-verified; no premature reviewer IDs; retry/incident capture sets (o65/o66 annotation correction, o65 post_seal retry) complete triplets",
+  "result": "PASS",
+  "verifier": "scripts/csr8_batch2_evidence_archive.py --verify"
+ }
+}

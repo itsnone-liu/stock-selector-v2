@@ -1,0 +1,112 @@
+[
+ {
+  "ordinal": 65,
+  "reviewer_operation": "ANNOTATION_CORRECTION",
+  "ledger_sequence": 76,
+  "review_hash": "1619353ec2f9aad74d9611a670d0a3e0d1587fc0bd40a2d24c5860a4d687431a",
+  "reviewer_run_id": "reviewer_20261003_092601_h63_annotation_correction_cc07a075",
+  "reviewer_session_id": "subagent-c1b7b2b57da49bb0",
+  "executor_session_id": "session-e16514e1-2960-41c8-b3a3-a957b38b3400",
+  "pre_spawn_snapshot": "/root/project/workspace/stock-selector-v2/captures/batch9/o65/annotation.retry.snapshot.json",
+  "snapshot_anchor_path": "/root/project/workspace/stock-selector-v2/captures/batch9/o65/annotation.retry.anchor.json"
+ },
+ {
+  "ordinal": 65,
+  "reviewer_operation": "POST_SEAL",
+  "ledger_sequence": 79,
+  "review_hash": "36c74db7839098ef7cb85ce31715bfcdda6ba862c468575ae932774ef169db14",
+  "reviewer_run_id": "reviewer_20261003_094157_h63_post_seal_d2462e8a",
+  "reviewer_session_id": "subagent-f69d229d00524a5b",
+  "executor_session_id": "session-e16514e1-2960-41c8-b3a3-a957b38b3400",
+  "pre_spawn_snapshot": "/root/project/workspace/stock-selector-v2/captures/batch9/o65/post_seal.retry.snapshot.json",
+  "snapshot_anchor_path": "/root/project/workspace/stock-selector-v2/captures/batch9/o65/post_seal.retry.anchor.json"
+ },
+ {
+  "ordinal": 66,
+  "reviewer_operation": "ANNOTATION_CORRECTION",
+  "ledger_sequence": 82,
+  "review_hash": "292b76dd1b88f856df7e3afae55c6bd8b69de63c37f32aeca6426461dbc406f4",
+  "reviewer_run_id": "reviewer_20261003_095715_h64_annotation_correction_f7b999b1",
+  "reviewer_session_id": "subagent-ce620035494c7e69",
+  "executor_session_id": "session-e16514e1-2960-41c8-b3a3-a957b38b3400",
+  "pre_spawn_snapshot": "/root/project/workspace/stock-selector-v2/captures/batch9/o66/annotation.retry.snapshot.json",
+  "snapshot_anchor_path": "/root/project/workspace/stock-selector-v2/captures/batch9/o66/annotation.retry.anchor.json"
+ },
+ {
+  "ordinal": 66,
+  "reviewer_operation": "POST_SEAL",
+  "ledger_sequence": 85,
+  "review_hash": "0c0b43fe9b3a1c33a9cce65220bbf56cacf8777630ef66b027fefdce6f3d73b9",
+  "reviewer_run_id": "reviewer_20261003_100639_h64_post_seal_d470a939",
+  "reviewer_session_id": "subagent-2d219984cee6a684",
+  "executor_session_id": "session-e16514e1-2960-41c8-b3a3-a957b38b3400",
+  "pre_spawn_snapshot": "/root/project/workspace/stock-selector-v2/captures/batch9/o66/post_seal.snapshot.json",
+  "snapshot_anchor_path": "/root/project/workspace/stock-selector-v2/captures/batch9/o66/post_seal.anchor.json"
+ },
+ {
+  "ordinal": 67,
+  "reviewer_operation": "ANNOTATION",
+  "ledger_sequence": 87,
+  "review_hash": "8687b72c5b950639d0e5aa3438644764847628daa7ee25a32f7501e1e04edfad",
+  "reviewer_run_id": "reviewer_20261003_101445_h65_annotation_9dcd5292",
+  "reviewer_session_id": "subagent-e5f0d805f179bdf0",
+  "executor_session_id": "session-e16514e1-2960-41c8-b3a3-a957b38b3400",
+  "pre_spawn_snapshot": "/root/project/workspace/stock-selector-v2/captures/batch9/o67/annotation.snapshot.json",
+  "snapshot_anchor_path": "/root/project/workspace/stock-selector-v2/captures/batch9/o67/annotation.anchor.json"
+ },
+ {
+  "ordinal": 68,
+  "reviewer_operation": "NEXT_REVEAL",
+  "ledger_sequence": 91,
+  "review_hash": "2928e4be45ea285c5ce01c7c1240f26b224daa28f97f15eaf75b8a06d34c1221",
+  "reviewer_run_id": "reviewer_20261003_102342_h66_next_reveal_ef2ebba0",
+  "reviewer_session_id": "subagent-3b2910935da83084",
+  "executor_session_id": "session-e16514e1-2960-41c8-b3a3-a957b38b3400",
+  "pre_spawn_snapshot": "/root/project/workspace/stock-selector-v2/captures/batch9/o68/next_reveal.snapshot.json",
+  "snapshot_anchor_path": "/root/project/workspace/stock-selector-v2/captures/batch9/o68/next_reveal.anchor.json"
+ },
+ {
+  "ordinal": 69,
+  "reviewer_operation": "ANNOTATION",
+  "ledger_sequence": 97,
+  "review_hash": "39a492c9b9d7f7c182c3b09c14d14de4c561dbf72b787b554312439d52994217",
+  "reviewer_run_id": "reviewer_20261003_103641_h67_annotation_af6703f2",
+  "reviewer_session_id": "subagent-6d016fb40a5233c8",
+  "executor_session_id": "session-e16514e1-2960-41c8-b3a3-a957b38b3400",
+  "pre_spawn_snapshot": "/root/project/workspace/stock-selector-v2/captures/batch9/o69/annotation.snapshot.json",
+  "snapshot_anchor_path": "/root/project/workspace/stock-selector-v2/captures/batch9/o69/annotation.anchor.json"
+ },
+ {
+  "ordinal": 70,
+  "reviewer_operation": "ANNOTATION",
+  "ledger_sequence": 102,
+  "review_hash": "4cceaaf53f62bfcd77f0eac365d95e80b2201408a049a4d8f77ddaacb670e73b",
+  "reviewer_run_id": "reviewer_20261003_104523_h68_annotation_74bc03ab",
+  "reviewer_session_id": "subagent-89b8a9bcc2a1f8ce",
+  "executor_session_id": "session-e16514e1-2960-41c8-b3a3-a957b38b3400",
+  "pre_spawn_snapshot": "/root/project/workspace/stock-selector-v2/captures/batch9/o70/annotation.snapshot.json",
+  "snapshot_anchor_path": "/root/project/workspace/stock-selector-v2/captures/batch9/o70/annotation.anchor.json"
+ },
+ {
+  "ordinal": 71,
+  "reviewer_operation": "SEAL",
+  "ledger_sequence": 109,
+  "review_hash": "3ba40f1aa39a14dee79cc90b4b89d54e7dc3e82002b9f0632df5400594eb1142",
+  "reviewer_run_id": "reviewer_20261003_105550_h69_seal_158e800b",
+  "reviewer_session_id": "subagent-b4763a591bbba1b5",
+  "executor_session_id": "session-e16514e1-2960-41c8-b3a3-a957b38b3400",
+  "pre_spawn_snapshot": "/root/project/workspace/stock-selector-v2/captures/batch9/o71/seal.snapshot.json",
+  "snapshot_anchor_path": "/root/project/workspace/stock-selector-v2/captures/batch9/o71/seal.anchor.json"
+ },
+ {
+  "ordinal": 72,
+  "reviewer_operation": "ANNOTATION",
+  "ledger_sequence": 112,
+  "review_hash": "28861ba4a6eedae0b499b19d6c906d8f977e310e5baf3218d8dd973deb82f080",
+  "reviewer_run_id": "reviewer_20261003_110156_h70_annotation_1ebaf06e",
+  "reviewer_session_id": "subagent-1596d520646453d1",
+  "executor_session_id": "session-e16514e1-2960-41c8-b3a3-a957b38b3400",
+  "pre_spawn_snapshot": "/root/project/workspace/stock-selector-v2/captures/batch9/o72/annotation.snapshot.json",
+  "snapshot_anchor_path": "/root/project/workspace/stock-selector-v2/captures/batch9/o72/annotation.anchor.json"
+ }
+]

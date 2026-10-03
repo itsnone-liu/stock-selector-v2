@@ -1,0 +1,38 @@
+{
+ "artifact": "batch_h_batch9_status",
+ "ordinals": [
+  65,
+  66,
+  67,
+  68,
+  69,
+  70,
+  71,
+  72
+ ],
+ "batch_kind": "FULL_BATCH_CONTINUOUS_PRODUCTION",
+ "execution": {
+  "production_chain_events": 144,
+  "chain_shape": "R1/S1..R72/S72",
+  "production_head_sha256": "fed36ce70a7e3e056f4dd5c19c1e7479c99f80065faa5569c8e40b7a096d3322",
+  "ordinals_finalized": "65-72 all ORDINAL_COMPLETE / FINALIZED (o65/o66 via authorized append-only correction; o67-72 via pre-admission guard, zero corrections)",
+  "ordinal_histories": "1-72 PASS",
+  "c2_full_replay": "PASS (per-ordinal verify)",
+  "semantic_replay": "PASS (per-ordinal verify)",
+  "sealed_history_modified": false
+ },
+ "reviewer_gates": {
+  "ledger": "reviews_epoch2.jsonl (epoch 2)",
+  "ledger_rows_for_batch": "seq 74-115",
+  "per_ordinal": "o65..o72 all five OPS admitted (plus ANNOTATION_CORRECTION rows at seq76/seq82)",
+  "novelty_gate": "PASS 10/10 capture-bound samples; previous-ID derivation from batch-8 record",
+  "fail_closed_events": "5 (two admitted wrong ANNOTATION commitments + authorized corrections; one closed-world seal stop + capture relocation; guard negative/positive tests) — all disclosed in batch_h_batch9_completion.json",
+  "pre_admission_annotation_guard": "live from o67 (commit 2651d59); wrong hash -> zero verdict + zero ledger row; verified 2026-10-03"
+ },
+ "incidents": {
+  "o65": "recovered; original bad verdict seq75 retained; correction seq76 active",
+  "o66": "recovered; original bad verdict seq81 retained; correction seq82 active"
+ },
+ "legacy_ledger": "reviews.jsonl byte-frozen, untouched",
+ "captures_root": "captures/batch9/o65..o72 (outside campaign closed-world)"
+}
