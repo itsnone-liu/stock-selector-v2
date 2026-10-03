@@ -1,0 +1,42 @@
+{
+ "archive_id": "batch-h-b10-evidence-archive-v1",
+ "artifact": "batch_h_batch10_evidence_archive",
+ "batch_rule": {
+  "note": "full 8-ordinal batch (73-80) under continuous-production authorization (user 2026-10-03); ordinal 129+ remains HOLD",
+  "pre_admission_annotation_guard": "entire batch produced under the guard (commit 2651d59) with zero corrections; organic in-production guard rejection observed at o79 (wrong commitment rejected fail-closed with zero ledger mutation before correct admission at seq147)"
+ },
+ "location": {
+  "asset_name": "batch_h_b10_evidence.tar.gz",
+  "kind": "hash-pinned_durable_github_release_asset",
+  "platform_immutability": false,
+  "release_tag": "batch-h-b10-evidence-archive-v1"
+ },
+ "production_events_disclosed": {
+  "o79_organic_guard_rejection": "reviewer probed guard with incorrect commitment; rejected pre-admission (no verdict file, no ledger row); recomputed binding commitment 4a399c62...14cc5 admitted exactly once at seq147",
+  "o79_stock_layer_disclosed_case": "stock_records=1 with NATIONAL_ACTORS_PRESENT; reviewer verified protocol actor identifier A1-HUIJIN, holding-state-only attribution, ordinal-bound support references; no ETF actor identity leakage"
+ },
+ "purpose": "Hash-pinned durable trust roots for Batch 10 ordinal 73-80 BATCH_COMPLETE (second continuous-production batch; zero corrections, guard path throughout).",
+ "root_commitment": {
+  "archive_bytes": 993958279,
+  "archive_sha256": "a7c8d8cefda8d994935c9bc513805f1b379cf6e0bb7a96eac0029b4d9222be95",
+  "capture_sets": 40,
+  "closed_world": "PASS",
+  "file_count": 120,
+  "incident_capture": "NONE",
+  "manifest_path": "docs/audit/evidence/batch_h_batch10_evidence_manifest.json",
+  "manifest_sha256": "4b0b1c8aa5dcc43cec1867202d045606affd1f1d22d0c1b9cae086b483f765e4",
+  "samples_verified": 10
+ },
+ "scope": {
+  "epoch_id": 2,
+  "ledger": "reviews_epoch2.jsonl",
+  "ledger_rows": "seq 116-155 (o73-o80 five OPS each)",
+  "production_head_after_batch": "6f5ec86e81404bd019b13c0a1fdd1188516e07f7defb7219dd2c8c1b10c90811",
+  "sealing_chain": "160 events / 80 alternating pairs"
+ },
+ "verification": {
+  "details": "120 files byte-verified; 10 samples full DSH-v4 trust-root re-verified; no premature reviewer IDs; no retry/incident capture sets (clean batch)",
+  "result": "PASS",
+  "verifier": "scripts/csr8_batch2_evidence_archive.py --verify"
+ }
+}

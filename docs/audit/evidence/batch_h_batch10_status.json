@@ -1,0 +1,34 @@
+{
+ "artifact": "batch_h_batch10_status",
+ "ordinals": [
+  73,
+  74,
+  75,
+  76,
+  77,
+  78,
+  79,
+  80
+ ],
+ "batch_kind": "FULL_BATCH_CONTINUOUS_PRODUCTION",
+ "execution": {
+  "production_chain_events": 160,
+  "chain_shape": "R1/S1..R80/S80",
+  "production_head_sha256": "6f5ec86e81404bd019b13c0a1fdd1188516e07f7defb7219dd2c8c1b10c90811",
+  "ordinals_finalized": "73-80 all ORDINAL_COMPLETE / FINALIZED, zero corrections (guard path throughout)",
+  "ordinal_histories": "1-80 PASS",
+  "c2_full_replay": "PASS (per-ordinal verify)",
+  "semantic_replay": "PASS (per-ordinal verify)",
+  "sealed_history_modified": false
+ },
+ "reviewer_gates": {
+  "ledger": "reviews_epoch2.jsonl (epoch 2)",
+  "ledger_rows_for_batch": "seq 116-155",
+  "per_ordinal": "o73..o80 five OPS each, all APPROVE",
+  "novelty_gate": "PASS 10/10 capture-bound samples; previous-ID derivation from batch-9 record",
+  "pre_admission_annotation_guard": "live; organic rejection observed at o79 (zero ledger mutation before correct admission)",
+  "fail_closed_events": "2 (organic guard rejection at o79; disclosed stock-layer case review)"
+ },
+ "legacy_ledger": "reviews.jsonl byte-frozen, untouched",
+ "captures_root": "captures/batch10/o73..o80 (outside campaign closed-world)"
+}
