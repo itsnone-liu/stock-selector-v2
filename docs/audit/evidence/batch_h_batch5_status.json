@@ -1,0 +1,8 @@
+{
+  "artifact":"batch_h_batch5_status",
+  "ordinals":[39,40,41,42,43,44,45,46],
+  "execution":{"production_chain_events":92,"chain_shape":"R1/S1..R46/S46","production_head_sha256":"73a7124e46e701b5b2cf13a51d2a75730a59b0216fa1bee6b1386f69ae9e8a6b","ordinals_finalized":"39-46 all ORDINAL_COMPLETE / FINALIZED","ordinal_histories":"1-46 PASS","c2_full_replay":"PASS","sealed_history_7_38_modified":false},
+  "reviewer_gates":{"ledger_rows":40,"sequences":"186-225","per_ordinal":"NEXT_REVEAL / ANNOTATION / RECEIPT / SEAL / POST_SEAL (5x8)","pre_spawn_dsh_captures":40,"capture_success_rate":"40/40","failed_spawns":0,"prompt_fail_closed_incidents":2},
+  "batch_completion":{"status":"BATCH_COMPLETE","evidence_mode":"REALTIME_PRE_SPAWN_DSH_CAPTURE","samples_checked":40,"previous_record":"docs/audit/evidence/batch_h_batch4_completion.json","previous_ids":"artifact-derived from Batch-4 completion","completion_record":"docs/audit/evidence/batch_h_batch5_completion.json"},
+  "evidence_archive":{"archive_id":"batch-h-b5-evidence-archive-v1","close_out":"EXECUTION CLOSED / EVIDENCE ARCHIVED LOCALLY; RELEASE PENDING","descriptor":"docs/audit/evidence/batch_h_batch5_evidence_archive.json","manifest":"docs/audit/evidence/batch_h_batch5_evidence_manifest.json","archive_sha256":"5e30a4ce358e9b2dee4b8ffe85336d7cf1ea1061819819bccd6d7e870b82ccca","archive_bytes":784220681,"files":120,"capture_sets":40,"uncompressed_bytes":2024436232,"independent_replay":"PASS (120 files closed-world, 40/40 DSH-v4, incident NONE)"}
+}
