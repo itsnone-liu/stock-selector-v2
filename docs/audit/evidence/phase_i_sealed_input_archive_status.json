@@ -1,0 +1,56 @@
+{
+ "record": "PHASE-I SEALED INPUT ARCHIVE STATUS",
+ "archive_id": "phase-i-sealed-input-archive-v1",
+ "status": "ARCHIVED / DURABLE",
+ "scope": {
+  "runtime_manifest_files": 298,
+  "extra_commitments": 13,
+  "total_files": 311,
+  "total_bytes": 5041588,
+  "includes": [
+   "I0.2 runtime read manifest sealed inputs (c4d_receipts, c4d_proposals, h_campaign, production, audit evidence)",
+   "sealing_log.jsonl",
+   "batch_h_batch1-4_completion.json",
+   "phase_i_price_store_manifest.json + data/adjustment_baostock/fetch_manifest.json",
+   "phase-i verifier/contract code commitments and I0/I0.1/I0.2/I1 artifacts"
+  ],
+  "excludes": [
+   "selector secret packet_plan.json",
+   "any per-stock price file (price store bound via closed-world manifest only)"
+  ]
+ },
+ "manifest": {
+  "path": "docs/audit/evidence/phase_i_sealed_input_archive_manifest.json",
+  "manifest_sha256": "fe986b6af62d700ce50adaf8f7cff98f92ee80da5a62cf31af9ee6571df18324"
+ },
+ "archive": {
+  "file": "phase_i_sealed_input_archive_v1.tar.gz",
+  "archive_sha256": "21365b9e0d8448031c922e4850bcded286827b511fe00e071757e2bf57f7e8f2"
+ },
+ "release": {
+  "repo": "itsnone-liu/stock-selector-v2",
+  "release_id": 402240980,
+  "tag": "phase-i-sealed-input-archive-v1",
+  "asset_url": "https://github.com/itsnone-liu/stock-selector-v2/releases/download/phase-i-sealed-input-archive-v1/phase_i_sealed_input_archive_v1.tar.gz"
+ },
+ "verification": {
+  "local_verify": "PASS",
+  "closed_world_member_check": "PASS (regular files + plain dirs only; no traversal, no symlinks)",
+  "manifest_self_digest": "PASS",
+  "round_trip_download_sha256": "PASS (21365b9e0d8448031c922e4850bcded286827b511fe00e071757e2bf57f7e8f2)",
+  "round_trip_verify": "PASS",
+  "replay_from_downloaded_copy": "PASS (ordinary_lineage_complete 32/32, envelope->verdict bindings preserved)",
+  "outcome_reads": "none; selector mapping untouched; per-stock price bytes never read during archiving"
+ },
+ "gates": {
+  "I1_FROZEN": "6f39dac5f660d87a75d0414344f7d69636faaf4d / contract 1b2db3ae2b51234d05cac80f98eebef5ca8ba6058d1fc17e7cb597cd8f7addf3",
+  "sealed_input_archive": "PASS",
+  "remaining_for_I2": [
+   "price store closed-world re-verification (manifest digest + 5240 per-file rehash) at unlock time",
+   "selector secret hash match",
+   "logged unlock ceremony"
+  ],
+  "I2_outcome_unlock": "NOT_AUTHORED_YET",
+  "batch_H_ordinal_39_plus": "HOLD"
+ }
+}

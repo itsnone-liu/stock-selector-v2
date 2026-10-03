@@ -1,0 +1,1878 @@
+{
+  "archive_id": "phase-i-sealed-input-archive-v1",
+  "canonicalization": "manifest_sha256 = sha256(canon(manifest with manifest_sha256=\"\"))",
+  "file_count": 311,
+  "files": [
+    {
+      "bytes": 890245,
+      "path": "data/adjustment_baostock/fetch_manifest.json",
+      "runtime_manifest_purpose": "phase-i code/contract commitment",
+      "sha256": "f16b764e6a3358269eef229dde06f9ae37df8fd8a20ac6852fc39f9ceeade6b3"
+    },
+    {
+      "bytes": 574,
+      "path": "data/csr8_phase_c/c4d_proposals/c4-prod-0002/ordinal-0002/next_reveal.proposal.json",
+      "runtime_manifest_purpose": "proposal",
+      "sha256": "d045778390478d5cdc31bedcf44078fd9307c10fa08d0bc84a18df596cecc578"
+    },
+    {
+      "bytes": 574,
+      "path": "data/csr8_phase_c/c4d_proposals/c4-prod-0002/ordinal-0003/next_reveal.proposal.json",
+      "runtime_manifest_purpose": "proposal",
+      "sha256": "1443cb61f97b497ecc68b4a84f7bedcbbfdb21235744c7cc0a3fa5a5fe9ecef7"
+    },
+    {
+      "bytes": 574,
+      "path": "data/csr8_phase_c/c4d_proposals/c4-prod-0002/ordinal-0004/next_reveal.proposal.json",
+      "runtime_manifest_purpose": "proposal",
+      "sha256": "a3fb80a140ec647551888dd7613e7fb629c4cd3cccce2dd3d018bb07059936c2"
+    },
+    {
+      "bytes": 574,
+      "path": "data/csr8_phase_c/c4d_proposals/c4-prod-0002/ordinal-0005/next_reveal.proposal.json",
+      "runtime_manifest_purpose": "proposal",
+      "sha256": "0ad8b5a51095e82ca727c1dd74fa79509a64108b26495b2bbecbacefbaa8b5ff"
+    },
+    {
+      "bytes": 574,
+      "path": "data/csr8_phase_c/c4d_proposals/c4-prod-0002/ordinal-0006/next_reveal.proposal.json",
+      "runtime_manifest_purpose": "proposal",
+      "sha256": "b4a9abe222150afd6d719efb2eddfb4271de8ff8df07bed9d635964bcb9295b1"
+    },
+    {
+      "bytes": 574,
+      "path": "data/csr8_phase_c/c4d_proposals/c4-prod-0002/ordinal-0007/next_reveal.proposal.json",
+      "runtime_manifest_purpose": "proposal",
+      "sha256": "82f48736d36fc5d19875fb7168574dacc088a59691de16502527c9221614b73b"
+    },
+    {
+      "bytes": 574,
+      "path": "data/csr8_phase_c/c4d_proposals/c4-prod-0002/ordinal-0008/next_reveal.proposal.json",
+      "runtime_manifest_purpose": "proposal",
+      "sha256": "5e45884888ad4b754ec8657e5e6c7fabe8d846ed09b5203207f2c2546e8e9df1"
+    },
+    {
+      "bytes": 574,
+      "path": "data/csr8_phase_c/c4d_proposals/c4-prod-0002/ordinal-0009/next_reveal.proposal.json",
+      "runtime_manifest_purpose": "proposal",
+      "sha256": "c6d0d4feb374ca16216c98b58307613263849b378486df9025db73ed605c49ed"
+    },
+    {
+      "bytes": 576,
+      "path": "data/csr8_phase_c/c4d_proposals/c4-prod-0002/ordinal-0010/next_reveal.proposal.json",
+      "runtime_manifest_purpose": "proposal",
+      "sha256": "09f87eba75aefe4efac5fc3f756ba79f919f43bccdfb0907dec3767bf2e9a7ba"
+    },
+    {
+      "bytes": 576,
+      "path": "data/csr8_phase_c/c4d_proposals/c4-prod-0002/ordinal-0011/next_reveal.proposal.json",
+      "runtime_manifest_purpose": "proposal",
+      "sha256": "7184e7ea37193084bc1bccf9dd07710b91409c35d7991bf7570ca546c6aafe7b"
+    },
+    {
+      "bytes": 576,
+      "path": "data/csr8_phase_c/c4d_proposals/c4-prod-0002/ordinal-0012/next_reveal.proposal.json",
+      "runtime_manifest_purpose": "proposal",
+      "sha256": "99a78fe7ad8d16e1ce5ad03836adabfc32230cd1623d9d876168af3ef828a0be"
+    },
+    {
+      "bytes": 576,
+      "path": "data/csr8_phase_c/c4d_proposals/c4-prod-0002/ordinal-0013/next_reveal.proposal.json",
+      "runtime_manifest_purpose": "proposal",
+      "sha256": "20beb89a7bd3542938156965ebd822a2ad685b8184151d8e5d81ed67d2fe48be"
+    },
+    {
+      "bytes": 576,
+      "path": "data/csr8_phase_c/c4d_proposals/c4-prod-0002/ordinal-0014/next_reveal.proposal.json",
+      "runtime_manifest_purpose": "proposal",
+      "sha256": "6e5db78a5e4b4ab90857e2c92f2eefe120b898e2a4efc8857480112f8d5a190a"
+    },
+    {
+      "bytes": 576,
+      "path": "data/csr8_phase_c/c4d_proposals/c4-prod-0002/ordinal-0015/next_reveal.proposal.json",
+      "runtime_manifest_purpose": "proposal",
+      "sha256": "3e15653c2f92c5acf0b10b1554324204984022e5b02db9d4f3ff93638aaa21ac"
+    },
+    {
+      "bytes": 576,
+      "path": "data/csr8_phase_c/c4d_proposals/c4-prod-0002/ordinal-0016/next_reveal.proposal.json",
+      "runtime_manifest_purpose": "proposal",
+      "sha256": "643bf2c956e79166892ba02b914932819e6170377843938bb258ca2b6e737bb7"
+    },
+    {
+      "bytes": 576,
+      "path": "data/csr8_phase_c/c4d_proposals/c4-prod-0002/ordinal-0017/next_reveal.proposal.json",
+      "runtime_manifest_purpose": "proposal",
+      "sha256": "15451076317408fca984a469b7d91467d5d60c031d08b026e94527388dcefd6c"
+    },
+    {
+      "bytes": 576,
+      "path": "data/csr8_phase_c/c4d_proposals/c4-prod-0002/ordinal-0018/next_reveal.proposal.json",
+      "runtime_manifest_purpose": "proposal",
+      "sha256": "549324cd9f4b41dd3b4b76898e90008fc1a642828cef65e8e0378006cb549802"
+    },
+    {
+      "bytes": 576,
+      "path": "data/csr8_phase_c/c4d_proposals/c4-prod-0002/ordinal-0019/next_reveal.proposal.json",
+      "runtime_manifest_purpose": "proposal",
+      "sha256": "ef1f8fc0d260f3af4f352098494003588aea5228567e5c413a1221bcdb005b51"
+    },
+    {
+      "bytes": 576,
+      "path": "data/csr8_phase_c/c4d_proposals/c4-prod-0002/ordinal-0020/next_reveal.proposal.json",
+      "runtime_manifest_purpose": "proposal",
+      "sha256": "d67a7b48ba1ada4ef0cd1823956a43daa5571a87990091ff02cddbc5e0acf40d"
+    },
+    {
+      "bytes": 576,
+      "path": "data/csr8_phase_c/c4d_proposals/c4-prod-0002/ordinal-0021/next_reveal.proposal.json",
+      "runtime_manifest_purpose": "proposal",
+      "sha256": "5ef2ee833199f56d0cb0fc599e973bf4a115349ac408b13c36382b76fe8c50f2"
+    },
+    {
+      "bytes": 576,
+      "path": "data/csr8_phase_c/c4d_proposals/c4-prod-0002/ordinal-0022/next_reveal.proposal.json",
+      "runtime_manifest_purpose": "proposal",
+      "sha256": "feb631fdbec54faa928a3d386ca6159bce00645dbcda867f21a681821ddcd5d0"
+    },
+    {
+      "bytes": 576,
+      "path": "data/csr8_phase_c/c4d_proposals/c4-prod-0002/ordinal-0023/next_reveal.proposal.json",
+      "runtime_manifest_purpose": "proposal",
+      "sha256": "3214eb8521d63b573974b0540337741133cb05666966ac91fcb915680fa87e53"
+    },
+    {
+      "bytes": 576,
+      "path": "data/csr8_phase_c/c4d_proposals/c4-prod-0002/ordinal-0024/next_reveal.proposal.json",
+      "runtime_manifest_purpose": "proposal",
+      "sha256": "14394856fc2d5b6c3b4356bb6210f043eca32661e4917fa65aeea80da7001a43"
+    },
+    {
+      "bytes": 576,
+      "path": "data/csr8_phase_c/c4d_proposals/c4-prod-0002/ordinal-0025/next_reveal.proposal.json",
+      "runtime_manifest_purpose": "proposal",
+      "sha256": "845e6ce77208cf84271c140cfc1253b45d254fa5a0d5af098acdf1984cf7a519"
+    },
+    {
+      "bytes": 576,
+      "path": "data/csr8_phase_c/c4d_proposals/c4-prod-0002/ordinal-0026/next_reveal.proposal.json",
+      "runtime_manifest_purpose": "proposal",
+      "sha256": "ca34ed29be782eba12307c89d817136a4ce182a6fff778af1db29c60126edd2a"
+    },
+    {
+      "bytes": 576,
+      "path": "data/csr8_phase_c/c4d_proposals/c4-prod-0002/ordinal-0027/next_reveal.proposal.json",
+      "runtime_manifest_purpose": "proposal",
+      "sha256": "6adee4b629751932cf0f68953137383289c1ce10e71deb1fbd0e135501401d9e"
+    },
+    {
+      "bytes": 576,
+      "path": "data/csr8_phase_c/c4d_proposals/c4-prod-0002/ordinal-0028/next_reveal.proposal.json",
+      "runtime_manifest_purpose": "proposal",
+      "sha256": "5b5e67d2fb7c8f409111969e09b278495ea2eac1e1f77eb0546b7ca5b99dfb16"
+    },
+    {
+      "bytes": 576,
+      "path": "data/csr8_phase_c/c4d_proposals/c4-prod-0002/ordinal-0029/next_reveal.proposal.json",
+      "runtime_manifest_purpose": "proposal",
+      "sha256": "0b16e19eb38f7fe47a94357891bd09e2c887c062951405bf0c0384e78b19f223"
+    },
+    {
+      "bytes": 576,
+      "path": "data/csr8_phase_c/c4d_proposals/c4-prod-0002/ordinal-0030/next_reveal.proposal.json",
+      "runtime_manifest_purpose": "proposal",
+      "sha256": "6536794f4e8d9ae7cad42f1ea807291402beacdde7d96c6d1b4c4d50412f9857"
+    },
+    {
+      "bytes": 576,
+      "path": "data/csr8_phase_c/c4d_proposals/c4-prod-0002/ordinal-0031/next_reveal.proposal.json",
+      "runtime_manifest_purpose": "proposal",
+      "sha256": "4ae7a31555aaa8ebbac79f75bf87d0b013f221604062cb522f1dd23b86200f0e"
+    },
+    {
+      "bytes": 576,
+      "path": "data/csr8_phase_c/c4d_proposals/c4-prod-0002/ordinal-0032/next_reveal.proposal.json",
+      "runtime_manifest_purpose": "proposal",
+      "sha256": "7f1abb209248a4e1b5c441eff1f4e412fa78f7c2ce3a7f140367a0d5e21ea3b9"
+    },
+    {
+      "bytes": 576,
+      "path": "data/csr8_phase_c/c4d_proposals/c4-prod-0002/ordinal-0033/next_reveal.proposal.json",
+      "runtime_manifest_purpose": "proposal",
+      "sha256": "6fb0e6f59ae52bd2e90733dabe36fe8bd67a84e62d97dd7f6e2719415bc9bf6c"
+    },
+    {
+      "bytes": 576,
+      "path": "data/csr8_phase_c/c4d_proposals/c4-prod-0002/ordinal-0034/next_reveal.proposal.json",
+      "runtime_manifest_purpose": "proposal",
+      "sha256": "e39a748b309705ab582b5f6ae38a8a5bbaec675bf0a92cff6680022d55a2e930"
+    },
+    {
+      "bytes": 576,
+      "path": "data/csr8_phase_c/c4d_proposals/c4-prod-0002/ordinal-0035/next_reveal.proposal.json",
+      "runtime_manifest_purpose": "proposal",
+      "sha256": "8fe25a770f7cecd04a412b5fc2e804eea97bf759a07c388252e00bd2a2193827"
+    },
+    {
+      "bytes": 576,
+      "path": "data/csr8_phase_c/c4d_proposals/c4-prod-0002/ordinal-0036/next_reveal.proposal.json",
+      "runtime_manifest_purpose": "proposal",
+      "sha256": "8247e119afd801ea7f16f47a89b670e71dd2bd65128c686cff3ddbca09745d6f"
+    },
+    {
+      "bytes": 576,
+      "path": "data/csr8_phase_c/c4d_proposals/c4-prod-0002/ordinal-0037/next_reveal.proposal.json",
+      "runtime_manifest_purpose": "proposal",
+      "sha256": "1be91caed431a2c8c42a8f9a8a0869cd63f37123237451244ef0e5679c2d96fb"
+    },
+    {
+      "bytes": 576,
+      "path": "data/csr8_phase_c/c4d_proposals/c4-prod-0002/ordinal-0038/next_reveal.proposal.json",
+      "runtime_manifest_purpose": "proposal",
+      "sha256": "b41bfaf4a00704b1818b22627b5ec933968840d02aac0955e97ff8893b941ffe"
+    },
+    {
+      "bytes": 1880,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0001/attempt-0001/receipt.json",
+      "runtime_manifest_purpose": "receipt",
+      "sha256": "85a224a3e748b569060a14aea8fe5fe353b62e8a804e0f43cfb4c51a18063aa6"
+    },
+    {
+      "bytes": 357,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0001/attempt-0001/seal_approval.json",
+      "runtime_manifest_purpose": "seal approval",
+      "sha256": "110e01d6709c08cac28dddf55bdaf8ab9f75f735ac11fb51cbbe8a69b0a9c0c9"
+    },
+    {
+      "bytes": 1707,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0002/annotation_draft.json",
+      "runtime_manifest_purpose": "annotation draft",
+      "sha256": "9f399afe6d0e4a1a4dbfb700dc16f6408d470247149bcaa35c221225c8e312d0"
+    },
+    {
+      "bytes": 1880,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0002/attempt-0001/receipt.json",
+      "runtime_manifest_purpose": "receipt",
+      "sha256": "4242e4b406c0a5b8864a192bbbd9d76e4af728ece14a5593f9e262c75629ee69"
+    },
+    {
+      "bytes": 357,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0002/attempt-0001/seal_approval.json",
+      "runtime_manifest_purpose": "seal approval",
+      "sha256": "1ee4fdd0adc177c4aa8b08c55054e0740d419afa9ff03d626675de1d7d2bb9a6"
+    },
+    {
+      "bytes": 1264,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0002/packet.json",
+      "runtime_manifest_purpose": "reveal packet",
+      "sha256": "30635e93925744fff634c4974ea29df14f4bf871b126b35f6764eb2ac78ef004"
+    },
+    {
+      "bytes": 1707,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0003/annotation_draft.json",
+      "runtime_manifest_purpose": "annotation draft",
+      "sha256": "026e840feca0b41f800a0b493a10abdf1d14072c67dec988b1c1f1f5b989d6b2"
+    },
+    {
+      "bytes": 1880,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0003/attempt-0001/receipt.json",
+      "runtime_manifest_purpose": "receipt",
+      "sha256": "35a5001210ce303b5e9a07add6c6b32aa7df519a8d191180ce9aad44c208442a"
+    },
+    {
+      "bytes": 357,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0003/attempt-0001/seal_approval.json",
+      "runtime_manifest_purpose": "seal approval",
+      "sha256": "f89fa34ba9018647dc056de8ce1f22263516c81959e7b21e6cf24ae76edeb245"
+    },
+    {
+      "bytes": 3002,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0003/packet.json",
+      "runtime_manifest_purpose": "reveal packet",
+      "sha256": "afb94bd107bce06925173bae3b04d7a0cc321b5620a9026c6b45d90984f9d22b"
+    },
+    {
+      "bytes": 2642,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0004/annotation_draft.json",
+      "runtime_manifest_purpose": "annotation draft",
+      "sha256": "9efb056876a8ea8d3987e1b8d516f789c952f3b0a43b076fbec0e7e7e8bb0b1d"
+    },
+    {
+      "bytes": 2815,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0004/attempt-0001/receipt.json",
+      "runtime_manifest_purpose": "receipt",
+      "sha256": "c8f42f71970a8d5fe4b9ea86dd54746e7b274a813647cb5c2e9d16e2d20649b9"
+    },
+    {
+      "bytes": 357,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0004/attempt-0001/seal_approval.json",
+      "runtime_manifest_purpose": "seal approval",
+      "sha256": "3ba18fb0f061e7549ac9fb640b65a742fe358d1918369ebdcfb720c4ed539a81"
+    },
+    {
+      "bytes": 409,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0004/context_support_map.json",
+      "runtime_manifest_purpose": "support map",
+      "sha256": "0a34008e602b0e142d99fdaeeefd54eb53f6b2171773b02d1d65164097c16cc4"
+    },
+    {
+      "bytes": 6018,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0004/national_ctx_v1.json",
+      "runtime_manifest_purpose": "context",
+      "sha256": "b5bd3b37aaf5d6b00f1986b60787cb34bc1755a3e50c9ab2e0bee90863dfc553"
+    },
+    {
+      "bytes": 3122,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0004/packet.json",
+      "runtime_manifest_purpose": "reveal packet",
+      "sha256": "22c7cc8a1f9dec5c85c08b400a15509e9350c528650de1f4567b860296bb9f0b"
+    },
+    {
+      "bytes": 3166,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0005/annotation_draft.json",
+      "runtime_manifest_purpose": "annotation draft",
+      "sha256": "66ac7f60ba5fd8ee2fc0464c22ae19b4c96fd783ca7be5c84ad4e2221dc1add0"
+    },
+    {
+      "bytes": 3339,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0005/attempt-0001/receipt.json",
+      "runtime_manifest_purpose": "receipt",
+      "sha256": "e7b6c56627eda63fb79d3a3fbd8bcb9ded9098661a524ae85c9a866bda67383c"
+    },
+    {
+      "bytes": 357,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0005/attempt-0001/seal_approval.json",
+      "runtime_manifest_purpose": "seal approval",
+      "sha256": "8a388aa978d5bb005f4bba3f1f2d653135d4514103b42e989a5ed29638733d95"
+    },
+    {
+      "bytes": 420,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0005/context_support_map.json",
+      "runtime_manifest_purpose": "support map",
+      "sha256": "fedef10d93d5ccef1eba78018bf189c8df2cf7c1277f351dce4e17987318e200"
+    },
+    {
+      "bytes": 6741,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0005/national_ctx_v1.json",
+      "runtime_manifest_purpose": "context",
+      "sha256": "24e4ac2f2dcb169a07397eab6337d65d7a6e363eaa34c675d744c90105bfc8cc"
+    },
+    {
+      "bytes": 3002,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0005/packet.json",
+      "runtime_manifest_purpose": "reveal packet",
+      "sha256": "9daf6004ed29fda938fff0b4b4eb85e489ef8347f79584979f751a1d254de81d"
+    },
+    {
+      "bytes": 2523,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0006/annotation_draft.json",
+      "runtime_manifest_purpose": "annotation draft",
+      "sha256": "a22901aeec9ff5154f3d8355d133ac38b31770d21b887b12a58d700d8887e101"
+    },
+    {
+      "bytes": 2696,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0006/attempt-0001/receipt.json",
+      "runtime_manifest_purpose": "receipt",
+      "sha256": "f5ab9cb81abfd9c67ed7670ccb1f54f08c5d6353239cae77ad021d755d97ab55"
+    },
+    {
+      "bytes": 357,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0006/attempt-0001/seal_approval.json",
+      "runtime_manifest_purpose": "seal approval",
+      "sha256": "55b46bdafd74e2d4b4fd38e52fe3899d3cfd068cc91324ddf8e4584c51b69c24"
+    },
+    {
+      "bytes": 409,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0006/context_support_map.json",
+      "runtime_manifest_purpose": "support map",
+      "sha256": "ff57877b7480e2359494c76ea1a18e1f88924103fbb57baa77f01c7c93cd595c"
+    },
+    {
+      "bytes": 6091,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0006/national_ctx_v1.json",
+      "runtime_manifest_purpose": "context",
+      "sha256": "a78aa2342157e4de9546692b4cce705b4419ab911fdd625a737fc53c52432d80"
+    },
+    {
+      "bytes": 1264,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0006/packet.json",
+      "runtime_manifest_purpose": "reveal packet",
+      "sha256": "ff8a41b215467d6721413409109725b784e337d73b468b16ca8a5ee2409f00f5"
+    },
+    {
+      "bytes": 3163,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0007/annotation_draft.json",
+      "runtime_manifest_purpose": "annotation draft",
+      "sha256": "f229d652ddaebb338a1a1afeb1c58d49306073eb9e99207ff1bf4a9ccdae8387"
+    },
+    {
+      "bytes": 3336,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0007/attempt-0001/receipt.json",
+      "runtime_manifest_purpose": "receipt",
+      "sha256": "432c2e55c99b15fa576b5ce39d8d4f731fed1a19b78634558a8f14cb766b05a6"
+    },
+    {
+      "bytes": 357,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0007/attempt-0001/seal_approval.json",
+      "runtime_manifest_purpose": "seal approval",
+      "sha256": "94e3fd94f8362244b680139afcc3795161dd874be2ba06fd348c1ab9e819c0ac"
+    },
+    {
+      "bytes": 409,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0007/context_support_map.json",
+      "runtime_manifest_purpose": "support map",
+      "sha256": "aadf6d68ecdb65b58ccb96a6bcb051b7bd35e4225bb3788c6bfda2b49ee0b503"
+    },
+    {
+      "bytes": 6139,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0007/national_ctx_v1.json",
+      "runtime_manifest_purpose": "context",
+      "sha256": "bb44ef80750aaaaa6b6b74bd645bae82c2d335c73d8a0c7510e92976be494f50"
+    },
+    {
+      "bytes": 3002,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0007/packet.json",
+      "runtime_manifest_purpose": "reveal packet",
+      "sha256": "4c411fb78f83aca80408118118aeaa3e7fbf76993f8ef865a18a146e6f6dee76"
+    },
+    {
+      "bytes": 3206,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0008/annotation_draft.json",
+      "runtime_manifest_purpose": "annotation draft",
+      "sha256": "a5b559302320db4f4014ca1ac329e9486a598a3763c73f8d164f7a244ad67e3e"
+    },
+    {
+      "bytes": 3379,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0008/attempt-0001/receipt.json",
+      "runtime_manifest_purpose": "receipt",
+      "sha256": "874789c4295776da4598cc3a96a13674cc97721fcad12c3c27a98b1bc0535ed8"
+    },
+    {
+      "bytes": 357,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0008/attempt-0001/seal_approval.json",
+      "runtime_manifest_purpose": "seal approval",
+      "sha256": "d71b9432b46594b7b91a92f60b8b75f15137ac53663c31f38c082635a7b8fc4c"
+    },
+    {
+      "bytes": 482,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0008/context_support_map.json",
+      "runtime_manifest_purpose": "support map",
+      "sha256": "4201fc3467800d7a41305f03ded5c1322e35b3712b5d0ab16b7912a40e6bfa70"
+    },
+    {
+      "bytes": 8475,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0008/national_ctx_v1.json",
+      "runtime_manifest_purpose": "context",
+      "sha256": "b8d1e8a0a97af20f1e46349222743e3ed8211c82caeecae3a6eba4364cc9f5fa"
+    },
+    {
+      "bytes": 3022,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0008/packet.json",
+      "runtime_manifest_purpose": "reveal packet",
+      "sha256": "a69fb1d1b1e84edcee14b0e23143b0dc356a29e1e47c37b981e9be33853ddca7"
+    },
+    {
+      "bytes": 3166,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0009/annotation_draft.json",
+      "runtime_manifest_purpose": "annotation draft",
+      "sha256": "003f6ded98e84bdc7b78e147a9d7fcab1de6e22bd61bd03a1989ecf573093d43"
+    },
+    {
+      "bytes": 3339,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0009/attempt-0001/receipt.json",
+      "runtime_manifest_purpose": "receipt",
+      "sha256": "129daa3b8e2a2acffce00b200374aa52bc0fff086f1e75e68d5f33e97e3fd7c9"
+    },
+    {
+      "bytes": 357,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0009/attempt-0001/seal_approval.json",
+      "runtime_manifest_purpose": "seal approval",
+      "sha256": "fa7adbb77535969180cfd68ee11c8743a7ef1b702e305107a67ce1ab9832e882"
+    },
+    {
+      "bytes": 420,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0009/context_support_map.json",
+      "runtime_manifest_purpose": "support map",
+      "sha256": "02ab7aab362262f221a1b69a59df0a731207209d0221fad636c800e50f5a77d3"
+    },
+    {
+      "bytes": 6743,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0009/national_ctx_v1.json",
+      "runtime_manifest_purpose": "context",
+      "sha256": "8af3f369742bb29348da07b7f20f7d9af992cd8e5335cd5e76eb2d1dfadd4100"
+    },
+    {
+      "bytes": 3002,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0009/packet.json",
+      "runtime_manifest_purpose": "reveal packet",
+      "sha256": "54fcc922d241cb0532b78ecd9b21a6a5393b9237af1cf409d955911b6c54cf0b"
+    },
+    {
+      "bytes": 3163,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0010/annotation_draft.json",
+      "runtime_manifest_purpose": "annotation draft",
+      "sha256": "f576e43e6019a397b768fa47d79ccbc1408331285ba0e0d01a55d6ab0f01e3cd"
+    },
+    {
+      "bytes": 3336,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0010/attempt-0001/receipt.json",
+      "runtime_manifest_purpose": "receipt",
+      "sha256": "8f6cd1dab3f4c7d64ccd14ed0d5e1aff9d72f719cb46a923d9c4438092b75e7f"
+    },
+    {
+      "bytes": 357,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0010/attempt-0001/seal_approval.json",
+      "runtime_manifest_purpose": "seal approval",
+      "sha256": "8f9a72bc7f1b2ee5848499cc998ce8b9f194eced3f319d5ed360b298df94d896"
+    },
+    {
+      "bytes": 410,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0010/context_support_map.json",
+      "runtime_manifest_purpose": "support map",
+      "sha256": "36a4cc49b4767fcf9987df2394903c2d7abec1fb77257eee8309663493a3a2d4"
+    },
+    {
+      "bytes": 6146,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0010/national_ctx_v1.json",
+      "runtime_manifest_purpose": "context",
+      "sha256": "e20ee76e540e583b32f3b1691d9aa14dca495dcf7503e638acb5f28fdf5202dc"
+    },
+    {
+      "bytes": 3122,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0010/packet.json",
+      "runtime_manifest_purpose": "reveal packet",
+      "sha256": "06b7698b14ede94095782f9a5d32a5c65b6e0dead8a0f3efb19a39900fd2241e"
+    },
+    {
+      "bytes": 2523,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0011/annotation_draft.json",
+      "runtime_manifest_purpose": "annotation draft",
+      "sha256": "896cd90bf5e286b13da0c4492a2130c03c0f64cb9b4a6ecdd11e42f158912a55"
+    },
+    {
+      "bytes": 2696,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0011/attempt-0001/receipt.json",
+      "runtime_manifest_purpose": "receipt",
+      "sha256": "8c477aa49af56a5de908204ed27e36e3baab1650a9691e7559d87d6dcded0c02"
+    },
+    {
+      "bytes": 357,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0011/attempt-0001/seal_approval.json",
+      "runtime_manifest_purpose": "seal approval",
+      "sha256": "9f7edc5728e1530005ee677ebffa557d124f5c8055265f4248cb6c25f5ce5f42"
+    },
+    {
+      "bytes": 410,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0011/context_support_map.json",
+      "runtime_manifest_purpose": "support map",
+      "sha256": "698143e95761975af4aa208939923a3022abf33fc7619db87c03e925ada59c53"
+    },
+    {
+      "bytes": 6092,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0011/national_ctx_v1.json",
+      "runtime_manifest_purpose": "context",
+      "sha256": "6e91c16c45ba9369b5d195ceb7b4f49e0c4447450ceaece558672fbe68025ddf"
+    },
+    {
+      "bytes": 1264,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0011/packet.json",
+      "runtime_manifest_purpose": "reveal packet",
+      "sha256": "161b39ee81acfc412e9c18ba53b626aea17a96c0a54439f99a3281e5d9e5a6e3"
+    },
+    {
+      "bytes": 3166,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0012/annotation_draft.json",
+      "runtime_manifest_purpose": "annotation draft",
+      "sha256": "006fad2b6d574bf533c10fe226e761d241507774d253a59141073e597425feb8"
+    },
+    {
+      "bytes": 3339,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0012/attempt-0001/receipt.json",
+      "runtime_manifest_purpose": "receipt",
+      "sha256": "cbc35dc040d08efeaf57f466bde4206f700104a04e5908450bbea2c60cdc8386"
+    },
+    {
+      "bytes": 357,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0012/attempt-0001/seal_approval.json",
+      "runtime_manifest_purpose": "seal approval",
+      "sha256": "4a101f3b7c6efacc252a3ff0d9b9aa096387add0fd78b18e6d8fede472284097"
+    },
+    {
+      "bytes": 443,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0012/context_support_map.json",
+      "runtime_manifest_purpose": "support map",
+      "sha256": "dde12f6e6978e57f1e9b19fe4b23f5a08e710bca89d7f60f46d89ee7c95b40d9"
+    },
+    {
+      "bytes": 7951,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0012/national_ctx_v1.json",
+      "runtime_manifest_purpose": "context",
+      "sha256": "cbb3ba6191bf059b3ac0c3b008ed1bccc36728ffb4ffeae1b158ba7967b61d5e"
+    },
+    {
+      "bytes": 3002,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0012/packet.json",
+      "runtime_manifest_purpose": "reveal packet",
+      "sha256": "5372fbe44080441140ede16d4b47ff4c3266c95a4654bcba7784cc9ce3492e5b"
+    },
+    {
+      "bytes": 3166,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0013/annotation_draft.json",
+      "runtime_manifest_purpose": "annotation draft",
+      "sha256": "b0d79a5fb388d3465dacf46099e26d697b481509d273f2e4bd265b5508d526e2"
+    },
+    {
+      "bytes": 3339,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0013/attempt-0001/receipt.json",
+      "runtime_manifest_purpose": "receipt",
+      "sha256": "8722e04fae2944c3e9f5a1c751fe5add78a2a7795b02d8243dd7b7535d67403c"
+    },
+    {
+      "bytes": 357,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0013/attempt-0001/seal_approval.json",
+      "runtime_manifest_purpose": "seal approval",
+      "sha256": "0533cf7e615f2d78b7189fd19c2dbea2993d0e702fd448ffb625d61519a3acf0"
+    },
+    {
+      "bytes": 421,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0013/context_support_map.json",
+      "runtime_manifest_purpose": "support map",
+      "sha256": "7bfb6a7d8c167dda563c1d24983aadc606322e6d8b15b6a8ff449025615afc19"
+    },
+    {
+      "bytes": 6767,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0013/national_ctx_v1.json",
+      "runtime_manifest_purpose": "context",
+      "sha256": "5e005bdab8389e992e93542ecd780d4fdd068b10df0d0987ebea7527e922c2c8"
+    },
+    {
+      "bytes": 3122,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0013/packet.json",
+      "runtime_manifest_purpose": "reveal packet",
+      "sha256": "b50095286b621a91f24af2fbb1e100b7a61c915e8a2701606214dd88c5d025aa"
+    },
+    {
+      "bytes": 3166,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0014/annotation_draft.json",
+      "runtime_manifest_purpose": "annotation draft",
+      "sha256": "bc96f75c5bea86517ce26590529b0159412c643e6821ac79f068d9cc97d4b2f9"
+    },
+    {
+      "bytes": 3339,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0014/attempt-0001/receipt.json",
+      "runtime_manifest_purpose": "receipt",
+      "sha256": "3f108f2a9d23d5ec482ba995126391be4cca266c4263dbd954c8ce4a6867f818"
+    },
+    {
+      "bytes": 357,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0014/attempt-0001/seal_approval.json",
+      "runtime_manifest_purpose": "seal approval",
+      "sha256": "19df2208d494a1d752fc4fc76d645224f64da8f8a7f47e1baef9f7f7343f79aa"
+    },
+    {
+      "bytes": 454,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0014/context_support_map.json",
+      "runtime_manifest_purpose": "support map",
+      "sha256": "e14a46be004c078136997773cbb3c816d24873ce72a77f6b67be54c704c747cd"
+    },
+    {
+      "bytes": 8498,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0014/national_ctx_v1.json",
+      "runtime_manifest_purpose": "context",
+      "sha256": "aa217e23acf3dd7a0737617b23c9997f95d4ece70944b277342b74f94b25e23d"
+    },
+    {
+      "bytes": 3122,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0014/packet.json",
+      "runtime_manifest_purpose": "reveal packet",
+      "sha256": "2655587dc094a4137b102dca018dc29beed3e5eef0e9393392c98f3d956d580c"
+    },
+    {
+      "bytes": 3203,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0015/annotation_draft.json",
+      "runtime_manifest_purpose": "annotation draft",
+      "sha256": "c8ad0a0d5c041812b54b0be0d1210f1996a3c534594918b1c274a126860ea978"
+    },
+    {
+      "bytes": 3376,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0015/attempt-0001/receipt.json",
+      "runtime_manifest_purpose": "receipt",
+      "sha256": "ba21eeb2da45693a17faa68f62b6fe9c34089855177bd08a9aebe6793825ff91"
+    },
+    {
+      "bytes": 357,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0015/attempt-0001/seal_approval.json",
+      "runtime_manifest_purpose": "seal approval",
+      "sha256": "f34cc84ca73336f84693cc98d0115eeceae39889db09699f3fa50599daae0010"
+    },
+    {
+      "bytes": 450,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0015/context_support_map.json",
+      "runtime_manifest_purpose": "support map",
+      "sha256": "16ec8685c306fec81cc04ef4379308c880ef0d63c5706fa8c8a8843c632ad1da"
+    },
+    {
+      "bytes": 6666,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0015/national_ctx_v1.json",
+      "runtime_manifest_purpose": "context",
+      "sha256": "748f948b91f3da5bf62ed62e4e6dd7b928741bcbd7b6475d13281a7acf79af32"
+    },
+    {
+      "bytes": 3122,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0015/packet.json",
+      "runtime_manifest_purpose": "reveal packet",
+      "sha256": "fcf2680068cd1106b60fc2af0bd9b25f8779503b0d0deecba42cc99efbe81e87"
+    },
+    {
+      "bytes": 3166,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0016/annotation_draft.json",
+      "runtime_manifest_purpose": "annotation draft",
+      "sha256": "d18d902eaef4a0eda89824756adb2dae66bec729e25b6da06a3113a4ebb2c752"
+    },
+    {
+      "bytes": 3339,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0016/attempt-0001/receipt.json",
+      "runtime_manifest_purpose": "receipt",
+      "sha256": "7bb2bd82fe3913a7d6e1f63e0a6f79de27fd4ea2a6d8663265227c95a153d3bd"
+    },
+    {
+      "bytes": 357,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0016/attempt-0001/seal_approval.json",
+      "runtime_manifest_purpose": "seal approval",
+      "sha256": "b3baedfd25a68e7d86a6c94d8f70f2f8f22bbd659b8bcd654b50327f9e55d008"
+    },
+    {
+      "bytes": 454,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0016/context_support_map.json",
+      "runtime_manifest_purpose": "support map",
+      "sha256": "dc935f499f85ade45464e4dba2206138dddb79f86cfdb48737fe269b8051c411"
+    },
+    {
+      "bytes": 8500,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0016/national_ctx_v1.json",
+      "runtime_manifest_purpose": "context",
+      "sha256": "518e2c1927cdbeb833f210641dc543ed789f2da402fac5d518139244161b69aa"
+    },
+    {
+      "bytes": 3010,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0016/packet.json",
+      "runtime_manifest_purpose": "reveal packet",
+      "sha256": "739212beac710f55d86ca9a9197b4ba70384df765d75cc6a7445fe046688d3e7"
+    },
+    {
+      "bytes": 3166,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0017/annotation_draft.json",
+      "runtime_manifest_purpose": "annotation draft",
+      "sha256": "0cc54bc49b7b6f678dfd57f5b485956e68a40c1099fa7ab3b1593acba886cae8"
+    },
+    {
+      "bytes": 3339,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0017/attempt-0001/receipt.json",
+      "runtime_manifest_purpose": "receipt",
+      "sha256": "5d089898355c3d05cfd079af1c7059e1ef9676d24c97aa5c1158a5bec42271c2"
+    },
+    {
+      "bytes": 357,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0017/attempt-0001/seal_approval.json",
+      "runtime_manifest_purpose": "seal approval",
+      "sha256": "986773aa69ba1c2ce6e7d1329142f5f1c312f72663260022cd249b0e7dd82c2f"
+    },
+    {
+      "bytes": 421,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0017/context_support_map.json",
+      "runtime_manifest_purpose": "support map",
+      "sha256": "e287ceea50f257d0c10348b165e3166c78344e6c03515df7dda4dc49b10ec857"
+    },
+    {
+      "bytes": 6735,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0017/national_ctx_v1.json",
+      "runtime_manifest_purpose": "context",
+      "sha256": "23d81a64394d7fa245d90d92188e70ede27b6a8442f00be6490927bb43e119b0"
+    },
+    {
+      "bytes": 3122,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0017/packet.json",
+      "runtime_manifest_purpose": "reveal packet",
+      "sha256": "6ca9c6e8d970c6f0392eb1655e597dd6dad8bb2065ec37adee0451c281ba446a"
+    },
+    {
+      "bytes": 3166,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0018/annotation_draft.json",
+      "runtime_manifest_purpose": "annotation draft",
+      "sha256": "467d7d6a80acaf6d469abca189ca485bf4e9e7a5504e41392e09e1af56e24656"
+    },
+    {
+      "bytes": 3339,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0018/attempt-0001/receipt.json",
+      "runtime_manifest_purpose": "receipt",
+      "sha256": "97a9a7b8e2746fb4826e42221e65f36e39e33c2c6751f169180231f1d5a4b401"
+    },
+    {
+      "bytes": 357,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0018/attempt-0001/seal_approval.json",
+      "runtime_manifest_purpose": "seal approval",
+      "sha256": "15527cfde914a291f56d66d125b5084b5fe774140f1561e99cd402999de14b0e"
+    },
+    {
+      "bytes": 454,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0018/context_support_map.json",
+      "runtime_manifest_purpose": "support map",
+      "sha256": "baef65f08a5184fbe961d10b43bc6a4c6e85ece74ae376240500bd0f4083771e"
+    },
+    {
+      "bytes": 8518,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0018/national_ctx_v1.json",
+      "runtime_manifest_purpose": "context",
+      "sha256": "59749ac9fdbc95d62307814d12a0160aa5ee76f1923c42327dd555ee83c8af44"
+    },
+    {
+      "bytes": 3002,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0018/packet.json",
+      "runtime_manifest_purpose": "reveal packet",
+      "sha256": "e32690f649c1c0c4bbe05c50162a6bb486410c8a6f0d9cbfabab98e7a9fe60e3"
+    },
+    {
+      "bytes": 3166,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0019/annotation_draft.json",
+      "runtime_manifest_purpose": "annotation draft",
+      "sha256": "cc483b6802a4db56f4d3dd68209243e0adbde1107b194c425bd01fc88d8dc229"
+    },
+    {
+      "bytes": 3339,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0019/attempt-0001/receipt.json",
+      "runtime_manifest_purpose": "receipt",
+      "sha256": "1885099b04ec0a6e88b152a749d6f8fa01301a08c0e70ba389d87eadca752511"
+    },
+    {
+      "bytes": 357,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0019/attempt-0001/seal_approval.json",
+      "runtime_manifest_purpose": "seal approval",
+      "sha256": "b0ae5212fbc8f4a62bdb069fd9adb485ff4cf9b5a3624eedd56555334fd311cf"
+    },
+    {
+      "bytes": 454,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0019/context_support_map.json",
+      "runtime_manifest_purpose": "support map",
+      "sha256": "41007b637ae2d13980f35898cc32e9fe9093ffc1d0cf2ca5512667e200b2d69b"
+    },
+    {
+      "bytes": 8519,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0019/national_ctx_v1.json",
+      "runtime_manifest_purpose": "context",
+      "sha256": "fe3789cd4ecdc2bf1cb413aa8acb8e70963f71d6f1b92a8ed41cb4f18d5817d3"
+    },
+    {
+      "bytes": 3122,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0019/packet.json",
+      "runtime_manifest_purpose": "reveal packet",
+      "sha256": "d63312323aef2ad3811944130d4837a14afae4a86da9b9d61d847a49f5cf2ed9"
+    },
+    {
+      "bytes": 3163,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0020/annotation_draft.json",
+      "runtime_manifest_purpose": "annotation draft",
+      "sha256": "e1d149b7e1b029e3391c664723de454bbfbd3f5867bc6e2f71dac2ce2c21f026"
+    },
+    {
+      "bytes": 3336,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0020/attempt-0001/receipt.json",
+      "runtime_manifest_purpose": "receipt",
+      "sha256": "4e0578cb3e67258cf7c0960150739d063a2f04a702c8ceb00e9fb218fa42d530"
+    },
+    {
+      "bytes": 357,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0020/attempt-0001/seal_approval.json",
+      "runtime_manifest_purpose": "seal approval",
+      "sha256": "ef76cc5b39524f907ed77328f65518326e3a70e2eac1c715e1864e13e2afbae2"
+    },
+    {
+      "bytes": 410,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0020/context_support_map.json",
+      "runtime_manifest_purpose": "support map",
+      "sha256": "708acb015b8ac811fa09488eb0f97f39c6d632abfe9b562345392376239358df"
+    },
+    {
+      "bytes": 6147,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0020/national_ctx_v1.json",
+      "runtime_manifest_purpose": "context",
+      "sha256": "92ab1314fac67d666f23748f91d86b1e6db9772b6fe9effa14a821fc10ce9b82"
+    },
+    {
+      "bytes": 3002,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0020/packet.json",
+      "runtime_manifest_purpose": "reveal packet",
+      "sha256": "e5308809b1f00f953260c22599a09c7d8dda2a0c53b96b532bc6f3293b3f4e9a"
+    },
+    {
+      "bytes": 3163,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0021/annotation_draft.json",
+      "runtime_manifest_purpose": "annotation draft",
+      "sha256": "1130502d6f019bf22ab230a4ec673b99e2085ac2adffea6c0e583c6ea3ff5a11"
+    },
+    {
+      "bytes": 3336,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0021/attempt-0001/receipt.json",
+      "runtime_manifest_purpose": "receipt",
+      "sha256": "0189cb6c989083929fe5a1af91b8fa69941056717e2912acc0f95cdd91e1a0d2"
+    },
+    {
+      "bytes": 357,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0021/attempt-0001/seal_approval.json",
+      "runtime_manifest_purpose": "seal approval",
+      "sha256": "b0a188f497e5c29520c1f5046531b4bd9ce980f59855ebf6bcb0d82363742d4c"
+    },
+    {
+      "bytes": 410,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0021/context_support_map.json",
+      "runtime_manifest_purpose": "support map",
+      "sha256": "524b6e2a9dd0c4f2660e4ff9e56274ccc2451ffe3c64270544edad3cdd4933e3"
+    },
+    {
+      "bytes": 6141,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0021/national_ctx_v1.json",
+      "runtime_manifest_purpose": "context",
+      "sha256": "9317dc59bc719a53bf7b1b4f9a7f478907b59e5e3149948fb3b8809a852d8652"
+    },
+    {
+      "bytes": 3002,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0021/packet.json",
+      "runtime_manifest_purpose": "reveal packet",
+      "sha256": "dc042fea77d4c5124e8c93fef6d56c9334aa7bafa7dad398297871dc09921183"
+    },
+    {
+      "bytes": 3166,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0022/annotation_draft.json",
+      "runtime_manifest_purpose": "annotation draft",
+      "sha256": "37a0d4f56a9a1c660eab9552b2041090d5155848ae5b1a37d2b735e6829ac0f4"
+    },
+    {
+      "bytes": 3339,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0022/attempt-0001/receipt.json",
+      "runtime_manifest_purpose": "receipt",
+      "sha256": "975f32996d51f4f29997ca67c7c31553fd76c8f83890f18c4c0ffe647a0e5b2d"
+    },
+    {
+      "bytes": 357,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0022/attempt-0001/seal_approval.json",
+      "runtime_manifest_purpose": "seal approval",
+      "sha256": "82a19445d09dc0b9d931dc797d44f3406fd311a417338f7589f40e48a94345f4"
+    },
+    {
+      "bytes": 443,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0022/context_support_map.json",
+      "runtime_manifest_purpose": "support map",
+      "sha256": "92f3f4fc149cdcb62450a1cba69963b04c5f646a98876f73b1c16ea4cbbd44d5"
+    },
+    {
+      "bytes": 7948,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0022/national_ctx_v1.json",
+      "runtime_manifest_purpose": "context",
+      "sha256": "f8ba000e64a60decaf2bb8baab9056a35c3fba49871394186c440f8711754521"
+    },
+    {
+      "bytes": 3122,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0022/packet.json",
+      "runtime_manifest_purpose": "reveal packet",
+      "sha256": "098795749d83025d538aa056f97f95f6ce014e77cec7452f2eef2fd1c0483c18"
+    },
+    {
+      "bytes": 3166,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0023/annotation_draft.json",
+      "runtime_manifest_purpose": "annotation draft",
+      "sha256": "ccff365f095488f2a2e169f31921da6b9fb180dba12c4e5cc43251d2074834c3"
+    },
+    {
+      "bytes": 3339,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0023/attempt-0001/receipt.json",
+      "runtime_manifest_purpose": "receipt",
+      "sha256": "5fa9219a18a32a80ea853cbb5ea29b5045b917a451f9858576ce16a823a34ec9"
+    },
+    {
+      "bytes": 357,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0023/attempt-0001/seal_approval.json",
+      "runtime_manifest_purpose": "seal approval",
+      "sha256": "d75aa53b018ddf95d3fef863aaf3fe87488de390967b4b102a32f770247a0f24"
+    },
+    {
+      "bytes": 454,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0023/context_support_map.json",
+      "runtime_manifest_purpose": "support map",
+      "sha256": "61dce591a1bb269e0a2ca95e1f2ac3109e721f201b32bd8f56a5377ec10f0da1"
+    },
+    {
+      "bytes": 8521,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0023/national_ctx_v1.json",
+      "runtime_manifest_purpose": "context",
+      "sha256": "39afbccf42c862968079c730c06e403c6d1567dbfa0eadd954777527e96034e6"
+    },
+    {
+      "bytes": 3122,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0023/packet.json",
+      "runtime_manifest_purpose": "reveal packet",
+      "sha256": "69d4ceb550ee3b62788feac3d826ffd6ceac23ae9b54f4006b8934aa59364485"
+    },
+    {
+      "bytes": 3166,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0024/annotation_draft.json",
+      "runtime_manifest_purpose": "annotation draft",
+      "sha256": "1df6d55ecb229ca1031d1ae13ff36216d5a757ef32f2a6581907ac8599ec8063"
+    },
+    {
+      "bytes": 3339,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0024/attempt-0001/receipt.json",
+      "runtime_manifest_purpose": "receipt",
+      "sha256": "ffddabac7c2e6bb4c17d45794ba2f78e5870e0f77781b8061de9aba381b12c30"
+    },
+    {
+      "bytes": 357,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0024/attempt-0001/seal_approval.json",
+      "runtime_manifest_purpose": "seal approval",
+      "sha256": "8ca68fccc00ca0a3dab8402f9dd7ad4d5bcb3374191eff55a67200a9d575d555"
+    },
+    {
+      "bytes": 454,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0024/context_support_map.json",
+      "runtime_manifest_purpose": "support map",
+      "sha256": "6d1565967091af8b3917b95b570348b8b965e69bdf54a2aa978be7a2fc3fefb9"
+    },
+    {
+      "bytes": 8518,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0024/national_ctx_v1.json",
+      "runtime_manifest_purpose": "context",
+      "sha256": "63f68741ade031b640374d6dbf114d31f101dd59fd2ce434793287f9098b59a0"
+    },
+    {
+      "bytes": 3122,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0024/packet.json",
+      "runtime_manifest_purpose": "reveal packet",
+      "sha256": "ae9526844b8ea72a6a8b8ca4ec213c32cfbfa4395a7d57f2ea3938fa24fa5d4f"
+    },
+    {
+      "bytes": 3163,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0025/annotation_draft.json",
+      "runtime_manifest_purpose": "annotation draft",
+      "sha256": "37a731e331b9f966db2f403b5a186ef1afbf0b36df1d953e8ca36ca6fd8f83a9"
+    },
+    {
+      "bytes": 3336,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0025/attempt-0001/receipt.json",
+      "runtime_manifest_purpose": "receipt",
+      "sha256": "f93a2c9c5802aa17c2d6350196e2ea6c7be9aef5aadab72a47f8ab358ab473e0"
+    },
+    {
+      "bytes": 357,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0025/attempt-0001/seal_approval.json",
+      "runtime_manifest_purpose": "seal approval",
+      "sha256": "ec618bd2267c423c86b249ff58649acafefff542726cae7fb6c9bda5e9588a8b"
+    },
+    {
+      "bytes": 410,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0025/context_support_map.json",
+      "runtime_manifest_purpose": "support map",
+      "sha256": "ac57a65adc9fea5f2cc22d17ad3f2b8a0550a32ccbc1f670cc84662ec7244aaa"
+    },
+    {
+      "bytes": 6158,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0025/national_ctx_v1.json",
+      "runtime_manifest_purpose": "context",
+      "sha256": "5d081ac737cf883190ad2e71bdb36edd1e6fb687f5950a4402d6ef18c9dafec7"
+    },
+    {
+      "bytes": 3122,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0025/packet.json",
+      "runtime_manifest_purpose": "reveal packet",
+      "sha256": "556606f379441ed09482f46afa4454dd8f54179c97503eb80e27c9e96789520f"
+    },
+    {
+      "bytes": 3166,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0026/annotation_draft.json",
+      "runtime_manifest_purpose": "annotation draft",
+      "sha256": "3d854d22f4d86a1ad6b490bf743a7bdece5e3c624d3342f9884e87b578ab8103"
+    },
+    {
+      "bytes": 3339,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0026/attempt-0001/receipt.json",
+      "runtime_manifest_purpose": "receipt",
+      "sha256": "44f4672fb27ec8c9d0759de6015c62a5e57c605ff0b6737fafca7d89acc68371"
+    },
+    {
+      "bytes": 357,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0026/attempt-0001/seal_approval.json",
+      "runtime_manifest_purpose": "seal approval",
+      "sha256": "202facad7eff61cf337f0e78a50216691e77040573aa07b50c53665977487e61"
+    },
+    {
+      "bytes": 454,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0026/context_support_map.json",
+      "runtime_manifest_purpose": "support map",
+      "sha256": "bf771b9af0a8289c1e7f8db90e093a75370c3add00dd14d1b35e65ef642b62a1"
+    },
+    {
+      "bytes": 8524,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0026/national_ctx_v1.json",
+      "runtime_manifest_purpose": "context",
+      "sha256": "05763fce1e98947337d84eba033f0387cad075b890543280f6860e3ade607066"
+    },
+    {
+      "bytes": 3002,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0026/packet.json",
+      "runtime_manifest_purpose": "reveal packet",
+      "sha256": "5812fc13108e8aa8ced1a758357442da265f0bde3cca3d53cd54b82b4011bd5d"
+    },
+    {
+      "bytes": 3163,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0027/annotation_draft.json",
+      "runtime_manifest_purpose": "annotation draft",
+      "sha256": "d44ab41dd426304b2f704f9737ce53f18ecde29520e1adfe9b488c0cc6167b9b"
+    },
+    {
+      "bytes": 3336,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0027/attempt-0001/receipt.json",
+      "runtime_manifest_purpose": "receipt",
+      "sha256": "bffe2829a26ed5de6bb920756bb1384380b250c53bec5e66f458b8ca29245117"
+    },
+    {
+      "bytes": 357,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0027/attempt-0001/seal_approval.json",
+      "runtime_manifest_purpose": "seal approval",
+      "sha256": "ad6cf1ca8a5b9bad685d1b92816f128c443132ff064153b0a6be9d589670738d"
+    },
+    {
+      "bytes": 410,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0027/context_support_map.json",
+      "runtime_manifest_purpose": "support map",
+      "sha256": "5470a4798892fe0ab2b9ca7659c9a8bf9d7bacf365fbc0953fb8a69516911a15"
+    },
+    {
+      "bytes": 6140,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0027/national_ctx_v1.json",
+      "runtime_manifest_purpose": "context",
+      "sha256": "0f2b74a3fb238b36ed10bbca924ecf520d19564f603d9048f4633c409503bad7"
+    },
+    {
+      "bytes": 3122,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0027/packet.json",
+      "runtime_manifest_purpose": "reveal packet",
+      "sha256": "821dd709f5ccc915a1830407dfec0aa275d4e57a4a34f2725e066e20415a24c5"
+    },
+    {
+      "bytes": 2523,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0028/annotation_draft.json",
+      "runtime_manifest_purpose": "annotation draft",
+      "sha256": "7da8f130b1d00e699e0c91ed269e94f398139883da9baa32d5c6d521fc975cb7"
+    },
+    {
+      "bytes": 2696,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0028/attempt-0001/receipt.json",
+      "runtime_manifest_purpose": "receipt",
+      "sha256": "afacb7b8c74a274edfb76b0fd3f9eb4dda7e1a900cd6a86322dfe97682ef2c1a"
+    },
+    {
+      "bytes": 357,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0028/attempt-0001/seal_approval.json",
+      "runtime_manifest_purpose": "seal approval",
+      "sha256": "20ff0768c857e80e206eb97273abf70cc318fd3051ea4296493b34eee98c55ad"
+    },
+    {
+      "bytes": 410,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0028/context_support_map.json",
+      "runtime_manifest_purpose": "support map",
+      "sha256": "0d096e54fafe292a5e0748f11a1302e5fea1f8a24ce72160b5b6770e4e76808a"
+    },
+    {
+      "bytes": 6092,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0028/national_ctx_v1.json",
+      "runtime_manifest_purpose": "context",
+      "sha256": "20b1f613730244106e48afb9d8f301c15dcfc3977afd9964a0358d968154bea9"
+    },
+    {
+      "bytes": 1264,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0028/packet.json",
+      "runtime_manifest_purpose": "reveal packet",
+      "sha256": "bd0e3807824b9a20250af455e12008ebeccb902f170d229dc592095a12570870"
+    },
+    {
+      "bytes": 2523,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0029/annotation_draft.json",
+      "runtime_manifest_purpose": "annotation draft",
+      "sha256": "30b8c8196bc3d9e5b6213b29915bbb67e4ad8b959dc85610a2a351ad17502fd7"
+    },
+    {
+      "bytes": 2696,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0029/attempt-0001/receipt.json",
+      "runtime_manifest_purpose": "receipt",
+      "sha256": "e128790806b28a1b02751adadd1e5bc591c7681e1b4e591441b229b71c0d0666"
+    },
+    {
+      "bytes": 357,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0029/attempt-0001/seal_approval.json",
+      "runtime_manifest_purpose": "seal approval",
+      "sha256": "3aad11d7491c341e31530eb284468f322d04b088b25a1234685ce1a07e7cbc3b"
+    },
+    {
+      "bytes": 410,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0029/context_support_map.json",
+      "runtime_manifest_purpose": "support map",
+      "sha256": "b8351b4c508f7e648f0fe3583356b2677f123359e130ca635b2bb6c5e0b272f9"
+    },
+    {
+      "bytes": 6092,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0029/national_ctx_v1.json",
+      "runtime_manifest_purpose": "context",
+      "sha256": "a9b0ca31efb16d60e851931757e1cae3dc412eb4a3987544dd1912b79e1875ef"
+    },
+    {
+      "bytes": 1305,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0029/packet.json",
+      "runtime_manifest_purpose": "reveal packet",
+      "sha256": "dfeed6863ec910bfe143cd2ab896d7700d13f76edabe2c493d43b91dd7146e07"
+    },
+    {
+      "bytes": 3166,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0030/annotation_draft.json",
+      "runtime_manifest_purpose": "annotation draft",
+      "sha256": "bf106c918c433f85a07bd5161eed006480fef462a4285fe65cf464a47554aaed"
+    },
+    {
+      "bytes": 3339,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0030/attempt-0001/receipt.json",
+      "runtime_manifest_purpose": "receipt",
+      "sha256": "1b232ec5eeab3b518009841f818e7d03689a7cf4d29425fd8631196902b30cf5"
+    },
+    {
+      "bytes": 357,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0030/attempt-0001/seal_approval.json",
+      "runtime_manifest_purpose": "seal approval",
+      "sha256": "5df807f258092d4db8c72e807f36dadc1b0f122037377858791171e1ba9fb615"
+    },
+    {
+      "bytes": 421,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0030/context_support_map.json",
+      "runtime_manifest_purpose": "support map",
+      "sha256": "cc948d0f4c8f1723e6ebb1b3c33c7adc99f7ea114d4999563db0d3c1bc2d3bf4"
+    },
+    {
+      "bytes": 6747,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0030/national_ctx_v1.json",
+      "runtime_manifest_purpose": "context",
+      "sha256": "f4c67260966932cb397efa037a10cfa77fe1756d7c6ae9a30abed60b9f5cda8f"
+    },
+    {
+      "bytes": 3003,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0030/packet.json",
+      "runtime_manifest_purpose": "reveal packet",
+      "sha256": "8b3e5ee9062fab8b943719ee806c069f865cb6b9fae9a8a2d8fab2b1793fe55d"
+    },
+    {
+      "bytes": 3166,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0031/annotation_draft.json",
+      "runtime_manifest_purpose": "annotation draft",
+      "sha256": "dd0b1d14e3719131b24dd933efb4e3554e689b62a4e1feff3b3c964ccfd26414"
+    },
+    {
+      "bytes": 3339,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0031/attempt-0001/receipt.json",
+      "runtime_manifest_purpose": "receipt",
+      "sha256": "f5baf14cd7df8e53e6ac5a3645fe521e94655dd1377c1958e30b5991f50dd816"
+    },
+    {
+      "bytes": 357,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0031/attempt-0001/seal_approval.json",
+      "runtime_manifest_purpose": "seal approval",
+      "sha256": "5b33b7f4176e21b19dcc12f58af310647561fbdd329e115b1292ebaea59f76f8"
+    },
+    {
+      "bytes": 421,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0031/context_support_map.json",
+      "runtime_manifest_purpose": "support map",
+      "sha256": "50e589edaee8b336835a95371307eb0e4f31b97ec0f5eb0ba0045f217bb2bb4b"
+    },
+    {
+      "bytes": 6751,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0031/national_ctx_v1.json",
+      "runtime_manifest_purpose": "context",
+      "sha256": "6defb93c3097da74ecd0951eec68ee60a9839db28963a4d7af68ff39e2945680"
+    },
+    {
+      "bytes": 3002,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0031/packet.json",
+      "runtime_manifest_purpose": "reveal packet",
+      "sha256": "483951d5de14dfc31edaae7f20c3e6d9c5c857feedb752524eb45e230f77f890"
+    },
+    {
+      "bytes": 3166,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0032/annotation_draft.json",
+      "runtime_manifest_purpose": "annotation draft",
+      "sha256": "a4239604d46a7540f3c43033fe7697e41bcd64c7f7f557eea1b6977fae1268a8"
+    },
+    {
+      "bytes": 3339,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0032/attempt-0001/receipt.json",
+      "runtime_manifest_purpose": "receipt",
+      "sha256": "ca31eff50d610b10c5222dbd889a4351c604e548be01de7bc738bd9e365343be"
+    },
+    {
+      "bytes": 357,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0032/attempt-0001/seal_approval.json",
+      "runtime_manifest_purpose": "seal approval",
+      "sha256": "f65a51d9d038a9f21dbd3449752047d1d83ee02f30b03992e8afe9253adbf720"
+    },
+    {
+      "bytes": 454,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0032/context_support_map.json",
+      "runtime_manifest_purpose": "support map",
+      "sha256": "b227f79610aa3e2c4a7591ad045b53026dc37a9582382c6f375ffcfc5d8b11f9"
+    },
+    {
+      "bytes": 8521,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0032/national_ctx_v1.json",
+      "runtime_manifest_purpose": "context",
+      "sha256": "5ddd3770c7d1f337bddcae0f1a533ada5a1028ac90e91ca83e66b8cc83fd1c05"
+    },
+    {
+      "bytes": 3002,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0032/packet.json",
+      "runtime_manifest_purpose": "reveal packet",
+      "sha256": "1b77a54f30b6e13858876775d8df6604a6a39b7f84d5a0376917c822c4798ec2"
+    },
+    {
+      "bytes": 2523,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0033/annotation_draft.json",
+      "runtime_manifest_purpose": "annotation draft",
+      "sha256": "6e93102d81dcc38001c0e0f89c2504b7ec109ae8545c5f7b9df4c285fc828f6f"
+    },
+    {
+      "bytes": 2696,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0033/attempt-0001/receipt.json",
+      "runtime_manifest_purpose": "receipt",
+      "sha256": "242839ed3523817b234bd8e1cc2b8379e2e20f0eaf16bfdf7d7548b47dba50a6"
+    },
+    {
+      "bytes": 357,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0033/attempt-0001/seal_approval.json",
+      "runtime_manifest_purpose": "seal approval",
+      "sha256": "8deeb5a80d9917c9a602f83d3a14168ac6e27f4a2e11411a765ac9c7d8cde124"
+    },
+    {
+      "bytes": 410,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0033/context_support_map.json",
+      "runtime_manifest_purpose": "support map",
+      "sha256": "a958dd61e8214d979109454e626b15b76df48394fdba6c48bb40ae98a0825054"
+    },
+    {
+      "bytes": 6100,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0033/national_ctx_v1.json",
+      "runtime_manifest_purpose": "context",
+      "sha256": "bb415e22543957599bcfa4d7eef0478e042aa987e359d9bf5247c3aafe6cab15"
+    },
+    {
+      "bytes": 1535,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0033/packet.json",
+      "runtime_manifest_purpose": "reveal packet",
+      "sha256": "152a46d0a43fb0599841189ee387df31a14cb51797eb8dfcee329b45ef9f11b3"
+    },
+    {
+      "bytes": 3166,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0034/annotation_draft.json",
+      "runtime_manifest_purpose": "annotation draft",
+      "sha256": "deb100eb19541e9d262a73a40358d261aab2b89dc9e4720f4115545c6e889c48"
+    },
+    {
+      "bytes": 3339,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0034/attempt-0001/receipt.json",
+      "runtime_manifest_purpose": "receipt",
+      "sha256": "96f4461cf0538bfaf9a779413f42985b16d153d28cbea6007964a46d862588ff"
+    },
+    {
+      "bytes": 357,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0034/attempt-0001/seal_approval.json",
+      "runtime_manifest_purpose": "seal approval",
+      "sha256": "509f113a0cde8172b61c310df03fae81b175c4639abfde591b2105145a585b9f"
+    },
+    {
+      "bytes": 454,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0034/context_support_map.json",
+      "runtime_manifest_purpose": "support map",
+      "sha256": "f26d78f00cdcd05baada16d9f8826d77f7801bb513cac6e93d258c75cea59468"
+    },
+    {
+      "bytes": 8535,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0034/national_ctx_v1.json",
+      "runtime_manifest_purpose": "context",
+      "sha256": "389ad9ffd6a1126ad60b412f1cdc1eca4986bdc98191a98bb589741cceada605"
+    },
+    {
+      "bytes": 3002,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0034/packet.json",
+      "runtime_manifest_purpose": "reveal packet",
+      "sha256": "35e936a0c80278e3fd5916eb6c4508e52e63321f98ba91c2d63c96c029e45c01"
+    },
+    {
+      "bytes": 3166,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0035/annotation_draft.json",
+      "runtime_manifest_purpose": "annotation draft",
+      "sha256": "5a9e011ddb672a9ca63496c3d3c29c233f1d90ceae0cc21167cf704ad9204217"
+    },
+    {
+      "bytes": 3339,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0035/attempt-0001/receipt.json",
+      "runtime_manifest_purpose": "receipt",
+      "sha256": "1cd56b2f181e24fc3de8b282ce74eae5a56f7e41e53a728c511996a44373bc69"
+    },
+    {
+      "bytes": 357,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0035/attempt-0001/seal_approval.json",
+      "runtime_manifest_purpose": "seal approval",
+      "sha256": "dc9b819b94ce1395d51f63d13a8451c25b7b7fd3ea2a9e8a1a2af7c1aa4fdf58"
+    },
+    {
+      "bytes": 421,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0035/context_support_map.json",
+      "runtime_manifest_purpose": "support map",
+      "sha256": "37d5007346cc74430639658677eab4e7fff9aa58e19b3d4c9455c9db3a492056"
+    },
+    {
+      "bytes": 6746,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0035/national_ctx_v1.json",
+      "runtime_manifest_purpose": "context",
+      "sha256": "cc3918d42f331c36057328ccc51afaba8ffd4fa99839204e6e47fdfe20b27d55"
+    },
+    {
+      "bytes": 3002,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0035/packet.json",
+      "runtime_manifest_purpose": "reveal packet",
+      "sha256": "4b85fb4fce70695270249e89364ed13fdb4617bb91e2616b1274a29a94ac7ac1"
+    },
+    {
+      "bytes": 3163,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0036/annotation_draft.json",
+      "runtime_manifest_purpose": "annotation draft",
+      "sha256": "d380c275f126f3abbd1aaf7cbde8f4319ff7063184abd363d8d5278c745049b3"
+    },
+    {
+      "bytes": 3336,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0036/attempt-0001/receipt.json",
+      "runtime_manifest_purpose": "receipt",
+      "sha256": "bc8ea03582045a51a7b4750181d39400fff608ee843836a9ecdbbad9a5e16c80"
+    },
+    {
+      "bytes": 357,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0036/attempt-0001/seal_approval.json",
+      "runtime_manifest_purpose": "seal approval",
+      "sha256": "f8cb08f7d1d1a8b6e935a48220b37c5834d865033209532e9dd3f2879a0e06d3"
+    },
+    {
+      "bytes": 410,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0036/context_support_map.json",
+      "runtime_manifest_purpose": "support map",
+      "sha256": "842f89f1a46b16506ff9994a44dbaede990f4b2d01d5303baf6d7eb34bd3afb3"
+    },
+    {
+      "bytes": 6170,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0036/national_ctx_v1.json",
+      "runtime_manifest_purpose": "context",
+      "sha256": "ec9cca8d4a23152bd83e1ca9209a7d7563d0a3d49672679b31c97478c423392e"
+    },
+    {
+      "bytes": 3122,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0036/packet.json",
+      "runtime_manifest_purpose": "reveal packet",
+      "sha256": "89360bbe38c7191e196930bcc4c625f41eb38e5d4559b5450356462047b7f0bf"
+    },
+    {
+      "bytes": 2523,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0037/annotation_draft.json",
+      "runtime_manifest_purpose": "annotation draft",
+      "sha256": "8342a71f9a8adfadc25e9982e57b4381c1ddeb949417f5f1b49f3432a2f95d9d"
+    },
+    {
+      "bytes": 2696,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0037/attempt-0001/receipt.json",
+      "runtime_manifest_purpose": "receipt",
+      "sha256": "0031b02f7ce588f6f568297e85cb0e1f662fd0f3612f1d74f251aa1cce2bcd86"
+    },
+    {
+      "bytes": 357,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0037/attempt-0001/seal_approval.json",
+      "runtime_manifest_purpose": "seal approval",
+      "sha256": "5c7fe1c78b7341349db94bf64c1a16aefd6a1617c5bf4d56543cec8af67916bd"
+    },
+    {
+      "bytes": 410,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0037/context_support_map.json",
+      "runtime_manifest_purpose": "support map",
+      "sha256": "64c99ccd647c6c1047a2cc780bab418ddcf982973bc5b460787e0adbd45bfd8b"
+    },
+    {
+      "bytes": 6092,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0037/national_ctx_v1.json",
+      "runtime_manifest_purpose": "context",
+      "sha256": "68ace242f7a2b907bf4fe9d77eb4b49b52441b4e009623c3db03cd6165148bbe"
+    },
+    {
+      "bytes": 1264,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0037/packet.json",
+      "runtime_manifest_purpose": "reveal packet",
+      "sha256": "9d19eebd397893bc07a726ab6e1956a6f1d3072a2f8dc6e83e9ab1328e52acc1"
+    },
+    {
+      "bytes": 3163,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0038/annotation_draft.json",
+      "runtime_manifest_purpose": "annotation draft",
+      "sha256": "8258d5dc083278aebcd0fde81d72bb25ad8b4948fe99cfd2e344c546d351a9a1"
+    },
+    {
+      "bytes": 3336,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0038/attempt-0001/receipt.json",
+      "runtime_manifest_purpose": "receipt",
+      "sha256": "f27f6465ab23840d03518e14eca740140d76b56de2563e23775bd7b3a8a346ba"
+    },
+    {
+      "bytes": 357,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0038/attempt-0001/seal_approval.json",
+      "runtime_manifest_purpose": "seal approval",
+      "sha256": "be8ca15ddfdf83c682e18d420806645b66eb67613d14ea0208c3ac9ab68fbd45"
+    },
+    {
+      "bytes": 410,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0038/context_support_map.json",
+      "runtime_manifest_purpose": "support map",
+      "sha256": "92ab02f91ca7c958f7492b8b3a107e1927303ef053cd154c5409776de28b8a3d"
+    },
+    {
+      "bytes": 6144,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0038/national_ctx_v1.json",
+      "runtime_manifest_purpose": "context",
+      "sha256": "049c742e474720b8402ceb0b7042ee3fe3b678e4e50e7e40e4a1a3fed46506ad"
+    },
+    {
+      "bytes": 2800,
+      "path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0038/packet.json",
+      "runtime_manifest_purpose": "reveal packet",
+      "sha256": "dbfa4de40114319202b154a6ff22f1644428fe34f4cd13fdcdfceae0e47fda36"
+    },
+    {
+      "bytes": 377,
+      "path": "data/csr8_phase_c/h_campaign/hc-46195669974db3b25610bef4d047d927/h1/reviews/ANNOTATION.verdict.json",
+      "runtime_manifest_purpose": "authoritative ANNOTATION reviewer verdict",
+      "sha256": "5055da92cfb20fceefeb21a255f96441b3bce8be39199f9ec2fa6d4d3439e658"
+    },
+    {
+      "bytes": 362,
+      "path": "data/csr8_phase_c/h_campaign/hc-46195669974db3b25610bef4d047d927/h10/reviews/ANNOTATION.verdict.json",
+      "runtime_manifest_purpose": "authoritative ANNOTATION reviewer verdict",
+      "sha256": "118352236c90c8e73ec6719cb0d14deed5a1a5dde05713397112fc3be9b05302"
+    },
+    {
+      "bytes": 362,
+      "path": "data/csr8_phase_c/h_campaign/hc-46195669974db3b25610bef4d047d927/h11/reviews/ANNOTATION.verdict.json",
+      "runtime_manifest_purpose": "authoritative ANNOTATION reviewer verdict",
+      "sha256": "a952c2c393a62d342034e795723d21eba67b0322a9f7a9289573796115b8fdd9"
+    },
+    {
+      "bytes": 362,
+      "path": "data/csr8_phase_c/h_campaign/hc-46195669974db3b25610bef4d047d927/h12/reviews/ANNOTATION.verdict.json",
+      "runtime_manifest_purpose": "authoritative ANNOTATION reviewer verdict",
+      "sha256": "9d341d5d2599e6a0561d5360105ae5ee1334dc3c2fa6783bfa6f2485c29e7803"
+    },
+    {
+      "bytes": 362,
+      "path": "data/csr8_phase_c/h_campaign/hc-46195669974db3b25610bef4d047d927/h13/reviews/ANNOTATION.verdict.json",
+      "runtime_manifest_purpose": "authoritative ANNOTATION reviewer verdict",
+      "sha256": "96fe98b4a40562a4490d2215e8d1164463e4ecaddf77829f916aa47628916acd"
+    },
+    {
+      "bytes": 362,
+      "path": "data/csr8_phase_c/h_campaign/hc-46195669974db3b25610bef4d047d927/h14/reviews/ANNOTATION.verdict.json",
+      "runtime_manifest_purpose": "authoritative ANNOTATION reviewer verdict",
+      "sha256": "bac05cde70a42a6080d89e82789997ba418eb37cb23f6117932edea5f0cb92d9"
+    },
+    {
+      "bytes": 362,
+      "path": "data/csr8_phase_c/h_campaign/hc-46195669974db3b25610bef4d047d927/h15/reviews/ANNOTATION.verdict.json",
+      "runtime_manifest_purpose": "authoritative ANNOTATION reviewer verdict",
+      "sha256": "306dd26a87eb1b72b1a2ac409e0a748ccce018d7691402797c0c16eb5df5b9e9"
+    },
+    {
+      "bytes": 362,
+      "path": "data/csr8_phase_c/h_campaign/hc-46195669974db3b25610bef4d047d927/h16/reviews/ANNOTATION.verdict.json",
+      "runtime_manifest_purpose": "authoritative ANNOTATION reviewer verdict",
+      "sha256": "821d5e12083f14c8a2fb8c979495bc053df23a1397883f3914c53929b0205137"
+    },
+    {
+      "bytes": 362,
+      "path": "data/csr8_phase_c/h_campaign/hc-46195669974db3b25610bef4d047d927/h17/reviews/ANNOTATION.verdict.json",
+      "runtime_manifest_purpose": "authoritative ANNOTATION reviewer verdict",
+      "sha256": "8309279f2e75d92ad97de8151d37f7378665d1dc9f321d9f97608c1feef7d8f8"
+    },
+    {
+      "bytes": 362,
+      "path": "data/csr8_phase_c/h_campaign/hc-46195669974db3b25610bef4d047d927/h18/reviews/ANNOTATION.verdict.json",
+      "runtime_manifest_purpose": "authoritative ANNOTATION reviewer verdict",
+      "sha256": "5d8e1aab0526ebb492fa8efcd111f2baf2962ebf9b64383a6c414f26ad5c5268"
+    },
+    {
+      "bytes": 362,
+      "path": "data/csr8_phase_c/h_campaign/hc-46195669974db3b25610bef4d047d927/h19/reviews/ANNOTATION.verdict.json",
+      "runtime_manifest_purpose": "authoritative ANNOTATION reviewer verdict",
+      "sha256": "b210bc7878e39c7252586f00dcec08474fda45fbd2216ec8369ff8ff1caf6f73"
+    },
+    {
+      "bytes": 372,
+      "path": "data/csr8_phase_c/h_campaign/hc-46195669974db3b25610bef4d047d927/h2/reviews/ANNOTATION.verdict.json",
+      "runtime_manifest_purpose": "authoritative ANNOTATION reviewer verdict",
+      "sha256": "ea506d1e152c976dd6e3a8a204b57b95983955e2500f9350bdc0f570a6e9c523"
+    },
+    {
+      "bytes": 362,
+      "path": "data/csr8_phase_c/h_campaign/hc-46195669974db3b25610bef4d047d927/h20/reviews/ANNOTATION.verdict.json",
+      "runtime_manifest_purpose": "authoritative ANNOTATION reviewer verdict",
+      "sha256": "e3df296bccd0bb5cfe77680598db7f7ae095e89cd771105506a1c0e42d6b012c"
+    },
+    {
+      "bytes": 362,
+      "path": "data/csr8_phase_c/h_campaign/hc-46195669974db3b25610bef4d047d927/h21/reviews/ANNOTATION.verdict.json",
+      "runtime_manifest_purpose": "authoritative ANNOTATION reviewer verdict",
+      "sha256": "88014ce6cbbabfdc48e952ce62c45f3a95e9fcd3c2b458b308492f18ae02ade7"
+    },
+    {
+      "bytes": 362,
+      "path": "data/csr8_phase_c/h_campaign/hc-46195669974db3b25610bef4d047d927/h22/reviews/ANNOTATION.verdict.json",
+      "runtime_manifest_purpose": "authoritative ANNOTATION reviewer verdict",
+      "sha256": "a8ebed20319abce3595efbd0e3f58f8f380e5e6dc3328b20d4e40c85ac340b20"
+    },
+    {
+      "bytes": 362,
+      "path": "data/csr8_phase_c/h_campaign/hc-46195669974db3b25610bef4d047d927/h23/reviews/ANNOTATION.verdict.json",
+      "runtime_manifest_purpose": "authoritative ANNOTATION reviewer verdict",
+      "sha256": "1a9d6eda694c25e59eb35fdeaf9e7a6b3f66f6e9533a140853f834513dc538e6"
+    },
+    {
+      "bytes": 362,
+      "path": "data/csr8_phase_c/h_campaign/hc-46195669974db3b25610bef4d047d927/h24/reviews/ANNOTATION.verdict.json",
+      "runtime_manifest_purpose": "authoritative ANNOTATION reviewer verdict",
+      "sha256": "2a497c1a003d0e8179cf31164cf6bdc9c43987372c293b539272b2866f04fad8"
+    },
+    {
+      "bytes": 362,
+      "path": "data/csr8_phase_c/h_campaign/hc-46195669974db3b25610bef4d047d927/h25/reviews/ANNOTATION.verdict.json",
+      "runtime_manifest_purpose": "authoritative ANNOTATION reviewer verdict",
+      "sha256": "9d1cf455805ec15c3bbc3aa188e79847c4213a07fbb9470a8b68dac16e508089"
+    },
+    {
+      "bytes": 362,
+      "path": "data/csr8_phase_c/h_campaign/hc-46195669974db3b25610bef4d047d927/h26/reviews/ANNOTATION.verdict.json",
+      "runtime_manifest_purpose": "authoritative ANNOTATION reviewer verdict",
+      "sha256": "19e71160fc6e5275d36334ce7bd9e87c858aeab57c5ff90c7bc3f07ce67fe9b9"
+    },
+    {
+      "bytes": 362,
+      "path": "data/csr8_phase_c/h_campaign/hc-46195669974db3b25610bef4d047d927/h27/reviews/ANNOTATION.verdict.json",
+      "runtime_manifest_purpose": "authoritative ANNOTATION reviewer verdict",
+      "sha256": "ae596785642432df15327fffffd2aa52c6c8b9f7c8e40ba0ae906841886b8b6b"
+    },
+    {
+      "bytes": 362,
+      "path": "data/csr8_phase_c/h_campaign/hc-46195669974db3b25610bef4d047d927/h28/reviews/ANNOTATION.verdict.json",
+      "runtime_manifest_purpose": "authoritative ANNOTATION reviewer verdict",
+      "sha256": "d7c3d0b8f480d489d131ec7c88d4fd249251539555383ace07366f5c5adcdb37"
+    },
+    {
+      "bytes": 362,
+      "path": "data/csr8_phase_c/h_campaign/hc-46195669974db3b25610bef4d047d927/h29/reviews/ANNOTATION.verdict.json",
+      "runtime_manifest_purpose": "authoritative ANNOTATION reviewer verdict",
+      "sha256": "045ddf064bcc68b27e1bc20900cdbdb4cda19395f351960effd4fa53188cf1d7"
+    },
+    {
+      "bytes": 371,
+      "path": "data/csr8_phase_c/h_campaign/hc-46195669974db3b25610bef4d047d927/h3/reviews/ANNOTATION.corrected.verdict.json",
+      "runtime_manifest_purpose": "authoritative ANNOTATION reviewer verdict",
+      "sha256": "eba1e010218194c32c053bbad9d5901aa2249afb3d86b709cacc37d616eb574b"
+    },
+    {
+      "bytes": 362,
+      "path": "data/csr8_phase_c/h_campaign/hc-46195669974db3b25610bef4d047d927/h30/reviews/ANNOTATION.verdict.json",
+      "runtime_manifest_purpose": "authoritative ANNOTATION reviewer verdict",
+      "sha256": "ae323822b8844196f0a995f9076bfc48071bb92fef8c02e0cf450cfd5516e45c"
+    },
+    {
+      "bytes": 362,
+      "path": "data/csr8_phase_c/h_campaign/hc-46195669974db3b25610bef4d047d927/h31/reviews/ANNOTATION.verdict.json",
+      "runtime_manifest_purpose": "authoritative ANNOTATION reviewer verdict",
+      "sha256": "01ae0e0d04055894b95e7fa986edc74ee65c7479b135d060f90e573da7b4008f"
+    },
+    {
+      "bytes": 362,
+      "path": "data/csr8_phase_c/h_campaign/hc-46195669974db3b25610bef4d047d927/h32/reviews/ANNOTATION.verdict.json",
+      "runtime_manifest_purpose": "authoritative ANNOTATION reviewer verdict",
+      "sha256": "e8dcb0f41fa27f5dd4f4153eeebda0900729c07ca6f4552b192f7044a9f01b37"
+    },
+    {
+      "bytes": 362,
+      "path": "data/csr8_phase_c/h_campaign/hc-46195669974db3b25610bef4d047d927/h33/reviews/ANNOTATION.verdict.json",
+      "runtime_manifest_purpose": "authoritative ANNOTATION reviewer verdict",
+      "sha256": "1c139ce94019f97aae0abe0a90b763326ab1b8ecc364570e5def41006c457995"
+    },
+    {
+      "bytes": 362,
+      "path": "data/csr8_phase_c/h_campaign/hc-46195669974db3b25610bef4d047d927/h34/reviews/ANNOTATION.verdict.json",
+      "runtime_manifest_purpose": "authoritative ANNOTATION reviewer verdict",
+      "sha256": "ee3d8840d498afb06fdc64a36d730768721d85fd4b3c2b2d83cea54129cd5db0"
+    },
+    {
+      "bytes": 362,
+      "path": "data/csr8_phase_c/h_campaign/hc-46195669974db3b25610bef4d047d927/h35/reviews/ANNOTATION.verdict.json",
+      "runtime_manifest_purpose": "authoritative ANNOTATION reviewer verdict",
+      "sha256": "b3218ca6aa65b25645168c4e162f86b7b711db6acc0dda1b21f3a9b27bf86853"
+    },
+    {
+      "bytes": 362,
+      "path": "data/csr8_phase_c/h_campaign/hc-46195669974db3b25610bef4d047d927/h36/reviews/ANNOTATION.verdict.json",
+      "runtime_manifest_purpose": "authoritative ANNOTATION reviewer verdict",
+      "sha256": "21b265e18269975e19d5672564a185e742bea51ca321a772653704b6661f9e81"
+    },
+    {
+      "bytes": 360,
+      "path": "data/csr8_phase_c/h_campaign/hc-46195669974db3b25610bef4d047d927/h4/reviews/ANNOTATION.verdict.json",
+      "runtime_manifest_purpose": "authoritative ANNOTATION reviewer verdict",
+      "sha256": "8972746c4374a3d16c94c38c25d149f624a520214703f3a58bae1bdf9ed4203a"
+    },
+    {
+      "bytes": 371,
+      "path": "data/csr8_phase_c/h_campaign/hc-46195669974db3b25610bef4d047d927/h5/reviews/ANNOTATION.corrected.verdict.json",
+      "runtime_manifest_purpose": "authoritative ANNOTATION reviewer verdict",
+      "sha256": "b1063a945108fe8f601c39dabd8cf413defc79f780ba5c8b93744599f133e20f"
+    },
+    {
+      "bytes": 360,
+      "path": "data/csr8_phase_c/h_campaign/hc-46195669974db3b25610bef4d047d927/h6/reviews/ANNOTATION.verdict.json",
+      "runtime_manifest_purpose": "authoritative ANNOTATION reviewer verdict",
+      "sha256": "baf2a0e10189a9a3b88f478378c413387dce2b75a009b6d39f188685e0919d33"
+    },
+    {
+      "bytes": 360,
+      "path": "data/csr8_phase_c/h_campaign/hc-46195669974db3b25610bef4d047d927/h7/reviews/ANNOTATION.verdict.json",
+      "runtime_manifest_purpose": "authoritative ANNOTATION reviewer verdict",
+      "sha256": "b17195a2c72b80c0f5a69bc2cbd54965a7575d2362a5bd27932891e070503987"
+    },
+    {
+      "bytes": 361,
+      "path": "data/csr8_phase_c/h_campaign/hc-46195669974db3b25610bef4d047d927/h8/reviews/ANNOTATION.verdict.json",
+      "runtime_manifest_purpose": "authoritative ANNOTATION reviewer verdict",
+      "sha256": "5b0ff6530b393426af5e85ba7b17eedaa3792c45370d9ab07aa269d80fcaa347"
+    },
+    {
+      "bytes": 361,
+      "path": "data/csr8_phase_c/h_campaign/hc-46195669974db3b25610bef4d047d927/h9/reviews/ANNOTATION.verdict.json",
+      "runtime_manifest_purpose": "authoritative ANNOTATION reviewer verdict",
+      "sha256": "240970b3b453e0135d389cbe3c6752a7c1fc9dda425996f28d093eb96dfbf88f"
+    },
+    {
+      "bytes": 56352,
+      "path": "data/csr8_phase_c/production/c4-prod-0002/sealing/sealing_log.jsonl",
+      "runtime_manifest_purpose": "persisted sealing event chain",
+      "sha256": "830e60cf27acf2a78441a0c00bb0f6fb5b9f9042aa769afa3d37e4083511bc07"
+    },
+    {
+      "bytes": 25393,
+      "path": "docs/audit/evidence/batch_h_batch1_completion.json",
+      "runtime_manifest_purpose": "BATCH_COMPLETE binding",
+      "sha256": "6cd00230ac5cba3d9155b2c3e1f4f3c3f5b0145b10c63420db3f28dbc94bce82"
+    },
+    {
+      "bytes": 55389,
+      "path": "docs/audit/evidence/batch_h_batch2_completion.json",
+      "runtime_manifest_purpose": "BATCH_COMPLETE binding",
+      "sha256": "be5d11ac59509388c2f35a57abeb60a7cb508e6be95433dd0fd01c0183c2db8b"
+    },
+    {
+      "bytes": 55485,
+      "path": "docs/audit/evidence/batch_h_batch3_completion.json",
+      "runtime_manifest_purpose": "BATCH_COMPLETE binding",
+      "sha256": "1b8cf650908a1910cea2af3dffd7e933c26e756f97d748388d2e963602281f36"
+    },
+    {
+      "bytes": 55485,
+      "path": "docs/audit/evidence/batch_h_batch4_completion.json",
+      "runtime_manifest_purpose": "BATCH_COMPLETE binding",
+      "sha256": "882a8c3b07a67c1f5c005e17144c70c2eeaed943a60bae82de2d1ef4cf940523"
+    },
+    {
+      "bytes": 79390,
+      "path": "docs/audit/evidence/phase_i_i0_1_runtime_read_manifest.json",
+      "runtime_manifest_purpose": "phase-i code/contract commitment",
+      "sha256": "b60fd105f316b76521108f9e1cd904ac6dd3d0f3bd707eee79d20d9c9215cae4"
+    },
+    {
+      "bytes": 299394,
+      "path": "docs/audit/evidence/phase_i_i0_1_sealed_case_lineage.json",
+      "runtime_manifest_purpose": "phase-i code/contract commitment",
+      "sha256": "8f359390c7495bf94ab8963d3350173450824a5bf003acb911b78242e7717b29"
+    },
+    {
+      "bytes": 1784688,
+      "path": "docs/audit/evidence/phase_i_i0_corpus_inventory.json",
+      "runtime_manifest_purpose": "phase-i code/contract commitment",
+      "sha256": "effae1ebdf6ac119002bf118217a16f842911737df1e61197a39b76e47855772"
+    },
+    {
+      "bytes": 1145,
+      "path": "docs/audit/evidence/phase_i_i0_no_outcome_dependency_report.json",
+      "runtime_manifest_purpose": "phase-i code/contract commitment",
+      "sha256": "05ef2d8e5342e003c578d4b8abba2f116a029f81bb3ae1f7700134db1d3a9051"
+    },
+    {
+      "bytes": 13093,
+      "path": "docs/audit/evidence/phase_i_i1_contract.json",
+      "runtime_manifest_purpose": "phase-i code/contract commitment",
+      "sha256": "57b74dfb7996a34cfb11b4991dab0a2881c919a3d56941698e0111e09b3b2b7e"
+    },
+    {
+      "bytes": 1045000,
+      "path": "docs/audit/evidence/phase_i_price_store_manifest.json",
+      "runtime_manifest_purpose": "phase-i code/contract commitment",
+      "sha256": "b2337f6a4f34e5e7a0957bb0a581d7056cc51e4ad695b3b4171b27d4bafd0105"
+    },
+    {
+      "bytes": 3085,
+      "path": "scripts/csr8_phase_h_review_envelope.py",
+      "runtime_manifest_purpose": "phase-i code/contract commitment",
+      "sha256": "65cd884d0b3bd36f8e8974bb988f3fae510b1e268e8a900cfe42007204bfdbf8"
+    },
+    {
+      "bytes": 5414,
+      "path": "scripts/phase_i_i0_1_lineage.py",
+      "runtime_manifest_purpose": "phase-i code/contract commitment",
+      "sha256": "e4627dab8560f89b1b68ded697eec35cef0632db68d9f6e841cc7766e8402ec8"
+    },
+    {
+      "bytes": 7469,
+      "path": "scripts/phase_i_i0_2_lineage.py",
+      "runtime_manifest_purpose": "phase-i code/contract commitment",
+      "sha256": "3f20deeaf95c6799f214bea5999a0543219d8fc949e883f3522f521085f5b0df"
+    },
+    {
+      "bytes": 7356,
+      "path": "scripts/phase_i_i0_inventory.py",
+      "runtime_manifest_purpose": "phase-i code/contract commitment",
+      "sha256": "798daf04c718fc8be0c495bf8e0f0e488db52590c955d90ae5e012093133dbab"
+    },
+    {
+      "bytes": 15169,
+      "path": "scripts/phase_i_i1_contract.py",
+      "runtime_manifest_purpose": "phase-i code/contract commitment",
+      "sha256": "326aae0291ab6802c442f53704453c84f8adf9f4299d7e4a9a64894a44672391"
+    },
+    {
+      "bytes": 3747,
+      "path": "scripts/phase_i_price_store_manifest.py",
+      "runtime_manifest_purpose": "phase-i code/contract commitment",
+      "sha256": "f609c2a7cf3a40907720d305352618f8f5f712422e4fe92fa0dc1d8474511115"
+    }
+  ],
+  "manifest_sha256": "fe986b6af62d700ce50adaf8f7cff98f92ee80da5a62cf31af9ee6571df18324",
+  "per_stock_price_files_included": false,
+  "price_store_binding": "closed-world manifest only (phase_i_price_store_manifest.json); no price file bytes archived",
+  "selector_secret_included": false,
+  "total_bytes": 5041588
+}
