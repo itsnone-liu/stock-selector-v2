@@ -1,0 +1,32 @@
+{
+  "artifact": "batch_h_batch7_status",
+  "ordinals": [
+    55,
+    56,
+    57,
+    58,
+    59,
+    60,
+    61,
+    62
+  ],
+  "execution": {
+    "production_chain_events": 124,
+    "chain_shape": "R1/S1..R62/S62",
+    "production_head_sha256": "a612769e9d49ec973aaed0e9c49dba0bed4cb6a8ebd7971a2b4df7007e3e2356",
+    "ordinals_finalized": "55-62 all ORDINAL_COMPLETE / FINALIZED",
+    "ordinal_histories": "1-62 PASS",
+    "c2_full_replay": "PASS (55-62 verified per-ordinal)",
+    "semantic_replay": "PASS",
+    "sealed_history_modified": false
+  },
+  "reviewer_gates": {
+    "ledger": "reviews_epoch2.jsonl (epoch 2)",
+    "ledger_rows_for_batch": "seq 24-63",
+    "per_ordinal": "o55-o62 all five OPS",
+    "novelty_gate": "PASS 40/40 capture-bound samples",
+    "fail_closed_events": "2 (subagent infra outage pre-o55, o61 SEAL prompt count error); both stopped before any state change"
+  },
+  "batch_record": "docs/audit/evidence/batch_h_batch7_completion.json",
+  "evidence_archive": "docs/audit/evidence/batch_h_batch7_evidence_archive.json"
+}
