@@ -1,0 +1,42 @@
+{
+ "archive_id": "batch-h-b11-evidence-archive-v1",
+ "artifact": "batch_h_batch11_evidence_archive",
+ "batch_rule": {
+  "note": "full 8-ordinal batch (81-88) under continuous-production authorization (user 2026-10-03); ordinal 129+ remains HOLD",
+  "pre_admission_annotation_guard": "entire batch produced under the guard (commit 2651d59) with zero corrections and zero guard rejections"
+ },
+ "location": {
+  "asset_name": "batch_h_b11_evidence.tar.gz",
+  "kind": "hash-pinned_durable_github_release_asset",
+  "platform_immutability": false,
+  "release_tag": "batch-h-b11-evidence-archive-v1"
+ },
+ "production_events_disclosed": {
+  "o81_transport_timeout_recovery": "first ANNOTATION reviewer subagent delegation failed at transport level (request timeout); verified zero verdict/zero ledger mutation (ledger tail seq156, no ANNOTATION verdict file) before fresh reviewer re-spawn; binding envelope 79bef03b...7c97e admitted exactly once at seq157",
+  "batch_clean_production": "no organic guard rejections, no corrections, no retry capture sets in this batch"
+ },
+ "purpose": "Hash-pinned durable trust roots for Batch 11 ordinal 81-88 BATCH_COMPLETE (third continuous-production batch; zero corrections, guard path throughout).",
+ "root_commitment": {
+  "archive_bytes": 1008692656,
+  "archive_sha256": "8686fde6d6f10c8fd897a3c214fcdbd1aac2504e58c28fa33b2a8e68198017fb",
+  "capture_sets": 40,
+  "closed_world": "PASS",
+  "file_count": 120,
+  "incident_capture": "NONE",
+  "manifest_path": "docs/audit/evidence/batch_h_batch11_evidence_manifest.json",
+  "manifest_sha256": "e564262d2543315713aebc1a4c9eb10aa9f6f3ca9c4b99f81e527249fece20da",
+  "samples_verified": 10
+ },
+ "scope": {
+  "epoch_id": 2,
+  "ledger": "reviews_epoch2.jsonl",
+  "ledger_rows": "seq 156-195 (o81-o88 five OPS each)",
+  "production_head_after_batch": "57315fb51952c34b284ef641b5bfe153472264adaecd22a22b9d94573a62003e",
+  "sealing_chain": "176 events / 88 alternating pairs"
+ },
+ "verification": {
+  "details": "120 files byte-verified; 10 samples full DSH-v4 trust-root re-verified; no premature reviewer IDs; no retry/incident capture sets (clean batch)",
+  "result": "PASS",
+  "verifier": "scripts/csr8_batch2_evidence_archive.py --verify"
+ }
+}

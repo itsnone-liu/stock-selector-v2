@@ -1,0 +1,35 @@
+{
+ "artifact": "batch_h_batch11_status",
+ "ordinals": [
+  81,
+  82,
+  83,
+  84,
+  85,
+  86,
+  87,
+  88
+ ],
+ "batch_kind": "FULL_BATCH_CONTINUOUS_PRODUCTION",
+ "execution": {
+  "production_chain_events": 176,
+  "chain_shape": "R1/S1..R88/S88",
+  "production_head_sha256": "57315fb51952c34b284ef641b5bfe153472264adaecd22a22b9d94573a62003e",
+  "ordinals_finalized": "81-88 all ORDINAL_COMPLETE / FINALIZED, zero corrections (guard path throughout)",
+  "ordinal_histories": "1-88 PASS",
+  "c2_full_replay": "PASS (per-ordinal verify)",
+  "semantic_replay": "PASS (per-ordinal verify)",
+  "sealed_history_modified": false
+ },
+ "reviewer_gates": {
+  "ledger": "reviews_epoch2.jsonl (epoch 2)",
+  "ledger_rows_for_batch": "seq 156-195",
+  "per_ordinal": "o81..o88 five OPS each, all APPROVE",
+  "novelty_gate": "PASS 10/10 capture-bound samples; previous-ID derivation from batch-10 record",
+  "pre_admission_annotation_guard": "live; all o81-o88 annotations guard-admitted exactly once (binding envelope), zero guard rejections this batch",
+  "fail_closed_events": "0",
+  "transport_incident": "o81 ANNOTATION first subagent delegation timed out at transport level with zero verdict/zero ledger row; state verified clean (ledger tail seq156, no verdict file) before fresh reviewer re-spawn; admitted once as seq157"
+ },
+ "legacy_ledger": "reviews.jsonl byte-frozen, untouched",
+ "captures_root": "captures/batch11/o81..o88 (outside campaign closed-world)"
+}
