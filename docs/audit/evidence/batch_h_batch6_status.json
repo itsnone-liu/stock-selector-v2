@@ -1,0 +1,38 @@
+{
+  "artifact": "batch_h_batch6_status",
+  "ordinals": [
+    47,
+    48,
+    49,
+    50,
+    51,
+    52,
+    53,
+    54
+  ],
+  "execution": {
+    "production_chain_events": 108,
+    "chain_shape": "R1/S1..R54/S54",
+    "production_head_sha256": "4cccf447c4afba8b14a87ccd8ddc7e235cc1aac993cbeca5230fbf351789931f",
+    "ordinals_finalized": "47-54 all ORDINAL_COMPLETE / FINALIZED",
+    "ordinal_histories": "1-54 PASS",
+    "c2_full_replay": "PASS (47-54 verified per-ordinal)",
+    "sealed_history_modified": false
+  },
+  "recovery": {
+    "incident": "P0 legacy ledger prefix loss at ordinal 50 SEAL",
+    "resolution": "Recovery Epoch 2 (commit 740e514, eee01e4, 1eaf028, cc8bbd1)",
+    "legacy_bytes_recovered": false,
+    "orphan_seq244": "QUARANTINED_NOT_ADMITTED",
+    "epoch2_ledger_rows": 24,
+    "epoch2_head_review_hash": "14305a0f2581fbc7ae821fe1a52ac3c64afaf242c789af26f18c4f7fdf7b61d3"
+  },
+  "reviewer_gates": {
+    "ledger": "reviews_epoch2.jsonl (epoch 2)",
+    "ledger_rows_for_batch": "seq 2-23",
+    "per_ordinal": "o50: SEAL/POST_SEAL (NEXT_REVEAL/ANNOTATION/RECEIPT preserved pre-incident, bound by recovery manifest); o51-54: all five OPS",
+    "novelty_gate": "PASS 21/21 capture-bound samples; o50 SEAL row disclosed separately"
+  },
+  "batch_record": "docs/audit/evidence/batch_h_batch6_completion.json",
+  "evidence_archive": "docs/audit/evidence/batch_h_batch6_evidence_archive.json"
+}
