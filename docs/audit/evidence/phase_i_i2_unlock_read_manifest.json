@@ -1,9 +1,18 @@
 {
+  "allowlist_extensions_applied": [
+    "extension:annotation_draft_for_taxonomy_diagnostic",
+    "extension:armed_unlock_read_manifest_self",
+    "extension:contract_trading_calendar_proxy_pre-materialized",
+    "extension:frozen_i0_2_lineage_hash_chain",
+    "extension:national_context_primary_explanatory_variables",
+    "extension:pinned_price_store_manifest",
+    "extension:secret_salt_for_ocid_hmac_resolution"
+  ],
   "forbidden": [
     "any outcome table other than the one produced by this ceremony",
     "any data source outside the pinned store"
   ],
-  "outcome_read_authorized": false,
+  "outcome_read_authorized": true,
   "pre_gate_read_count": 5247,
   "pre_gate_reads": [
     {
@@ -41989,7 +41998,7 @@
     "rule": "every file-content access (CONTENT or HASH_ONLY) performed by the ceremony appears in pre_gate_reads; no unlogged file access occurs"
   },
   "report_type": "PHASE_I_I2_UNLOCK_RUNTIME_READ_MANIFEST",
-  "status": "ARMED",
+  "status": "UNBLIND_EXECUTED",
   "unblind_allowlist": {
     "enforcement": "the steps 7-9 reader must match every read against exact_paths or the two rules above before opening the file; any unmatched path fails closed",
     "exact_paths": [
@@ -42002,5 +42011,1257 @@
       38
     ],
     "sealed_packet_rule": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-{ordinal:04d}/packet.json for ordinal in [7,38]"
-  }
+  },
+  "unblind_execution": {
+    "authority": "user GO on commit 62f473e (I2 OUTCOME READ — AUTHORIZED)",
+    "calendar_days": 1386,
+    "calendar_sha256": "87f8f959910295640ebdf89b40cedb8de03049bc88c6ad4aace3f39b249c3f80",
+    "failures": [],
+    "mapped_codes": [
+      "sh.600567",
+      "sh.600598",
+      "sh.600650",
+      "sh.600694",
+      "sh.600928",
+      "sh.601298",
+      "sh.601366",
+      "sh.601963",
+      "sh.603536",
+      "sh.603686",
+      "sh.688116",
+      "sh.688218",
+      "sz.000078",
+      "sz.000557",
+      "sz.000628",
+      "sz.000783",
+      "sz.002185",
+      "sz.002391",
+      "sz.002471",
+      "sz.002574",
+      "sz.002719",
+      "sz.002736",
+      "sz.002864",
+      "sz.300147",
+      "sz.300209",
+      "sz.300342",
+      "sz.300489",
+      "sz.300565",
+      "sz.300921",
+      "sz.300946",
+      "sz.301010",
+      "sz.301357"
+    ],
+    "mapping_resolved": 32,
+    "read_count": 134,
+    "report_type": "PHASE_I_I2_UNBLIND_EXECUTION",
+    "status": "UNBLIND_COMPLETE"
+  },
+  "unblind_reads": [
+    {
+      "access_mode": "CONTENT",
+      "allowlist_rule": "extension:armed_unlock_read_manifest_self",
+      "bytes": 1726014,
+      "parsed": true,
+      "purpose": "armed allowlist + pre-gate record",
+      "relative_path": "docs/audit/evidence/phase_i_i2_unlock_read_manifest.json",
+      "sha256": "59012946c39994ef7e363537389af078dab55816c12a26b0ce6a1b8a6125c9f8"
+    },
+    {
+      "access_mode": "CONTENT",
+      "allowlist_rule": "extension:pinned_price_store_manifest",
+      "bytes": 1045000,
+      "parsed": true,
+      "purpose": "pinned closed-world store membership check",
+      "relative_path": "docs/audit/evidence/phase_i_price_store_manifest.json",
+      "sha256": "b2337f6a4f34e5e7a0957bb0a581d7056cc51e4ad695b3b4171b27d4bafd0105"
+    },
+    {
+      "access_mode": "CONTENT",
+      "allowlist_rule": "extension:frozen_i0_2_lineage_hash_chain",
+      "bytes": 230129,
+      "parsed": true,
+      "purpose": "frozen I0.2 hash chain for sealed inputs",
+      "relative_path": "docs/audit/evidence/phase_i_i0_2_evidence_derived_lineage.json",
+      "sha256": "a9972c425a0e03c6a3ed0ca22cbf67334921b1eb048270b8a47554834a8206d0"
+    },
+    {
+      "access_mode": "CONTENT",
+      "allowlist_rule": "extension:secret_salt_for_ocid_hmac_resolution",
+      "bytes": 64,
+      "parsed": true,
+      "purpose": "HMAC key for ocid resolution (content required by frozen scheme csr8_phase_c_packet.py:opaque_case_id)",
+      "relative_path": "data/csr8_phase_c/secret/secret_salt",
+      "sha256": "d1df23bd0c33298d34274ac9ca8a1063defe42567c9a22b2c4b8e52baf9e5ee4"
+    },
+    {
+      "access_mode": "CONTENT",
+      "allowlist_rule": "exact_paths",
+      "bytes": 142274,
+      "parsed": true,
+      "purpose": "selector plan parse — first legal parse under GO",
+      "relative_path": "data/csr8_phase_c/secret/packet_plan.json",
+      "sha256": "6a3051cb26cea71849838a42a17a76836a431e841a6f146a8f4a214bb1278a34"
+    },
+    {
+      "access_mode": "CONTENT",
+      "allowlist_rule": "sealed_packet_rule",
+      "bytes": 3002,
+      "parsed": true,
+      "purpose": "sealed packet: T, ocid, price panel identity",
+      "relative_path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0007/packet.json",
+      "sha256": "4c411fb78f83aca80408118118aeaa3e7fbf76993f8ef865a18a146e6f6dee76"
+    },
+    {
+      "access_mode": "CONTENT",
+      "allowlist_rule": "sealed_packet_rule",
+      "bytes": 3022,
+      "parsed": true,
+      "purpose": "sealed packet: T, ocid, price panel identity",
+      "relative_path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0008/packet.json",
+      "sha256": "a69fb1d1b1e84edcee14b0e23143b0dc356a29e1e47c37b981e9be33853ddca7"
+    },
+    {
+      "access_mode": "CONTENT",
+      "allowlist_rule": "sealed_packet_rule",
+      "bytes": 3002,
+      "parsed": true,
+      "purpose": "sealed packet: T, ocid, price panel identity",
+      "relative_path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0009/packet.json",
+      "sha256": "54fcc922d241cb0532b78ecd9b21a6a5393b9237af1cf409d955911b6c54cf0b"
+    },
+    {
+      "access_mode": "CONTENT",
+      "allowlist_rule": "sealed_packet_rule",
+      "bytes": 3122,
+      "parsed": true,
+      "purpose": "sealed packet: T, ocid, price panel identity",
+      "relative_path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0010/packet.json",
+      "sha256": "06b7698b14ede94095782f9a5d32a5c65b6e0dead8a0f3efb19a39900fd2241e"
+    },
+    {
+      "access_mode": "CONTENT",
+      "allowlist_rule": "sealed_packet_rule",
+      "bytes": 1264,
+      "parsed": true,
+      "purpose": "sealed packet: T, ocid, price panel identity",
+      "relative_path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0011/packet.json",
+      "sha256": "161b39ee81acfc412e9c18ba53b626aea17a96c0a54439f99a3281e5d9e5a6e3"
+    },
+    {
+      "access_mode": "CONTENT",
+      "allowlist_rule": "sealed_packet_rule",
+      "bytes": 3002,
+      "parsed": true,
+      "purpose": "sealed packet: T, ocid, price panel identity",
+      "relative_path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0012/packet.json",
+      "sha256": "5372fbe44080441140ede16d4b47ff4c3266c95a4654bcba7784cc9ce3492e5b"
+    },
+    {
+      "access_mode": "CONTENT",
+      "allowlist_rule": "sealed_packet_rule",
+      "bytes": 3122,
+      "parsed": true,
+      "purpose": "sealed packet: T, ocid, price panel identity",
+      "relative_path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0013/packet.json",
+      "sha256": "b50095286b621a91f24af2fbb1e100b7a61c915e8a2701606214dd88c5d025aa"
+    },
+    {
+      "access_mode": "CONTENT",
+      "allowlist_rule": "sealed_packet_rule",
+      "bytes": 3122,
+      "parsed": true,
+      "purpose": "sealed packet: T, ocid, price panel identity",
+      "relative_path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0014/packet.json",
+      "sha256": "2655587dc094a4137b102dca018dc29beed3e5eef0e9393392c98f3d956d580c"
+    },
+    {
+      "access_mode": "CONTENT",
+      "allowlist_rule": "sealed_packet_rule",
+      "bytes": 3122,
+      "parsed": true,
+      "purpose": "sealed packet: T, ocid, price panel identity",
+      "relative_path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0015/packet.json",
+      "sha256": "fcf2680068cd1106b60fc2af0bd9b25f8779503b0d0deecba42cc99efbe81e87"
+    },
+    {
+      "access_mode": "CONTENT",
+      "allowlist_rule": "sealed_packet_rule",
+      "bytes": 3010,
+      "parsed": true,
+      "purpose": "sealed packet: T, ocid, price panel identity",
+      "relative_path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0016/packet.json",
+      "sha256": "739212beac710f55d86ca9a9197b4ba70384df765d75cc6a7445fe046688d3e7"
+    },
+    {
+      "access_mode": "CONTENT",
+      "allowlist_rule": "sealed_packet_rule",
+      "bytes": 3122,
+      "parsed": true,
+      "purpose": "sealed packet: T, ocid, price panel identity",
+      "relative_path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0017/packet.json",
+      "sha256": "6ca9c6e8d970c6f0392eb1655e597dd6dad8bb2065ec37adee0451c281ba446a"
+    },
+    {
+      "access_mode": "CONTENT",
+      "allowlist_rule": "sealed_packet_rule",
+      "bytes": 3002,
+      "parsed": true,
+      "purpose": "sealed packet: T, ocid, price panel identity",
+      "relative_path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0018/packet.json",
+      "sha256": "e32690f649c1c0c4bbe05c50162a6bb486410c8a6f0d9cbfabab98e7a9fe60e3"
+    },
+    {
+      "access_mode": "CONTENT",
+      "allowlist_rule": "sealed_packet_rule",
+      "bytes": 3122,
+      "parsed": true,
+      "purpose": "sealed packet: T, ocid, price panel identity",
+      "relative_path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0019/packet.json",
+      "sha256": "d63312323aef2ad3811944130d4837a14afae4a86da9b9d61d847a49f5cf2ed9"
+    },
+    {
+      "access_mode": "CONTENT",
+      "allowlist_rule": "sealed_packet_rule",
+      "bytes": 3002,
+      "parsed": true,
+      "purpose": "sealed packet: T, ocid, price panel identity",
+      "relative_path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0020/packet.json",
+      "sha256": "e5308809b1f00f953260c22599a09c7d8dda2a0c53b96b532bc6f3293b3f4e9a"
+    },
+    {
+      "access_mode": "CONTENT",
+      "allowlist_rule": "sealed_packet_rule",
+      "bytes": 3002,
+      "parsed": true,
+      "purpose": "sealed packet: T, ocid, price panel identity",
+      "relative_path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0021/packet.json",
+      "sha256": "dc042fea77d4c5124e8c93fef6d56c9334aa7bafa7dad398297871dc09921183"
+    },
+    {
+      "access_mode": "CONTENT",
+      "allowlist_rule": "sealed_packet_rule",
+      "bytes": 3122,
+      "parsed": true,
+      "purpose": "sealed packet: T, ocid, price panel identity",
+      "relative_path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0022/packet.json",
+      "sha256": "098795749d83025d538aa056f97f95f6ce014e77cec7452f2eef2fd1c0483c18"
+    },
+    {
+      "access_mode": "CONTENT",
+      "allowlist_rule": "sealed_packet_rule",
+      "bytes": 3122,
+      "parsed": true,
+      "purpose": "sealed packet: T, ocid, price panel identity",
+      "relative_path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0023/packet.json",
+      "sha256": "69d4ceb550ee3b62788feac3d826ffd6ceac23ae9b54f4006b8934aa59364485"
+    },
+    {
+      "access_mode": "CONTENT",
+      "allowlist_rule": "sealed_packet_rule",
+      "bytes": 3122,
+      "parsed": true,
+      "purpose": "sealed packet: T, ocid, price panel identity",
+      "relative_path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0024/packet.json",
+      "sha256": "ae9526844b8ea72a6a8b8ca4ec213c32cfbfa4395a7d57f2ea3938fa24fa5d4f"
+    },
+    {
+      "access_mode": "CONTENT",
+      "allowlist_rule": "sealed_packet_rule",
+      "bytes": 3122,
+      "parsed": true,
+      "purpose": "sealed packet: T, ocid, price panel identity",
+      "relative_path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0025/packet.json",
+      "sha256": "556606f379441ed09482f46afa4454dd8f54179c97503eb80e27c9e96789520f"
+    },
+    {
+      "access_mode": "CONTENT",
+      "allowlist_rule": "sealed_packet_rule",
+      "bytes": 3002,
+      "parsed": true,
+      "purpose": "sealed packet: T, ocid, price panel identity",
+      "relative_path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0026/packet.json",
+      "sha256": "5812fc13108e8aa8ced1a758357442da265f0bde3cca3d53cd54b82b4011bd5d"
+    },
+    {
+      "access_mode": "CONTENT",
+      "allowlist_rule": "sealed_packet_rule",
+      "bytes": 3122,
+      "parsed": true,
+      "purpose": "sealed packet: T, ocid, price panel identity",
+      "relative_path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0027/packet.json",
+      "sha256": "821dd709f5ccc915a1830407dfec0aa275d4e57a4a34f2725e066e20415a24c5"
+    },
+    {
+      "access_mode": "CONTENT",
+      "allowlist_rule": "sealed_packet_rule",
+      "bytes": 1264,
+      "parsed": true,
+      "purpose": "sealed packet: T, ocid, price panel identity",
+      "relative_path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0028/packet.json",
+      "sha256": "bd0e3807824b9a20250af455e12008ebeccb902f170d229dc592095a12570870"
+    },
+    {
+      "access_mode": "CONTENT",
+      "allowlist_rule": "sealed_packet_rule",
+      "bytes": 1305,
+      "parsed": true,
+      "purpose": "sealed packet: T, ocid, price panel identity",
+      "relative_path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0029/packet.json",
+      "sha256": "dfeed6863ec910bfe143cd2ab896d7700d13f76edabe2c493d43b91dd7146e07"
+    },
+    {
+      "access_mode": "CONTENT",
+      "allowlist_rule": "sealed_packet_rule",
+      "bytes": 3003,
+      "parsed": true,
+      "purpose": "sealed packet: T, ocid, price panel identity",
+      "relative_path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0030/packet.json",
+      "sha256": "8b3e5ee9062fab8b943719ee806c069f865cb6b9fae9a8a2d8fab2b1793fe55d"
+    },
+    {
+      "access_mode": "CONTENT",
+      "allowlist_rule": "sealed_packet_rule",
+      "bytes": 3002,
+      "parsed": true,
+      "purpose": "sealed packet: T, ocid, price panel identity",
+      "relative_path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0031/packet.json",
+      "sha256": "483951d5de14dfc31edaae7f20c3e6d9c5c857feedb752524eb45e230f77f890"
+    },
+    {
+      "access_mode": "CONTENT",
+      "allowlist_rule": "sealed_packet_rule",
+      "bytes": 3002,
+      "parsed": true,
+      "purpose": "sealed packet: T, ocid, price panel identity",
+      "relative_path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0032/packet.json",
+      "sha256": "1b77a54f30b6e13858876775d8df6604a6a39b7f84d5a0376917c822c4798ec2"
+    },
+    {
+      "access_mode": "CONTENT",
+      "allowlist_rule": "sealed_packet_rule",
+      "bytes": 1535,
+      "parsed": true,
+      "purpose": "sealed packet: T, ocid, price panel identity",
+      "relative_path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0033/packet.json",
+      "sha256": "152a46d0a43fb0599841189ee387df31a14cb51797eb8dfcee329b45ef9f11b3"
+    },
+    {
+      "access_mode": "CONTENT",
+      "allowlist_rule": "sealed_packet_rule",
+      "bytes": 3002,
+      "parsed": true,
+      "purpose": "sealed packet: T, ocid, price panel identity",
+      "relative_path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0034/packet.json",
+      "sha256": "35e936a0c80278e3fd5916eb6c4508e52e63321f98ba91c2d63c96c029e45c01"
+    },
+    {
+      "access_mode": "CONTENT",
+      "allowlist_rule": "sealed_packet_rule",
+      "bytes": 3002,
+      "parsed": true,
+      "purpose": "sealed packet: T, ocid, price panel identity",
+      "relative_path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0035/packet.json",
+      "sha256": "4b85fb4fce70695270249e89364ed13fdb4617bb91e2616b1274a29a94ac7ac1"
+    },
+    {
+      "access_mode": "CONTENT",
+      "allowlist_rule": "sealed_packet_rule",
+      "bytes": 3122,
+      "parsed": true,
+      "purpose": "sealed packet: T, ocid, price panel identity",
+      "relative_path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0036/packet.json",
+      "sha256": "89360bbe38c7191e196930bcc4c625f41eb38e5d4559b5450356462047b7f0bf"
+    },
+    {
+      "access_mode": "CONTENT",
+      "allowlist_rule": "sealed_packet_rule",
+      "bytes": 1264,
+      "parsed": true,
+      "purpose": "sealed packet: T, ocid, price panel identity",
+      "relative_path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0037/packet.json",
+      "sha256": "9d19eebd397893bc07a726ab6e1956a6f1d3072a2f8dc6e83e9ab1328e52acc1"
+    },
+    {
+      "access_mode": "CONTENT",
+      "allowlist_rule": "sealed_packet_rule",
+      "bytes": 2800,
+      "parsed": true,
+      "purpose": "sealed packet: T, ocid, price panel identity",
+      "relative_path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0038/packet.json",
+      "sha256": "dbfa4de40114319202b154a6ff22f1644428fe34f4cd13fdcdfceae0e47fda36"
+    },
+    {
+      "access_mode": "CONTENT",
+      "allowlist_rule": "extension:contract_trading_calendar_proxy_pre-materialized",
+      "bytes": 15401,
+      "parsed": true,
+      "purpose": "exchange session calendar = I1 trading_calendar_proxy (universe_stem_union, frozen artifact)",
+      "relative_path": "output/research/csr/08_pilot_cases/phase_b/ingest_rt/frozen_exchange_calendar.csv",
+      "sha256": "bc8d0a33841454ce6085dca645bf6c3f355e9f1ba223181ed4e6b742885cd335"
+    },
+    {
+      "access_mode": "CONTENT",
+      "allowlist_rule": "mapped_price_rule",
+      "bytes": 92668,
+      "parsed": true,
+      "purpose": "frozen price series for mapped code",
+      "relative_path": "data/adjustment_baostock/per_stock/sz.300209.json.gz",
+      "sha256": "e89b12a0b28462cd8b67cc81cce088778862a22c7399b9371e51423cd8e1cadf"
+    },
+    {
+      "access_mode": "CONTENT",
+      "allowlist_rule": "mapped_price_rule",
+      "bytes": 99998,
+      "parsed": true,
+      "purpose": "frozen price series for mapped code",
+      "relative_path": "data/adjustment_baostock/per_stock/sz.002185.json.gz",
+      "sha256": "473f5d7c80878522ba5dbc6936c3a4747a8053c9f2efe93042b10c078d68de7a"
+    },
+    {
+      "access_mode": "CONTENT",
+      "allowlist_rule": "mapped_price_rule",
+      "bytes": 87263,
+      "parsed": true,
+      "purpose": "frozen price series for mapped code",
+      "relative_path": "data/adjustment_baostock/per_stock/sz.002471.json.gz",
+      "sha256": "99e9d58679ddcb928e239350597a579b32f8882941a669b38ddbaf3baec2814a"
+    },
+    {
+      "access_mode": "CONTENT",
+      "allowlist_rule": "mapped_price_rule",
+      "bytes": 100524,
+      "parsed": true,
+      "purpose": "frozen price series for mapped code",
+      "relative_path": "data/adjustment_baostock/per_stock/sh.688218.json.gz",
+      "sha256": "ec2821eff56729da1d6510607cb1085410fd2a88488c70fd120b36f29c032dc8"
+    },
+    {
+      "access_mode": "CONTENT",
+      "allowlist_rule": "mapped_price_rule",
+      "bytes": 78500,
+      "parsed": true,
+      "purpose": "frozen price series for mapped code",
+      "relative_path": "data/adjustment_baostock/per_stock/sh.601366.json.gz",
+      "sha256": "7af96084dc210d25c9130d2e2cd32ce37c45bb432b574d7f8799f24b30d5f15e"
+    },
+    {
+      "access_mode": "CONTENT",
+      "allowlist_rule": "mapped_price_rule",
+      "bytes": 97065,
+      "parsed": true,
+      "purpose": "frozen price series for mapped code",
+      "relative_path": "data/adjustment_baostock/per_stock/sh.603686.json.gz",
+      "sha256": "788843c5d255b80b7e6202d52d6c33c98f9e88b5366954a076cf68aa8839b3f0"
+    },
+    {
+      "access_mode": "CONTENT",
+      "allowlist_rule": "mapped_price_rule",
+      "bytes": 102058,
+      "parsed": true,
+      "purpose": "frozen price series for mapped code",
+      "relative_path": "data/adjustment_baostock/per_stock/sz.000628.json.gz",
+      "sha256": "18bdbec8d56aafbe4c51cfa7aa21953e5e947879ccdef7b4e7c020e3b62aed66"
+    },
+    {
+      "access_mode": "CONTENT",
+      "allowlist_rule": "mapped_price_rule",
+      "bytes": 88101,
+      "parsed": true,
+      "purpose": "frozen price series for mapped code",
+      "relative_path": "data/adjustment_baostock/per_stock/sz.301010.json.gz",
+      "sha256": "55f16f5ed2207368980a2f0a88d518a5748361684cf2e2b291cb6bedea9a7bdb"
+    },
+    {
+      "access_mode": "CONTENT",
+      "allowlist_rule": "mapped_price_rule",
+      "bytes": 95243,
+      "parsed": true,
+      "purpose": "frozen price series for mapped code",
+      "relative_path": "data/adjustment_baostock/per_stock/sh.600694.json.gz",
+      "sha256": "00fdb96db79587750c21c8c700c0b3894947761fdb1f77b3d5b57d4afc0085d2"
+    },
+    {
+      "access_mode": "CONTENT",
+      "allowlist_rule": "mapped_price_rule",
+      "bytes": 91900,
+      "parsed": true,
+      "purpose": "frozen price series for mapped code",
+      "relative_path": "data/adjustment_baostock/per_stock/sz.002719.json.gz",
+      "sha256": "f9b171f3116d9808e3361a7ee72bc1348870e6e421a45420e81257e7821200a1"
+    },
+    {
+      "access_mode": "CONTENT",
+      "allowlist_rule": "mapped_price_rule",
+      "bytes": 94388,
+      "parsed": true,
+      "purpose": "frozen price series for mapped code",
+      "relative_path": "data/adjustment_baostock/per_stock/sh.600598.json.gz",
+      "sha256": "7e93279c5779f4bc9ea36b3939264ca1f9328487069cb839f77298b03b07357d"
+    },
+    {
+      "access_mode": "CONTENT",
+      "allowlist_rule": "mapped_price_rule",
+      "bytes": 85813,
+      "parsed": true,
+      "purpose": "frozen price series for mapped code",
+      "relative_path": "data/adjustment_baostock/per_stock/sz.000557.json.gz",
+      "sha256": "c785c84c5cf9146d649493161902e37e314d25ddb2e88f7a2e7b6734b133ccbd"
+    },
+    {
+      "access_mode": "CONTENT",
+      "allowlist_rule": "mapped_price_rule",
+      "bytes": 102822,
+      "parsed": true,
+      "purpose": "frozen price series for mapped code",
+      "relative_path": "data/adjustment_baostock/per_stock/sz.300342.json.gz",
+      "sha256": "21b61443f4046313761cbdeaaacd42bcfee1344a485abe13823787129a16b186"
+    },
+    {
+      "access_mode": "CONTENT",
+      "allowlist_rule": "mapped_price_rule",
+      "bytes": 80651,
+      "parsed": true,
+      "purpose": "frozen price series for mapped code",
+      "relative_path": "data/adjustment_baostock/per_stock/sh.600567.json.gz",
+      "sha256": "0be5a6611ca392a3306dd216871f266751952aad8039041554506eb291f3ad5c"
+    },
+    {
+      "access_mode": "CONTENT",
+      "allowlist_rule": "mapped_price_rule",
+      "bytes": 88138,
+      "parsed": true,
+      "purpose": "frozen price series for mapped code",
+      "relative_path": "data/adjustment_baostock/per_stock/sh.601963.json.gz",
+      "sha256": "18ab411dcd777b1d35e1b20f5cf13b4f7bed8f2224daa03eec41b968884e8de3"
+    },
+    {
+      "access_mode": "CONTENT",
+      "allowlist_rule": "mapped_price_rule",
+      "bytes": 65021,
+      "parsed": true,
+      "purpose": "frozen price series for mapped code",
+      "relative_path": "data/adjustment_baostock/per_stock/sz.301357.json.gz",
+      "sha256": "37c9ac3566edd3f4e96d3a0aacecd2371c3264bdc9204630e276c9e929aa98a4"
+    },
+    {
+      "access_mode": "CONTENT",
+      "allowlist_rule": "mapped_price_rule",
+      "bytes": 101132,
+      "parsed": true,
+      "purpose": "frozen price series for mapped code",
+      "relative_path": "data/adjustment_baostock/per_stock/sz.300946.json.gz",
+      "sha256": "ead6ef09b696e3f3e7eca3011f598f2974926291f08003afd858bef659cb3ead"
+    },
+    {
+      "access_mode": "CONTENT",
+      "allowlist_rule": "mapped_price_rule",
+      "bytes": 91820,
+      "parsed": true,
+      "purpose": "frozen price series for mapped code",
+      "relative_path": "data/adjustment_baostock/per_stock/sh.600650.json.gz",
+      "sha256": "19315f403ed5ce3051b9f66de53d5c65126a15e8ea3f5274f7c1d38b1b6d6663"
+    },
+    {
+      "access_mode": "CONTENT",
+      "allowlist_rule": "mapped_price_rule",
+      "bytes": 102781,
+      "parsed": true,
+      "purpose": "frozen price series for mapped code",
+      "relative_path": "data/adjustment_baostock/per_stock/sz.300921.json.gz",
+      "sha256": "611d8f92cb6da82c70060981f5a1905bf6ffc5692a8d80b196b8a2755976c150"
+    },
+    {
+      "access_mode": "CONTENT",
+      "allowlist_rule": "mapped_price_rule",
+      "bytes": 81391,
+      "parsed": true,
+      "purpose": "frozen price series for mapped code",
+      "relative_path": "data/adjustment_baostock/per_stock/sh.600928.json.gz",
+      "sha256": "33307e9c3ca486a3028bce42d03e1beed71ff0658c6b3086ff80827e61fbde16"
+    },
+    {
+      "access_mode": "CONTENT",
+      "allowlist_rule": "mapped_price_rule",
+      "bytes": 98919,
+      "parsed": true,
+      "purpose": "frozen price series for mapped code",
+      "relative_path": "data/adjustment_baostock/per_stock/sz.300489.json.gz",
+      "sha256": "8d0b90f80f79eaeb24fb13a8363949e2745e7ba921e4803654b7c79e85855feb"
+    },
+    {
+      "access_mode": "CONTENT",
+      "allowlist_rule": "mapped_price_rule",
+      "bytes": 85848,
+      "parsed": true,
+      "purpose": "frozen price series for mapped code",
+      "relative_path": "data/adjustment_baostock/per_stock/sh.601298.json.gz",
+      "sha256": "6ed4bee6b9c998e143b8742b85a04892abe5177a3e9f044bfd2f14f6bc84fcba"
+    },
+    {
+      "access_mode": "CONTENT",
+      "allowlist_rule": "mapped_price_rule",
+      "bytes": 91128,
+      "parsed": true,
+      "purpose": "frozen price series for mapped code",
+      "relative_path": "data/adjustment_baostock/per_stock/sz.002736.json.gz",
+      "sha256": "612df5f8973d92f816761ac4b5b06f5449fd5dd95edf99d841ef11b1455dc759"
+    },
+    {
+      "access_mode": "CONTENT",
+      "allowlist_rule": "mapped_price_rule",
+      "bytes": 91883,
+      "parsed": true,
+      "purpose": "frozen price series for mapped code",
+      "relative_path": "data/adjustment_baostock/per_stock/sh.603536.json.gz",
+      "sha256": "2dde4dc3eeef65bfd10034e58e11e9be6197a52cb45a550ece6fdaf35fe311a3"
+    },
+    {
+      "access_mode": "CONTENT",
+      "allowlist_rule": "mapped_price_rule",
+      "bytes": 85104,
+      "parsed": true,
+      "purpose": "frozen price series for mapped code",
+      "relative_path": "data/adjustment_baostock/per_stock/sz.002391.json.gz",
+      "sha256": "9132702a1594345af920430d8c0c74e82752c05133a048031ff0655541060d28"
+    },
+    {
+      "access_mode": "CONTENT",
+      "allowlist_rule": "mapped_price_rule",
+      "bytes": 86803,
+      "parsed": true,
+      "purpose": "frozen price series for mapped code",
+      "relative_path": "data/adjustment_baostock/per_stock/sz.002574.json.gz",
+      "sha256": "971d8876256bdaa129cc24100c141e5ed319d62686c9db6126b73aa3b7eeb149"
+    },
+    {
+      "access_mode": "CONTENT",
+      "allowlist_rule": "mapped_price_rule",
+      "bytes": 101118,
+      "parsed": true,
+      "purpose": "frozen price series for mapped code",
+      "relative_path": "data/adjustment_baostock/per_stock/sz.002864.json.gz",
+      "sha256": "d8230ace5f58ff8b1dd8282784a55c532f54a24c4a009b8936d5a201c85cc09a"
+    },
+    {
+      "access_mode": "CONTENT",
+      "allowlist_rule": "mapped_price_rule",
+      "bytes": 83126,
+      "parsed": true,
+      "purpose": "frozen price series for mapped code",
+      "relative_path": "data/adjustment_baostock/per_stock/sz.000078.json.gz",
+      "sha256": "58c075c45adf16e9cc217bd253f82e0eb36ad9c616453f769c8c27fa5beb08a9"
+    },
+    {
+      "access_mode": "CONTENT",
+      "allowlist_rule": "mapped_price_rule",
+      "bytes": 92781,
+      "parsed": true,
+      "purpose": "frozen price series for mapped code",
+      "relative_path": "data/adjustment_baostock/per_stock/sz.300147.json.gz",
+      "sha256": "6122f6f7a78e9359543d6f5631999a964fa565e678e5bf4f25f009eb0fdb7852"
+    },
+    {
+      "access_mode": "CONTENT",
+      "allowlist_rule": "mapped_price_rule",
+      "bytes": 97328,
+      "parsed": true,
+      "purpose": "frozen price series for mapped code",
+      "relative_path": "data/adjustment_baostock/per_stock/sz.300565.json.gz",
+      "sha256": "f7889e9edf7d0775ad8935a21f637315b0978e6a5b0aa976afe34a72115466e5"
+    },
+    {
+      "access_mode": "CONTENT",
+      "allowlist_rule": "mapped_price_rule",
+      "bytes": 90968,
+      "parsed": true,
+      "purpose": "frozen price series for mapped code",
+      "relative_path": "data/adjustment_baostock/per_stock/sz.000783.json.gz",
+      "sha256": "106045940127c8b8a74381e5fef6f24f0674a2f96f14ad9e4bc5c8f07034f493"
+    },
+    {
+      "access_mode": "CONTENT",
+      "allowlist_rule": "mapped_price_rule",
+      "bytes": 108731,
+      "parsed": true,
+      "purpose": "frozen price series for mapped code",
+      "relative_path": "data/adjustment_baostock/per_stock/sh.688116.json.gz",
+      "sha256": "b01f3c6da26662ed419f0d8dbab8f5e407307237a6876503b74f2145d71adc88"
+    },
+    {
+      "access_mode": "CONTENT",
+      "allowlist_rule": "extension:national_context_primary_explanatory_variables",
+      "bytes": 6139,
+      "parsed": true,
+      "purpose": "primary explanatory variables (stock_layer_summary, market_etf_records)",
+      "relative_path": "data/csr8_phase_c/h_campaign/hc-46195669974db3b25610bef4d047d927/h5/national_context/ordinal-0007-national-ctx-v1.json",
+      "sha256": "bb44ef80750aaaaa6b6b74bd645bae82c2d335c73d8a0c7510e92976be494f50"
+    },
+    {
+      "access_mode": "CONTENT",
+      "allowlist_rule": "extension:national_context_primary_explanatory_variables",
+      "bytes": 8475,
+      "parsed": true,
+      "purpose": "primary explanatory variables (stock_layer_summary, market_etf_records)",
+      "relative_path": "data/csr8_phase_c/h_campaign/hc-46195669974db3b25610bef4d047d927/h6/national_context/ordinal-0008-national-ctx-v1.json",
+      "sha256": "b8d1e8a0a97af20f1e46349222743e3ed8211c82caeecae3a6eba4364cc9f5fa"
+    },
+    {
+      "access_mode": "CONTENT",
+      "allowlist_rule": "extension:national_context_primary_explanatory_variables",
+      "bytes": 6743,
+      "parsed": true,
+      "purpose": "primary explanatory variables (stock_layer_summary, market_etf_records)",
+      "relative_path": "data/csr8_phase_c/h_campaign/hc-46195669974db3b25610bef4d047d927/h7/national_context/ordinal-0009-national-ctx-v1.json",
+      "sha256": "8af3f369742bb29348da07b7f20f7d9af992cd8e5335cd5e76eb2d1dfadd4100"
+    },
+    {
+      "access_mode": "CONTENT",
+      "allowlist_rule": "extension:national_context_primary_explanatory_variables",
+      "bytes": 6146,
+      "parsed": true,
+      "purpose": "primary explanatory variables (stock_layer_summary, market_etf_records)",
+      "relative_path": "data/csr8_phase_c/h_campaign/hc-46195669974db3b25610bef4d047d927/h8/national_context/ordinal-0010-national-ctx-v1.json",
+      "sha256": "e20ee76e540e583b32f3b1691d9aa14dca495dcf7503e638acb5f28fdf5202dc"
+    },
+    {
+      "access_mode": "CONTENT",
+      "allowlist_rule": "extension:national_context_primary_explanatory_variables",
+      "bytes": 6092,
+      "parsed": true,
+      "purpose": "primary explanatory variables (stock_layer_summary, market_etf_records)",
+      "relative_path": "data/csr8_phase_c/h_campaign/hc-46195669974db3b25610bef4d047d927/h9/national_context/ordinal-0011-national-ctx-v1.json",
+      "sha256": "6e91c16c45ba9369b5d195ceb7b4f49e0c4447450ceaece558672fbe68025ddf"
+    },
+    {
+      "access_mode": "CONTENT",
+      "allowlist_rule": "extension:national_context_primary_explanatory_variables",
+      "bytes": 7951,
+      "parsed": true,
+      "purpose": "primary explanatory variables (stock_layer_summary, market_etf_records)",
+      "relative_path": "data/csr8_phase_c/h_campaign/hc-46195669974db3b25610bef4d047d927/h10/national_context/ordinal-0012-national-ctx-v1.json",
+      "sha256": "cbb3ba6191bf059b3ac0c3b008ed1bccc36728ffb4ffeae1b158ba7967b61d5e"
+    },
+    {
+      "access_mode": "CONTENT",
+      "allowlist_rule": "extension:national_context_primary_explanatory_variables",
+      "bytes": 6767,
+      "parsed": true,
+      "purpose": "primary explanatory variables (stock_layer_summary, market_etf_records)",
+      "relative_path": "data/csr8_phase_c/h_campaign/hc-46195669974db3b25610bef4d047d927/h11/national_context/ordinal-0013-national-ctx-v1.json",
+      "sha256": "5e005bdab8389e992e93542ecd780d4fdd068b10df0d0987ebea7527e922c2c8"
+    },
+    {
+      "access_mode": "CONTENT",
+      "allowlist_rule": "extension:national_context_primary_explanatory_variables",
+      "bytes": 8498,
+      "parsed": true,
+      "purpose": "primary explanatory variables (stock_layer_summary, market_etf_records)",
+      "relative_path": "data/csr8_phase_c/h_campaign/hc-46195669974db3b25610bef4d047d927/h12/national_context/ordinal-0014-national-ctx-v1.json",
+      "sha256": "aa217e23acf3dd7a0737617b23c9997f95d4ece70944b277342b74f94b25e23d"
+    },
+    {
+      "access_mode": "CONTENT",
+      "allowlist_rule": "extension:national_context_primary_explanatory_variables",
+      "bytes": 6666,
+      "parsed": true,
+      "purpose": "primary explanatory variables (stock_layer_summary, market_etf_records)",
+      "relative_path": "data/csr8_phase_c/h_campaign/hc-46195669974db3b25610bef4d047d927/h13/national_context/ordinal-0015-national-ctx-v1.json",
+      "sha256": "748f948b91f3da5bf62ed62e4e6dd7b928741bcbd7b6475d13281a7acf79af32"
+    },
+    {
+      "access_mode": "CONTENT",
+      "allowlist_rule": "extension:national_context_primary_explanatory_variables",
+      "bytes": 8500,
+      "parsed": true,
+      "purpose": "primary explanatory variables (stock_layer_summary, market_etf_records)",
+      "relative_path": "data/csr8_phase_c/h_campaign/hc-46195669974db3b25610bef4d047d927/h14/national_context/ordinal-0016-national-ctx-v1.json",
+      "sha256": "518e2c1927cdbeb833f210641dc543ed789f2da402fac5d518139244161b69aa"
+    },
+    {
+      "access_mode": "CONTENT",
+      "allowlist_rule": "extension:national_context_primary_explanatory_variables",
+      "bytes": 6735,
+      "parsed": true,
+      "purpose": "primary explanatory variables (stock_layer_summary, market_etf_records)",
+      "relative_path": "data/csr8_phase_c/h_campaign/hc-46195669974db3b25610bef4d047d927/h15/national_context/ordinal-0017-national-ctx-v1.json",
+      "sha256": "23d81a64394d7fa245d90d92188e70ede27b6a8442f00be6490927bb43e119b0"
+    },
+    {
+      "access_mode": "CONTENT",
+      "allowlist_rule": "extension:national_context_primary_explanatory_variables",
+      "bytes": 8518,
+      "parsed": true,
+      "purpose": "primary explanatory variables (stock_layer_summary, market_etf_records)",
+      "relative_path": "data/csr8_phase_c/h_campaign/hc-46195669974db3b25610bef4d047d927/h16/national_context/ordinal-0018-national-ctx-v1.json",
+      "sha256": "59749ac9fdbc95d62307814d12a0160aa5ee76f1923c42327dd555ee83c8af44"
+    },
+    {
+      "access_mode": "CONTENT",
+      "allowlist_rule": "extension:national_context_primary_explanatory_variables",
+      "bytes": 8519,
+      "parsed": true,
+      "purpose": "primary explanatory variables (stock_layer_summary, market_etf_records)",
+      "relative_path": "data/csr8_phase_c/h_campaign/hc-46195669974db3b25610bef4d047d927/h17/national_context/ordinal-0019-national-ctx-v1.json",
+      "sha256": "fe3789cd4ecdc2bf1cb413aa8acb8e70963f71d6f1b92a8ed41cb4f18d5817d3"
+    },
+    {
+      "access_mode": "CONTENT",
+      "allowlist_rule": "extension:national_context_primary_explanatory_variables",
+      "bytes": 6147,
+      "parsed": true,
+      "purpose": "primary explanatory variables (stock_layer_summary, market_etf_records)",
+      "relative_path": "data/csr8_phase_c/h_campaign/hc-46195669974db3b25610bef4d047d927/h18/national_context/ordinal-0020-national-ctx-v1.json",
+      "sha256": "92ab1314fac67d666f23748f91d86b1e6db9772b6fe9effa14a821fc10ce9b82"
+    },
+    {
+      "access_mode": "CONTENT",
+      "allowlist_rule": "extension:national_context_primary_explanatory_variables",
+      "bytes": 6141,
+      "parsed": true,
+      "purpose": "primary explanatory variables (stock_layer_summary, market_etf_records)",
+      "relative_path": "data/csr8_phase_c/h_campaign/hc-46195669974db3b25610bef4d047d927/h19/national_context/ordinal-0021-national-ctx-v1.json",
+      "sha256": "9317dc59bc719a53bf7b1b4f9a7f478907b59e5e3149948fb3b8809a852d8652"
+    },
+    {
+      "access_mode": "CONTENT",
+      "allowlist_rule": "extension:national_context_primary_explanatory_variables",
+      "bytes": 7948,
+      "parsed": true,
+      "purpose": "primary explanatory variables (stock_layer_summary, market_etf_records)",
+      "relative_path": "data/csr8_phase_c/h_campaign/hc-46195669974db3b25610bef4d047d927/h20/national_context/ordinal-0022-national-ctx-v1.json",
+      "sha256": "f8ba000e64a60decaf2bb8baab9056a35c3fba49871394186c440f8711754521"
+    },
+    {
+      "access_mode": "CONTENT",
+      "allowlist_rule": "extension:national_context_primary_explanatory_variables",
+      "bytes": 8521,
+      "parsed": true,
+      "purpose": "primary explanatory variables (stock_layer_summary, market_etf_records)",
+      "relative_path": "data/csr8_phase_c/h_campaign/hc-46195669974db3b25610bef4d047d927/h21/national_context/ordinal-0023-national-ctx-v1.json",
+      "sha256": "39afbccf42c862968079c730c06e403c6d1567dbfa0eadd954777527e96034e6"
+    },
+    {
+      "access_mode": "CONTENT",
+      "allowlist_rule": "extension:national_context_primary_explanatory_variables",
+      "bytes": 8518,
+      "parsed": true,
+      "purpose": "primary explanatory variables (stock_layer_summary, market_etf_records)",
+      "relative_path": "data/csr8_phase_c/h_campaign/hc-46195669974db3b25610bef4d047d927/h22/national_context/ordinal-0024-national-ctx-v1.json",
+      "sha256": "63f68741ade031b640374d6dbf114d31f101dd59fd2ce434793287f9098b59a0"
+    },
+    {
+      "access_mode": "CONTENT",
+      "allowlist_rule": "extension:national_context_primary_explanatory_variables",
+      "bytes": 6158,
+      "parsed": true,
+      "purpose": "primary explanatory variables (stock_layer_summary, market_etf_records)",
+      "relative_path": "data/csr8_phase_c/h_campaign/hc-46195669974db3b25610bef4d047d927/h23/national_context/ordinal-0025-national-ctx-v1.json",
+      "sha256": "5d081ac737cf883190ad2e71bdb36edd1e6fb687f5950a4402d6ef18c9dafec7"
+    },
+    {
+      "access_mode": "CONTENT",
+      "allowlist_rule": "extension:national_context_primary_explanatory_variables",
+      "bytes": 8524,
+      "parsed": true,
+      "purpose": "primary explanatory variables (stock_layer_summary, market_etf_records)",
+      "relative_path": "data/csr8_phase_c/h_campaign/hc-46195669974db3b25610bef4d047d927/h24/national_context/ordinal-0026-national-ctx-v1.json",
+      "sha256": "05763fce1e98947337d84eba033f0387cad075b890543280f6860e3ade607066"
+    },
+    {
+      "access_mode": "CONTENT",
+      "allowlist_rule": "extension:national_context_primary_explanatory_variables",
+      "bytes": 6140,
+      "parsed": true,
+      "purpose": "primary explanatory variables (stock_layer_summary, market_etf_records)",
+      "relative_path": "data/csr8_phase_c/h_campaign/hc-46195669974db3b25610bef4d047d927/h25/national_context/ordinal-0027-national-ctx-v1.json",
+      "sha256": "0f2b74a3fb238b36ed10bbca924ecf520d19564f603d9048f4633c409503bad7"
+    },
+    {
+      "access_mode": "CONTENT",
+      "allowlist_rule": "extension:national_context_primary_explanatory_variables",
+      "bytes": 6092,
+      "parsed": true,
+      "purpose": "primary explanatory variables (stock_layer_summary, market_etf_records)",
+      "relative_path": "data/csr8_phase_c/h_campaign/hc-46195669974db3b25610bef4d047d927/h26/national_context/ordinal-0028-national-ctx-v1.json",
+      "sha256": "20b1f613730244106e48afb9d8f301c15dcfc3977afd9964a0358d968154bea9"
+    },
+    {
+      "access_mode": "CONTENT",
+      "allowlist_rule": "extension:national_context_primary_explanatory_variables",
+      "bytes": 6092,
+      "parsed": true,
+      "purpose": "primary explanatory variables (stock_layer_summary, market_etf_records)",
+      "relative_path": "data/csr8_phase_c/h_campaign/hc-46195669974db3b25610bef4d047d927/h27/national_context/ordinal-0029-national-ctx-v1.json",
+      "sha256": "a9b0ca31efb16d60e851931757e1cae3dc412eb4a3987544dd1912b79e1875ef"
+    },
+    {
+      "access_mode": "CONTENT",
+      "allowlist_rule": "extension:national_context_primary_explanatory_variables",
+      "bytes": 6747,
+      "parsed": true,
+      "purpose": "primary explanatory variables (stock_layer_summary, market_etf_records)",
+      "relative_path": "data/csr8_phase_c/h_campaign/hc-46195669974db3b25610bef4d047d927/h28/national_context/ordinal-0030-national-ctx-v1.json",
+      "sha256": "f4c67260966932cb397efa037a10cfa77fe1756d7c6ae9a30abed60b9f5cda8f"
+    },
+    {
+      "access_mode": "CONTENT",
+      "allowlist_rule": "extension:national_context_primary_explanatory_variables",
+      "bytes": 6751,
+      "parsed": true,
+      "purpose": "primary explanatory variables (stock_layer_summary, market_etf_records)",
+      "relative_path": "data/csr8_phase_c/h_campaign/hc-46195669974db3b25610bef4d047d927/h29/national_context/ordinal-0031-national-ctx-v1.json",
+      "sha256": "6defb93c3097da74ecd0951eec68ee60a9839db28963a4d7af68ff39e2945680"
+    },
+    {
+      "access_mode": "CONTENT",
+      "allowlist_rule": "extension:national_context_primary_explanatory_variables",
+      "bytes": 8521,
+      "parsed": true,
+      "purpose": "primary explanatory variables (stock_layer_summary, market_etf_records)",
+      "relative_path": "data/csr8_phase_c/h_campaign/hc-46195669974db3b25610bef4d047d927/h30/national_context/ordinal-0032-national-ctx-v1.json",
+      "sha256": "5ddd3770c7d1f337bddcae0f1a533ada5a1028ac90e91ca83e66b8cc83fd1c05"
+    },
+    {
+      "access_mode": "CONTENT",
+      "allowlist_rule": "extension:national_context_primary_explanatory_variables",
+      "bytes": 6100,
+      "parsed": true,
+      "purpose": "primary explanatory variables (stock_layer_summary, market_etf_records)",
+      "relative_path": "data/csr8_phase_c/h_campaign/hc-46195669974db3b25610bef4d047d927/h31/national_context/ordinal-0033-national-ctx-v1.json",
+      "sha256": "bb415e22543957599bcfa4d7eef0478e042aa987e359d9bf5247c3aafe6cab15"
+    },
+    {
+      "access_mode": "CONTENT",
+      "allowlist_rule": "extension:national_context_primary_explanatory_variables",
+      "bytes": 8535,
+      "parsed": true,
+      "purpose": "primary explanatory variables (stock_layer_summary, market_etf_records)",
+      "relative_path": "data/csr8_phase_c/h_campaign/hc-46195669974db3b25610bef4d047d927/h32/national_context/ordinal-0034-national-ctx-v1.json",
+      "sha256": "389ad9ffd6a1126ad60b412f1cdc1eca4986bdc98191a98bb589741cceada605"
+    },
+    {
+      "access_mode": "CONTENT",
+      "allowlist_rule": "extension:national_context_primary_explanatory_variables",
+      "bytes": 6746,
+      "parsed": true,
+      "purpose": "primary explanatory variables (stock_layer_summary, market_etf_records)",
+      "relative_path": "data/csr8_phase_c/h_campaign/hc-46195669974db3b25610bef4d047d927/h33/national_context/ordinal-0035-national-ctx-v1.json",
+      "sha256": "cc3918d42f331c36057328ccc51afaba8ffd4fa99839204e6e47fdfe20b27d55"
+    },
+    {
+      "access_mode": "CONTENT",
+      "allowlist_rule": "extension:national_context_primary_explanatory_variables",
+      "bytes": 6170,
+      "parsed": true,
+      "purpose": "primary explanatory variables (stock_layer_summary, market_etf_records)",
+      "relative_path": "data/csr8_phase_c/h_campaign/hc-46195669974db3b25610bef4d047d927/h34/national_context/ordinal-0036-national-ctx-v1.json",
+      "sha256": "ec9cca8d4a23152bd83e1ca9209a7d7563d0a3d49672679b31c97478c423392e"
+    },
+    {
+      "access_mode": "CONTENT",
+      "allowlist_rule": "extension:national_context_primary_explanatory_variables",
+      "bytes": 6092,
+      "parsed": true,
+      "purpose": "primary explanatory variables (stock_layer_summary, market_etf_records)",
+      "relative_path": "data/csr8_phase_c/h_campaign/hc-46195669974db3b25610bef4d047d927/h35/national_context/ordinal-0037-national-ctx-v1.json",
+      "sha256": "68ace242f7a2b907bf4fe9d77eb4b49b52441b4e009623c3db03cd6165148bbe"
+    },
+    {
+      "access_mode": "CONTENT",
+      "allowlist_rule": "extension:national_context_primary_explanatory_variables",
+      "bytes": 6144,
+      "parsed": true,
+      "purpose": "primary explanatory variables (stock_layer_summary, market_etf_records)",
+      "relative_path": "data/csr8_phase_c/h_campaign/hc-46195669974db3b25610bef4d047d927/h36/national_context/ordinal-0038-national-ctx-v1.json",
+      "sha256": "049c742e474720b8402ceb0b7042ee3fe3b678e4e50e7e40e4a1a3fed46506ad"
+    },
+    {
+      "access_mode": "CONTENT",
+      "allowlist_rule": "extension:annotation_draft_for_taxonomy_diagnostic",
+      "bytes": 3163,
+      "parsed": true,
+      "purpose": "annotation rt_judgments for taxonomy_v2_diagnostic",
+      "relative_path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0007/annotation_draft.json",
+      "sha256": "f229d652ddaebb338a1a1afeb1c58d49306073eb9e99207ff1bf4a9ccdae8387"
+    },
+    {
+      "access_mode": "CONTENT",
+      "allowlist_rule": "extension:annotation_draft_for_taxonomy_diagnostic",
+      "bytes": 3206,
+      "parsed": true,
+      "purpose": "annotation rt_judgments for taxonomy_v2_diagnostic",
+      "relative_path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0008/annotation_draft.json",
+      "sha256": "a5b559302320db4f4014ca1ac329e9486a598a3763c73f8d164f7a244ad67e3e"
+    },
+    {
+      "access_mode": "CONTENT",
+      "allowlist_rule": "extension:annotation_draft_for_taxonomy_diagnostic",
+      "bytes": 3166,
+      "parsed": true,
+      "purpose": "annotation rt_judgments for taxonomy_v2_diagnostic",
+      "relative_path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0009/annotation_draft.json",
+      "sha256": "003f6ded98e84bdc7b78e147a9d7fcab1de6e22bd61bd03a1989ecf573093d43"
+    },
+    {
+      "access_mode": "CONTENT",
+      "allowlist_rule": "extension:annotation_draft_for_taxonomy_diagnostic",
+      "bytes": 3163,
+      "parsed": true,
+      "purpose": "annotation rt_judgments for taxonomy_v2_diagnostic",
+      "relative_path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0010/annotation_draft.json",
+      "sha256": "f576e43e6019a397b768fa47d79ccbc1408331285ba0e0d01a55d6ab0f01e3cd"
+    },
+    {
+      "access_mode": "CONTENT",
+      "allowlist_rule": "extension:annotation_draft_for_taxonomy_diagnostic",
+      "bytes": 2523,
+      "parsed": true,
+      "purpose": "annotation rt_judgments for taxonomy_v2_diagnostic",
+      "relative_path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0011/annotation_draft.json",
+      "sha256": "896cd90bf5e286b13da0c4492a2130c03c0f64cb9b4a6ecdd11e42f158912a55"
+    },
+    {
+      "access_mode": "CONTENT",
+      "allowlist_rule": "extension:annotation_draft_for_taxonomy_diagnostic",
+      "bytes": 3166,
+      "parsed": true,
+      "purpose": "annotation rt_judgments for taxonomy_v2_diagnostic",
+      "relative_path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0012/annotation_draft.json",
+      "sha256": "006fad2b6d574bf533c10fe226e761d241507774d253a59141073e597425feb8"
+    },
+    {
+      "access_mode": "CONTENT",
+      "allowlist_rule": "extension:annotation_draft_for_taxonomy_diagnostic",
+      "bytes": 3166,
+      "parsed": true,
+      "purpose": "annotation rt_judgments for taxonomy_v2_diagnostic",
+      "relative_path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0013/annotation_draft.json",
+      "sha256": "b0d79a5fb388d3465dacf46099e26d697b481509d273f2e4bd265b5508d526e2"
+    },
+    {
+      "access_mode": "CONTENT",
+      "allowlist_rule": "extension:annotation_draft_for_taxonomy_diagnostic",
+      "bytes": 3166,
+      "parsed": true,
+      "purpose": "annotation rt_judgments for taxonomy_v2_diagnostic",
+      "relative_path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0014/annotation_draft.json",
+      "sha256": "bc96f75c5bea86517ce26590529b0159412c643e6821ac79f068d9cc97d4b2f9"
+    },
+    {
+      "access_mode": "CONTENT",
+      "allowlist_rule": "extension:annotation_draft_for_taxonomy_diagnostic",
+      "bytes": 3203,
+      "parsed": true,
+      "purpose": "annotation rt_judgments for taxonomy_v2_diagnostic",
+      "relative_path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0015/annotation_draft.json",
+      "sha256": "c8ad0a0d5c041812b54b0be0d1210f1996a3c534594918b1c274a126860ea978"
+    },
+    {
+      "access_mode": "CONTENT",
+      "allowlist_rule": "extension:annotation_draft_for_taxonomy_diagnostic",
+      "bytes": 3166,
+      "parsed": true,
+      "purpose": "annotation rt_judgments for taxonomy_v2_diagnostic",
+      "relative_path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0016/annotation_draft.json",
+      "sha256": "d18d902eaef4a0eda89824756adb2dae66bec729e25b6da06a3113a4ebb2c752"
+    },
+    {
+      "access_mode": "CONTENT",
+      "allowlist_rule": "extension:annotation_draft_for_taxonomy_diagnostic",
+      "bytes": 3166,
+      "parsed": true,
+      "purpose": "annotation rt_judgments for taxonomy_v2_diagnostic",
+      "relative_path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0017/annotation_draft.json",
+      "sha256": "0cc54bc49b7b6f678dfd57f5b485956e68a40c1099fa7ab3b1593acba886cae8"
+    },
+    {
+      "access_mode": "CONTENT",
+      "allowlist_rule": "extension:annotation_draft_for_taxonomy_diagnostic",
+      "bytes": 3166,
+      "parsed": true,
+      "purpose": "annotation rt_judgments for taxonomy_v2_diagnostic",
+      "relative_path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0018/annotation_draft.json",
+      "sha256": "467d7d6a80acaf6d469abca189ca485bf4e9e7a5504e41392e09e1af56e24656"
+    },
+    {
+      "access_mode": "CONTENT",
+      "allowlist_rule": "extension:annotation_draft_for_taxonomy_diagnostic",
+      "bytes": 3166,
+      "parsed": true,
+      "purpose": "annotation rt_judgments for taxonomy_v2_diagnostic",
+      "relative_path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0019/annotation_draft.json",
+      "sha256": "cc483b6802a4db56f4d3dd68209243e0adbde1107b194c425bd01fc88d8dc229"
+    },
+    {
+      "access_mode": "CONTENT",
+      "allowlist_rule": "extension:annotation_draft_for_taxonomy_diagnostic",
+      "bytes": 3163,
+      "parsed": true,
+      "purpose": "annotation rt_judgments for taxonomy_v2_diagnostic",
+      "relative_path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0020/annotation_draft.json",
+      "sha256": "e1d149b7e1b029e3391c664723de454bbfbd3f5867bc6e2f71dac2ce2c21f026"
+    },
+    {
+      "access_mode": "CONTENT",
+      "allowlist_rule": "extension:annotation_draft_for_taxonomy_diagnostic",
+      "bytes": 3163,
+      "parsed": true,
+      "purpose": "annotation rt_judgments for taxonomy_v2_diagnostic",
+      "relative_path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0021/annotation_draft.json",
+      "sha256": "1130502d6f019bf22ab230a4ec673b99e2085ac2adffea6c0e583c6ea3ff5a11"
+    },
+    {
+      "access_mode": "CONTENT",
+      "allowlist_rule": "extension:annotation_draft_for_taxonomy_diagnostic",
+      "bytes": 3166,
+      "parsed": true,
+      "purpose": "annotation rt_judgments for taxonomy_v2_diagnostic",
+      "relative_path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0022/annotation_draft.json",
+      "sha256": "37a0d4f56a9a1c660eab9552b2041090d5155848ae5b1a37d2b735e6829ac0f4"
+    },
+    {
+      "access_mode": "CONTENT",
+      "allowlist_rule": "extension:annotation_draft_for_taxonomy_diagnostic",
+      "bytes": 3166,
+      "parsed": true,
+      "purpose": "annotation rt_judgments for taxonomy_v2_diagnostic",
+      "relative_path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0023/annotation_draft.json",
+      "sha256": "ccff365f095488f2a2e169f31921da6b9fb180dba12c4e5cc43251d2074834c3"
+    },
+    {
+      "access_mode": "CONTENT",
+      "allowlist_rule": "extension:annotation_draft_for_taxonomy_diagnostic",
+      "bytes": 3166,
+      "parsed": true,
+      "purpose": "annotation rt_judgments for taxonomy_v2_diagnostic",
+      "relative_path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0024/annotation_draft.json",
+      "sha256": "1df6d55ecb229ca1031d1ae13ff36216d5a757ef32f2a6581907ac8599ec8063"
+    },
+    {
+      "access_mode": "CONTENT",
+      "allowlist_rule": "extension:annotation_draft_for_taxonomy_diagnostic",
+      "bytes": 3163,
+      "parsed": true,
+      "purpose": "annotation rt_judgments for taxonomy_v2_diagnostic",
+      "relative_path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0025/annotation_draft.json",
+      "sha256": "37a731e331b9f966db2f403b5a186ef1afbf0b36df1d953e8ca36ca6fd8f83a9"
+    },
+    {
+      "access_mode": "CONTENT",
+      "allowlist_rule": "extension:annotation_draft_for_taxonomy_diagnostic",
+      "bytes": 3166,
+      "parsed": true,
+      "purpose": "annotation rt_judgments for taxonomy_v2_diagnostic",
+      "relative_path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0026/annotation_draft.json",
+      "sha256": "3d854d22f4d86a1ad6b490bf743a7bdece5e3c624d3342f9884e87b578ab8103"
+    },
+    {
+      "access_mode": "CONTENT",
+      "allowlist_rule": "extension:annotation_draft_for_taxonomy_diagnostic",
+      "bytes": 3163,
+      "parsed": true,
+      "purpose": "annotation rt_judgments for taxonomy_v2_diagnostic",
+      "relative_path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0027/annotation_draft.json",
+      "sha256": "d44ab41dd426304b2f704f9737ce53f18ecde29520e1adfe9b488c0cc6167b9b"
+    },
+    {
+      "access_mode": "CONTENT",
+      "allowlist_rule": "extension:annotation_draft_for_taxonomy_diagnostic",
+      "bytes": 2523,
+      "parsed": true,
+      "purpose": "annotation rt_judgments for taxonomy_v2_diagnostic",
+      "relative_path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0028/annotation_draft.json",
+      "sha256": "7da8f130b1d00e699e0c91ed269e94f398139883da9baa32d5c6d521fc975cb7"
+    },
+    {
+      "access_mode": "CONTENT",
+      "allowlist_rule": "extension:annotation_draft_for_taxonomy_diagnostic",
+      "bytes": 2523,
+      "parsed": true,
+      "purpose": "annotation rt_judgments for taxonomy_v2_diagnostic",
+      "relative_path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0029/annotation_draft.json",
+      "sha256": "30b8c8196bc3d9e5b6213b29915bbb67e4ad8b959dc85610a2a351ad17502fd7"
+    },
+    {
+      "access_mode": "CONTENT",
+      "allowlist_rule": "extension:annotation_draft_for_taxonomy_diagnostic",
+      "bytes": 3166,
+      "parsed": true,
+      "purpose": "annotation rt_judgments for taxonomy_v2_diagnostic",
+      "relative_path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0030/annotation_draft.json",
+      "sha256": "bf106c918c433f85a07bd5161eed006480fef462a4285fe65cf464a47554aaed"
+    },
+    {
+      "access_mode": "CONTENT",
+      "allowlist_rule": "extension:annotation_draft_for_taxonomy_diagnostic",
+      "bytes": 3166,
+      "parsed": true,
+      "purpose": "annotation rt_judgments for taxonomy_v2_diagnostic",
+      "relative_path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0031/annotation_draft.json",
+      "sha256": "dd0b1d14e3719131b24dd933efb4e3554e689b62a4e1feff3b3c964ccfd26414"
+    },
+    {
+      "access_mode": "CONTENT",
+      "allowlist_rule": "extension:annotation_draft_for_taxonomy_diagnostic",
+      "bytes": 3166,
+      "parsed": true,
+      "purpose": "annotation rt_judgments for taxonomy_v2_diagnostic",
+      "relative_path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0032/annotation_draft.json",
+      "sha256": "a4239604d46a7540f3c43033fe7697e41bcd64c7f7f557eea1b6977fae1268a8"
+    },
+    {
+      "access_mode": "CONTENT",
+      "allowlist_rule": "extension:annotation_draft_for_taxonomy_diagnostic",
+      "bytes": 2523,
+      "parsed": true,
+      "purpose": "annotation rt_judgments for taxonomy_v2_diagnostic",
+      "relative_path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0033/annotation_draft.json",
+      "sha256": "6e93102d81dcc38001c0e0f89c2504b7ec109ae8545c5f7b9df4c285fc828f6f"
+    },
+    {
+      "access_mode": "CONTENT",
+      "allowlist_rule": "extension:annotation_draft_for_taxonomy_diagnostic",
+      "bytes": 3166,
+      "parsed": true,
+      "purpose": "annotation rt_judgments for taxonomy_v2_diagnostic",
+      "relative_path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0034/annotation_draft.json",
+      "sha256": "deb100eb19541e9d262a73a40358d261aab2b89dc9e4720f4115545c6e889c48"
+    },
+    {
+      "access_mode": "CONTENT",
+      "allowlist_rule": "extension:annotation_draft_for_taxonomy_diagnostic",
+      "bytes": 3166,
+      "parsed": true,
+      "purpose": "annotation rt_judgments for taxonomy_v2_diagnostic",
+      "relative_path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0035/annotation_draft.json",
+      "sha256": "5a9e011ddb672a9ca63496c3d3c29c233f1d90ceae0cc21167cf704ad9204217"
+    },
+    {
+      "access_mode": "CONTENT",
+      "allowlist_rule": "extension:annotation_draft_for_taxonomy_diagnostic",
+      "bytes": 3163,
+      "parsed": true,
+      "purpose": "annotation rt_judgments for taxonomy_v2_diagnostic",
+      "relative_path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0036/annotation_draft.json",
+      "sha256": "d380c275f126f3abbd1aaf7cbde8f4319ff7063184abd363d8d5278c745049b3"
+    },
+    {
+      "access_mode": "CONTENT",
+      "allowlist_rule": "extension:annotation_draft_for_taxonomy_diagnostic",
+      "bytes": 2523,
+      "parsed": true,
+      "purpose": "annotation rt_judgments for taxonomy_v2_diagnostic",
+      "relative_path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0037/annotation_draft.json",
+      "sha256": "8342a71f9a8adfadc25e9982e57b4381c1ddeb949417f5f1b49f3432a2f95d9d"
+    },
+    {
+      "access_mode": "CONTENT",
+      "allowlist_rule": "extension:annotation_draft_for_taxonomy_diagnostic",
+      "bytes": 3163,
+      "parsed": true,
+      "purpose": "annotation rt_judgments for taxonomy_v2_diagnostic",
+      "relative_path": "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-0038/annotation_draft.json",
+      "sha256": "8258d5dc083278aebcd0fde81d72bb25ad8b4948fe99cfd2e344c546d351a9a1"
+    }
+  ]
 }
