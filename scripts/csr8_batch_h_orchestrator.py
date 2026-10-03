@@ -164,7 +164,7 @@ def complete_batch(batch_start,completed_ordinals,novelty_evidence,ledger_path,p
         if previous_ids and tuple(sorted(previous_ids))!=tuple(derived):
             raise ValueError('manual previous_ids conflict with previous_batch_record derivation')
         previous_ids=derived
-    return {'status':'BATCH_COMPLETE','batch_start':batch_start,'batch_end':end,'novelty_gate':reviewer_id_novelty_spot_check(batch_start,previous_ids,novelty_evidence,ledger_path)}
+    return {'status':'BATCH_COMPLETE','batch_start':batch_start,'batch_end':end,'novelty_gate':reviewer_id_novelty_spot_check(batch_start,previous_ids,novelty_evidence,ledger_path,completed_count=len(completed_ordinals))}
 
 def complete_batch_recovery(batch_start,completed_ordinals,evidence_path,ledger_path,previous_ids=()):
     """BATCH-H-RECOVERY-ERRATUM-1 explicit recovery branch (ordinal 7-14 ONLY).
