@@ -81,6 +81,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import csr8_phase_c_annotation_seal as c4d  # noqa: E402 (frozen, read-only reuse)
 import csr8_phase_c_annotation_seal as c4ab_mod  # noqa: E402
+import csr8_ledger_epoch2 as epoch2_ledger  # noqa: E402
 
 ROOT = c4d.ROOT
 CSR = c4d.REAL_CSR
@@ -128,6 +129,19 @@ ATTESTATION = CAMPAIGN / H_SUBDIR / 'reviews' / 'attestation.json'
 EVIDENCE_PROFILE = 'BASE_V1+NATIONAL_CTX_V1'
 
 OPS = ('NEXT_REVEAL', 'ANNOTATION', 'RECEIPT', 'SEAL', 'POST_SEAL')
+EPOCH2_LEDGER = CAMPAIGN / 'reviews_epoch2.jsonl'
+
+def active_reviewer_ledger_for(ordinal, campaign=CAMPAIGN):
+    """Return the sole reviewer-ledger authority for an ordinal."""
+    epoch2 = campaign / 'reviews_epoch2.jsonl'
+    if ordinal >= 50 and epoch2.is_file():
+        return epoch2, 2
+    return campaign / 'reviews.jsonl', 1
+
+def active_reviewer_ledger():
+    """Single ledger authority after the Recovery Epoch 2 boundary."""
+    return active_reviewer_ledger_for(ORDINAL)
+
 VERDICT_FIELDS = {'review_version', 'campaign_id', 'ordinal', 'operation',
                   'input_commitment_sha256', 'state', 'issues',
                   'required_changes', 'reviewer_run_id', 'created_at'}
@@ -1093,11 +1107,9 @@ def cmd_verify():
     # reviewer ledger integrity.  Recovery Epoch 2 is an explicit boundary:
     # ordinal 50 uses reviews_epoch2.jsonl, whose checkpoint binds the
     # preserved pre-SEAL artifacts; it must not pretend legacy rows exist.
-    ledger_name = ('reviews_epoch2.jsonl' if ORDINAL == 50 and
-                   (CAMPAIGN / 'reviews_epoch2.jsonl').is_file()
-                   else 'reviews.jsonl')
-    ledger = [json.loads(x) for x in (CAMPAIGN /
-                                       ledger_name).read_text()
+    ledger_path, ledger_epoch = active_reviewer_ledger()
+    ledger_name = ledger_path.name
+    ledger = [json.loads(x) for x in ledger_path.read_text()
               .splitlines() if x.strip()]
     for i, rec in enumerate(ledger):
         if rec.get('sequence') != i:
@@ -1118,9 +1130,9 @@ def cmd_verify():
                                                'RECEIPT_CORRECTION',
                                                'SEAL_CORRECTION')]
     if recovery_epoch:
-        if len(ledger) != 4 or ledger[0].get('operation') != 'RECOVERY_GENESIS' or ledger[1].get('operation') != 'RECOVERY_CHECKPOINT':
+        if (len(ledger) < 4 if ORDINAL >= 50 else len(ledger) != 4) or ledger[0].get('operation') != 'RECOVERY_GENESIS' or ledger[1].get('operation') != 'RECOVERY_CHECKPOINT':
             fail('Epoch2 recovery prefix/checkpoint invalid', 'G-H3-RECOVERY')
-        if len(h3) != 2 or {r.get('operation') for r in h3} != {'SEAL', 'POST_SEAL'} or any(r.get('epoch_id') != 2 for r in h3):
+        if ((ORDINAL == 50 and (len(h3) != 2 or {r.get('operation') for r in h3} != {'SEAL', 'POST_SEAL'})) or (ORDINAL >= 51 and (len(h3) != len(OPS) or {r.get('operation') for r in h3} != set(OPS))) or any(r.get('epoch_id') != 2 for r in h3)):
             fail('Epoch2 fresh SEAL/POST_SEAL ledger rows missing', 'G-H3-RECOVERY')
     if corrections and any(r.get('state') != 'APPROVE'
                               for r in corrections):
@@ -1136,7 +1148,7 @@ def cmd_verify():
                      'G-H-LEDGER')
     if ((not recovery_epoch and (len(h3) != len(OPS) or
                                   any(r.get('state') != 'APPROVE' for r in h3))) or
-        (recovery_epoch and (len(h3) != 2 or any(r.get('state') != 'APPROVE' for r in h3)))):
+        (recovery_epoch and ((ORDINAL == 50 and len(h3) != 2) or (ORDINAL >= 51 and len(h3) != len(OPS)) or any(r.get('state') != 'APPROVE' for r in h3)))):
         fail('H ledger lines incomplete or not APPROVE', 'G-H-LEDGER')
     sessions = {r.get('reviewer_session_id') for r in h3 + corrections}
     runs = {r.get('reviewer_run_id') for r in h3 + corrections}
