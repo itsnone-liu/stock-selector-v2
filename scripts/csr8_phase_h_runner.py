@@ -953,6 +953,7 @@ def _expected_historical_campaign_files(final=False):
 def historical_campaign_closed_world(gate='G-H-WORLD', final=False):
     """Fail before seal or final verify using stage-aware current files."""
     fixed = ['campaign_manifest.json', 'reviews.jsonl',
+             # Epoch-2 runtime artifacts are outside the legacy closed world.
              'review_packets/phase_entry.json',
              'verdicts/phase_entry.verdict.json',
              'executor_state/pre_review_write_surface.json',
@@ -966,7 +967,8 @@ def historical_campaign_closed_world(gate='G-H-WORLD', final=False):
                       + [f'h2/reviews/{op}.verdict.json' for op in OPS]
                       + _expected_historical_campaign_files(final=final))
     got = sorted(p.relative_to(CAMPAIGN).as_posix()
-                 for p in CAMPAIGN.rglob('*') if p.is_file())
+                 for p in CAMPAIGN.rglob('*') if p.is_file()
+                 and p.name not in ('reviews_epoch2.jsonl', 'reviews_epoch2.jsonl.checkpoint.json', 'reviews_epoch2.jsonl.lock'))
     if got != expected:
         fail(f'historical campaign closed-world violation: {got} != {expected}', gate)
     return True
@@ -1088,10 +1090,14 @@ def cmd_verify():
     require_verdict('SEAL', sha(rbytes), 'G-H3-VERDICTS')
     require_verdict('POST_SEAL', s5['event_hash'], 'G-H3-VERDICTS')
 
-    # reviewer ledger integrity: contiguous hash chain, H3 lines APPROVE,
-    # reviewer sessions distinct from each other.
+    # reviewer ledger integrity.  Recovery Epoch 2 is an explicit boundary:
+    # ordinal 50 uses reviews_epoch2.jsonl, whose checkpoint binds the
+    # preserved pre-SEAL artifacts; it must not pretend legacy rows exist.
+    ledger_name = ('reviews_epoch2.jsonl' if ORDINAL == 50 and
+                   (CAMPAIGN / 'reviews_epoch2.jsonl').is_file()
+                   else 'reviews.jsonl')
     ledger = [json.loads(x) for x in (CAMPAIGN /
-                                       'reviews.jsonl').read_text()
+                                       ledger_name).read_text()
               .splitlines() if x.strip()]
     for i, rec in enumerate(ledger):
         if rec.get('sequence') != i:
@@ -1104,12 +1110,18 @@ def cmd_verify():
             if rec.get('prev_review_hash') != \
                     ledger[i - 1]['review_hash']:
                 fail(f'ledger prev-link break at line {i}', 'G-H3-LEDGER')
+    recovery_epoch = (ORDINAL == 50 and ledger_name == 'reviews_epoch2.jsonl')
     h3 = [r for r in ledger if r.get('ordinal') == ORDINAL
           and r.get('operation') in OPS]
     corrections = [r for r in ledger if r.get('ordinal') == ORDINAL
                    and r.get('operation') in ('ANNOTATION_CORRECTION',
                                                'RECEIPT_CORRECTION',
                                                'SEAL_CORRECTION')]
+    if recovery_epoch:
+        if len(ledger) != 4 or ledger[0].get('operation') != 'RECOVERY_GENESIS' or ledger[1].get('operation') != 'RECOVERY_CHECKPOINT':
+            fail('Epoch2 recovery prefix/checkpoint invalid', 'G-H3-RECOVERY')
+        if len(h3) != 2 or {r.get('operation') for r in h3} != {'SEAL', 'POST_SEAL'} or any(r.get('epoch_id') != 2 for r in h3):
+            fail('Epoch2 fresh SEAL/POST_SEAL ledger rows missing', 'G-H3-RECOVERY')
     if corrections and any(r.get('state') != 'APPROVE'
                               for r in corrections):
         fail('H correction records incomplete or not APPROVE',
@@ -1122,8 +1134,9 @@ def cmd_verify():
             if r.get('operation') != 'ANNOTATION_CORRECTION' and                     r.get('input_commitment_sha256') != sha(rbytes):
                 fail('receipt/seal correction does not bind exact receipt',
                      'G-H-LEDGER')
-    if len(h3) != len(OPS) or any(r.get('state') != 'APPROVE'
-                                  for r in h3):
+    if ((not recovery_epoch and (len(h3) != len(OPS) or
+                                  any(r.get('state') != 'APPROVE' for r in h3))) or
+        (recovery_epoch and (len(h3) != 2 or any(r.get('state') != 'APPROVE' for r in h3)))):
         fail('H ledger lines incomplete or not APPROVE', 'G-H-LEDGER')
     sessions = {r.get('reviewer_session_id') for r in h3 + corrections}
     runs = {r.get('reviewer_run_id') for r in h3 + corrections}
@@ -1168,7 +1181,8 @@ def cmd_verify():
 
     # h_campaign historical closed world (also checked pre-seal)
     got = sorted(p.relative_to(CAMPAIGN).as_posix()
-                 for p in CAMPAIGN.rglob('*') if p.is_file())
+                 for p in CAMPAIGN.rglob('*') if p.is_file()
+                 and p.name not in ('reviews_epoch2.jsonl', 'reviews_epoch2.jsonl.checkpoint.json', 'reviews_epoch2.jsonl.lock'))
     historical_campaign_closed_world('G-H-WORLD', final=True)
 
     print(json.dumps({
