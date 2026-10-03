@@ -146,11 +146,14 @@ def build():
             'minimum_interpretable_cell_n': 5,
             'qualifying_variable': 'at least two distinct value cells each with n >= 5 cases that are common-complete for R3/R5/R10',
             'pair_enumeration': 'all unordered cell pairs of each qualifying variable, each pair evaluated on that pair\'s common-complete case intersection across R3/R5/R10',
-            'consistent_pair_definition': 'for pair (A,B): dH = median(cellA,H) - median(cellB,H) for H in {R3,R5,R10}; CONSISTENT(pair) iff all three dH are nonzero and share the same sign',
+            'consistent_pair_definition': 'for a qualifying pair (A,B) where BOTH cells have n_common_complete >= 5: dH = median(cellA,H) - median(cellB,H) for H in {R3,R5,R10}; CONSISTENT(pair) iff all three dH are nonzero and share the same sign',
+            'qualifying_cell': 'a cell with n_common_complete(R3,R5,R10) >= 5',
+            'qualifying_pair': 'an unordered cell pair whose two endpoints are both qualifying cells; CONSISTENT is defined ONLY over qualifying pairs',
+            'sparse_pair_policy': 'pairs involving any cell with n_common_complete < 5 are reported descriptively (cell counts, median, MAD, Cliff\'s delta) but can never trigger gate A',
             'decision_tree': [
                 {'priority': 1, 'condition': 'complete_R5_fraction < 0.80', 'outcome': 'B'},
                 {'priority': 2, 'condition': 'no qualifying variable exists', 'outcome': 'C'},
-                {'priority': 3, 'condition': 'at least one CONSISTENT(pair) exists across any qualifying variable', 'outcome': 'A'},
+                {'priority': 3, 'condition': 'at least one CONSISTENT(qualifying_pair) exists across any qualifying variable', 'outcome': 'A'},
                 {'priority': 4, 'condition': 'otherwise', 'outcome': 'B'},
             ],
             'complete_R5_fraction_definition': 'cases with R5 status complete divided by 32 ordinary pilot cases',
@@ -163,7 +166,7 @@ def build():
             'requirements_for_I2': [
                 'this contract committed and its canonical sha256 frozen',
                 'PHASE-I SEALED INPUT ARCHIVE completed with closed-world manifest, archive sha256, hash-pinned durable release asset, and round-trip replay PASS, covering the I0.2 runtime read manifest files plus sealing_log plus batch completion bindings plus the price-source closed-world manifest',
-                'price store closed-world re-verification PASS: every one of the 5,240 pinned per-stock files re-hashed and equal to the manifest entries',
+                'price store closed-world re-verification PASS: manifest canonical digest recomputed from its contents equals the pinned manifest_sha256 AND every one of the 5,240 pinned per-stock files re-hashed equals the manifest entries',
                 'price source and selector-mapping secret hashes still match the pins above at unlock time',
                 'unlock ceremony reads only through a logged runtime read manifest',
             ],
@@ -182,9 +185,16 @@ def build():
         },
     }
     ps_manifest = json.loads((ROOT / 'docs/audit/evidence/phase_i_price_store_manifest.json').read_text())
-    contract['price_source']['closed_world_commitment']['manifest_sha256'] = ps_manifest['manifest_sha256']
     if ps_manifest.get('file_count') != 5240 or not ps_manifest.get('closed_world'):
         raise RuntimeError('price store manifest is not closed-world over 5,240 files')
+    declared_digest = ps_manifest.get('manifest_sha256')
+    stripped = dict(ps_manifest)
+    stripped['manifest_sha256'] = ''
+    actual_digest = hashlib.sha256(canon(stripped).encode()).hexdigest()
+    if declared_digest != actual_digest:
+        raise RuntimeError(f'price store manifest self-digest mismatch: declared {declared_digest} != actual {actual_digest}')
+    contract['price_source']['closed_world_commitment']['manifest_sha256'] = actual_digest
+    contract['price_source']['closed_world_commitment']['manifest_digest_verified_by_builder'] = True
     contract['unlock_gate']['i1_contract_sha256'] = ''
     digest = hashlib.sha256(canon(contract).encode()).hexdigest()
     contract['unlock_gate']['i1_contract_sha256'] = digest

@@ -29,7 +29,7 @@ def main():
         code = f.name[:-len('.json.gz')]
         h = hashlib.sha256(f.read_bytes()).hexdigest()
         size = f.stat().st_size
-        entries.append({'relative_path': f'relative to data/adjustment_baostock/: per_stock/{f.name}', 'code': code, 'bytes': size, 'sha256': h})
+        entries.append({'relative_path': f'per_stock/{f.name}', 'code': code, 'bytes': size, 'sha256': h})
         d = declared.get(code)
         if not isinstance(d, dict) or d.get('sha256') != h:
             mismatches.append({'code': code, 'declared': d.get('sha256') if isinstance(d, dict) else None, 'actual': h})
@@ -56,7 +56,10 @@ def main():
     }
     # closed-world sha over the entry list itself (path+bytes+sha256 tuples)
     manifest['calendar_commitment']['derivation_input_closed_world_sha256'] = hashlib.sha256(canon(entries).encode()).hexdigest()
-    digest = hashlib.sha256(canon({k: v for k, v in manifest.items()}).encode()).hexdigest()
+    # canonical self-digest: sha256 of the complete manifest (all fields present) with manifest_sha256 set to ""
+    manifest['manifest_sha256'] = ''
+    manifest['canonicalization_rule'] = 'manifest_sha256 = sha256(json.dumps(manifest, ensure_ascii=False, sort_keys=True, separators=(",",":")) with manifest_sha256 set to ""); verification replaces the field with "" and recomputes'
+    digest = hashlib.sha256(canon(manifest).encode()).hexdigest()
     manifest['manifest_sha256'] = digest
     OUT.write_text(json.dumps(manifest, ensure_ascii=False, sort_keys=True, indent=2) + '\n')
     print(json.dumps({'manifest_sha256': digest, 'file_count': len(entries), 'closed_world': manifest['closed_world'], 'mismatches': len(mismatches), 'undeclared': len(undeclared)}))
