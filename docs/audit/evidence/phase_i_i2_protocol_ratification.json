@@ -1,0 +1,107 @@
+{
+  "authority": "user ruling on 15b7eb7: RATIFICATION_REQUIRED — append-only, no outcome modification",
+  "decision_A": "unchanged (mechanical output of frozen rubric; ratified, not recomputed)",
+  "incident": {
+    "classification": "protocol-authorization omission, not outcome contamination",
+    "extensions": [
+      "extension:secret_salt_for_ocid_hmac_resolution",
+      "extension:contract_trading_calendar_proxy_pre-materialized",
+      "extension:annotation_draft_for_taxonomy_diagnostic",
+      "extension:national_context_primary_explanatory_variables",
+      "extension:frozen_i0_2_lineage_hash_chain",
+      "extension:armed_unlock_read_manifest_self",
+      "extension:pinned_price_store_manifest"
+    ],
+    "finding": "15b7eb7 reader used 7 allowlist extensions not enumerated by the 62f473e ARMED allowlist",
+    "pre_outcome_authority_basis": [
+      "salt: C1 frozen commitment d1df23bd... (pre-outcome)",
+      "calendar: C3 frozen at 04f54e1 as universe_stem_union n=1386 (pre-outcome)",
+      "national_context / annotation_draft: byte-pinned in I0.2 frozen lineage (pre-outcome)",
+      "lineage / price manifest / contract: committed I1-frozen artifacts (pre-outcome)"
+    ]
+  },
+  "outcome_table_modified": false,
+  "ratifications": {
+    "R1_secret_salt_vs_c1_commitment": {
+      "detail": {
+        "c1_frozen_commitment": "d1df23bd0c33298d34274ac9ca8a1063defe42567c9a22b2c4b8e52baf9e5ee4",
+        "live_sha256": "d1df23bd0c33298d34274ac9ca8a1063defe42567c9a22b2c4b8e52baf9e5ee4"
+      },
+      "pass": true
+    },
+    "R2_calendar_union_from_5240_store": {
+      "detail": {
+        "date_sets_identical": true,
+        "frozen_body_sha256": "87f8f959910295640ebdf89b40cedb8de03049bc88c6ad4aace3f39b249c3f80",
+        "frozen_n_days": 1386,
+        "rebuilt_body_sha256": "87f8f959910295640ebdf89b40cedb8de03049bc88c6ad4aace3f39b249c3f80",
+        "rebuilt_n_days": 1386,
+        "source": "union of unadj session dates across I1-pinned 5,240 price files"
+      },
+      "pass": true
+    },
+    "R3_national_context_sha_eq_i0_2": {
+      "detail": {
+        "checked": 32,
+        "mismatches": []
+      },
+      "pass": true
+    },
+    "R4_annotation_draft_sha_eq_i0_2": {
+      "detail": {
+        "checked": 32,
+        "mismatches": []
+      },
+      "pass": true
+    },
+    "R5_pinned_input_hashes_eq_i1": {
+      "detail": {
+        "docs/audit/evidence/phase_i_i0_1_sealed_case_lineage.json": {
+          "i1_pinned": "8f359390c7495bf94ab8963d3350173450824a5bf003acb911b78242e7717b29",
+          "live": "8f359390c7495bf94ab8963d3350173450824a5bf003acb911b78242e7717b29",
+          "match": true
+        },
+        "docs/audit/evidence/phase_i_i0_2_evidence_derived_lineage.json": {
+          "i1_pinned": "a9972c425a0e03c6a3ed0ca22cbf67334921b1eb048270b8a47554834a8206d0",
+          "live": "a9972c425a0e03c6a3ed0ca22cbf67334921b1eb048270b8a47554834a8206d0",
+          "match": true
+        },
+        "docs/audit/evidence/phase_i_i0_corpus_inventory.json": {
+          "i1_pinned": "effae1ebdf6ac119002bf118217a16f842911737df1e61197a39b76e47855772",
+          "live": "effae1ebdf6ac119002bf118217a16f842911737df1e61197a39b76e47855772",
+          "match": true
+        },
+        "price_store_manifest_canonical_digest": {
+          "declared": "1d8c351982dab0ecd776f5710f9a57a97833214f4107d19b6b26dcf5c1ec7037",
+          "match": true,
+          "recomputed": "1d8c351982dab0ecd776f5710f9a57a97833214f4107d19b6b26dcf5c1ec7037"
+        },
+        "scripts/csr8_phase_h_review_envelope.py": {
+          "i1_pinned": "65cd884d0b3bd36f8e8974bb988f3fae510b1e268e8a900cfe42007204bfdbf8",
+          "live": "65cd884d0b3bd36f8e8974bb988f3fae510b1e268e8a900cfe42007204bfdbf8",
+          "match": true
+        },
+        "scripts/csr8_phase_h_runner.py": {
+          "i1_pinned": "a23c0727fca8b052a67afd6bf3053e809eb24faf0b83d1570d099e71dc52630d",
+          "live": "a23c0727fca8b052a67afd6bf3053e809eb24faf0b83d1570d099e71dc52630d",
+          "match": true
+        }
+      },
+      "pass": true
+    },
+    "R6_outcome_artifacts_untouched": {
+      "detail": {
+        "docs/audit/evidence/phase_i_i2_outcome_table.json": {
+          "identical_to_HEAD": true
+        },
+        "docs/audit/evidence/phase_i_i2_readout_report.json": {
+          "identical_to_HEAD": true
+        }
+      },
+      "pass": true
+    }
+  },
+  "readout_modified": false,
+  "report_type": "PHASE_I_I2_PROTOCOL_RATIFICATION",
+  "status": "RATIFIED"
+}
