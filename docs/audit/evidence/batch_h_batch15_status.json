@@ -1,0 +1,27 @@
+{
+  "batch": "H15",
+  "batch_start": 113,
+  "batch_end": 120,
+  "ordinals": "113-120",
+  "state": "BATCH_COMPLETE",
+  "ledger_sequence_range": [
+    316,
+    355
+  ],
+  "rows": 40,
+  "operations": {
+    "NEXT_REVEAL": 8,
+    "ANNOTATION": 8,
+    "RECEIPT": 8,
+    "SEAL": 8,
+    "POST_SEAL": 8
+  },
+  "novelty_gate": "10/10 PASS",
+  "corrections": 0,
+  "disclosures": [
+    "o115/o117 stock_records=1 NATIONAL_ACTORS_PRESENT disclosed-presence states \u2014 reviewer-verified consistent, no unsupported control/causality inference",
+    "o119 UNUSUAL combination stock_records=1 with NOT_DISCLOSED_IN_LATEST_VISIBLE_TOP10 (A2-SSF NOT_DISCLOSED_IN_TOP10 current period 2025-09-30) \u2014 reviewer deep-verified internally consistent: sidecar record exists but actor not disclosed in current top-10 window, prior-period holding does not establish current presence"
+  ],
+  "production_head_after_batch": "c7467cd4624a36d975e352e7ad8dd8f03eeccdbab95f643908c1d60632ce8c7f",
+  "zero_corrections_guard_path": true
+}

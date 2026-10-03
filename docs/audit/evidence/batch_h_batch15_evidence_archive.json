@@ -1,0 +1,22 @@
+{
+  "archive_id": "batch-h-b15-evidence-archive-v1",
+  "batch": "H15",
+  "ordinals": "113-120",
+  "manifest_path": "docs/audit/evidence/batch_h_batch15_evidence_manifest.json",
+  "manifest_sha256": "21fc357711fbed4fe1addcf1d1748051bd2bdb5cb67f04398b2a488427bb9bd3",
+  "archive_sha256": "432b92380e420e36fdf0a695e4fd67c0f37c217b196c48e90b249ccf3732aad6",
+  "archive_bytes": 1056435883,
+  "file_count": 120,
+  "capture_sets": 40,
+  "closed_world": "PASS",
+  "samples_verified": 10,
+  "ledger_sequence_range": [
+    316,
+    355
+  ],
+  "production_head_after_batch": "c7467cd4624a36d975e352e7ad8dd8f03eeccdbab95f643908c1d60632ce8c7f",
+  "verify": "tar extract roundtrip + manifest hash verify PASS; GitHub Release download-back hash verified (release 402684285, asset 608504623)",
+  "release_tag": "batch-h-b15-evidence-archive-v1",
+  "release_id": 402684285,
+  "asset_id": 608504623
+}

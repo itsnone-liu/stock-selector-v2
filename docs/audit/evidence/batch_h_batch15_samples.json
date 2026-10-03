@@ -1,0 +1,112 @@
+[
+  {
+    "ordinal": 113,
+    "ledger_sequence": 316,
+    "reviewer_operation": "NEXT_REVEAL",
+    "review_hash": "cb3f2e7cc138576ff48dd3270d981a316fca7baf1f41ed718084b7f85194f704",
+    "executor_session_id": "session-e16514e1-2960-41c8-b3a3-a957b38b3400",
+    "reviewer_run_id": "reviewer_20261003_193143_h111_next_reveal_eedf4742",
+    "reviewer_session_id": "subagent-225e1371b2320551",
+    "pre_spawn_snapshot": "/root/project/workspace/stock-selector-v2/captures/batch15/o113/next_reveal.snapshot.json",
+    "snapshot_anchor_path": "/root/project/workspace/stock-selector-v2/captures/batch15/o113/next_reveal.anchor.json"
+  },
+  {
+    "ordinal": 116,
+    "ledger_sequence": 331,
+    "reviewer_operation": "NEXT_REVEAL",
+    "review_hash": "d448eba96108f351dc51355a947e8e7b70094ec4154aa81a0b4fc3a031f62c08",
+    "executor_session_id": "session-e16514e1-2960-41c8-b3a3-a957b38b3400",
+    "reviewer_run_id": "reviewer_20261003_195648_h114_next_reveal_696e241f",
+    "reviewer_session_id": "subagent-d98410308db8eaf8",
+    "pre_spawn_snapshot": "/root/project/workspace/stock-selector-v2/captures/batch15/o116/next_reveal.snapshot.json",
+    "snapshot_anchor_path": "/root/project/workspace/stock-selector-v2/captures/batch15/o116/next_reveal.anchor.json"
+  },
+  {
+    "ordinal": 120,
+    "ledger_sequence": 351,
+    "reviewer_operation": "NEXT_REVEAL",
+    "review_hash": "0e00d274513157ae643d6e6058f32e1bbff0a8d7dbd8a5671de2a0ce31f33f3f",
+    "executor_session_id": "session-e16514e1-2960-41c8-b3a3-a957b38b3400",
+    "reviewer_run_id": "reviewer_20261003_202858_h118_next_reveal_ebc22023",
+    "reviewer_session_id": "subagent-61055b87d52acbe6",
+    "pre_spawn_snapshot": "/root/project/workspace/stock-selector-v2/captures/batch15/o120/next_reveal.snapshot.json",
+    "snapshot_anchor_path": "/root/project/workspace/stock-selector-v2/captures/batch15/o120/next_reveal.anchor.json"
+  },
+  {
+    "ordinal": 114,
+    "ledger_sequence": 322,
+    "reviewer_operation": "ANNOTATION",
+    "review_hash": "6eb458630d6a84377c1ff01b5d2a37c0a45a3980a0f4141f19a7328af1ff6617",
+    "executor_session_id": "session-e16514e1-2960-41c8-b3a3-a957b38b3400",
+    "reviewer_run_id": "reviewer_20261003_194158_h112_annotation_672a09c5",
+    "reviewer_session_id": "subagent-2f9ed5aadf41a834",
+    "pre_spawn_snapshot": "/root/project/workspace/stock-selector-v2/captures/batch15/o114/annotation.snapshot.json",
+    "snapshot_anchor_path": "/root/project/workspace/stock-selector-v2/captures/batch15/o114/annotation.anchor.json"
+  },
+  {
+    "ordinal": 118,
+    "ledger_sequence": 342,
+    "reviewer_operation": "ANNOTATION",
+    "review_hash": "0f2f487b569a56bedb4e3e94a3ee64b850f07e5268cc97abcc80b253a452985e",
+    "executor_session_id": "session-e16514e1-2960-41c8-b3a3-a957b38b3400",
+    "reviewer_run_id": "reviewer_20261003_201605_h116_annotation_c32ab104",
+    "reviewer_session_id": "subagent-517ea45a9c8afb23",
+    "pre_spawn_snapshot": "/root/project/workspace/stock-selector-v2/captures/batch15/o118/annotation.snapshot.json",
+    "snapshot_anchor_path": "/root/project/workspace/stock-selector-v2/captures/batch15/o118/annotation.anchor.json"
+  },
+  {
+    "ordinal": 120,
+    "ledger_sequence": 352,
+    "reviewer_operation": "ANNOTATION",
+    "review_hash": "cf7faa12b488f530dfd483e2480f456a97f9e3ee586416a1e6076a2a224743c2",
+    "executor_session_id": "session-e16514e1-2960-41c8-b3a3-a957b38b3400",
+    "reviewer_run_id": "reviewer_20261003_203100_h118_annotation_675173a7",
+    "reviewer_session_id": "subagent-ef066bb36f694b95",
+    "pre_spawn_snapshot": "/root/project/workspace/stock-selector-v2/captures/batch15/o120/annotation.snapshot.json",
+    "snapshot_anchor_path": "/root/project/workspace/stock-selector-v2/captures/batch15/o120/annotation.anchor.json"
+  },
+  {
+    "ordinal": 115,
+    "ledger_sequence": 328,
+    "reviewer_operation": "RECEIPT",
+    "review_hash": "9182f53aa852c7c90d81028c372df630a985ffc6cae4b15540f5591fe06d95e2",
+    "executor_session_id": "session-e16514e1-2960-41c8-b3a3-a957b38b3400",
+    "reviewer_run_id": "reviewer_20261003_195241_h113_receipt_c0887a2e",
+    "reviewer_session_id": "subagent-9f7db713b1e1ad71",
+    "pre_spawn_snapshot": "/root/project/workspace/stock-selector-v2/captures/batch15/o115/receipt.snapshot.json",
+    "snapshot_anchor_path": "/root/project/workspace/stock-selector-v2/captures/batch15/o115/receipt.anchor.json"
+  },
+  {
+    "ordinal": 119,
+    "ledger_sequence": 348,
+    "reviewer_operation": "RECEIPT",
+    "review_hash": "0e254965ad7a4fc8aee9977fdc96ad8aee8723f7c3ef98c1cb4a19246fae8c1f",
+    "executor_session_id": "session-e16514e1-2960-41c8-b3a3-a957b38b3400",
+    "reviewer_run_id": "reviewer_20261003_202506_h117_receipt_4c88d985",
+    "reviewer_session_id": "subagent-9b2b6717d96fc5ca",
+    "pre_spawn_snapshot": "/root/project/workspace/stock-selector-v2/captures/batch15/o119/receipt.snapshot.json",
+    "snapshot_anchor_path": "/root/project/workspace/stock-selector-v2/captures/batch15/o119/receipt.anchor.json"
+  },
+  {
+    "ordinal": 117,
+    "ledger_sequence": 339,
+    "reviewer_operation": "SEAL",
+    "review_hash": "2ad1acf395c6b259ab77326f672390c48c1eec7a0f91b41d4a905988f91e1eb6",
+    "executor_session_id": "session-e16514e1-2960-41c8-b3a3-a957b38b3400",
+    "reviewer_run_id": "reviewer_20261003_200926_h115_seal_93ae271b",
+    "reviewer_session_id": "subagent-98b815d1bf2f25de",
+    "pre_spawn_snapshot": "/root/project/workspace/stock-selector-v2/captures/batch15/o117/seal.snapshot.json",
+    "snapshot_anchor_path": "/root/project/workspace/stock-selector-v2/captures/batch15/o117/seal.anchor.json"
+  },
+  {
+    "ordinal": 120,
+    "ledger_sequence": 355,
+    "reviewer_operation": "POST_SEAL",
+    "review_hash": "57a030879a5f3194540c88d5ee4ee0164474b19f2024aa739c676b07d9f92e7b",
+    "executor_session_id": "session-e16514e1-2960-41c8-b3a3-a957b38b3400",
+    "reviewer_run_id": "reviewer_20261003_203516_h118_post_seal_5ca272a0",
+    "reviewer_session_id": "subagent-fa8481c6e8e03d82",
+    "pre_spawn_snapshot": "/root/project/workspace/stock-selector-v2/captures/batch15/o120/post_seal.snapshot.json",
+    "snapshot_anchor_path": "/root/project/workspace/stock-selector-v2/captures/batch15/o120/post_seal.anchor.json"
+  }
+]
