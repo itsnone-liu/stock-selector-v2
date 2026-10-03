@@ -1,0 +1,41 @@
+{
+ "archive_id": "batch-h-b13-evidence-archive-v1",
+ "artifact": "batch_h_batch13_evidence_archive",
+ "batch_rule": {
+  "note": "full 8-ordinal batch (97-104) under continuous-production authorization (user 2026-10-03); ordinal 129+ remains HOLD",
+  "pre_admission_annotation_guard": "entire batch produced under the guard (commit 2651d59) with zero corrections and zero guard rejections"
+ },
+ "location": {
+  "asset_name": "batch_h_b13_evidence.tar.gz",
+  "kind": "hash-pinned_durable_github_release_asset",
+  "platform_immutability": false,
+  "release_tag": "batch-h-b13-evidence-archive-v1"
+ },
+ "production_events_disclosed": {
+  "batch_clean_production": "no fail-closed events, no organic guard rejections, no corrections, no retry capture sets in this batch; uniform 2099 packet-template marker context proactively verified by NEXT_REVEAL reviewers (o97-o104) with independent glob confirmation each time"
+ },
+ "purpose": "Hash-pinned durable trust roots for Batch 13 ordinal 97-104 BATCH_COMPLETE (fifth continuous-production batch; zero corrections, guard path throughout).",
+ "root_commitment": {
+  "archive_bytes": 1034888923,
+  "archive_sha256": "862a89e0894c397f608ce8aabb1e03d24a5a7b132d98eed6e913c300962baeb1",
+  "capture_sets": 40,
+  "closed_world": "PASS",
+  "file_count": 120,
+  "incident_capture": "NONE",
+  "manifest_path": "docs/audit/evidence/batch_h_batch13_evidence_manifest.json",
+  "manifest_sha256": "e260e5c0f758bd5197467b954883a06e95536094a3d75a589cf3a67a10e90c57",
+  "samples_verified": 10
+ },
+ "scope": {
+  "epoch_id": 2,
+  "ledger": "reviews_epoch2.jsonl",
+  "ledger_rows": "seq 236-275 (o97-o104 five OPS each)",
+  "production_head_after_batch": "0e21dea64989175cc2eb4efc2a175b612c145435b63b4fd99d383f596ea879f4",
+  "sealing_chain": "208 events / 104 alternating pairs"
+ },
+ "verification": {
+  "details": "120 files byte-verified; 10 samples full DSH-v4 trust-root re-verified; no premature reviewer IDs; no retry/incident capture sets (clean batch)",
+  "result": "PASS",
+  "verifier": "scripts/csr8_batch2_evidence_archive.py --verify"
+ }
+}

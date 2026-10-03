@@ -1,0 +1,112 @@
+[
+ {
+  "ordinal": 97,
+  "ledger_sequence": 236,
+  "reviewer_operation": "NEXT_REVEAL",
+  "review_hash": "7e395e6ed109e28e729eeb67c1bda0ae041c27939a382363282473569db8114c",
+  "executor_session_id": "session-e16514e1-2960-41c8-b3a3-a957b38b3400",
+  "reviewer_run_id": "reviewer_20261003_165140_h95_next_reveal_632dc81a",
+  "reviewer_session_id": "subagent-39a212d1f9345c38",
+  "pre_spawn_snapshot": "/root/project/workspace/stock-selector-v2/captures/batch13/o97/next_reveal.snapshot.json",
+  "snapshot_anchor_path": "/root/project/workspace/stock-selector-v2/captures/batch13/o97/next_reveal.anchor.json"
+ },
+ {
+  "ordinal": 97,
+  "ledger_sequence": 239,
+  "reviewer_operation": "SEAL",
+  "review_hash": "34b2caa62f9be66f301c9487e4fd14098f0c9ac85cc3fdb4c8d06036559b5445",
+  "executor_session_id": "session-e16514e1-2960-41c8-b3a3-a957b38b3400",
+  "reviewer_run_id": "reviewer_20261003_165627_h95_seal_17b86fb8",
+  "reviewer_session_id": "subagent-0ff9a5792325ff91",
+  "pre_spawn_snapshot": "/root/project/workspace/stock-selector-v2/captures/batch13/o97/seal.snapshot.json",
+  "snapshot_anchor_path": "/root/project/workspace/stock-selector-v2/captures/batch13/o97/seal.anchor.json"
+ },
+ {
+  "ordinal": 98,
+  "ledger_sequence": 242,
+  "reviewer_operation": "ANNOTATION",
+  "review_hash": "54c30ff53689624be20bdb2cd00171f08b083e3cd4e2ad5f915517fff410434c",
+  "executor_session_id": "session-e16514e1-2960-41c8-b3a3-a957b38b3400",
+  "reviewer_run_id": "reviewer_20261003_170331_h96_annotation_5c44a4be",
+  "reviewer_session_id": "subagent-636bc2d7db3a4a5f",
+  "pre_spawn_snapshot": "/root/project/workspace/stock-selector-v2/captures/batch13/o98/annotation.snapshot.json",
+  "snapshot_anchor_path": "/root/project/workspace/stock-selector-v2/captures/batch13/o98/annotation.anchor.json"
+ },
+ {
+  "ordinal": 99,
+  "ledger_sequence": 248,
+  "reviewer_operation": "RECEIPT",
+  "review_hash": "81a4cf3fb431ec3192b3bfbe6394c0ef8b8d622c81dabafb72932d0de1bb1993",
+  "executor_session_id": "session-e16514e1-2960-41c8-b3a3-a957b38b3400",
+  "reviewer_run_id": "reviewer_20261003_171335_h97_receipt_4e1a37da",
+  "reviewer_session_id": "subagent-59af59bd51674ca7",
+  "pre_spawn_snapshot": "/root/project/workspace/stock-selector-v2/captures/batch13/o99/receipt.snapshot.json",
+  "snapshot_anchor_path": "/root/project/workspace/stock-selector-v2/captures/batch13/o99/receipt.anchor.json"
+ },
+ {
+  "ordinal": 100,
+  "ledger_sequence": 255,
+  "reviewer_operation": "POST_SEAL",
+  "review_hash": "a64b49c13ce350c0ac78adc44efc7c3f08ac4d91cde807f83b82d6a2fa64d271",
+  "executor_session_id": "session-e16514e1-2960-41c8-b3a3-a957b38b3400",
+  "reviewer_run_id": "reviewer_20261003_172455_h98_post_seal_a2c64c76",
+  "reviewer_session_id": "subagent-3acf964aae2a5366",
+  "pre_spawn_snapshot": "/root/project/workspace/stock-selector-v2/captures/batch13/o100/post_seal.snapshot.json",
+  "snapshot_anchor_path": "/root/project/workspace/stock-selector-v2/captures/batch13/o100/post_seal.anchor.json"
+ },
+ {
+  "ordinal": 101,
+  "ledger_sequence": 256,
+  "reviewer_operation": "NEXT_REVEAL",
+  "review_hash": "276609fd9ca93583358a20020771fc97804430d0888daa927a0a2c9fd56b60ca",
+  "executor_session_id": "session-e16514e1-2960-41c8-b3a3-a957b38b3400",
+  "reviewer_run_id": "reviewer_20261003_172652_h99_next_reveal_12a8067b",
+  "reviewer_session_id": "subagent-cf952b7d045c738a",
+  "pre_spawn_snapshot": "/root/project/workspace/stock-selector-v2/captures/batch13/o101/next_reveal.snapshot.json",
+  "snapshot_anchor_path": "/root/project/workspace/stock-selector-v2/captures/batch13/o101/next_reveal.anchor.json"
+ },
+ {
+  "ordinal": 102,
+  "ledger_sequence": 262,
+  "reviewer_operation": "ANNOTATION",
+  "review_hash": "9ffde4bdc10acf9234a6c9804c8c2e3a3df39c768222354bc2f8034eb2db01eb",
+  "executor_session_id": "session-e16514e1-2960-41c8-b3a3-a957b38b3400",
+  "reviewer_run_id": "reviewer_20261003_173810_h100_annotation_47c5a0b6",
+  "reviewer_session_id": "subagent-da2b604b7cc28c29",
+  "pre_spawn_snapshot": "/root/project/workspace/stock-selector-v2/captures/batch13/o102/annotation.snapshot.json",
+  "snapshot_anchor_path": "/root/project/workspace/stock-selector-v2/captures/batch13/o102/annotation.anchor.json"
+ },
+ {
+  "ordinal": 102,
+  "ledger_sequence": 264,
+  "reviewer_operation": "SEAL",
+  "review_hash": "3e7fdbeb3e4a98a593fc166874b180b9b23cfe3d46b07fbba86f4e906f4741fe",
+  "executor_session_id": "session-e16514e1-2960-41c8-b3a3-a957b38b3400",
+  "reviewer_run_id": "reviewer_20261003_174042_h100_seal_2ad8d6bf",
+  "reviewer_session_id": "subagent-8f2ffd891444219e",
+  "pre_spawn_snapshot": "/root/project/workspace/stock-selector-v2/captures/batch13/o102/seal.snapshot.json",
+  "snapshot_anchor_path": "/root/project/workspace/stock-selector-v2/captures/batch13/o102/seal.anchor.json"
+ },
+ {
+  "ordinal": 103,
+  "ledger_sequence": 268,
+  "reviewer_operation": "RECEIPT",
+  "review_hash": "7e9e952d407651acb7d22433ef97d0943f236c1e3af7d217d8b5f7192c6937a1",
+  "executor_session_id": "session-e16514e1-2960-41c8-b3a3-a957b38b3400",
+  "reviewer_run_id": "reviewer_20261003_174837_h101_receipt_085b573f",
+  "reviewer_session_id": "subagent-4621c8700fa964b0",
+  "pre_spawn_snapshot": "/root/project/workspace/stock-selector-v2/captures/batch13/o103/receipt.snapshot.json",
+  "snapshot_anchor_path": "/root/project/workspace/stock-selector-v2/captures/batch13/o103/receipt.anchor.json"
+ },
+ {
+  "ordinal": 104,
+  "ledger_sequence": 275,
+  "reviewer_operation": "POST_SEAL",
+  "review_hash": "1468360b30e615e0b25801cc32d45aa0ea31af03409f7e7fec7e078c83bdb3fd",
+  "executor_session_id": "session-e16514e1-2960-41c8-b3a3-a957b38b3400",
+  "reviewer_run_id": "reviewer_20261003_180034_h102_post_seal_1501a183",
+  "reviewer_session_id": "subagent-d24a196206f9df25",
+  "pre_spawn_snapshot": "/root/project/workspace/stock-selector-v2/captures/batch13/o104/post_seal.snapshot.json",
+  "snapshot_anchor_path": "/root/project/workspace/stock-selector-v2/captures/batch13/o104/post_seal.anchor.json"
+ }
+]
