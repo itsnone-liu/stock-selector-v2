@@ -1,0 +1,28 @@
+{
+  "batch": "H14",
+  "batch_start": 105,
+  "batch_end": 112,
+  "ordinals": "105-112",
+  "state": "BATCH_COMPLETE",
+  "ledger_sequence_range": [
+    276,
+    315
+  ],
+  "rows": 40,
+  "operations": {
+    "NEXT_REVEAL": 8,
+    "ANNOTATION": 8,
+    "RECEIPT": 8,
+    "SEAL": 8,
+    "POST_SEAL": 8
+  },
+  "novelty_gate": "10/10 PASS",
+  "corrections": 0,
+  "disclosures": [
+    "o105 first NATIONAL_ACTORS_PRESENT ordinal since H12 (stock_records=1, disclosed-presence state A1-ZHENGJIN DECREASE) \u2014 reviewer-verified consistent with sidecar and draft",
+    "o108 stock_records=2 NATIONAL_ACTORS_PRESENT \u2014 reviewer-verified disclosed-presence consistency, no unsupported control/causality inference",
+    "o112 stock_records=1 NATIONAL_ACTORS_PRESENT \u2014 reviewer-verified consistent"
+  ],
+  "production_head_after_batch": "e69b1a115729f94011b3e0254d318103dba3553adc0b80aa0fe1fc3a7659a76d",
+  "zero_corrections_guard_path": true
+}

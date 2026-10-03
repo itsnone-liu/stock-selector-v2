@@ -1,0 +1,22 @@
+{
+  "archive_id": "batch-h-b14-evidence-archive-v1",
+  "batch": "H14",
+  "ordinals": "105-112",
+  "manifest_path": "docs/audit/evidence/batch_h_batch14_evidence_manifest.json",
+  "manifest_sha256": "9ddbbec9745695625a4646b17c61ac9e4eb7b9cbf5ced85c8797725136f04c56",
+  "archive_sha256": "2451b8fb705e0273fe557ab22fee0c4a8123ad7b36ed6170243386e24f931e2b",
+  "archive_bytes": 1044812636,
+  "file_count": 120,
+  "capture_sets": 40,
+  "closed_world": "PASS",
+  "samples_verified": 10,
+  "ledger_sequence_range": [
+    276,
+    315
+  ],
+  "production_head_after_batch": "e69b1a115729f94011b3e0254d318103dba3553adc0b80aa0fe1fc3a7659a76d",
+  "verify": "tar extract roundtrip + manifest hash verify PASS; GitHub Release download-back hash verified (release 402658666, asset 608392978)",
+  "release_tag": "batch-h-b14-evidence-archive-v1",
+  "release_id": 402658666,
+  "asset_id": 608392978
+}
