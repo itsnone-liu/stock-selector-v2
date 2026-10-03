@@ -1,4 +1,5 @@
 {
+  "content_read_count": 6,
   "gates": {
     "G1_i1_contract_sha": {
       "detail": {
@@ -40,6 +41,7 @@
       "pass": true
     }
   },
+  "hash_only_read_count": 5241,
   "mapping_parsed": false,
   "next_step": "await explicit authorization for steps 7-9 (mapping parse, per-case price read, outcome table) under this armed manifest",
   "outcome_values_read": 0,
@@ -51,7 +53,7 @@
     "price_manifest_sha256": "1d8c351982dab0ecd776f5710f9a57a97833214f4107d19b6b26dcf5c1ec7037",
     "secret_sha256": "6a3051cb26cea71849838a42a17a76836a431e841a6f146a8f4a214bb1278a34"
   },
-  "pre_gate_read_count": 5,
+  "pre_gate_read_count": 5247,
   "report_type": "PHASE_I_I2_UNLOCK_CEREMONY_PREGATES",
   "status": "ALL_PASS"
 }

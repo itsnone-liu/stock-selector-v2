@@ -40,8 +40,19 @@ def logged_read(rel, purpose):
     p = ROOT / rel
     b = p.read_bytes()
     reads.append({'relative_path': rel, 'bytes': len(b),
-                  'sha256': hashlib.sha256(b).hexdigest(), 'purpose': purpose})
+                  'sha256': hashlib.sha256(b).hexdigest(), 'purpose': purpose,
+                  'access_mode': 'CONTENT', 'parsed': True})
     return b
+
+
+def logged_hash_read(rel, purpose):
+    """Hash-only read: bytes are read to compute SHA-256 and length, never parsed/decoded."""
+    p = ROOT / rel
+    b = p.read_bytes()
+    h = hashlib.sha256(b).hexdigest()
+    reads.append({'relative_path': rel, 'bytes': len(b), 'sha256': h,
+                  'purpose': purpose, 'access_mode': 'HASH_ONLY', 'parsed': False})
+    return h, len(b)
 
 
 def canon(x):
@@ -91,8 +102,10 @@ def g3_price_manifest_digest():
 
 
 def g4_price_closed_world():
-    m = json.loads((EVID / 'phase_i_price_store_manifest.json').read_text())
-    fetch = json.loads((STORE / 'fetch_manifest.json').read_text())
+    mb = logged_read('docs/audit/evidence/phase_i_price_store_manifest.json', 'price manifest entries for closed-world rehash')
+    m = json.loads(mb)
+    fb = logged_read('data/adjustment_baostock/fetch_manifest.json', 'fetch manifest cross-check bindings')
+    fetch = json.loads(fb)
     declared = fetch.get('stocks', {})
     entries = {e['code']: e for e in m['entries']}
     files = sorted((STORE / 'per_stock').glob('*.json.gz'))
@@ -103,10 +116,10 @@ def g4_price_closed_world():
     for f in files:
         code = f.name[:-8]
         e = entries[code]
-        size = f.stat().st_size
-        if size != e['bytes']:
+        rel = f'per_stock/{f.name}'
+        h, n = logged_hash_read(f'data/adjustment_baostock/{rel}', 'price store closed-world rehash (hash only)')
+        if n != e['bytes']:
             bytes_bad.append(code); continue
-        h = hashlib.sha256(f.read_bytes()).hexdigest()
         if h != e['sha256']:
             sha_bad.append(code)
         # fetch-manifest cross-check reuses the same hash, no extra read
@@ -118,8 +131,7 @@ def g4_price_closed_world():
 
 
 def g5_secret_hash():
-    b = logged_read('data/csr8_phase_c/secret/packet_plan.json', 'selector secret pre-gate (hash only, never parsed)')
-    actual = hashlib.sha256(b).hexdigest()
+    actual, _ = logged_hash_read('data/csr8_phase_c/secret/packet_plan.json', 'selector secret pre-gate (hash only, never parsed)')
     return actual == PINNED['secret_sha256'], {'recomputed': actual, 'parsed': False}
 
 
@@ -131,17 +143,28 @@ def main():
     gates['G4_price_closed_world_rehash'] = g4_price_closed_world()
     gates['G5_secret_bytes_hash'] = g5_secret_hash()
     all_pass = all(ok for ok, _ in gates.values())
-    # G6: freeze the unlock runtime-read manifest (read log currently contains only pre-gate reads)
+    # G6: freeze the unlock runtime-read manifest; every file-content read of this
+    # ceremony is recorded (content reads and hash-only reads alike).
     unlock_manifest = {
         'report_type': 'PHASE_I_I2_UNLOCK_RUNTIME_READ_MANIFEST',
         'status': 'ARMED' if all_pass else 'BLOCKED',
         'pre_gate_reads': reads,
-        'allowed_roots_for_unblind': [
-            'data/csr8_phase_c/secret/packet_plan.json (parse mapping; ordinal 7-38 only)',
-            'data/adjustment_baostock/per_stock/<mapped code>.json.gz (frozen price series)',
-            'docs/audit/evidence/phase_i_i1_contract.json',
-            'data/csr8_phase_c/c4d_receipts/c4-prod-0002/ (sealed packet metadata for T/identity cross-check)',
-        ],
+        'pre_gate_read_count': len(reads),
+        'read_log_completeness': {
+            'rule': 'every file-content access (CONTENT or HASH_ONLY) performed by the ceremony appears in pre_gate_reads; no unlogged file access occurs',
+            'hash_only_reads_marked': sum(1 for r in reads if r['access_mode'] == 'HASH_ONLY'),
+            'content_reads_marked': sum(1 for r in reads if r['access_mode'] == 'CONTENT'),
+        },
+        'unblind_allowlist': {
+            'exact_paths': [
+                'data/csr8_phase_c/secret/packet_plan.json',
+                'docs/audit/evidence/phase_i_i1_contract.json',
+            ],
+            'ordinal_range': [7, 38],
+            'mapped_price_rule': 'data/adjustment_baostock/per_stock/{mapped_code}.json.gz where mapped_code is resolved from packet_plan.json for an ordinal in [7,38]',
+            'sealed_packet_rule': 'data/csr8_phase_c/c4d_receipts/c4-prod-0002/ordinal-{ordinal:04d}/packet.json for ordinal in [7,38]',
+            'enforcement': 'the steps 7-9 reader must match every read against exact_paths or the two rules above before opening the file; any unmatched path fails closed',
+        },
         'forbidden': ['any outcome table other than the one produced by this ceremony', 'any data source outside the pinned store'],
         'outcome_read_authorized': False,
     }
@@ -152,6 +175,8 @@ def main():
         'pinned': PINNED,
         'gates': {k: {'pass': ok, 'detail': d} for k, (ok, d) in gates.items()},
         'pre_gate_read_count': len(reads),
+        'hash_only_read_count': sum(1 for r in reads if r['access_mode'] == 'HASH_ONLY'),
+        'content_read_count': sum(1 for r in reads if r['access_mode'] == 'CONTENT'),
         'outcome_values_read': 0,
         'mapping_parsed': False,
         'next_step': 'await explicit authorization for steps 7-9 (mapping parse, per-case price read, outcome table) under this armed manifest',
