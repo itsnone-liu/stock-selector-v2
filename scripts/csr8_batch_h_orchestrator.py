@@ -3,13 +3,21 @@
 import argparse, hashlib, json, os, stat
 from pathlib import Path
 BATCH_SIZE = 8
+# Milestone terminal batch (user ruling 2026-10-03): production stops at ordinal
+# 64 for the second production readout. A batch whose END ordinal is exactly 64
+# may be shorter than BATCH_SIZE (Batch 8 = 63-64, length 2). No other short
+# batch is admissible.
+TERMINAL_READOUT_ORDINAL = 64
 SNAPSHOT_VERSION = 'csr8-reviewer-novelty-snapshot-v3'
 ANCHOR_VERSION = 'csr8-reviewer-novelty-anchor-v1'
 
 def canon(obj): return json.dumps(obj, ensure_ascii=False, sort_keys=True, separators=(',', ':'))
 def digest(raw): return hashlib.sha256(raw).hexdigest()
 def batch_boundary(batch_start, completed_count=BATCH_SIZE):
-    if batch_start < 1 or completed_count != BATCH_SIZE: raise ValueError('batch must contain exactly eight ordinals')
+    terminal = (batch_start + completed_count - 1) == TERMINAL_READOUT_ORDINAL
+    if batch_start < 1: raise ValueError('invalid batch start')
+    if completed_count != BATCH_SIZE and not (terminal and 0 < completed_count < BATCH_SIZE):
+        raise ValueError('batch must contain exactly eight ordinals (short batch only allowed ending at ordinal 64)')
     return batch_start + completed_count - 1
 
 def capture_pre_spawn_snapshot(transcript_path, executor_session_id, snapshot_path, anchor_path, sequence_cutoff=None):

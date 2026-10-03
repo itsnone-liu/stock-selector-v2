@@ -1,0 +1,28 @@
+{
+  "artifact": "batch_h_batch8_status",
+  "ordinals": [
+    63,
+    64
+  ],
+  "batch_kind": "TERMINAL_SHORT_BATCH_64_MILESTONE",
+  "execution": {
+    "production_chain_events": 128,
+    "chain_shape": "R1/S1..R64/S64",
+    "production_head_sha256": "37715b72f90c46450a5fd1e9d273d51afe49e4b1dd8b30169ff15e70c9621fbd",
+    "ordinals_finalized": "63-64 all ORDINAL_COMPLETE / FINALIZED",
+    "ordinal_histories": "1-64 PASS",
+    "c2_full_replay": "PASS",
+    "semantic_replay": "PASS",
+    "sealed_history_modified": false
+  },
+  "reviewer_gates": {
+    "ledger": "reviews_epoch2.jsonl (epoch 2)",
+    "ledger_rows_for_batch": "seq 64-73",
+    "per_ordinal": "o63/o64 all five OPS",
+    "novelty_gate": "PASS 10/10 capture-bound samples",
+    "fail_closed_events": "1 (o64 NEXT_REVEAL sidecar forward-reference misread); stopped before any state change"
+  },
+  "batch_record": "docs/audit/evidence/batch_h_batch8_completion.json",
+  "evidence_archive": "docs/audit/evidence/batch_h_batch8_evidence_archive.json",
+  "next": "second production readout at 64; ordinal 65+ HOLD"
+}
