@@ -1122,7 +1122,7 @@ def cmd_verify():
             if rec.get('prev_review_hash') != \
                     ledger[i - 1]['review_hash']:
                 fail(f'ledger prev-link break at line {i}', 'G-H3-LEDGER')
-    recovery_epoch = (ORDINAL == 50 and ledger_name == 'reviews_epoch2.jsonl')
+    recovery_epoch = (ledger_epoch == 2)
     h3 = [r for r in ledger if r.get('ordinal') == ORDINAL
           and r.get('operation') in OPS]
     corrections = [r for r in ledger if r.get('ordinal') == ORDINAL
