@@ -1,0 +1,28 @@
+{
+  "batch": "H16",
+  "batch_start": 121,
+  "batch_end": 128,
+  "ordinals": "121-128",
+  "state": "BATCH_COMPLETE",
+  "ledger_sequence_range": [
+    356,
+    395
+  ],
+  "rows": 40,
+  "operations": {
+    "NEXT_REVEAL": 8,
+    "ANNOTATION": 8,
+    "RECEIPT": 8,
+    "SEAL": 8,
+    "POST_SEAL": 8
+  },
+  "novelty_gate": "10/10 PASS",
+  "corrections": 0,
+  "disclosures": [
+    "o127 NATIONAL_ACTORS_PRESENT stock_records=1 (A2-SSF FIRST_DISCLOSED 2023-03-31 ratio 1.750693548323) \u2014 reviewer-verified disclosure-presence consistent, no unsupported control/causality inference",
+    "final production batch: continuous production 65->128 complete at this batch; ordinal 129+ HOLD per standing authorization"
+  ],
+  "production_head_after_batch": "4fd1d50de05f0baa10fcb26da55b95cffca2d7b2aa644ebadebf856297e7ab39",
+  "zero_corrections_guard_path": true,
+  "local_capture_pruning_disclosure": "during b16 archive verify the local disk filled; stale /tmp tooling caches were cleared and local captures/batch12 + captures/batch13 were deleted AFTER confirming their batch-h-b12/b13-evidence-archive-v1 release assets (with download-back-verified hashes at closeout time) remain on GitHub \u2014 durable evidence unchanged; local copies restorable from those release tarballs"
+}
