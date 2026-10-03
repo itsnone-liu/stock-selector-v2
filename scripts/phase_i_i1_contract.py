@@ -53,10 +53,17 @@ def build():
             'fields': 'date,open,high,low,close,volume,amount,turn,pctChg',
             'coverage': '2021-01-04 .. 2026-09-18 (fetch window 2021-01-01 .. 2026-09-19)',
             'fetch_manifest_sha256': sha_file(ROOT / 'data/adjustment_baostock/fetch_manifest.json'),
+            'closed_world_commitment': {
+                'manifest_path': 'docs/audit/evidence/phase_i_price_store_manifest.json',
+                'manifest_sha256': 'filled_at_build',
+                'file_count': 5240,
+                'per_entry': ['relative_path', 'bytes', 'sha256'],
+                'i2_unlock_verification': 're-hash every declared file and require exact equality of bytes and sha256 per entry and of the closed-world file set before any outcome value is read',
+            },
             'selector_mapping_secret': {
                 'path': 'data/csr8_phase_c/secret/packet_plan.json',
                 'sha256': sha_file(ROOT / 'data/csr8_phase_c/secret/packet_plan.json'),
-                'policy': 'contents NOT read during I1; consulted only inside the logged I2 unlock ceremony',
+                'policy': 'secret bytes hashed only during I1; not parsed, decoded, mapped, or semantically inspected; consulted only inside the logged I2 unlock ceremony',
             },
         },
         'eligible_observation_clock': {
@@ -64,7 +71,7 @@ def build():
             'eligible_observation': 'a session date d with d > T, present in the instrument hfq series, with finite positive hfq close',
             'H_k': 'k-th eligible observation after T, k in {1,3,5,10}',
             'skip_rule': 'session present for the exchange but absent/invalid for the instrument -> skipped, logged with reason; never counted as zero return',
-            'trading_calendar_proxy': 'union of session dates across the frozen baostock store universe',
+            'trading_calendar_proxy': 'union of session dates across the frozen baostock store universe (5,240 files pinned by the closed-world price-store manifest); materialized and hashed at I2 unlock',
             'right_censor_rule': 'if fewer than k eligible observations within 60 exchange sessions after T -> endpoint status right_censored for that k',
             'max_look_forward_sessions': 60,
         },
@@ -135,19 +142,28 @@ def build():
         },
         'decision_rubric': {
             'evaluated_on': 'primary endpoint R5 across primary explanatory variables; descriptive, non-confirmatory',
+            'cell_definition': 'each distinct raw value of a primary variable is one cell; outcome-driven binning, collapsing, or pair selection after unlock is forbidden',
             'minimum_interpretable_cell_n': 5,
-            'variable_qualifies': 'at least two distinct value cells each with n >= 5 complete R5 observations',
-            'gate_A_continue_64_128': 'at least one qualifying variable shows a between-cell difference in median R5 whose sign is consistent across R3 and R10 for the same cell pair, AND complete-R5 fraction >= 80%, AND every frozen vocabulary level is either observed or explicitly labeled sparse',
-            'gate_B_taxonomy_v2': 'a qualifying variable exists but no consistent-sign difference across R3/R10, OR complete-R5 fraction < 80% for structural reasons, OR all annotation-derived variables remain near-constant so only context variables carry signal',
-            'gate_C_pause_batch_h': 'no variable qualifies (fewer than two cells with n >= 5) AND context variables show no descriptive structure in R5',
-            'effect_size_reporting': 'per-cell median and MAD of R5; pairwise Cliff\'s delta for two-cell comparisons; no significance-threshold gate',
-            'binding': 'exactly one of A/B/C recorded with evidence, cell counts, and limitations; pilot is not confirmatory',
+            'qualifying_variable': 'at least two distinct value cells each with n >= 5 cases that are common-complete for R3/R5/R10',
+            'pair_enumeration': 'all unordered cell pairs of each qualifying variable, each pair evaluated on that pair\'s common-complete case intersection across R3/R5/R10',
+            'consistent_pair_definition': 'for pair (A,B): dH = median(cellA,H) - median(cellB,H) for H in {R3,R5,R10}; CONSISTENT(pair) iff all three dH are nonzero and share the same sign',
+            'decision_tree': [
+                {'priority': 1, 'condition': 'complete_R5_fraction < 0.80', 'outcome': 'B'},
+                {'priority': 2, 'condition': 'no qualifying variable exists', 'outcome': 'C'},
+                {'priority': 3, 'condition': 'at least one CONSISTENT(pair) exists across any qualifying variable', 'outcome': 'A'},
+                {'priority': 4, 'condition': 'otherwise', 'outcome': 'B'},
+            ],
+            'complete_R5_fraction_definition': 'cases with R5 status complete divided by 32 ordinary pilot cases',
+            'taxonomy_v2_diagnostic': 'reported separately from the A/B/C decision: true iff every annotation-derived descriptive_only variable is constant or near-constant (non-dominant share <= 2/32) in the sealed corpus; never feeds the decision tree',
+            'effect_size_reporting': 'per-cell median and MAD of R5 on common-complete intersections; Cliff\'s delta for every enumerated pair; no significance-threshold gate',
+            'binding': 'decision tree evaluated top-down yields exactly one of A/B/C; pilot is not confirmatory',
         },
         'unlock_gate': {
             'i1_contract_sha256': 'embedded_at_build',
             'requirements_for_I2': [
                 'this contract committed and its canonical sha256 frozen',
-                'PHASE-I SEALED INPUT ARCHIVE completed with closed-world manifest, archive sha256, hash-pinned durable release asset, and round-trip replay PASS, covering the I0.2 runtime read manifest files plus sealing_log plus batch completion bindings plus the price-source fetch manifest',
+                'PHASE-I SEALED INPUT ARCHIVE completed with closed-world manifest, archive sha256, hash-pinned durable release asset, and round-trip replay PASS, covering the I0.2 runtime read manifest files plus sealing_log plus batch completion bindings plus the price-source closed-world manifest',
+                'price store closed-world re-verification PASS: every one of the 5,240 pinned per-stock files re-hashed and equal to the manifest entries',
                 'price source and selector-mapping secret hashes still match the pins above at unlock time',
                 'unlock ceremony reads only through a logged runtime read manifest',
             ],
@@ -165,6 +181,10 @@ def build():
             'scripts/csr8_phase_h_runner.py': sha_file(ROOT / 'scripts/csr8_phase_h_runner.py'),
         },
     }
+    ps_manifest = json.loads((ROOT / 'docs/audit/evidence/phase_i_price_store_manifest.json').read_text())
+    contract['price_source']['closed_world_commitment']['manifest_sha256'] = ps_manifest['manifest_sha256']
+    if ps_manifest.get('file_count') != 5240 or not ps_manifest.get('closed_world'):
+        raise RuntimeError('price store manifest is not closed-world over 5,240 files')
     contract['unlock_gate']['i1_contract_sha256'] = ''
     digest = hashlib.sha256(canon(contract).encode()).hexdigest()
     contract['unlock_gate']['i1_contract_sha256'] = digest
