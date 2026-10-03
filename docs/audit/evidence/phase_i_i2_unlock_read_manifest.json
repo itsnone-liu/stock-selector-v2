@@ -1,0 +1,47 @@
+{
+  "allowed_roots_for_unblind": [
+    "data/csr8_phase_c/secret/packet_plan.json (parse mapping; ordinal 7-38 only)",
+    "data/adjustment_baostock/per_stock/<mapped code>.json.gz (frozen price series)",
+    "docs/audit/evidence/phase_i_i1_contract.json",
+    "data/csr8_phase_c/c4d_receipts/c4-prod-0002/ (sealed packet metadata for T/identity cross-check)"
+  ],
+  "forbidden": [
+    "any outcome table other than the one produced by this ceremony",
+    "any data source outside the pinned store"
+  ],
+  "outcome_read_authorized": false,
+  "pre_gate_reads": [
+    {
+      "bytes": 13093,
+      "purpose": "I1 contract pre-gate re-verification",
+      "relative_path": "docs/audit/evidence/phase_i_i1_contract.json",
+      "sha256": "57b74dfb7996a34cfb11b4991dab0a2881c919a3d56941698e0111e09b3b2b7e"
+    },
+    {
+      "bytes": 83859,
+      "purpose": "sealed archive manifest pre-gate",
+      "relative_path": "docs/audit/evidence/phase_i_sealed_input_archive_manifest.json",
+      "sha256": "042631f22c8f97e05b4e256fe3028f869305f1f5ff1f4434a9e4eb7c5f8a537c"
+    },
+    {
+      "bytes": 865013,
+      "purpose": "sealed archive asset pre-gate (hash only)",
+      "relative_path": "phase_i_sealed_input_archive_v1.tar.gz",
+      "sha256": "21365b9e0d8448031c922e4850bcded286827b511fe00e071757e2bf57f7e8f2"
+    },
+    {
+      "bytes": 1045000,
+      "purpose": "price manifest digest pre-gate",
+      "relative_path": "docs/audit/evidence/phase_i_price_store_manifest.json",
+      "sha256": "b2337f6a4f34e5e7a0957bb0a581d7056cc51e4ad695b3b4171b27d4bafd0105"
+    },
+    {
+      "bytes": 142274,
+      "purpose": "selector secret pre-gate (hash only, never parsed)",
+      "relative_path": "data/csr8_phase_c/secret/packet_plan.json",
+      "sha256": "6a3051cb26cea71849838a42a17a76836a431e841a6f146a8f4a214bb1278a34"
+    }
+  ],
+  "report_type": "PHASE_I_I2_UNLOCK_RUNTIME_READ_MANIFEST",
+  "status": "ARMED"
+}
