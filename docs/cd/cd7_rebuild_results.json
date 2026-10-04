@@ -1,0 +1,103 @@
+{
+ "generated": "2026-10-04T21:45:48",
+ "coverage_fix": "P0 REDUCED_OUT fix: prior cd7/cd7r2 engines silently dropped trades closed by DECAYING-reduce (survivorship 2813/25164); all CD-7 R1/R2 numbers superseded",
+ "never": {
+  "never_eligible": 4203,
+  "eligible_no_trigger": 699
+ },
+ "arms": {
+  "CHASE": {
+   "dev": {
+    "n": 15025,
+    "topdecile_rate": 0.10935,
+    "median_ret_rel": -0.05762,
+    "median_mae": -0.08811,
+    "median_mfe": 0.08828,
+    "adverse_rate": 0.91634,
+    "median_delay": 2,
+    "median_dur": 30
+   },
+   "holdout": {
+    "n": 10821,
+    "topdecile_rate": 0.10378,
+    "median_ret_rel": -0.06597,
+    "median_mae": -0.07877,
+    "median_mfe": 0.09834,
+    "adverse_rate": 0.90361,
+    "median_delay": 3,
+    "median_dur": 27
+   }
+  },
+  "ZONE": {
+   "dev": {
+    "n": 14632,
+    "topdecile_rate": 0.1114,
+    "median_ret_rel": -0.04717,
+    "median_mae": -0.07255,
+    "median_mfe": 0.06236,
+    "adverse_rate": 0.9156,
+    "median_delay": 10,
+    "median_dur": 24
+   },
+   "holdout": {
+    "n": 10532,
+    "topdecile_rate": 0.10672,
+    "median_ret_rel": -0.05024,
+    "median_mae": -0.05044,
+    "median_mfe": 0.08656,
+    "adverse_rate": 0.91597,
+    "median_delay": 10,
+    "median_dur": 23
+   }
+  },
+  "C": {
+   "dev": {
+    "n": 14667,
+    "topdecile_rate": 0.11113,
+    "median_ret_rel": -0.04738,
+    "median_mae": -0.07273,
+    "median_mfe": 0.06241,
+    "adverse_rate": 0.91457,
+    "median_delay": 10,
+    "median_dur": 24
+   },
+   "holdout": {
+    "n": 10572,
+    "topdecile_rate": 0.10632,
+    "median_ret_rel": -0.05026,
+    "median_mae": -0.0507,
+    "median_mfe": 0.08691,
+    "adverse_rate": 0.91336,
+    "median_delay": 10,
+    "median_dur": 23
+   }
+  }
+ },
+ "strata": {
+  "primary_only_C": {
+   "n": 23837,
+   "topdecile_rate": 0.11079,
+   "median_ret_rel": -0.04819,
+   "median_mae": -0.06183,
+   "median_mfe": 0.07164,
+   "adverse_rate": 0.91656,
+   "median_delay": 10,
+   "median_dur": 23
+  },
+  "secondary_only_C": {
+   "n": 1402,
+   "topdecile_rate": 0.0806,
+   "median_ret_rel": -0.06251,
+   "median_mae": -0.09634,
+   "median_mfe": 0.08667,
+   "adverse_rate": 0.87161,
+   "median_delay": 39,
+   "median_dur": 32
+  },
+  "incremental_C_minus_ZONE": 75,
+  "never_entered_all": {
+   "n": 4284,
+   "topdecile_rate": 0.02428
+  }
+ }
+}

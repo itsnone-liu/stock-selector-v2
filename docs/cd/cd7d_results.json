@@ -1,0 +1,94 @@
+{
+ "generated": "2026-10-04T22:08:05",
+ "eclass_monotonicity": {
+  "E1": {
+   "n": 19390,
+   "dev": {
+    "median_mae": -0.16365,
+    "p10_ret": -0.27273,
+    "adverse": 0.91267
+   },
+   "holdout": {
+    "median_mae": -0.12608,
+    "p10_ret": -0.22128,
+    "adverse": 0.90359
+   }
+  },
+  "E2": {
+   "n": 349,
+   "dev": {
+    "median_mae": -0.19153,
+    "p10_ret": -0.27818,
+    "adverse": 0.96296
+   },
+   "holdout": {
+    "median_mae": -0.17348,
+    "p10_ret": -0.2542,
+    "adverse": 0.99248
+   }
+  },
+  "E3": {
+   "n": 5425,
+   "dev": {
+    "median_mae": -0.19846,
+    "p10_ret": -0.29066,
+    "adverse": 0.92286
+   },
+   "holdout": {
+    "median_mae": -0.1549,
+    "p10_ret": -0.26023,
+    "adverse": 0.95542
+   }
+  }
+ },
+ "ablations": {
+  "D0": {
+   "total_pnl_pct": 83.7337,
+   "maxdd": -4.7578,
+   "avg_util": 210.1912,
+   "n_entered": 25164,
+   "missed_by_budget": 0,
+   "final_open": 11
+  },
+  "D1": {
+   "total_pnl_pct": 83.7337,
+   "maxdd": -4.7578,
+   "avg_util": 210.1912,
+   "n_entered": 25164,
+   "missed_by_budget": 0,
+   "final_open": 11
+  },
+  "D2": {
+   "total_pnl_pct": 38.3438,
+   "maxdd": -4.1014,
+   "avg_util": 128.4467,
+   "n_entered": 25164,
+   "missed_by_budget": 0,
+   "final_open": 11
+  },
+  "D3": {
+   "total_pnl_pct": 38.3438,
+   "maxdd": -4.1014,
+   "avg_util": 128.4467,
+   "n_entered": 25164,
+   "missed_by_budget": 0,
+   "final_open": 11
+  },
+  "D4": {
+   "total_pnl_pct": 38.3438,
+   "maxdd": -4.1014,
+   "avg_util": 128.4467,
+   "n_entered": 25164,
+   "missed_by_budget": 0,
+   "final_open": 11
+  },
+  "D5": {
+   "total_pnl_pct": -0.0551,
+   "maxdd": -0.3019,
+   "avg_util": 0.4377,
+   "n_entered": 117,
+   "missed_by_budget": 25047,
+   "final_open": 10
+  }
+ }
+}

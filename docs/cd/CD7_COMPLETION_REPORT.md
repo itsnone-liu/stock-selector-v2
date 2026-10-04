@@ -47,3 +47,7 @@ Entry-zone 在 holdout 改善了入场结构（MAE ✅ ret_rel ✅）→ 按 CD-
 ```
 
 **全局状态**：`CD-7 (Round 1) COMPLETE · CD-7D 待裁定 · CSR-8 不变`
+
+## 更正（P0：2026-10-04）
+
+原引擎在 DECAYING-reduce 时先将单单位 `pos` 减到 0，随后 close guard 拒绝记录该 trade，导致 25,164 个 PRIMARY_ZONE 入场中仅 2,813 个生存者进入统计。完整修复与重建见 `cd7_rebuild_results.json`、`CD7D_COMPLETION_REPORT.md`；原文第 1–3 节的绝对 n/ret/MAE/机会成本数字作废。完整 holdout：ZONE n=10,532、ret_rel −5.02%、MAE −5.04%；CHASE n=10,821、ret_rel −6.60%、MAE −7.88%。方向性“ZONE 相对 CHASE 风险更低”仍保留，但原机会成本解释不再保留。

@@ -40,3 +40,7 @@ Pareto 标准逐条：capture ❌（要求 SECONDARY-only ≥500 且 top-decile 
 **口径披露**：strata never（n=4,827）只覆盖 rows 非空 episode，与 R1 全池口径（26,500）不同；主判定不受影响（SECONDARY-only 3.3% 在 C 臂内直接可比）。
 
 **全局状态**：`CD-7R2 COMPLETE · timing 研究停止（信息边界入档）· CD-7D/部署待裁定 · CSR-8 不变`
+
+## 更正（P0：2026-10-04）
+
+原 R1/R2 回放在 DECAYING-reduce 时静默丢失被减仓交易，造成生存者偏差；完整修复结果见 `cd7_rebuild_results.json` 与 `CD7D_COMPLETION_REPORT.md`。SECONDARY-only 修正为 n=1,402、top-decile 8.06%、MAE −9.63%；仍未满足重开 timing 研究的证据门槛。原文中基于 241 笔的绝对统计及 never 池口径不再作为证据。

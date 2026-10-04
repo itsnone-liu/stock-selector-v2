@@ -1,0 +1,37 @@
+{
+ "phase": "CD-7D — Absolute Risk Budget",
+ "authority": "user GO ruling 2026-10-04 (path alpha; sequencing CD-7D -> Round-1 System Freeze -> Shadow Monitoring)",
+ "preregistration_id": "cd7d-prereg-v1",
+ "identity": "risk-management layer, NOT alpha sizing; question = 'after participation allowed, how much absolute risk under different risk contexts'; NEVER 'what sizing makes ret_rel positive'",
+ "architectural_hard_rules": {
+  "sizing_never_bypasses_eligibility": "ENTER from frozen policy (L1 permissions + PRIMARY_ZONE); Risk Budget Engine assigns E-class only AFTER ENTER allowed — no 'small position so buy anyway'",
+  "exit_never_skipped_for_small_position": true,
+  "decaying_no_increase": "DECAYING anywhere -> exposure cannot increase",
+  "structural_failure_e0": true
+ },
+ "e_classes_frozen": {
+  "semantics": "maximum permitted exposure (budget ceiling), NOT exact target position",
+  "E0": 0.0, "E1": 0.5, "E2": 1.0, "E3": 1.5,
+  "rule_table_v1": {
+   "base": "market NEUTRAL regime or lifecycle HOLDING -> E1; SUPPORTIVE + STRENGTHENING + cost inside band -> E2; SUPPORTIVE + STRENGTHENING + inside + sector not FADING/NARROWING -> E3",
+   "restrictive": "regime DEPRESSED/RISK_OFF -> never above E1 (combined with frozen L1 permission gates these regimes mostly deny ENTER already)",
+   "decaying": "ceiling drops to E1, no increase",
+   "failure": "E0 (EXIT by frozen lifecycle rules)"
+  }
+ },
+ "inputs_allowed": ["market permission", "lifecycle state", "PRIMARY_ZONE position quality", "sector risk context", "cost-distance risk", "current portfolio exposure"],
+ "inputs_forbidden": ["BUILDING", "SECONDARY entry", "unvalidated SW2"],
+ "narrowing_role": "risk limiter only (E3 requires sector not FADING/NARROWING)",
+ "portfolio_caps_frozen": {"per_name": 1.5, "sector": 3.0, "concurrent_episodes": 10, "gross_by_regime": {"R_RISK_ON_BROAD": 8.0, "R_RISK_ON_NARROW": 6.0, "R_REBOUND_MIXED": 6.0, "R_DEPRESSED": 2.0, "R_RISK_OFF": 2.0}, "note": "market controls TOTAL budget not stock eligibility; bear regimes low-but-nonzero per CD-4V2 candidate-supply finding"},
+ "replay_semantics_frozen": "daily global calendar; positions changed ONLY by ENTER (allocate min(E-class(T), remaining budget & caps)) / REDUCE (DECAYING below P25: halve, per frozen B-layer rule) / EXIT (terminal/failure or episode end); no other rebalancing",
+ "monotonicity_protocol_frozen": {
+  "question": "do E-classes carry STABLE RISK ORDERING (E0<E1<E2<E3 expected risk) in dev AND holdout?",
+  "per_class_metrics": ["forward MAE", "forward drawdown", "adverse rate", "loss tail (P10 ret)", "episode-failure exposure", "capital utilization"],
+  "judgment": "risk ordering FIRST; return comparison secondary; if E-class cannot order risk -> NO percentage refinement"
+ },
+ "ablations_frozen": {"D0": "fixed equal exposure 1.0 for all ZONE entries", "D1": "+market gross budget", "D2": "+lifecycle ceiling (DECAYING no-increase + halve)", "D3": "+cost-position ceiling (E2/E3 require cost inside band)", "D4": "+sector risk ceiling (E3 requires sector not FADING/NARROWING)", "D5": "+portfolio concentration caps (per-name/sector/concurrent/gross)"},
+ "stop_rule_frozen": "if discrete E-classes fail stable risk monotonicity in holdout without credible structural explanation -> STOP sizing research entirely (no continuous search); proceed to shadow as discrete permission+lifecycle+ZONE+EXIT/REDUCE system",
+ "after_pass": "Round-1 System Freeze -> Shadow Monitoring (full chain daily, NO ORDER NO CAPITAL, knew-at-T/emitted/afterward records, structural-drift monitoring: axis/regime/candidate-throughput/source-mix/episode-duration/lifecycle-share/ZONE-frequency/decision-frequency/E-class distribution)",
+ "prohibited": ["continuous sizing search", "sizing to rescue negative alpha", "reviving CHASE/SECONDARY/BUILDING", "P75 discriminator"],
+ "status": "PREREGISTERED"
+}
