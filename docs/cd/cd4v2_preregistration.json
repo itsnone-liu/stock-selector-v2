@@ -1,0 +1,36 @@
+{
+ "phase": "CD-4V2 — Regime-aware Multi-source Candidate Architecture",
+ "authority": "user GO ruling 2026-10-04 (verbatim structure frozen; V2 goal = stable candidate resource-scheduling layer, NOT repairing V1, NOT alpha)",
+ "preregistration_id": "cd4v2-prereg-v1",
+ "architecture_frozen": {
+  "pipeline": "Universe -> Hard Exclusions ONLY -> Observation Pool -> {LONG structural | MID emerging | SHORT event} sources -> UNION -> candidate_source[] per stock -> + market regime metadata (daily + 20d mode) + sector context metadata -> Candidate Pool",
+  "no_hard_and_gates": "LONG/MID/SHORT are independent candidate sources, never chained AND filters (V1 negative conclusion frozen)",
+  "observation_pool_restraint": "basic research eligibility ONLY: >=120 sessions history; tradable (>=10 active days in trailing 60); data completeness; liquidity (20d mean volume >= market 2nd percentile at T); no low-price anomaly (qfq close >= 2.0). NO stealth alpha conditions. Declared OBSERVABILITY_LIMITATION: st_flag/free_float/turnover_rate unavailable in DATA-1 — carried as marker on every pool row, never fabricated"
+ },
+ "source_definitions": "inherited VERBATIM from cd4_preregistration (T_LONG: close>500d mean & 24m ret>0; T_MID: 65d ret>0 & v20>1.5x own 250d median volume; T_SHORT: within trailing 20 sessions a 60-session new high on a day with vol>2x trailing-20 mean) — NO threshold changes",
+ "regime_metadata_frozen": {
+  "regime_daily": "from l1_market_axes table as built (CD-4.5)",
+  "regime_20d_mode": "trailing 20-session MODE of regime_daily, fully trailing, window NOT searched, NOT adjusted by V2 outcomes; raw daily value always retained alongside"
+ },
+ "evaluation_frozen": {
+  "checkpoints": "month-end sessions 2021-06..2026-09 (64, as V1)",
+  "recall": "share of forward-60d top-decile market-relative-return stocks (among Observation Pool, evaluation only) retained by each source-set; EVALUATION ONLY — never selects thresholds/windows/rules",
+  "incremental_protocol": "LONG -> +MID -> +SHORT; each step reports pool_size, recall, incremental_recall (pp), incremental_pool_cost (stocks added per pp)",
+  "seven_intersections": "L-only / M-only / S-only / L&M / L&S / M&S / L&M&S with count, recall contribution, median tenure, regime distribution",
+  "tenure": "(a) monthly: consecutive checkpoints in candidate pool (and per-source membership runs), P(remain after +1/+3/+6 checkpoints), re-entry rate; (b) daily-continuity: re-run frozen trailing source definitions at +5/+20/+60 trade days after each checkpoint, P(source still true)",
+  "regime_stratification": "source pool sizes + recall by regime_20d_mode — CONTEXT ONLY; regime-specific thresholds PROHIBITED",
+  "pareto_frontier": "over source-set combinations {L, M, S, L|M, L|S, M|S, L|M|S}: (median pool size, median recall, median monthly Jaccard stability, regime robustness = recall range across regimes); report NON-DOMINATED points only, no single 'best'",
+  "empty_pools_legal": "any source may be empty in some regimes (Observation Pool persisting is what matters)"
+ },
+ "six_mandatory_questions": {
+  "Q1": "Observation Pool stable?",
+  "Q2": "sources provide complementary recall?",
+  "Q3": "source tenures significantly different?",
+  "Q4": "union raises recall substantially at reasonable pool size?",
+  "Q5": "structure holds across regimes?",
+  "Q6_COMPLETION_GATE": "stable candidate->episode input for CD-5 established?"
+ },
+ "cd5_entry_conditions_frozen": ["(1) Observation Pool stable enough for longitudinal tracking", "(2) candidate_source[] semantics frozen", "(3) V2 architecture frozen without outcome tuning", "(4) episode start definable from candidate-source events", "(5) candidate disappearance not conflated with lifecycle termination — NO recall% requirement"],
+ "prohibited": ["regime-specific thresholds", "threshold/window/rule selection by recall", "composite score", "final ranking", "CD-5 work", "fabricating missing fundamentals"],
+ "status": "PREREGISTERED"
+}
