@@ -1,0 +1,30 @@
+{
+ "phase": "CD-2A — Axis Discretization (first sublayer of CD-2 L2 Sector Observable State Model)",
+ "authority": "user GO ruling 2026-10-04 — 'L2 sector observable-state operationalization' NOT a lifecycle classifier; observation layer states facts, interpretation layer economics; intent words (吸筹/派发/主力) prohibited in observation layer",
+ "preregistration_id": "cd2a-prereg-v1",
+ "inputs": "CD-1B four-axis table (docs/cd/cd1b_axes_run.json + data/cd/sector_axes/l2_four_axes.json.gz, sha 0f747662efa35818); OK rows only (98,013); INSUFFICIENT_PARTICIPATION/NO_TRADING_MEMBERS rows propagate as INSUFFICIENT_SUPPORT — never rescued",
+ "development_window": {
+  "fit": "2021-01-04..2023-12-29 (dev window, ~3/5 of sample)",
+  "holdout": "2024-01-01..2026-09-30 — ZERO threshold fitting on holdout; holdout bands are pure application of frozen dev thresholds (PIT-clean: at any date in holdout the thresholds were determined strictly from prior data)",
+  "freeze_rule": "thresholds frozen once at CD-2A census; moving them later to make states 'look more reasonable' is CONTRACT VIOLATION (Phase J lesson)"
+ },
+ "axis_variables_and_discretization": {
+  "RP_axis": {"variable": "rel_eq_mkt (sector equal-weight return minus market equal-weight return, per day)", "bands": "LOW / MID / HIGH via dev-window quantiles q33/q67 pooled over all (sector,date) OK rows", "sensitivity_only": "rel_vw_mkt same discretization recorded but NOT used in state generation (declared sensitivity, avoids dual-track freedom)"},
+  "PARTICIPATION_axis": {"variable": "d_share = vol_share - vol_share_20d (current participation vs its own trailing 20-day level, per sector-day)", "bands": "FALLING / FLAT / EXPANDING via dev-window quantiles q33/q67 of d_share", "note": "labels describe trading participation change ONLY; 'capital inflow/outflow' is prohibited phrasing (volume proxy, amount gap declared in CD-1B)"},
+  "BREADTH_axis": {"variable": "advance_frac", "bands": "LOW / MID / HIGH via dev-window quantiles q33/q67", "sensitivity_only": "new_high_frac recorded alongside, not in state generation"},
+  "CONCENTRATION_axis": {"variable": "ret_contrib_top5 (top5 share of positive return contributions)", "bands": "LOW / MID / HIGH via dev-window quantiles q33/q67", "null_days": "ret_contrib_top5 is NULL on no-positive-contribution days (4.1% of OK rows) -> concentration band = NULL, state emission rules handle NULL explicitly (never imputed)"},
+  "DISPERSION_axis": {"variable": "ret_gap = top5_mean_ret - rest_mean_ret (volume-ranked top5 vs rest)", "bands": "LOW / MID / HIGH via dev-window quantiles q33/q67", "null_days": "NULL when sector-day has <6 participants (2.6%) -> handled explicitly"}
+ },
+ "census_protocol_support_first": {
+  "per_axis": ["n non-null", "q10/q25/q33/q50/q67/q75/q90 dev-window", "q33/q67 full-window comparison (drift measure)", "annual q33/q67 stability across 2021/2022/2023 dev years"],
+  "sector_size_stratification": "members groups SMALL(5-14)/MID(15-49)/LARGE(>=50) by median participating n; per-axis q33/q67 WITHIN each size stratum; if cross-stratum threshold drift > 0.10 in band probability terms (fraction of MID-band under other stratum's thresholds differs by >10pp), ADOPT SIZE-STRATIFIED THRESHOLDS (structural, frozen per stratum) — else single pooled thresholds",
+  "decision_rule": "census decides pooled vs stratified BEFORE any state is computed; the choice and its evidence are recorded in the threshold table; no post-hoc switching"
+ },
+ "output_contracts": {
+  "cd2a_threshold_table": "docs/cd/cd2a_thresholds.json — per axis: variable, window, pooled q33/q67, stratum q33/q67 (if adopted), drift evidence, freeze timestamp, census sha",
+  "cd2a_band_table": "data/cd/sector_axes/l2_axis_bands.json.gz — per (sector,date): band per axis + INSUFFICIENT_SUPPORT propagation; deterministic dual-run sha check",
+  "coverage_report": "per-sector band emission counts + NULL counts per axis (concentration/dispersion NULL days explicit)"
+ },
+ "prohibited": ["threshold scanning for final-state aesthetics", "rescuing small sectors", "holdout-informed thresholds", "intent vocabulary in band/state names", "composite score or ranking"],
+ "status": "PREREGISTERED"
+}

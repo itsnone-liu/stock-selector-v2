@@ -1,0 +1,41 @@
+{
+ "phase": "CD-2B — Observable Sector State (base_state x modifier) + CD-2C — Transition Semantics",
+ "authority": "user GO ruling 2026-10-04 (base+modifier architecture preferred over 8 mutually-exclusive states; path-level not single-day lifecycle; no presupposed four-stage cycle)",
+ "preregistration_id": "cd2b2c-prereg-v1",
+ "cd2b_base_state_rules_frozen": {
+  "inputs": "cd2a band table (sha a93927cacee06466); per (l2,date) bands rp/breadth/part/conc/disp",
+  "grid_3x3_rp_x_breadth": {
+   "rp=HIGH,breadth=HIGH": "BROAD_STRENGTH",
+   "rp=HIGH,breadth=MID": "NARROW_STRENGTH",
+   "rp=HIGH,breadth=LOW": "NARROW_STRENGTH",
+   "rp=MID,breadth=HIGH": "NEUTRAL_WIDE_UP", "rp=MID,breadth=MID": "NEUTRAL", "rp=MID,breadth=LOW": "NEUTRAL_WIDE_DOWN",
+   "rp=LOW,breadth=LOW": "BROAD_WEAKNESS",
+   "rp=LOW,breadth=MID": "NARROW_WEAKNESS",
+   "rp=LOW,breadth=HIGH": "NARROW_WEAKNESS (few drag the many: sector weak vs market while most members advance)"
+  },
+  "divergent_override": "if disp=HIGH and rp in (MID,HIGH): base=DIVERGENT (top5 vs rest split refutes the uniform-strength narrative; recorded BEFORE modifiers)",
+  "null_handling": "conc NULL (no positive contributions) -> HIGH_CONCENTRATION modifier absent, base unaffected; disp NULL (<6 participants) -> no DIVERGENT check, base from grid",
+  "insufficient": "band-table INSUFFICIENT_SUPPORT rows propagate: sector_state=INSUFFICIENT_SUPPORT, no base, no modifiers (12 permanent small sectors + boundary days)"
+ },
+ "cd2b_modifiers_frozen": {
+  "PARTICIPATION_EXPANDING": "part=EXPANDING (size-stratified thresholds)",
+  "PARTICIPATION_FADING": "part=FALLING",
+  "HIGH_CONCENTRATION": "conc=HIGH (size-stratified)",
+  "HIGH_DISPERSION": "disp=HIGH",
+  "note": "modifiers are independent flags (set-valued), not mutually exclusive; phrasing describes trading participation / return contribution only — NO capital-inflow or intent vocabulary"
+ },
+ "cd2b_support_census_mandatory": "every emitted (base_state, modifier-set) combo gets: total count, #sectors, #years present, per-year counts; combos with <100 sector-days or <3 sectors are tagged LOW_SUPPORT (still recorded, flagged for CD-2C exclusion decisions by the CONSUMER phase, not silently dropped)",
+ "cd2c_transition_rules_frozen_v1": {
+  "window": "trailing 5 sessions (T-4..T) of base+modifier sequence per sector; emitted as daily path labels (each day T gets a label if conditions met, else NO_PATH)",
+  "path_definitions": {
+   "EXPANSION": "base(T)=BROAD_STRENGTH AND part(T)=EXPANDING AND base(T-4..T-1) not all BROAD_STRENGTH (recent arrival)",
+   "NARROWING": "rp HIGH on >=4 of 5 sessions AND breadth band declined from HIGH to MID/LOW within window AND conc(T)=HIGH AND base(T) in (NARROW_STRENGTH,DIVERGENT)",
+   "FADING": "base(T)=BROAD_WEAKNESS AND part(T)=FALLING",
+   "BUILDING": "base(T-4..T-1) all in (NEUTRAL,NEUTRAL_WIDE_UP,NEUTRAL_WIDE_DOWN) AND part EXPANDING on >=3 of 5 AND breadth(T) in (MID,HIGH) AND rp(T) in (MID,HIGH)"
+  },
+  "transition_matrix": "base_t -> base_t+1 counts (all sector-days), plus per-year, plus path-label co-occurrence; answers 'which paths actually recur' WITHOUT presupposing 吸筹→拉升→派发→退潮",
+  "economic_mapping_deferred": "mapping BUILDING/EXPANSION/NARROWING/FADING to 积累/扩张/集中/退潮 happens ONLY in the report interpretation section, labeled INTERPRETATION with uncertainty; observation artifacts never contain intent words"
+ },
+ "prohibited": ["threshold movement after freeze", "small-sector rescue", "intent vocabulary in artifacts", "composite score", "sector ranking", "CD-3 production"],
+ "status": "PREREGISTERED"
+}

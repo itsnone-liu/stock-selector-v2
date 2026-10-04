@@ -1,0 +1,231 @@
+{
+ "frozen_at": "2026-10-04T18:21:33",
+ "source_sha_rows": "0f747662efa35818\u2026",
+ "dev_window_end": "2023-12-31",
+ "thresholds": {
+  "rp": {
+   "variable": "rel_eq_mkt",
+   "n_dev_nonnull": 50735,
+   "pooled_q33_q67": [
+    -0.00466405,
+    0.00319164
+   ],
+   "stratum_q33_q67": {
+    "SMALL": [
+     -0.00587963,
+     0.00391989
+    ],
+    "MID": [
+     -0.00525795,
+     0.00369273
+    ],
+    "LARGE": [
+     -0.00369702,
+     0.00248457
+    ]
+   },
+   "stratum_midband_drift_abs": {
+    "SMALL": 0.0609,
+    "MID": 0.0387,
+    "LARGE": 0.0814
+   },
+   "annual_pooled_q33_q67": {
+    "2021": [
+     -0.004986,
+     0.003088
+    ],
+    "2022": [
+     -0.00497,
+     0.003789
+    ],
+    "2023": [
+     -0.004138,
+     0.002846
+    ]
+   },
+   "adopted": "POOLED"
+  },
+  "part": {
+   "variable": "vol_share - vol_share_20d",
+   "n_dev_nonnull": 50735,
+   "pooled_q33_q67": [
+    -0.00035167,
+    0.000115
+   ],
+   "stratum_q33_q67": {
+    "SMALL": [
+     -0.000122,
+     3.2e-05
+    ],
+    "MID": [
+     -0.000311,
+     0.000115
+    ],
+    "LARGE": [
+     -0.001416,
+     0.000592
+    ]
+   },
+   "stratum_midband_drift_abs": {
+    "SMALL": 0.2983,
+    "MID": 0.0236,
+    "LARGE": 0.2394
+   },
+   "annual_pooled_q33_q67": {
+    "2021": [
+     -0.000391,
+     0.000137
+    ],
+    "2022": [
+     -0.000407,
+     0.000142
+    ],
+    "2023": [
+     -0.000278,
+     7.9e-05
+    ]
+   },
+   "adopted": "SIZE_STRATIFIED"
+  },
+  "breadth": {
+   "variable": "advance_frac",
+   "n_dev_nonnull": 50735,
+   "pooled_q33_q67": [
+    0.294318,
+    0.620253
+   ],
+   "stratum_q33_q67": {
+    "SMALL": [
+     0.285714,
+     0.636364
+    ],
+    "MID": [
+     0.290323,
+     0.625
+    ],
+    "LARGE": [
+     0.31704633,
+     0.60853567
+    ]
+   },
+   "stratum_midband_drift_abs": {
+    "SMALL": 0.0438,
+    "MID": 0.0151,
+    "LARGE": 0.041
+   },
+   "annual_pooled_q33_q67": {
+    "2021": [
+     0.333333,
+     0.6
+    ],
+    "2022": [
+     0.285714,
+     0.655172
+    ],
+    "2023": [
+     0.277778,
+     0.612903
+    ]
+   },
+   "adopted": "POOLED"
+  },
+  "conc": {
+   "variable": "ret_contrib_top5",
+   "n_dev_nonnull": 48786,
+   "pooled_q33_q67": [
+    0.81356567,
+    0.985624
+   ],
+   "stratum_q33_q67": {
+    "SMALL": [
+     0.99505133,
+     1.0
+    ],
+    "MID": [
+     0.86553267,
+     0.98758867
+    ],
+    "LARGE": [
+     0.656054,
+     0.841808
+    ]
+   },
+   "stratum_midband_drift_abs": {
+    "SMALL": 0.1959,
+    "MID": 0.0754,
+    "LARGE": 0.0146
+   },
+   "annual_pooled_q33_q67": {
+    "2021": [
+     0.822344,
+     0.986781
+    ],
+    "2022": [
+     0.796736,
+     0.983262
+    ],
+    "2023": [
+     0.820791,
+     0.986411
+    ]
+   },
+   "adopted": "SIZE_STRATIFIED"
+  },
+  "disp": {
+   "variable": "top5_mean_ret - rest_mean_ret",
+   "n_dev_nonnull": 49560,
+   "pooled_q33_q67": [
+    -0.00388073,
+    0.00913663
+   ],
+   "stratum_q33_q67": {
+    "SMALL": [
+     -0.00395271,
+     0.00654161
+    ],
+    "MID": [
+     -0.00372817,
+     0.00900196
+    ],
+    "LARGE": [
+     -0.00396469,
+     0.01149298
+    ]
+   },
+   "stratum_midband_drift_abs": {
+    "SMALL": 0.0633,
+    "MID": 0.006,
+    "LARGE": 0.0477
+   },
+   "annual_pooled_q33_q67": {
+    "2021": [
+     -0.004437,
+     0.011154
+    ],
+    "2022": [
+     -0.003896,
+     0.00956
+    ],
+    "2023": [
+     -0.003485,
+     0.007233
+    ]
+   },
+   "adopted": "POOLED"
+  }
+ },
+ "band_table_sha256": "c17903b2cac57f142fe9d9ac6b02d4312856a06c1ad1cf852d3b0b3d464806a1",
+ "n_rows": 115619,
+ "null_counts": {
+  "rp": 17606,
+  "part": 17606,
+  "breadth": 17606,
+  "conc": 21587,
+  "disp": 20118
+ },
+ "erratum": {
+  "id": "ERRATUM-CD2A-1",
+  "issue": "part axis emitted LOW/MID/HIGH labels; preregistration mandates FALLING/FLAT/EXPANDING (directional semantics)",
+  "fix": "in-place label rewrite of the part field only; thresholds, quantiles, all other axes unchanged; recomputed sha recorded"
+ }
+}
