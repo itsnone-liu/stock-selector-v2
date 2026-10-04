@@ -1,13 +1,10 @@
 {
   "gate":"G-SHADOW-AUTHORITY",
   "status":"NOT_READY",
-  "pilot_status":"PARTIAL_MATERIALIZATION_REJECTED",
-  "materializer":"scripts/cd_shadow_materialize_pilot.py",
-  "materialized_pilot_dates":["2022-04-29","2023-03-31","2024-06-28","2025-12-31","2026-09-30"],
-  "unavailable_requested_date":["2021-07-30"],
-  "reason":"Pilot artifacts can be deterministically expanded for available L1 dates, but G-SHADOW-AUTHORITY correctly rejects them because the mandatory independent CD-7 REDUCED_OUT regression anchor is absent. The current aggregate corrected result does not contain event-level terminal records from which that anchor can be extracted.",
-  "p0_regression":"BLOCKED_NOT_EVIDENCED",
-  "circular_self_proof":"forbidden",
-  "artifact_policy":"Pilot files are not promoted as authority and must not be consumed as SHADOW_VALID evidence until the authority gate passes.",
-  "next_allowed_action":"Obtain an independent event-level corrected CD-7 authority fixture proving DECAYING -> REDUCE -> position zero -> exactly one REDUCED_OUT close; then rerun authority and parity gates."
+  "pilot_status":"P0_REGRESSION_PASS_BUT_AUTHORITY_NOT_PROMOTED",
+  "p0_regression":"PASS",
+  "p0_package":"docs/cd/shadow_p0_regression",
+  "p0_gate_result":"docs/cd/shadow_p0_regression/gate_result.json",
+  "reason":"The event-level REDUCED_OUT evidence gap is closed. Pilot authority artifacts still require the full authority provenance gate and historical parity matrix before promotion to formal shadow_authority.",
+  "next_sequence":["G-SHADOW-AUTHORITY","promote pilot artifacts only after PASS","G-SHADOW-PARITY","G-SHADOW-RUNTIME-READY"]
 }
