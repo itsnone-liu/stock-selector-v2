@@ -1,0 +1,865 @@
+{
+  "pack": "Historical Semantic Anchor Pack",
+  "gate": "G-SHADOW-SEMANTIC-ANCHORS",
+  "status": "ANCHORS_GENERATED",
+  "dates": [
+    "2022-04-29",
+    "2023-03-31",
+    "2024-06-28",
+    "2025-12-31",
+    "2026-09-30"
+  ],
+  "anchors": [
+    {
+      "anchor_id": "A-L1-2022-04-29-regime",
+      "asof": "2022-04-29",
+      "semantic_field": "market_regime_daily",
+      "expected": "R_REBOUND_MIXED",
+      "source_inputs": {
+        "l1": "cd7729f293e5b953afa8e9be5dd205314b1f4fc978f38ab2fa2dc6fe4729e3cb"
+      },
+      "oracle": "independent_semantic_audit",
+      "uses_runtime_code": false
+    },
+    {
+      "anchor_id": "A-L1-2022-04-29-axes",
+      "asof": "2022-04-29",
+      "semantic_field": "market_axes_present",
+      "expected": [
+        "breadth",
+        "conc50",
+        "eq_ret",
+        "vol"
+      ],
+      "source_inputs": {
+        "l1": "cd7729f293e5b953afa8e9be5dd205314b1f4fc978f38ab2fa2dc6fe4729e3cb"
+      },
+      "oracle": "independent_semantic_audit",
+      "uses_runtime_code": false
+    },
+    {
+      "anchor_id": "A-L3-2022-04-29-L",
+      "asof": "2022-04-29",
+      "semantic_field": "candidate_source_L",
+      "expected": {
+        "count": 0,
+        "sample": []
+      },
+      "source_inputs": {
+        "l3": "b6a8d3ec916a1c6f9976c88b89354ba67603f1a936544ad62321c46a17d6f08a"
+      },
+      "oracle": "independent_semantic_audit",
+      "uses_runtime_code": false
+    },
+    {
+      "anchor_id": "A-L3-2022-04-29-M",
+      "asof": "2022-04-29",
+      "semantic_field": "candidate_source_M",
+      "expected": {
+        "count": 278,
+        "sample": [
+          "000011",
+          "000014",
+          "000029"
+        ]
+      },
+      "source_inputs": {
+        "l3": "b6a8d3ec916a1c6f9976c88b89354ba67603f1a936544ad62321c46a17d6f08a"
+      },
+      "oracle": "independent_semantic_audit",
+      "uses_runtime_code": false
+    },
+    {
+      "anchor_id": "A-L3-2022-04-29-S",
+      "asof": "2022-04-29",
+      "semantic_field": "candidate_source_S",
+      "expected": {
+        "count": 430,
+        "sample": [
+          "000006",
+          "000011",
+          "000014"
+        ]
+      },
+      "source_inputs": {
+        "l3": "b6a8d3ec916a1c6f9976c88b89354ba67603f1a936544ad62321c46a17d6f08a"
+      },
+      "oracle": "independent_semantic_audit",
+      "uses_runtime_code": false
+    },
+    {
+      "anchor_id": "A-L3-2022-04-29-U_list",
+      "asof": "2022-04-29",
+      "semantic_field": "candidate_source_U_list",
+      "expected": {
+        "count": 557,
+        "sample": [
+          "000006",
+          "000011",
+          "000014"
+        ]
+      },
+      "source_inputs": {
+        "l3": "b6a8d3ec916a1c6f9976c88b89354ba67603f1a936544ad62321c46a17d6f08a"
+      },
+      "oracle": "independent_semantic_audit",
+      "uses_runtime_code": false
+    },
+    {
+      "anchor_id": "A-L2-2022-04-29-A01",
+      "asof": "2022-04-29",
+      "semantic_field": "sector_state",
+      "entity": "A01",
+      "expected": {
+        "state": null,
+        "base": "NARROW_WEAKNESS",
+        "mods": [
+          "PARTICIPATION_FADING"
+        ]
+      },
+      "source_inputs": {
+        "l2": "2ab0f0d68b0466bfebccc0e29cf807657f9a16bfca5a2f9e164573e6af39e18d"
+      },
+      "oracle": "independent_semantic_audit",
+      "uses_runtime_code": false
+    },
+    {
+      "anchor_id": "A-L2-2022-04-29-A02",
+      "asof": "2022-04-29",
+      "semantic_field": "sector_state",
+      "entity": "A02",
+      "expected": {
+        "state": "INSUFFICIENT_SUPPORT",
+        "base": null,
+        "mods": []
+      },
+      "source_inputs": {
+        "l2": "2ab0f0d68b0466bfebccc0e29cf807657f9a16bfca5a2f9e164573e6af39e18d"
+      },
+      "oracle": "independent_semantic_audit",
+      "uses_runtime_code": false
+    },
+    {
+      "anchor_id": "A-L2-2022-04-29-A03",
+      "asof": "2022-04-29",
+      "semantic_field": "sector_state",
+      "entity": "A03",
+      "expected": {
+        "state": null,
+        "base": "NARROW_WEAKNESS",
+        "mods": []
+      },
+      "source_inputs": {
+        "l2": "2ab0f0d68b0466bfebccc0e29cf807657f9a16bfca5a2f9e164573e6af39e18d"
+      },
+      "oracle": "independent_semantic_audit",
+      "uses_runtime_code": false
+    },
+    {
+      "anchor_id": "A-L1-2023-03-31-regime",
+      "asof": "2023-03-31",
+      "semantic_field": "market_regime_daily",
+      "expected": "R_RISK_ON_BROAD",
+      "source_inputs": {
+        "l1": "cd7729f293e5b953afa8e9be5dd205314b1f4fc978f38ab2fa2dc6fe4729e3cb"
+      },
+      "oracle": "independent_semantic_audit",
+      "uses_runtime_code": false
+    },
+    {
+      "anchor_id": "A-L1-2023-03-31-axes",
+      "asof": "2023-03-31",
+      "semantic_field": "market_axes_present",
+      "expected": [
+        "breadth",
+        "conc50",
+        "eq_ret",
+        "vol"
+      ],
+      "source_inputs": {
+        "l1": "cd7729f293e5b953afa8e9be5dd205314b1f4fc978f38ab2fa2dc6fe4729e3cb"
+      },
+      "oracle": "independent_semantic_audit",
+      "uses_runtime_code": false
+    },
+    {
+      "anchor_id": "A-L3-2023-03-31-L",
+      "asof": "2023-03-31",
+      "semantic_field": "candidate_source_L",
+      "expected": {
+        "count": 1801,
+        "sample": [
+          "000006",
+          "000007",
+          "000014"
+        ]
+      },
+      "source_inputs": {
+        "l3": "b6a8d3ec916a1c6f9976c88b89354ba67603f1a936544ad62321c46a17d6f08a"
+      },
+      "oracle": "independent_semantic_audit",
+      "uses_runtime_code": false
+    },
+    {
+      "anchor_id": "A-L3-2023-03-31-M",
+      "asof": "2023-03-31",
+      "semantic_field": "candidate_source_M",
+      "expected": {
+        "count": 1148,
+        "sample": [
+          "000016",
+          "000021",
+          "000026"
+        ]
+      },
+      "source_inputs": {
+        "l3": "b6a8d3ec916a1c6f9976c88b89354ba67603f1a936544ad62321c46a17d6f08a"
+      },
+      "oracle": "independent_semantic_audit",
+      "uses_runtime_code": false
+    },
+    {
+      "anchor_id": "A-L3-2023-03-31-S",
+      "asof": "2023-03-31",
+      "semantic_field": "candidate_source_S",
+      "expected": {
+        "count": 1113,
+        "sample": [
+          "000016",
+          "000021",
+          "000027"
+        ]
+      },
+      "source_inputs": {
+        "l3": "b6a8d3ec916a1c6f9976c88b89354ba67603f1a936544ad62321c46a17d6f08a"
+      },
+      "oracle": "independent_semantic_audit",
+      "uses_runtime_code": false
+    },
+    {
+      "anchor_id": "A-L3-2023-03-31-U_list",
+      "asof": "2023-03-31",
+      "semantic_field": "candidate_source_U_list",
+      "expected": {
+        "count": 2595,
+        "sample": [
+          "000006",
+          "000007",
+          "000014"
+        ]
+      },
+      "source_inputs": {
+        "l3": "b6a8d3ec916a1c6f9976c88b89354ba67603f1a936544ad62321c46a17d6f08a"
+      },
+      "oracle": "independent_semantic_audit",
+      "uses_runtime_code": false
+    },
+    {
+      "anchor_id": "A-L2-2023-03-31-A01",
+      "asof": "2023-03-31",
+      "semantic_field": "sector_state",
+      "entity": "A01",
+      "expected": {
+        "state": null,
+        "base": "DIVERGENT",
+        "mods": [
+          "PARTICIPATION_EXPANDING",
+          "HIGH_DISPERSION"
+        ]
+      },
+      "source_inputs": {
+        "l2": "2ab0f0d68b0466bfebccc0e29cf807657f9a16bfca5a2f9e164573e6af39e18d"
+      },
+      "oracle": "independent_semantic_audit",
+      "uses_runtime_code": false
+    },
+    {
+      "anchor_id": "A-L2-2023-03-31-A02",
+      "asof": "2023-03-31",
+      "semantic_field": "sector_state",
+      "entity": "A02",
+      "expected": {
+        "state": "INSUFFICIENT_SUPPORT",
+        "base": null,
+        "mods": []
+      },
+      "source_inputs": {
+        "l2": "2ab0f0d68b0466bfebccc0e29cf807657f9a16bfca5a2f9e164573e6af39e18d"
+      },
+      "oracle": "independent_semantic_audit",
+      "uses_runtime_code": false
+    },
+    {
+      "anchor_id": "A-L2-2023-03-31-A03",
+      "asof": "2023-03-31",
+      "semantic_field": "sector_state",
+      "entity": "A03",
+      "expected": {
+        "state": null,
+        "base": "DIVERGENT",
+        "mods": [
+          "PARTICIPATION_EXPANDING",
+          "HIGH_DISPERSION"
+        ]
+      },
+      "source_inputs": {
+        "l2": "2ab0f0d68b0466bfebccc0e29cf807657f9a16bfca5a2f9e164573e6af39e18d"
+      },
+      "oracle": "independent_semantic_audit",
+      "uses_runtime_code": false
+    },
+    {
+      "anchor_id": "A-L1-2024-06-28-regime",
+      "asof": "2024-06-28",
+      "semantic_field": "market_regime_daily",
+      "expected": "R_DEPRESSED",
+      "source_inputs": {
+        "l1": "cd7729f293e5b953afa8e9be5dd205314b1f4fc978f38ab2fa2dc6fe4729e3cb"
+      },
+      "oracle": "independent_semantic_audit",
+      "uses_runtime_code": false
+    },
+    {
+      "anchor_id": "A-L1-2024-06-28-axes",
+      "asof": "2024-06-28",
+      "semantic_field": "market_axes_present",
+      "expected": [
+        "breadth",
+        "conc50",
+        "eq_ret",
+        "vol"
+      ],
+      "source_inputs": {
+        "l1": "cd7729f293e5b953afa8e9be5dd205314b1f4fc978f38ab2fa2dc6fe4729e3cb"
+      },
+      "oracle": "independent_semantic_audit",
+      "uses_runtime_code": false
+    },
+    {
+      "anchor_id": "A-L3-2024-06-28-L",
+      "asof": "2024-06-28",
+      "semantic_field": "candidate_source_L",
+      "expected": {
+        "count": 743,
+        "sample": [
+          "000017",
+          "000021",
+          "000027"
+        ]
+      },
+      "source_inputs": {
+        "l3": "b6a8d3ec916a1c6f9976c88b89354ba67603f1a936544ad62321c46a17d6f08a"
+      },
+      "oracle": "independent_semantic_audit",
+      "uses_runtime_code": false
+    },
+    {
+      "anchor_id": "A-L3-2024-06-28-M",
+      "asof": "2024-06-28",
+      "semantic_field": "candidate_source_M",
+      "expected": {
+        "count": 455,
+        "sample": [
+          "000021",
+          "000035",
+          "000037"
+        ]
+      },
+      "source_inputs": {
+        "l3": "b6a8d3ec916a1c6f9976c88b89354ba67603f1a936544ad62321c46a17d6f08a"
+      },
+      "oracle": "independent_semantic_audit",
+      "uses_runtime_code": false
+    },
+    {
+      "anchor_id": "A-L3-2024-06-28-S",
+      "asof": "2024-06-28",
+      "semantic_field": "candidate_source_S",
+      "expected": {
+        "count": 355,
+        "sample": [
+          "000021",
+          "000035",
+          "000037"
+        ]
+      },
+      "source_inputs": {
+        "l3": "b6a8d3ec916a1c6f9976c88b89354ba67603f1a936544ad62321c46a17d6f08a"
+      },
+      "oracle": "independent_semantic_audit",
+      "uses_runtime_code": false
+    },
+    {
+      "anchor_id": "A-L3-2024-06-28-U_list",
+      "asof": "2024-06-28",
+      "semantic_field": "candidate_source_U_list",
+      "expected": {
+        "count": 1125,
+        "sample": [
+          "000017",
+          "000021",
+          "000027"
+        ]
+      },
+      "source_inputs": {
+        "l3": "b6a8d3ec916a1c6f9976c88b89354ba67603f1a936544ad62321c46a17d6f08a"
+      },
+      "oracle": "independent_semantic_audit",
+      "uses_runtime_code": false
+    },
+    {
+      "anchor_id": "A-L2-2024-06-28-A01",
+      "asof": "2024-06-28",
+      "semantic_field": "sector_state",
+      "entity": "A01",
+      "expected": {
+        "state": null,
+        "base": "NEUTRAL",
+        "mods": [
+          "PARTICIPATION_FADING",
+          "HIGH_CONCENTRATION"
+        ]
+      },
+      "source_inputs": {
+        "l2": "2ab0f0d68b0466bfebccc0e29cf807657f9a16bfca5a2f9e164573e6af39e18d"
+      },
+      "oracle": "independent_semantic_audit",
+      "uses_runtime_code": false
+    },
+    {
+      "anchor_id": "A-L2-2024-06-28-A02",
+      "asof": "2024-06-28",
+      "semantic_field": "sector_state",
+      "entity": "A02",
+      "expected": {
+        "state": "INSUFFICIENT_SUPPORT",
+        "base": null,
+        "mods": []
+      },
+      "source_inputs": {
+        "l2": "2ab0f0d68b0466bfebccc0e29cf807657f9a16bfca5a2f9e164573e6af39e18d"
+      },
+      "oracle": "independent_semantic_audit",
+      "uses_runtime_code": false
+    },
+    {
+      "anchor_id": "A-L2-2024-06-28-A03",
+      "asof": "2024-06-28",
+      "semantic_field": "sector_state",
+      "entity": "A03",
+      "expected": {
+        "state": null,
+        "base": "BROAD_WEAKNESS",
+        "mods": [
+          "HIGH_CONCENTRATION"
+        ]
+      },
+      "source_inputs": {
+        "l2": "2ab0f0d68b0466bfebccc0e29cf807657f9a16bfca5a2f9e164573e6af39e18d"
+      },
+      "oracle": "independent_semantic_audit",
+      "uses_runtime_code": false
+    },
+    {
+      "anchor_id": "A-L1-2025-12-31-regime",
+      "asof": "2025-12-31",
+      "semantic_field": "market_regime_daily",
+      "expected": "R_RISK_ON_BROAD",
+      "source_inputs": {
+        "l1": "cd7729f293e5b953afa8e9be5dd205314b1f4fc978f38ab2fa2dc6fe4729e3cb"
+      },
+      "oracle": "independent_semantic_audit",
+      "uses_runtime_code": false
+    },
+    {
+      "anchor_id": "A-L1-2025-12-31-axes",
+      "asof": "2025-12-31",
+      "semantic_field": "market_axes_present",
+      "expected": [
+        "breadth",
+        "conc50",
+        "eq_ret",
+        "vol"
+      ],
+      "source_inputs": {
+        "l1": "cd7729f293e5b953afa8e9be5dd205314b1f4fc978f38ab2fa2dc6fe4729e3cb"
+      },
+      "oracle": "independent_semantic_audit",
+      "uses_runtime_code": false
+    },
+    {
+      "anchor_id": "A-L3-2025-12-31-L",
+      "asof": "2025-12-31",
+      "semantic_field": "candidate_source_L",
+      "expected": {
+        "count": 3179,
+        "sample": [
+          "000001",
+          "000006",
+          "000007"
+        ]
+      },
+      "source_inputs": {
+        "l3": "b6a8d3ec916a1c6f9976c88b89354ba67603f1a936544ad62321c46a17d6f08a"
+      },
+      "oracle": "independent_semantic_audit",
+      "uses_runtime_code": false
+    },
+    {
+      "anchor_id": "A-L3-2025-12-31-M",
+      "asof": "2025-12-31",
+      "semantic_field": "candidate_source_M",
+      "expected": {
+        "count": 936,
+        "sample": [
+          "000007",
+          "000017",
+          "000035"
+        ]
+      },
+      "source_inputs": {
+        "l3": "b6a8d3ec916a1c6f9976c88b89354ba67603f1a936544ad62321c46a17d6f08a"
+      },
+      "oracle": "independent_semantic_audit",
+      "uses_runtime_code": false
+    },
+    {
+      "anchor_id": "A-L3-2025-12-31-S",
+      "asof": "2025-12-31",
+      "semantic_field": "candidate_source_S",
+      "expected": {
+        "count": 791,
+        "sample": [
+          "000007",
+          "000035",
+          "000036"
+        ]
+      },
+      "source_inputs": {
+        "l3": "b6a8d3ec916a1c6f9976c88b89354ba67603f1a936544ad62321c46a17d6f08a"
+      },
+      "oracle": "independent_semantic_audit",
+      "uses_runtime_code": false
+    },
+    {
+      "anchor_id": "A-L3-2025-12-31-U_list",
+      "asof": "2025-12-31",
+      "semantic_field": "candidate_source_U_list",
+      "expected": {
+        "count": 3432,
+        "sample": [
+          "000001",
+          "000006",
+          "000007"
+        ]
+      },
+      "source_inputs": {
+        "l3": "b6a8d3ec916a1c6f9976c88b89354ba67603f1a936544ad62321c46a17d6f08a"
+      },
+      "oracle": "independent_semantic_audit",
+      "uses_runtime_code": false
+    },
+    {
+      "anchor_id": "A-L2-2025-12-31-A01",
+      "asof": "2025-12-31",
+      "semantic_field": "sector_state",
+      "entity": "A01",
+      "expected": {
+        "state": null,
+        "base": "BROAD_WEAKNESS",
+        "mods": [
+          "HIGH_CONCENTRATION"
+        ]
+      },
+      "source_inputs": {
+        "l2": "2ab0f0d68b0466bfebccc0e29cf807657f9a16bfca5a2f9e164573e6af39e18d"
+      },
+      "oracle": "independent_semantic_audit",
+      "uses_runtime_code": false
+    },
+    {
+      "anchor_id": "A-L2-2025-12-31-A02",
+      "asof": "2025-12-31",
+      "semantic_field": "sector_state",
+      "entity": "A02",
+      "expected": {
+        "state": "INSUFFICIENT_SUPPORT",
+        "base": null,
+        "mods": []
+      },
+      "source_inputs": {
+        "l2": "2ab0f0d68b0466bfebccc0e29cf807657f9a16bfca5a2f9e164573e6af39e18d"
+      },
+      "oracle": "independent_semantic_audit",
+      "uses_runtime_code": false
+    },
+    {
+      "anchor_id": "A-L2-2025-12-31-A03",
+      "asof": "2025-12-31",
+      "semantic_field": "sector_state",
+      "entity": "A03",
+      "expected": {
+        "state": null,
+        "base": "BROAD_WEAKNESS",
+        "mods": [
+          "PARTICIPATION_FADING",
+          "HIGH_CONCENTRATION"
+        ]
+      },
+      "source_inputs": {
+        "l2": "2ab0f0d68b0466bfebccc0e29cf807657f9a16bfca5a2f9e164573e6af39e18d"
+      },
+      "oracle": "independent_semantic_audit",
+      "uses_runtime_code": false
+    },
+    {
+      "anchor_id": "A-L1-2026-09-30-regime",
+      "asof": "2026-09-30",
+      "semantic_field": "market_regime_daily",
+      "expected": "R_DEPRESSED",
+      "source_inputs": {
+        "l1": "cd7729f293e5b953afa8e9be5dd205314b1f4fc978f38ab2fa2dc6fe4729e3cb"
+      },
+      "oracle": "independent_semantic_audit",
+      "uses_runtime_code": false
+    },
+    {
+      "anchor_id": "A-L1-2026-09-30-axes",
+      "asof": "2026-09-30",
+      "semantic_field": "market_axes_present",
+      "expected": [
+        "breadth",
+        "conc50",
+        "eq_ret",
+        "vol"
+      ],
+      "source_inputs": {
+        "l1": "cd7729f293e5b953afa8e9be5dd205314b1f4fc978f38ab2fa2dc6fe4729e3cb"
+      },
+      "oracle": "independent_semantic_audit",
+      "uses_runtime_code": false
+    },
+    {
+      "anchor_id": "A-L3-2026-09-30-L",
+      "asof": "2026-09-30",
+      "semantic_field": "candidate_source_L",
+      "expected": {
+        "count": 2038,
+        "sample": [
+          "000001",
+          "000007",
+          "000011"
+        ]
+      },
+      "source_inputs": {
+        "l3": "b6a8d3ec916a1c6f9976c88b89354ba67603f1a936544ad62321c46a17d6f08a"
+      },
+      "oracle": "independent_semantic_audit",
+      "uses_runtime_code": false
+    },
+    {
+      "anchor_id": "A-L3-2026-09-30-M",
+      "asof": "2026-09-30",
+      "semantic_field": "candidate_source_M",
+      "expected": {
+        "count": 616,
+        "sample": [
+          "000002",
+          "000011",
+          "000017"
+        ]
+      },
+      "source_inputs": {
+        "l3": "b6a8d3ec916a1c6f9976c88b89354ba67603f1a936544ad62321c46a17d6f08a"
+      },
+      "oracle": "independent_semantic_audit",
+      "uses_runtime_code": false
+    },
+    {
+      "anchor_id": "A-L3-2026-09-30-S",
+      "asof": "2026-09-30",
+      "semantic_field": "candidate_source_S",
+      "expected": {
+        "count": 830,
+        "sample": [
+          "000002",
+          "000011",
+          "000014"
+        ]
+      },
+      "source_inputs": {
+        "l3": "b6a8d3ec916a1c6f9976c88b89354ba67603f1a936544ad62321c46a17d6f08a"
+      },
+      "oracle": "independent_semantic_audit",
+      "uses_runtime_code": false
+    },
+    {
+      "anchor_id": "A-L3-2026-09-30-U_list",
+      "asof": "2026-09-30",
+      "semantic_field": "candidate_source_U_list",
+      "expected": {
+        "count": 2581,
+        "sample": [
+          "000001",
+          "000002",
+          "000007"
+        ]
+      },
+      "source_inputs": {
+        "l3": "b6a8d3ec916a1c6f9976c88b89354ba67603f1a936544ad62321c46a17d6f08a"
+      },
+      "oracle": "independent_semantic_audit",
+      "uses_runtime_code": false
+    },
+    {
+      "anchor_id": "A-L2-2026-09-30-A01",
+      "asof": "2026-09-30",
+      "semantic_field": "sector_state",
+      "entity": "A01",
+      "expected": {
+        "state": null,
+        "base": "BROAD_STRENGTH",
+        "mods": [
+          "PARTICIPATION_FADING"
+        ]
+      },
+      "source_inputs": {
+        "l2": "2ab0f0d68b0466bfebccc0e29cf807657f9a16bfca5a2f9e164573e6af39e18d"
+      },
+      "oracle": "independent_semantic_audit",
+      "uses_runtime_code": false
+    },
+    {
+      "anchor_id": "A-L2-2026-09-30-A02",
+      "asof": "2026-09-30",
+      "semantic_field": "sector_state",
+      "entity": "A02",
+      "expected": {
+        "state": "INSUFFICIENT_SUPPORT",
+        "base": null,
+        "mods": []
+      },
+      "source_inputs": {
+        "l2": "2ab0f0d68b0466bfebccc0e29cf807657f9a16bfca5a2f9e164573e6af39e18d"
+      },
+      "oracle": "independent_semantic_audit",
+      "uses_runtime_code": false
+    },
+    {
+      "anchor_id": "A-L2-2026-09-30-A03",
+      "asof": "2026-09-30",
+      "semantic_field": "sector_state",
+      "entity": "A03",
+      "expected": {
+        "state": null,
+        "base": "NEUTRAL",
+        "mods": [
+          "PARTICIPATION_FADING"
+        ]
+      },
+      "source_inputs": {
+        "l2": "2ab0f0d68b0466bfebccc0e29cf807657f9a16bfca5a2f9e164573e6af39e18d"
+      },
+      "oracle": "independent_semantic_audit",
+      "uses_runtime_code": false
+    },
+    {
+      "anchor_id": "A-POS-P0-REDUCED_OUT",
+      "asof": "multi",
+      "semantic_field": "position_transition",
+      "expected": "see docs/cd/shadow_p0_regression/gate_result.json",
+      "source_inputs": {
+        "p0_gate": "24bcfd4eaf94a2eccfb4e50ed110147b9a0cee5d14a27fa9d945e9e4580b00e8"
+      },
+      "oracle": "independent_semantic_audit",
+      "uses_runtime_code": false
+    }
+  ],
+  "unsupported": [
+    {
+      "date": "2022-04-29",
+      "field": "lifecycle_state",
+      "reason": "ROUND1_EVIDENCE_INSUFFICIENT_FOR_INDEPENDENT_ANCHOR; promoted authority cannot be its own oracle"
+    },
+    {
+      "date": "2022-04-29",
+      "field": "PRIMARY_ZONE",
+      "reason": "ROUND1_EVIDENCE_INSUFFICIENT_FOR_INDEPENDENT_ANCHOR; promoted authority cannot be its own oracle"
+    },
+    {
+      "date": "2022-04-29",
+      "field": "decision",
+      "reason": "ROUND1_EVIDENCE_INSUFFICIENT_FOR_INDEPENDENT_ANCHOR; promoted authority cannot be its own oracle"
+    },
+    {
+      "date": "2023-03-31",
+      "field": "lifecycle_state",
+      "reason": "ROUND1_EVIDENCE_INSUFFICIENT_FOR_INDEPENDENT_ANCHOR; promoted authority cannot be its own oracle"
+    },
+    {
+      "date": "2023-03-31",
+      "field": "PRIMARY_ZONE",
+      "reason": "ROUND1_EVIDENCE_INSUFFICIENT_FOR_INDEPENDENT_ANCHOR; promoted authority cannot be its own oracle"
+    },
+    {
+      "date": "2023-03-31",
+      "field": "decision",
+      "reason": "ROUND1_EVIDENCE_INSUFFICIENT_FOR_INDEPENDENT_ANCHOR; promoted authority cannot be its own oracle"
+    },
+    {
+      "date": "2024-06-28",
+      "field": "lifecycle_state",
+      "reason": "ROUND1_EVIDENCE_INSUFFICIENT_FOR_INDEPENDENT_ANCHOR; promoted authority cannot be its own oracle"
+    },
+    {
+      "date": "2024-06-28",
+      "field": "PRIMARY_ZONE",
+      "reason": "ROUND1_EVIDENCE_INSUFFICIENT_FOR_INDEPENDENT_ANCHOR; promoted authority cannot be its own oracle"
+    },
+    {
+      "date": "2024-06-28",
+      "field": "decision",
+      "reason": "ROUND1_EVIDENCE_INSUFFICIENT_FOR_INDEPENDENT_ANCHOR; promoted authority cannot be its own oracle"
+    },
+    {
+      "date": "2025-12-31",
+      "field": "lifecycle_state",
+      "reason": "ROUND1_EVIDENCE_INSUFFICIENT_FOR_INDEPENDENT_ANCHOR; promoted authority cannot be its own oracle"
+    },
+    {
+      "date": "2025-12-31",
+      "field": "PRIMARY_ZONE",
+      "reason": "ROUND1_EVIDENCE_INSUFFICIENT_FOR_INDEPENDENT_ANCHOR; promoted authority cannot be its own oracle"
+    },
+    {
+      "date": "2025-12-31",
+      "field": "decision",
+      "reason": "ROUND1_EVIDENCE_INSUFFICIENT_FOR_INDEPENDENT_ANCHOR; promoted authority cannot be its own oracle"
+    },
+    {
+      "date": "2026-09-30",
+      "field": "lifecycle_state",
+      "reason": "ROUND1_EVIDENCE_INSUFFICIENT_FOR_INDEPENDENT_ANCHOR; promoted authority cannot be its own oracle"
+    },
+    {
+      "date": "2026-09-30",
+      "field": "PRIMARY_ZONE",
+      "reason": "ROUND1_EVIDENCE_INSUFFICIENT_FOR_INDEPENDENT_ANCHOR; promoted authority cannot be its own oracle"
+    },
+    {
+      "date": "2026-09-30",
+      "field": "decision",
+      "reason": "ROUND1_EVIDENCE_INSUFFICIENT_FOR_INDEPENDENT_ANCHOR; promoted authority cannot be its own oracle"
+    }
+  ],
+  "coverage": {
+    "L1": true,
+    "L3": true,
+    "L4": true,
+    "PRIMARY_ZONE": true,
+    "decision": true,
+    "position_P0": true,
+    "L2": true,
+    "reason": "L2 anchors use frozen state-table rows and explicit observable fields; lifecycle/action transitions remain separately disclosed."
+  }
+}

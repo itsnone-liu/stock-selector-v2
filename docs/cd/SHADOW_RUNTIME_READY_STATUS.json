@@ -1,11 +1,13 @@
 {
   "gate":"G-SHADOW-RUNTIME-READY",
   "status":"NOT_READY",
-  "authority":"PASS for five eligible promoted pilot dates; exact-byte promotion recorded in shadow_authority_promotion.json",
+  "authority":"PASS",
   "p0_regression":"PASS",
-  "parity":"NOT_READY",
-  "parity_detail":"Level-A artifact read parity passes; Level-B historical semantic parity is not evidenced because independent expected field snapshots/anchors are absent.",
-  "unavailable_date":"2021-07-30 AUTHORITY_UNAVAILABLE, not a parity failure",
+  "exact_byte_promotion":"PASS",
+  "artifact_read_parity":"PASS",
+  "semantic_anchors":"NOT_READY",
+  "semantic_anchor_detail":"Independent oracle covers L1, L2, L3, provenance and P0. It cannot independently reconstruct lifecycle, PRIMARY_ZONE, or decision anchors from frozen inputs/contracts without importing production/materializer logic; these are production-critical action semantics and remain an explicit blocker.",
+  "unavailable_date":"2021-07-30 AUTHORITY_UNAVAILABLE",
   "activation_record":"not written",
-  "reason":"Do not convert adapter-to-itself equality into semantic PASS. Runtime remains fail-closed until independent historical parity evidence is bound."
+  "reason":"Do not promote bounded metadata anchors into runtime readiness while PRIMARY_ZONE and decision semantics lack independent exact anchors."
 }
