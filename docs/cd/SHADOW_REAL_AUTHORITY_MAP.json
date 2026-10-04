@@ -1,0 +1,17 @@
+{
+  "scope":"Frozen Artifact Adaptation",
+  "status":"WIRED_FAIL_CLOSED_PENDING_DAY_CACHES",
+  "policy_mutation":false,
+  "authorities":{
+    "load_market_state":"data/cd/sector_axes/l1_market_axes.json.gz (CD-4.5 frozen L1)",
+    "load_sector_states":"data/cd/sector_axes/l2_state_table.json.gz (CD-1B/CD-2/CD-3 frozen L2)",
+    "load_candidate_pool":"data/cd/l3_candidate_pool_v2.json.gz (CD-4V2 authoritative candidate union)",
+    "load_episode_state":"data/cd/l4_episodes.json.gz (CD-5 authoritative episode identity)",
+    "load_lifecycle_state":"data/cd/shadow_authority/lifecycle/YYYY-MM-DD.json.gz (required per-asof CD-5 lifecycle projection)",
+    "derive_primary_zone":"data/cd/shadow_authority/primary_zone/YYYY-MM-DD.json.gz (required corrected CD-7 REDUCED_OUT-aware projection)",
+    "derive_frozen_decisions":"data/cd/shadow_authority/decisions/YYYY-MM-DD.json.gz (required Round-1 frozen policy output)"
+  },
+  "rule":"Adapters project authority artifacts only; missing per-asof lifecycle/PRIMARY_ZONE/decision artifacts are SHADOW_INVALID, never recomputed or substituted.",
+  "forbidden":["import research engines into daily runner","threshold changes","future fallback","retrospective SW2","SECONDARY","E-class sizing","policy selection"],
+  "required_before_ready":["materialize per-asof lifecycle authority","materialize corrected PRIMARY_ZONE authority","materialize frozen decision authority","run selected historical parity matrix","run REDUCED_OUT parity fixture"]
+}
