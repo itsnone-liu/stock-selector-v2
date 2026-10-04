@@ -1,0 +1,77 @@
+{
+ "generated": "2026-10-04T20:07:10",
+ "pullback_discrimination": {
+  "n": 175409,
+  "intact": {
+   "n": 151820,
+   "P_recovered": 0.58442,
+   "P_broke": 0.38225
+  },
+  "not_intact": {
+   "n": 23589,
+   "P_recovered": 0.64628,
+   "P_broke": 0.32189
+  }
+ },
+ "zone_never_entered": {
+  "never_eligible": 4203,
+  "eligible_no_trigger": 699
+ },
+ "arms": {
+  "CHASE": {
+   "dev": {
+    "n_trades": 1648,
+    "n_stocks": 1107,
+    "median_ret": -0.06756,
+    "median_ret_rel": -0.0617,
+    "mean_ret_rel": -0.03198,
+    "median_mae": -0.14346,
+    "median_mfe": 0.04496,
+    "adverse_rate": 0.23726,
+    "median_dur": 60
+   },
+   "holdout": {
+    "n_trades": 1319,
+    "n_stocks": 1114,
+    "median_ret": -0.02544,
+    "median_ret_rel": -0.02872,
+    "mean_ret_rel": -0.04212,
+    "median_mae": -0.08451,
+    "median_mfe": 0.03786,
+    "adverse_rate": 0.20925,
+    "median_dur": 24
+   }
+  },
+  "ZONE": {
+   "dev": {
+    "n_trades": 1635,
+    "n_stocks": 1111,
+    "median_ret": -0.04211,
+    "median_ret_rel": -0.03691,
+    "mean_ret_rel": -0.01606,
+    "median_mae": -0.11323,
+    "median_mfe": 0.05435,
+    "adverse_rate": 0.24465,
+    "median_dur": 53
+   },
+   "holdout": {
+    "n_trades": 1178,
+    "n_stocks": 992,
+    "median_ret": -0.00473,
+    "median_ret_rel": -0.01167,
+    "mean_ret_rel": -0.02415,
+    "median_mae": -0.05347,
+    "median_mfe": 0.0522,
+    "adverse_rate": 0.24873,
+    "median_dur": 27
+   }
+  }
+ },
+ "missed_upside": {
+  "zone_entered": 2813,
+  "zone_entered_topdecile": 0.05688,
+  "never_entered": 26500,
+  "never_entered_topdecile": 0.10181,
+  "topdecile_lost_share": 0.944
+ }
+}

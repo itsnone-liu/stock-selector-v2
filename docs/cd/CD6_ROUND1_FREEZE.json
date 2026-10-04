@@ -1,0 +1,16 @@
+{
+ "freeze": "CD6_ROUND1_VERDICT_AND_CONCLUSIONS",
+ "authority": "user ruling 2026-10-04: Round 1 judged 'TOTAL-ACCEPTANCE SUCCESS with alpha-direction NEGATION' — not a decision-engine failure; six layers closed with data-validated functional division",
+ "structural_core_finding": "强势 ≠ 好的入场位置 (strength != good entry location) — chase-relative-strength negative expectation appears ISOMORPHICALLY at TWO levels: sector EXPANSION -> weak forward relative performance (CD-3B) AND stock STRENGTHENING -> weak post-entry relative performance (CD-6 layer A worse than BASE). This is the design starting point for Round 2, not noise.",
+ "verified_inheritable": {
+  "L1_market": "participation permissions layer — ACCEPTED (adverse 0.91->0.24 for 3.8% missed-upside; denied group NOT stronger: 11.2% vs 9.9% top-decile). FROZEN CARRY-FORWARD: Round 2 does NOT retune it.",
+  "L4_lifecycle": "hold/reduce/exit semantics real (false-exit 0.0%; REDUCE 12,355 events) — value in holding/decay/exit, NOT chase entry",
+  "L2_sector": "context/risk layer",
+  "L3_candidate": "union observation infrastructure"
+ },
+ "negated_never_revive": ["STRENGTHENING -> chase entry", "EXPANSION -> alpha buy signal", "BUILDING -> accumulation entry", "continuous position sizing to rescue bad entry"],
+ "unresolved_carried_to_cd7": ["entry timing", "entry zone", "pullback vs failure discrimination", "re-entry", "add timing", "absolute risk budget"],
+ "narrowing_status": "keep as CONTEXT FLAG only — episode-level semantics proven (CD-3B) but decision-point trigger space empty (adds 14,591 vs 14,594); do NOT manufacture overlap; may regain relevance if entry/add zones occur at later lifecycle stages",
+ "cd7_mandate": "CD-7 — Entry-Zone & Participation Timing: not 'which stock is strongest' but 'at WHAT LOCATION to participate in stocks already identified as worth watching' — priority order: (1) non-chasing entry-zone, (2) ENTER demoted to watch candidate two-stage (internal state ENTER_ELIGIBLE, NOT a new CD-0 decision), (3) absolute risk budget, (4) continuous sizing untouched; core principle: 'structure still intact after pullback' — NOT 'buy any 5% dip'; L4 cost context upgraded from risk background to POSITION-AXIS semantics (chasing zone / neutral / potential entry zone / failure-avoid zone) while remaining model_derived (NEVER 主力成本); STOP RULE: if non-chasing entry-zone does not improve entry structure in holdout, do NOT proceed to position tuning (same discipline as CD-6D deferral)",
+ "status": "FROZEN"
+}

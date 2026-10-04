@@ -1,0 +1,37 @@
+{
+ "phase": "CD-7 — Entry-Zone & Participation Timing",
+ "authority": "user GO ruling 2026-10-04 (CD6_ROUND1_FREEZE.json inheritance: L1 frozen carry-forward; negated list enforced; NARROWING context-flag only)",
+ "preregistration_id": "cd7-prereg-v1",
+ "position_axis_frozen": {
+  "provenance": "model_derived cost proxy (CD-5C) — NEVER 主力成本",
+  "states_asof_T": {
+   "CHASING_ZONE": "close > band_upper (P75 proxy)",
+   "NEUTRAL_ZONE": "center <= close <= band_upper",
+   "ENTRY_ZONE_CANDIDATE": "band_lower(P25) <= close <= center*1.05 AND lifecycle in {HOLDING, STRENGTHENING} AND participation not-LOW",
+   "FAILURE_AVOID_ZONE": "close < band_lower AND (lifecycle DECAYING OR episode drawdown beyond frozen dev-band)"
+  }
+ },
+ "two_stage_enter_frozen": {
+  "note": "internal pipeline states — CD-0 decision set untouched (ENTER remains the decision; eligibility is engine state)",
+  "ENTER_ELIGIBLE": "episode age >= 10 sessions AND episode has had >= 1 STRENGTHENING day AND current state not DECAYING/FAILED",
+  "ENTER_TRIGGER": "first as-of-T day in ENTER_ELIGIBLE satisfying ENTRY_ZONE_CANDIDATE",
+  "philosophy": "structure still intact after pullback — NOT any-5%-dip buying"
+ },
+ "cd7b_pullback_vs_failure_frozen": {
+  "pullback_event": "first transition from CHASING_ZONE back into band (close <= P75) after a STRENGTHENING day within same episode",
+  "PULLBACK_CONSOLIDATION": "at pullback day: lifecycle in {HOLDING, STRENGTHENING} AND episode drawdown > -25% (dev-frozen bound) AND participation not-LOW",
+  "STRUCTURAL_BREAK": "close < P75-band continues to < P25 within 20 sessions OR CD-5 STRUCTURAL_FAILURE triggers within 20 sessions",
+  "report": "which as-of pullback-day axes (lifecycle, participation, drawdown depth, distance-to-center) discriminate CONSOILDATION-recovery vs BREAK — descriptive"
+ },
+ "cd7c_three_arms_frozen": {
+  "common": "FROZEN L1 permissions (Round-1 layer-B market gates verbatim); unit exposure; CD-6 replay accounting; HOLD/REDUCE/EXIT rules from Round-1 B-layer",
+  "arm_CHASE_control": "STRENGTHENING immediate ENTER (negated control, kept for comparison, NOT revived)",
+  "arm_ZONE": "two-stage ENTER_ELIGIBLE + entry-zone trigger",
+  "arm_BASE": "episode-hold",
+  "completion_test": "arm_ZONE must beat arm_CHASE in HOLDOUT on: MAE (lower), adverse rate (lower), and median relative return (not worse) — risk-first",
+  "missed_upside": "episodes never ENTER-ed (never eligible, never triggered, or L1-denied) reaching 60d top-decile of their entry-month cohort vs eligible-cohort baseline"
+ },
+ "stop_rule_frozen": "if entry-zone does not improve entry structure in holdout -> NO position tuning (CD-7D skipped, mirroring CD-6D discipline)",
+ "prohibited": ["reviving chase entry", "tuning thresholds by holdout outcomes", "continuous sizing", "intent vocabulary", "retuning L1"],
+ "status": "PREREGISTERED"
+}
