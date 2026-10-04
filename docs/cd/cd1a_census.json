@@ -1023,6 +1023,20 @@
  },
  "generated_at": "2026-10-04T16:55:03",
  "incomplete_run": false,
+ "l3_sw2_addendum": {
+  "disjoint_partition": true,
+  "gate_c2": true,
+  "member_count_max": 244,
+  "member_count_median": 25,
+  "member_count_min": 2,
+  "role": "L3-A current decomposition layer per CD-1B granularity contract; TDX acquisition attempt recorded (installer links hidden behind JS/TQL private protocol — route abandoned honestly), replaced by SW level-2 via akshare/legulegu (131/131 indices, zero failures)",
+  "sectors": 131,
+  "single_stock_sector_fraction": 0.0,
+  "small_sector_lt10_fraction": 0.1679,
+  "stock_coverage_of_daily": 0.9613,
+  "stock_coverage_of_universe": 0.9994,
+  "taxonomy_version": "sw2_v1_static_declared"
+ },
  "phase": "CD-1A census",
  "survivorship_guard": {
   "csrc_snapshot": 5555,
