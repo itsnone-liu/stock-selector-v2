@@ -1,0 +1,23 @@
+# R2-1 当前资金/筹码快照 v1（2026-10-05）
+
+数据：panel_monthly 307,389 行（5,430 股 × 月度 PIT，至 2026-09）；etf_shares 174 个交易日（至 2026-09-18）；全量文件 data/r2/snapshot_current.json。
+
+## 大盘
+- **POLICY_CAPITAL_PROXY（政策宽基 ETF 集合份额）＝增持**：60 日 +9.5%（全体 ETF 仅 +1.8%），asof 2026-09-18，置信度 MEDIUM。注明：这是行为集中于政策相关宽基工具的代理，不是账户级真相（章程 §4.D 两概念不混叫）。
+- **市场筹码状态＝套牢偏重**：全市场中位数价格低于估算成本中心 **-14.1%**，仅 **18.9%** 个股处于成本上方（5,368 股）。
+- 状态普查：ACCUMULATION 3,100 / MARKUP_READY 1,122 / ACCUMULATION_MATURE 411 / DECLINE 509 / MARKUP_ACTIVE 91 / DISTRIBUTION_RISK 17。
+
+## 板块（52 个 L2）
+吸筹+拉升准备占比最高：A03、C31、R87、C21、J67；派发风险占比最高见 JSON。
+
+## 重点股票（流动性 Top40，成本带 P25/P50/P75）
+示例 688469：收盘 8.86，成本带 6.81/7.59/8.44，距成本中心 +16.8%，锁定 MEDIUM，MARKUP_READY（conf 0.88）。完整 40 只见 JSON。
+
+## ⚠️ 诚实负结果（R2-3 v1，data/r2/discovery_v1.json）
+仅用 E1-E3（价/量/筹码）时：
+- **吸筹状态无区分力**：M120_100 基础概率 3.2%(21-23)/6.7%(24-26)，ACCUMULATION lift **0.98/0.95**，MARKUP_READY lift 1.01。
+- matched control（15,326 对，同月/同位置/同量比）：cases 与对照的筹码收敛差仅 +0.039，锁定 HIGH 超额仅 +2.2pp，support_score 反而 -0.16。
+- **结论**：吸筹签名不在价量筹码里（或极弱）——E4 ownership / E5 公开资金信号是必要数据，正在接入。当前状态标签只能当描述，不能当选股依据。
+
+## 缺失标记
+E4 ownership 未入库；E5 龙虎榜/大宗/融资未入库；free_float 后台抓取中（328/5430）。矛盾证据：无。
