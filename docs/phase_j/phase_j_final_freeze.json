@@ -1,0 +1,45 @@
+{
+ "freeze_id": "csr8-phase-j-final-freeze-v1",
+ "phase": "CSR-8 Phase J — Final State Freeze (J0 protocol + J1 production + verdict, closed)",
+ "status_block_frozen": {
+  "PHASE H": "IMMUTABLE",
+  "PHASE I": "FROZEN — ETF 4v8 / 8v9 = CONDITIONAL",
+  "PHASE J": "PROTOCOL COMPLETE / VALIDATION PRODUCTION COMPLETE / VERDICT = INCONCLUSIVE / CAUSE = TARGET-STATE COVERAGE INSUFFICIENT / OUTCOME DIRECTION = NOT OPENED",
+  "DISCOVERY MIRROR ORDERING": "NEITHER VALIDATED NOR REFUTED",
+  "NEW OBSERVATION": "TARGET ETF-EXPANSION STATE SUPPORT IS TIME-VARYING IN THE EXAMINED DOWN WINDOW",
+  "129+": "UNAUTHORIZED",
+  "SECTOR": "DEFERRED"
+ },
+ "chain": {
+  "J0_protocol": "sha 5ddd2866... (683e2f3) + appendices 1-4 (6916568, fe03fef)",
+  "J1_production": "12/12 frozen DOWN dates, 3 batches, hard stop; 384 cases; structural blindness end-to-end (unadj<=T only; hfq/R5/direction never read)",
+  "verdict_commit": "717200b; corpus pj-val-0001 sealed under data/phase_j/ with sha manifest"
+ },
+ "verdict_record": {
+  "classification": "INCONCLUSIVE — SUPPORT/COVERAGE FAILURE (frozen verdict-table branch any_arm_insufficient)",
+  "coverage": {"cell_4": "2/12 dates", "cell_8": "1/12 dates", "cell_9": "0/12 dates",
+               "H_J1_4v8": "2/1 dates per side vs >=5 gate", "H_J2_8v9": "1/0 dates per side"},
+  "outcome_readout": "NOT OPENED — the coverage gate uniquely determined the verdict; computing R5 had zero scientific value; no further sampling, no window extension"
+ },
+ "normative_language": {
+  "permitted": "在本次独立后期 DOWN 验证窗口中，目标 ETF expansion states 的支持分布显著稀疏且与 discovery 时期不同",
+  "forbidden": "3 日低覆盖已证明是 DOWN 市场本身的固有属性 (the evidence does not support intrinsic-property claims beyond the examined window)",
+  "mirror_ordering_status": "未被外部检验（非否证）；Phase I 分类原样保持；'NEITHER VALIDATED NOR REFUTED' is the only permitted summary"
+ },
+ "new_observation_record": {
+  "statement": "ETF expansion count 不是一个在时间上稳定占据同一组状态值的变量（observed support {0,2,3,4,4,5,7,7,8,10,11,12} in 2024-2026 DOWN dates vs discovery-era 4/8/9 common states）",
+  "epistemic_upgrade": "validation of a 4/8/9 ordering is not merely a statistics problem but a SUPPORT / TRANSPORTABILITY problem: does the validation era even enter the theory's state space with sufficient probability?",
+  "boundary": "does NOT prove the discrete-regime theory; recorded as a research asset about the variable, not the hypothesis"
+ },
+ "support_first_design_constraint_frozen": {
+  "applies_to": "any future validation phase in CSR-8",
+  "required_order": ["pre-declare the COMPLETE candidate historical window", "outcome-blind cell-availability census", "decide ONLY 'can this window validate at all'", "if not: TERMINATE the design (do not window-shop)", "if yes: freeze validation dates by pre-set rule", "only then: outcome production"],
+  "forbidden": "scanning many eras, finding the years richest in 4/8/9, and declaring those years the validation window — that merely converts outcome cherry-picking into support cherry-picking"
+ },
+ "phase_k_concept": {
+  "name": "Phase K — Support-Aware External Validation",
+  "stage_1": "state-support feasibility ONLY (no R5 production)",
+  "status": "AUTHORIZED AS CONCEPT, NOT STARTED — any launch requires an explicit user ruling with fresh preregistration"
+ },
+ "change_control": "frozen on commit; append-only erratum + explicit user authorization for any change"
+}
