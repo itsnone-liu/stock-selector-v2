@@ -57,8 +57,9 @@ def build_universe():
         sm = json.load(open(snap))
         rows = sm['rows'] if isinstance(sm, dict) and 'rows' in sm else sm
         for r in rows:
-            c = str(r.get('stock_code') or r.get('code') or '')
-            c = c.replace('sh', '').replace('sz', '').replace('bj', '').strip()
+            # snapshot rows are lists: [date, 'sh.600000', name, 'J66货币金融服务', source]
+            c = r[1] if isinstance(r, list) else str(r.get('stock_code') or r.get('code') or '')
+            c = str(c).split('.')[-1].strip()  # 'sh.600000' -> '600000'
             if len(c) == 6 and c.isdigit(): codes.add(c)
     print(f'csrc seed codes: {len(codes)}', flush=True)
     try:
