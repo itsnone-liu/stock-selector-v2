@@ -1,0 +1,9 @@
+{
+ "document": "csr8-theory-integration-v1 (a6c2e39)",
+ "verification": {
+  "all_pass": true,
+  "assertions": 5,
+  "failed": [],
+  "note": "verification script initially crashed on a wrong field name (naive vs naive_case_level) and the commit message prematurely said PASS; this verification was completed immediately after; all five number groups match their frozen source artifacts (i3/i4b/j1_final_verdict)"
+ }
+}
