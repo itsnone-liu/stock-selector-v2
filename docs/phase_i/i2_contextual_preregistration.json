@@ -1,0 +1,75 @@
+{
+ "contract_id": "csr8-phase-i-i2-contextual-preregistration-v1",
+ "phase": "CSR-8 Phase I / I2 — Contextual Layer Preregistration & Cluster-Robust Analysis Design",
+ "mode": "PREREGISTRATION_ONLY — no contextual analysis results are computed, reported, or implied by this contract; I3 executes the readout only after this contract is frozen and audited",
+ "frozen_at_basis": {
+  "authority_chain": [
+    "user ruling 2026-10-04 (three rulings below)",
+    "Phase H final freeze csr8-phase-h-final-freeze-v1 (commit 9dfc516)",
+    "third readout (commit 3f46515)",
+    "I1 structural atlas (commit cee5efd)"
+  ]
+ },
+ "frozen_rulings": {
+  "taxonomy_v3": "NO-GO. I1 found E=0 among the 20 non-dominant cases: no case requires a structure outside current taxonomy fields. The stock layer compresses graded/mixed evidence into an over-coarse binary expression; any future change is REPRESENTATION REFINEMENT (graded / mixed-state expression of the stock layer), never taxonomy expansion.",
+  "reversed_pairs": "The 3 REVERSED pairs (etf_contraction 1v8 / 5v8 / 6v8) are frozen as SAMPLING-DEPENDENT STRUCTURE. Mechanism (I1, deterministic): shared cell-8 pool; 9 same-structure members at T=2021-04-06 (epoch-2, NO_PIT_VISIBLE_REPORT, c=8/e=0) lifted the cell-8 R5 median from -0.0362 to -0.0088; epoch-1 restriction reproduces the 64-corpus sign (d=+0.0224). They must NOT be re-interpreted as market-structure reversals.",
+  "i1_structural_conclusion": "I1 found no new capital type requiring taxonomy_v3, but found (a) insufficient stock-layer representational granularity and (b) material influence of observation-date clustering on structure statistics. The next fixes belong to research design and interpretation layers, not to more categories."
+ },
+ "context_spec": {
+  "C1_sampling_context": {
+   "tier": "Tier-1 (deterministic, corpus-internal, no new data)",
+   "variables": [
+    {"name": "obs_date", "definition": "observation date T of the case", "source": "packet.as_of.T / sealing log"},
+    {"name": "date_cluster_id", "definition": "identifier of the observation-date cluster = T itself", "source": "atlas cards"},
+    {"name": "date_multiplicity", "definition": "number of readout-corpus cases sharing this exact T", "source": "atlas; known clusters: 2021-04-06 (9), 2021-03-08 (7), then <=3"},
+    {"name": "epoch", "definition": "production epoch of the ordinal (1: ordinals 1-64, 2: 65-128)", "source": "sealing log"},
+    {"name": "paired_ordinal", "definition": "the other ordinal sampling the same opaque entity (N +/- 64), same entity different T/packet", "source": "atlas"},
+    {"name": "same_date_same_cell_count", "definition": "count of cases sharing this T AND this comparison cell", "source": "atlas + readout variables"}
+   ],
+   "forbidden_uses": ["redefining capital-state labels", "weighting cases away post hoc without the preregistered rules below"]
+  },
+  "C2_market_context": {
+   "tier": "Tier-2 (packet-internal, PIT-safe margin layer only)",
+   "design_audit_facts": [
+     "every packet carries exactly 20 margin records on a single endpoint (margin_sse or margin_szse, the case's market), daily snapshots, observation_date <= T-1, available_date <= T (probe: o7/o50/o100/o119/o128)",
+     "packets contain NO broad-market index series and NO sector/industry series"
+   ],
+   "variables": [
+    {"name": "margin_balance_regime_20d", "definition": "sign of (latest PIT-visible 融资余额 minus the earliest value inside the packet's 20-record window), for the case's market endpoint", "pit_rule": "uses only records with available_date <= T (all packet records satisfy this by construction)", "allowed_use": "leverage-participation temperature context modifier", "forbidden_uses": ["national-capital or主力 attribution (CSR-4 MULTI scope: margin participants are mixed retail+institution)", "causal language", "redefining capital-state labels"]},
+    {"name": "margin_buy_intensity_latest", "definition": "融资买入额 on the latest PIT-visible record, expressed as tercile of the packet window", "pit_rule": "same as above", "allowed_use": "secondary context modifier", "forbidden_uses": "same as above"}
+   ],
+   "deferred": [
+     {"name": "broad_index_regime", "status": "DEFERRED — no PIT-safe index series exists inside frozen packets; introducing external data requires a separate user authorization and a frozen data-provenance erratum BEFORE any use", "rule": "must not be substituted ad hoc at I3 time"},
+    {"name": "sector_regime", "status": "DEFERRED — no sector/industry series inside frozen packets; same external-data rule", "rule": "must not be substituted ad hoc at I3 time"}
+   ]
+  }
+ },
+ "analysis_policy": {
+  "R1_immutable_labels": "Original capital-state definitions are IMMUTABLE in Phase I. Context variables are modifiers only; they never rewrite, split, or re-label a capital state.",
+  "R2_paired_statistics": "Every I3 statistic must be reported in TWO columns side by side: (a) naive case-level (the frozen readout convention) and (b) cluster-aware per R3/R4. A naive-only report is invalid.",
+  "R3_date_dedup": "Cluster-aware recomputation = DATE-LEVEL AGGREGATION: for each (T, cell), reduce member cases to one value = median of their case R5 (R3/R10 analogously); all cell statistics (medians, deltas, Cliff's delta analogues) are then computed over DATES, not cases. A date with k same-cell cases contributes exactly ONE observation, never k.",
+  "R4_cluster_robustness_hard_gate": "A relation may be upgraded from 'descriptive corpus structure' to 'theory-layer conclusion' ONLY if ALL of: (a) naive direction holds; (b) date-dedup direction (R3) is unchanged; (c) leave-max-cluster-out direction is unchanged (drop the single largest date cluster entirely and recompute); (d) each side of the comparison rests on >= 5 distinct observation dates. Failing any clause freezes the relation as 'sampling-dependent' (the REVERSED precedent) — this is a classification, not an error to repair.",
+  "R5_preregistered_relations": "The ONLY relations eligible for R4 upgrade testing are the three preregistered PRESERVED targets: stock_layer_summary NOT_DISCLOSED vs NO_PIT_VISIBLE_REPORT; etf_expansion_count 4 vs 8; 8 vs 9. All other pairs remain exploratory and can never be upgraded without a new preregistration append.",
+  "R6_pit_safety": "Every context variable must be computable from data with available_date <= T. Any variable failing this at I3 time is dropped (reported as dropped), never repaired with post-T data.",
+  "R7_margin_semantics": "Margin variables describe leverage-participation temperature only (mixed participants). They must not be narrated as national-capital, 主力, or any single-actor evidence.",
+  "R8_no_new_labels": "taxonomy_v3 NO-GO stands for all of Phase I. Representation refinement (graded/mixed stock-layer expression) may only be DESIGNED as a proposal in I3 outputs; implementing it requires a new user ruling."
+ },
+ "i3_execution_plan": {
+  "status": "NOT RUN. Frozen checklist for the future contextual readout:",
+  "steps": [
+    "1. rebuild sampling context (C1) for all 122 readout-corpus cases from the I1 atlas (deterministic)",
+    "2. compute C2 margin variables per case from packet evidence (deterministic, PIT-safe by construction)",
+    "3. recompute the three preregistered relations under R2: naive vs date-dedup side by side, plus leave-max-cluster-out",
+    "4. apply the R4 hard gate and classify each relation: theory-layer eligible / sampling-dependent",
+    "5. descriptive context cross-tabs ONLY (relation direction within margin_regime_20d strata), reported as modifiers with forbidden-interpretation banners",
+    "6. NO new relations, NO label changes, NO external market/sector data (deferred tiers stay deferred)"
+  ]
+ },
+ "design_audit": {
+  "schema_probe": "probed packets o7/o50/o100/o119/o128: each carries 20 margin records on one endpoint (margin_sse or margin_szse) with observation_date <= T-1 and available_date <= T; no index/sector series exist — C2 Tier-2/deferred split is grounded in this probe",
+  "cluster_inventory": "readout-corpus date clusters: 2021-04-06 (9 cases), 2021-03-08 (7), all others <= 3",
+  "r4_feasibility_forecast": "distinct observation dates per comparison side at freeze time: NOT_DISCLOSED 74 vs NO_PIT 4 (FAILS R4(d) >=5 — the NO_PIT arm is sampled on only 4 dates, 18 cases; under this corpus this relation can NEVER pass the hard gate and must remain 'descriptive corpus structure' regardless of direction under dedup); etf_expansion 4 vs 8: 11 vs 8 dates (eligible); 8 vs 9: 8 vs 11 dates (eligible). Recorded BEFORE I3 so the ND-vs-NO_PIT gate failure is a preregistered expectation, not a surprise.",
+  "consistency": "I1 atlas non-dominant set equals the frozen third-report list; REVERSED mechanism numbers quoted from I1 commit cee5efd",
+  "change_control": "this contract is frozen on commit; any change requires an append-only erratum and explicit user authorization"
+ }
+}
