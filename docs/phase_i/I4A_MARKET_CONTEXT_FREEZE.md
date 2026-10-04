@@ -35,3 +35,7 @@
 禁止因果语言；ETF 层禁止 actor 归因；两融/指数均为环境 modifier，资金状态标签不可变。
 
 **变更控制：** 本合同随 commit 冻结（sha256 `b12783420d8e4d2428c0e895f1114a97143b28dcd46fe2d54d8c2ee6bb06b49a`）；改动需 append-only erratum + 显式用户授权。I4B 待你裁定后执行。
+
+---
+
+**ERR-I4A-1（append-only）**：commit 664b35d 的 message 文本引用了冻结中间态合同 sha `d1432e9b…`（路径迁移 data/→docs/phase_i/evidence/ 之前）；**生效合同 sha 以本文件正文与本 commit 内合同文件内容为准 = `b12783420d8e4d2428c0e895f1114a97143b28dcd46fe2d54d8c2ee6bb06b49a`**。数据文件仅移动位置未改内容（manifest sha 复核一致）。
