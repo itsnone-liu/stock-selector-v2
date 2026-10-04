@@ -1,0 +1,112 @@
+{
+ "consequence_for_Phase_I": "the mirror-ordering hypotheses remain UNTESTED externally (not refuted): Phase I classifications stand unchanged within the discovery corpus; Phase J established that cells 8 and 9 occur at 1/12 and 0/12 frequency among independently frozen 2024-2026 DOWN dates, so the validation question is unanswerable in this window",
+ "corpus_manifest": {
+  "batch1/cases.jsonl": "f5f3ebaa0eb476005e8b6a1ac58cad7340a414dbaf3292c14280da2876062ccd",
+  "batch1/skip_ledger.json": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+  "batch2/cases.jsonl": "d9268872cf5003a69b5c46ec44d02f36b0f08d306b21d3ac11212d50d6ae0566",
+  "batch2/skip_ledger.json": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+  "batch3/cases.jsonl": "7ddafcd1b46195462b1df37912cff24504386d4313601a11b6cffa3a3a791bc8",
+  "batch3/skip_ledger.json": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+ },
+ "coverage": {
+  "H_J1_4v8": {
+   "cell4_dates": 2,
+   "cell8_dates": 1,
+   "gate": ">=5 per side",
+   "status": "INSUFFICIENT"
+  },
+  "H_J2_8v9": {
+   "cell8_dates": 1,
+   "cell9_dates": 0,
+   "gate": ">=5 per side",
+   "status": "INSUFFICIENT"
+  }
+ },
+ "dependency_disclosure": {
+  "entities_on_multiple_admitted_dates": 32,
+  "max_dates_per_entity": 12,
+  "per_cell_entity_recurrence": {
+   "4": {
+    "distinct_entities": 32,
+    "max_cases_per_entity": 2
+   },
+   "8": {
+    "distinct_entities": 32,
+    "max_cases_per_entity": 1
+   }
+  },
+  "unique_opaque_entities": 32
+ },
+ "exploratory_annex_NOT_IN_VERDICT": "observed expansion values across the 12 frozen DOWN dates: {0,2,3,4,4,5,7,7,8,10,11,12} — the ETF-expansion state distribution in 2024-2026 differs markedly from the discovery era (2021-2023) where 4/8/9 were common states; recorded as a descriptive observation on state time-variation supporting the discrete-state framing; it carries zero evidential weight for H_J1/H_J2 and enters no verdict",
+ "phase": "CSR-8 Phase J / J1 — final coverage & verdict (coverage-gate only; directional readout NOT opened: the coverage gate uniquely determines the verdict and structural blindness is preserved)",
+ "production": {
+  "batches_run": 3,
+  "dates_and_expansion": [
+   {
+    "T": "2024-08-23",
+    "expansion": 7,
+    "n_built": 32
+   },
+   {
+    "T": "2024-09-09",
+    "expansion": 4,
+    "n_built": 32
+   },
+   {
+    "T": "2024-09-26",
+    "expansion": 7,
+    "n_built": 32
+   },
+   {
+    "T": "2025-01-14",
+    "expansion": 12,
+    "n_built": 32
+   },
+   {
+    "T": "2025-02-06",
+    "expansion": 4,
+    "n_built": 32
+   },
+   {
+    "T": "2025-04-15",
+    "expansion": 2,
+    "n_built": 32
+   },
+   {
+    "T": "2025-04-30",
+    "expansion": 5,
+    "n_built": 32
+   },
+   {
+    "T": "2025-05-20",
+    "expansion": 0,
+    "n_built": 32
+   },
+   {
+    "T": "2025-06-05",
+    "expansion": 3,
+    "n_built": 32
+   },
+   {
+    "T": "2025-06-24",
+    "expansion": 8,
+    "n_built": 32
+   },
+   {
+    "T": "2025-12-17",
+    "expansion": 10,
+    "n_built": 32
+   },
+   {
+    "T": "2026-04-07",
+    "expansion": 11,
+    "n_built": 32
+   }
+  ],
+  "hard_stop": "after batch 3 (frozen rule)",
+  "per_date_cap_32": "reached on all 12 dates (the only skip class; zero data-quality skips)",
+  "total_cases": 384
+ },
+ "protocol": "J0 sha 5ddd2866... + appendices 1-4 (commits 683e2f3, 6916568, fe03fef)",
+ "verdict": "INCONCLUSIVE (overall) — frozen verdict-table branch any_arm_insufficient: per-arm statuses reported as-is; NEVER counted as failure; NEVER justifies further sampling"
+}

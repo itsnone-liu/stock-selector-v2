@@ -1,0 +1,98 @@
+{
+ "batch": 2,
+ "coverage": {
+  "arm_HJ1_4v8": {
+   "cell4_dates": 1,
+   "cell8_dates": 0
+  },
+  "arm_HJ2_8v9": {
+   "cell8_dates": 0,
+   "cell9_dates": 0
+  }
+ },
+ "coverage_note": "counts only; no R values, signs, deltas, or verdicts computed",
+ "dates": [
+  "2025-02-06",
+  "2025-04-15",
+  "2025-04-30",
+  "2025-05-20"
+ ],
+ "dependency_disclosure": {
+  "entities_on_multiple_admitted_dates": 32,
+  "max_dates_per_entity": 4,
+  "per_cell_entity_recurrence": {
+   "0": {
+    "distinct_entities": 32,
+    "max_cases_per_entity": 1
+   },
+   "2": {
+    "distinct_entities": 32,
+    "max_cases_per_entity": 1
+   },
+   "4": {
+    "distinct_entities": 32,
+    "max_cases_per_entity": 1
+   },
+   "5": {
+    "distinct_entities": 32,
+    "max_cases_per_entity": 1
+   }
+  },
+  "unique_opaque_entities": 32
+ },
+ "expansion_counts_present": [
+  0,
+  2,
+  4,
+  5
+ ],
+ "inputs": {
+  "etf_source": "output/research/csr/national_capital/etf_share_daily_sse.csv",
+  "holdings": "national_holdings_pit.csv + holdings_coverage_ledger.csv + publication_dates.csv",
+  "price_source": "data/adjustment_baostock/per_stock (unadj only, dates<=T)",
+  "stock_layer_semantics": "replicated from build_national_capital_context_v1e1",
+  "universe84_sha": "2cd7d202bd4aa987cbe7753b4b9126d2403b594811dac6cbd096a525bd357d23"
+ },
+ "per_date": [
+  {
+   "T": "2025-02-06",
+   "contraction": 9,
+   "expansion": 4,
+   "n_built": 32,
+   "n_skipped": 1,
+   "skip_census": {
+    "cap_32_reached": 1
+   }
+  },
+  {
+   "T": "2025-04-15",
+   "contraction": 11,
+   "expansion": 2,
+   "n_built": 32,
+   "n_skipped": 1,
+   "skip_census": {
+    "cap_32_reached": 1
+   }
+  },
+  {
+   "T": "2025-04-30",
+   "contraction": 8,
+   "expansion": 5,
+   "n_built": 32,
+   "n_skipped": 1,
+   "skip_census": {
+    "cap_32_reached": 1
+   }
+  },
+  {
+   "T": "2025-05-20",
+   "contraction": 12,
+   "expansion": 0,
+   "n_built": 32,
+   "n_skipped": 1,
+   "skip_census": {
+    "cap_32_reached": 1
+   }
+  }
+ ]
+}
