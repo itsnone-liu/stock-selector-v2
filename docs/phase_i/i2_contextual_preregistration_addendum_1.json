@@ -1,0 +1,34 @@
+{
+ "addendum_id": "csr8-phase-i-i2-contextual-preregistration-addendum-1",
+ "base_contract": "csr8-phase-i2-contextual-preregistration-v1 (sha256 e32bf614ac8eaf0ace317d62732bda27fdb461e1cc0941718bff5d435f679a37, commit eddd1ff)",
+ "authorization": "explicit user ruling 2026-10-04: I2 APPROVE / FROZEN; I3 GO under strict execution of the frozen checklist (no new variables, no gate changes, no added context). The two extensions below are the ONLY changes authorized by that ruling; everything else in the base contract is untouched.",
+ "changes": [
+  {
+   "id": "EXT-1",
+   "summary": "I3 final classification is THREE-STATE, not PASS/FAIL",
+   "spec": {
+    "THEORY_ELIGIBLE": "all four R4 clauses pass (naive direction; date-dedup direction; leave-max-cluster-out direction; >=5 distinct observation dates per side)",
+    "SAMPLING_DEPENDENT": "relation exists and is testable (R4(d) satisfied) but at least one cluster-robustness clause fails — tested and found sensitive to sampling structure",
+    "DESCRIPTIVE_ONLY": "qualification gate is unsatisfiable BY DESIGN (e.g. distinct-date insufficiency); the relation is NOT testable for theory upgrade in this corpus regardless of direction strength. Distinct from SAMPLING_DEPENDENT: evidence-coverage insufficiency vs tested-and-sensitive carry different scientific meaning and must never be merged."
+   },
+   "base_contract_impact": "refines the two-way wording in R4 ('theory-layer eligible / sampling-dependent') without weakening any gate; DESCRIPTIVE_ONLY is exactly the preregistered R4(d) expectation for ND-vs-NO_PIT (4 distinct dates on the NO_PIT arm), frozen before any I3 numbers were computed."
+  },
+  {
+   "id": "EXT-2",
+   "summary": "I3 must explicitly report EFFECTIVE EVIDENCE SIZE alongside every relation",
+   "spec": {
+    "fields": ["raw_cases (nA/nB)", "distinct_observation_dates (A/B)", "max_date_multiplicity", "date_dedup_effective_N (= distinct dates per side)"],
+    "rationale": "I1 proved 128 cases are not 128 independent environment observations; anyone reading nA=86 vs nB=18 must simultaneously see 74 vs 4 observation dates. Raw case counts must never be readable as independent-evidence counts."
+   },
+   "base_contract_impact": "adds mandatory reporting fields; touches no statistic, no gate, no context variable."
+  }
+ ],
+ "interpretation_locks_from_ruling": [
+  "ND vs NO_PIT can at most conclude: 'stable descriptive difference exists in the frozen corpus, but NO_PIT observation-date diversity is insufficient to rule out date-environment concentration, so the relation is not eligible for theory upgrade' — this limitation was frozen BEFORE I3 numbers existed, leaving no room for gate relaxation after seeing results",
+  "ETF 4v8 and 8v9 are the two genuinely discriminative objects of I3 (both sides have adequate date diversity)",
+  "margin variables are leverage-participation temperature ONLY; they must never be narrated as 大盘趋势, 国家队态度, 主力加减仓, 行业资金流入, or market-wide risk-appetite proxy",
+  "broad_index_regime / sector_regime remain DEFERRED; do NOT attach index or sector data to make I3 'more complete' — that would turn a clean preregistered experiment back into exploratory analysis",
+  "after I3, do NOT immediately proceed to broad-index/sector contextual layering; first see whether the two ETF relations pass R4 — if they cannot survive Tier-1 cluster robustness there is no basis for more external variables"
+ ],
+ "change_control": "append-only; base contract text and hash remain frozen and untouched"
+}
