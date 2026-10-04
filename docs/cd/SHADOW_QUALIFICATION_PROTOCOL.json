@@ -39,6 +39,15 @@
     "prospective":"action semantic qualification PASS",
     "note":"This substitutes new admissible evidence for unobtainable historical evidence; it does not rewrite history."
   },
+  "amendment_2":{
+    "declared":"2026-10-05",
+    "origin":"operator directive: do not wait on calendar time; data is operator-fed",
+    "rules":[
+      "Qualification days are driven by operator-supplied refreshed inputs (data/cd/daily_fullmarket updated through as-of T), not by passive waiting.",
+      "Ingestion is one command: scripts/cd_shadow_ingest_day.py --day T. It enforces append-only inputs, re-runs frozen upstream builders, verifies no historical row/pool/episode mutated, then runs real qualification + independent audit + gate.",
+      "Acceleration applies to data arrival only. FOREVER_NON_EVIDENCE, no-manufactured-coverage, mismatch classification, and no-order/no-capital are unchanged."
+    ]
+  },
   "amendment_1":{
     "declared":"2026-10-05",
     "origin":"operator ratification after drill validation",
