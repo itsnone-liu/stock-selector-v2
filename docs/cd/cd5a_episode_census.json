@@ -1,0 +1,33 @@
+{
+ "n_episodes": 30066,
+ "terminal": {
+  "INACTIVE_TERMINATION": 25470,
+  "CENSORED": 3707,
+  "STRUCTURAL_FAILURE": 889
+ },
+ "origin": {
+  "M": 5682,
+  "S": 20360,
+  "L": 4024
+ },
+ "source_sequence_top": {
+  "S": 7492,
+  "S->M": 7012,
+  "S->M->L": 3884,
+  "M": 2110,
+  "L->S->M": 2068,
+  "M->S": 1830,
+  "S->L->M": 1698,
+  "M->S->L": 1250,
+  "L": 898,
+  "L->S": 422,
+  "L->M->S": 408,
+  "M->L->S": 350
+ },
+ "median_calendar_duration_days": 139.0,
+ "source_true_days_total": {
+  "M": 1270898,
+  "S": 1285758,
+  "L": 1778853
+ }
+}

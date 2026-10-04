@@ -1,0 +1,52 @@
+{
+ "phase": "CD-5 — Candidate Episode, Lifecycle & Cost Context",
+ "authority": "user GO ruling 2026-10-04 (four sublayers A-D; three hard constraints; completion gate eight conditions frozen now)",
+ "preregistration_id": "cd5-prereg-v1",
+ "three_hard_constraints": ["(1) candidate/source disappearance must NOT directly terminate episodes", "(2) current OHLCV supports only MODEL-DERIVED cost proxies, never claimed as true participant holding cost (no 主力成本/筹码峰/机构成本)", "(3) CD-5 describes lifecycle & cost background only, produces NO trading decisions"],
+ "cd5a_episode_contract_frozen": {
+  "source_state_series": "daily, per stock, three booleans from frozen V2 definitions (T_LONG/T_MID/T_SHORT verbatim, trailing-only)",
+  "create": "no active episode AND some source flips false->true -> CREATE EPISODE (start_date = that day, origin_source = that source)",
+  "add_event": "episode active AND a DIFFERENT source flips false->true -> ADD SOURCE EVENT (never a new episode)",
+  "source_inactive": "source true->false while active: record only; episode continues",
+  "episode_fields": ["episode_id (stable: stock + ordinal)", "stock", "start_date", "origin_source", "source_events[] (source, first_true_date)", "source_sequence (ordered unique sources)", "market_regime_at_start (daily + 20d mode)", "sector_state_at_start", "sector_path_at_start", "sw2_context_if_available (RETROSPECTIVE_GROUPING, on-demand only)", "end_date", "terminal"],
+  "termination": {"STRUCTURAL_FAILURE": "frozen lifecycle rule (below)", "INACTIVE_TERMINATION": "40 consecutive sessions with NO source true (episode already active; tracked from last source-true day)", "CENSORED": "data end 2026-09-30 reached while active — never counted as failure"},
+  "origin_is_metadata_not_ttl": "no uniform episode expiry; L/M/S natural scales already measured in CD-4V2"
+ },
+ "cd5b_lifecycle_frozen": {
+  "axes_per_episode_day": {
+   "rp_sector": "stock 20d qfq return minus sector-eq 20d return (sector from csrc_v1)",
+   "rp_market": "stock 20d qfq return minus market-eq 20d return",
+   "structure": "close vs episode MA60 (ratio); episode drawdown from episode running high (min so far)",
+   "participation_ratio": "20d mean volume / episode-start trailing 20d mean volume (baseline fixed at start)",
+   "cost_position": "close vs cost band P25..P75 proxy (below/inside/above), distance to weighted-median center"
+  },
+  "band_protocol": "dev-window (episode-days with start_date <= 2023-12-31) distribution of each continuous axis -> frozen q33/q67; holdout pure application; Support-First census before state freeze",
+  "state_synthesis_frozen": {
+   "priority": "DECAYING > STRENGTHENING > HOLDING (checked in this order)",
+   "STRENGTHENING": "(rp_sector OUTPERFORM OR rp_market OUTPERFORM) AND participation not-LOW",
+   "DECAYING": "(rp_sector UNDERPERFORM AND rp_market UNDERPERFORM) AND (cost_position BELOW OR participation LOW)",
+   "HOLDING": "everything else (pullback above cost band with intact participation stays HOLDING — multi-axis requirement is the point)",
+   "vocabulary_prohibited": ["吸筹", "洗盘", "拉升", "出货", "主力", "筹码盈利比例"]
+  },
+  "structural_failure_rule_frozen": "close < cost_band_lower (P25 proxy) for 15 consecutive sessions AND participation_ratio < 0.5 -> STRUCTURAL_FAILURE at 15th session",
+  "inactive_termination_rule_frozen": "40 consecutive sessions with no source true -> INACTIVE_TERMINATION"
+ },
+ "cd5c_cost_context_frozen": {
+  "semantics": "Historical Traded-Volume Cost Proxy — model-derived from OHLCV; all fields suffixed/flagged model_derived",
+  "daily_price_proxy": "(qfq high + qfq low + qfq close)/3",
+  "episode_vwap_proxy": "sum(price_proxy*vol)/sum(vol) from start to T (running)",
+  "cost_region": "volume-weighted quantiles of episode-period (price_proxy, vol) observations: weighted median=cost_center_proxy, P25/P75=cost_band_lower/upper, weighted IQR=cost_dispersion_proxy",
+  "position": "above/inside/below_cost_band, distance_to_cost_center = close/center-1",
+  "volume_below_current_price_ratio": "share of episode cumulative volume whose price_proxy < current close — interpretable ONLY as relation of historical traded price locations to current price (ownership/turnover unknown)"
+ },
+ "cd5d_validation_frozen": {
+  "sampling": "episode-days sampled at: episode start + first session of each ISO week during episode + first entry day into each lifecycle state",
+  "outcomes_5_20_60d": ["P(still STRENGTHENING at horizon | STRENGTHENING now)", "P(enters DECAYING or episode STRUCTURAL_FAILURE within horizon)", "forward max drawdown (close-based)", "forward 20d relative-strength change", "episode still alive at horizon"],
+  "stratification_hard_requirement": "all / L-origin / M-origin / S-origin reported separately; origin-conditional findings kept honestly",
+  "purpose": "do lifecycle labels carry real TIME-DIRECTION meaning — NOT which state buys best",
+  "dev_holdout": "episode start <= 2023-12-31 vs >= 2024-01-01"
+ },
+ "cd5_gate_eight_conditions": ["episode identity stable", "candidate disappearance != episode termination", "source sequence preserved", "lifecycle states observable and frozen", "cost proxy provenance explicit", "origin-source stratification complete", "forward validation dev/holdout reported", "censoring handled correctly"],
+ "context_only": "sector narrowing flag + market regime carried as context; NARROWING episode-ending is CD-6, NOT here",
+ "status": "PREREGISTERED"
+}
