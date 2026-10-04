@@ -1,4 +1,15 @@
 {
+  "ratified_state":{
+    "Round 1 Research":"CLOSED",
+    "Historical Evidence Reconstruction":"CLOSED",
+    "Runtime / Authority Engineering":"COMPLETE",
+    "Historical Action Parity":"EVIDENCE_UNAVAILABLE",
+    "Shadow Mode":"QUALIFICATION",
+    "Policy Mutation":"DISABLED",
+    "Orders / Capital":"DISABLED",
+    "Prospective Evidence":"DISABLED"
+  },
+  "daily_loop":"freeze as-of-T inputs -> frozen runtime -> immutable qualification snapshot -> independent audit -> accounting -> coverage update; gate tracks coverage + exact semantic match only, never future returns",
   "gate":"G-SHADOW-RUNTIME-READY",
   "status":"NOT_READY",
   "runtime_mode":"SHADOW_QUALIFICATION",

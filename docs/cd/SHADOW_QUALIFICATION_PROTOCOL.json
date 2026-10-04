@@ -38,5 +38,16 @@
     "historical":"authority/provenance/artifact-read/P0/L1-L3 anchors PASS; historical action parity stays EVIDENCE_UNAVAILABLE",
     "prospective":"action semantic qualification PASS",
     "note":"This substitutes new admissible evidence for unobtainable historical evidence; it does not rewrite history."
+  },
+  "amendment_1":{
+    "declared":"2026-10-05",
+    "origin":"operator ratification after drill validation",
+    "rules":[
+      "No manufactured coverage: if real days only produce HOLD / PRIMARY_ZONE=false / no terminal transition, the gate stays PENDING. That is events-not-yet-occurred, not a stuck system. REDUCE/EXIT must arise from a state chain opened by a real prior ENTER day; historical replay or synthetic positions are forbidden.",
+      "Audit mismatch classification on real days: implementation mismatch -> qualification day INVALID/unresolved -> fix implementation fidelity or clarify the frozen contract -> policy semantics unchanged. Policy question -> not resolved during qualification -> fail-closed.",
+      "Qualification can fix implementation faithfulness; it can never tune policy performance.",
+      "Daily loop is exactly: freeze as-of-T inputs -> frozen runtime -> immutable qualification snapshot -> independent audit -> accounting -> update coverage. The gate accumulates only coverage-achieved and exact-semantic-match; it never inspects future returns.",
+      "Historical evidence reconstruction is CLOSED; no further design rulings are anticipated."
+    ]
   }
 }
