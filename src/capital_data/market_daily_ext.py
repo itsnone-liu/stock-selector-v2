@@ -23,9 +23,12 @@ def fetch(code:str, start:str, end:str):
  return rows
 
 def main():
- ap=argparse.ArgumentParser();ap.add_argument('--limit',type=int,default=20);ap.add_argument('--start',default='20210101');ap.add_argument('--end',default='20260930');a=ap.parse_args()
+ ap=argparse.ArgumentParser();ap.add_argument('--limit',type=int,default=0);ap.add_argument('--shard',default='');ap.add_argument('--end',default='20260930');a=ap.parse_args()
  import gzip
- codes=sorted(p.name[:-8] for p in (ROOT/'data/cd/daily_fullmarket').glob('*.json.gz'))[:a.limit]
+ allc=sorted(p.name[:-8] for p in (ROOT/'data/cd/daily_fullmarket').glob('*.json.gz'))
+ codes=allc if a.limit==0 else allc[:a.limit]
+ if a.shard:
+  i,n=map(int,a.shard.split('/')); codes=[c for k,c in enumerate(codes) if k%n==i]
  OUT.mkdir(parents=True,exist_ok=True); ok=0; fails=[]
  for i,code in enumerate(codes):
   dst=OUT/f'{code}.json'
@@ -37,6 +40,12 @@ def main():
    if i%5==0: print(f'{i+1}/{len(codes)} {code} {len(rows)} rows',flush=True)
   except Exception as e:
    fails.append({'code':code,'error':str(e)[:200]})
+  try:
+   if fails and fails[-1]['code']==code:
+    time.sleep(2); rows=fetch(code,a.start,a.end); meta={'code':code,'source':'akshare:stock_zh_a_daily(sina)','fetched_at':time.strftime('%Y-%m-%dT%H:%M:%SZ'),'start':a.start,'end':a.end,'n':len(rows),'retry':True}
+    dst.write_text(json.dumps({'meta':meta,'rows':rows},ensure_ascii=False)); fails.pop(); ok+=1
+  except Exception as e2:
+   pass
   time.sleep(0.4)
  print(json.dumps({'ok':ok,'fails':len(fails),'fail_sample':fails[:5]},ensure_ascii=False))
 if __name__=='__main__':main()

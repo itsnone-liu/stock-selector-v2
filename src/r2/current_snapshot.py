@@ -29,6 +29,33 @@ def policy_proxy():
  ar=statistics.mean([alltot[k] for k in rec[-20:]])/max(1e-9,statistics.mean([alltot[k] for k in rec[-60:-20]]))-1
  state='增持' if chg and chg>0.03 else ('减持' if chg and chg<-0.03 else '稳定')
  return {'policy_etf_share_chg_60d':round(chg,4) if chg is not None else None,'all_etf_share_chg_60d':round(ar,4),'state':state,'n_days':len(ks),'asof':ks[-1],'confidence':'MEDIUM','note':'POLICY_CAPITAL_PROXY via curated broad-index ETF set; not account-level truth'}
+def margin_signal():
+ d=ROOT/'data/r2/margin'; rows=[]
+ for f in sorted(d.glob('sse_*.json')):
+  rows+=json.loads(f.read_text())['rows']
+ rows.sort(key=lambda r:r['date'])
+ if len(rows)<60: return {'state':'不可判断'}
+ r20=[r['rzye'] for r in rows[-20:]]; p60=[r['rzye'] for r in rows[-60:-20]]
+ chg=(sum(r20)/len(r20))/(sum(p60)/len(p60))-1
+ return {'sse_rzye_chg_60d':round(chg,4),'asof':rows[-1]['date'],'state':'融资增加' if chg>0.01 else ('融资减少' if chg<-0.01 else '平稳'),'scope':'SSE_ONLY(szse被墙)'}
+def holders_aggregate():
+ import glob as g
+ rows=[]
+ for f in sorted((ROOT/'data/r2/holders').glob('*.json')):
+  d=json.loads(f.read_text())['rows']
+  ch=[r['holders_chg_pct'] for r in d if r.get('holders_chg_pct') is not None]
+  if ch: rows.append({'date':f.stem,'median_chg':sorted(ch)[len(ch)//2]})
+ rows.sort(key=lambda x:x['date'])
+ return {'latest':rows[-1] if rows else None,'trend_4q':[r['median_chg'] for r in rows[-4:]],'read':'户数扩散中' if rows and rows[-1]['median_chg']>2 else ('户数收敛中' if rows and rows[-1]['median_chg']<-2 else '平稳')}
+def national_team_stocks():
+ out=[]
+ for f in sorted((ROOT/'data/r2/institutional').glob('*.json')):
+  q=json.loads(f.read_text())['quarters']; ks=sorted(q)
+  if not ks: continue
+  v=q[ks[-1]]; prev=q[ks[-2]] if len(ks)>1 else None
+  nt=sum(x['ratio'] for x in v['national_team']); pnt=sum(x['ratio'] for x in prev['national_team']) if prev else None
+  out.append({'stock':f.stem,'quarter':ks[-1],'nt_ratio':round(nt,2),'nt_prev_ratio':round(pnt,2) if pnt is not None else None,'state':'在场增持' if pnt is not None and nt>pnt+0.05 else ('在场减持' if pnt is not None and nt<pnt-0.05 else ('在场稳定' if nt>0.05 else '不在场')),'top10_ratio':v['top10_float_ratio']})
+ return sorted(out,key=lambda x:-(x['nt_ratio'] or 0))
 def market_and_sectors():
  panel=ROOT/'data/r2/panel_monthly.jsonl'
  last={}
@@ -75,13 +102,13 @@ def key_stocks(n=40):
   out.append({'stock':code,'close':c,'cost_band':[f['p25'],f['p50'],f['p75']],'dist_to_cost_center':round(c/f['p50']-1,4) if f['p50'] else None,'band_width':f['band_width'],'chip_locking':f['chip_locking'],'floating_supply':f['floating_supply'],'state':st['state'],'confidence':st['confidence']})
  return out
 def main():
- pp=policy_proxy(); mkt,smap=market_and_sectors(); ks=key_stocks()
+ pp=policy_proxy(); mkt,smap=market_and_sectors(); ks=key_stocks(); ms=margin_signal(); ha=holders_aggregate(); nt=national_team_stocks()
  strong=sorted(smap.items(),key=lambda kv:-(kv[1]['acc_plus_mature_share']+kv[1]['markup_ready_share']))[:5]
  weak=sorted(smap.items(),key=lambda kv:-kv[1]['distribution_risk_share'])[:5]
- snap={'generated':'2026-10-05','national_team_policy_proxy':pp,'market':mkt,
+ snap={'generated':'2026-10-05','national_team_policy_proxy':pp,'margin_market':ms,'holders_market':ha,'national_team_stocks_present':[x for x in nt if x['nt_ratio']>0.05],
   'sector_top_accumulation_ready':{k:v for k,v in strong},'sector_top_distribution_risk':{k:v for k,v in weak},
   'key_stocks_cost_bands':ks,
   'missing_data_markers':{'E4_ownership':'not yet ingested','E5_public_signals':'not yet ingested','free_float':'fetch in progress (background)','contradictions':[]}}
  out=ROOT/'data/r2/snapshot_current.json'; out.write_text(json.dumps(snap,ensure_ascii=False,indent=2)+'\n')
- print(json.dumps({'policy':pp['state'],'chg':pp.get('policy_etf_share_chg_60d'),'market':mkt['market_chip_read'],'sectors':len(smap),'key_stocks':len(ks)},ensure_ascii=False))
+ print(json.dumps({'policy':pp['state'],'chg':pp.get('policy_etf_share_chg_60d'),'margin':ms.get('state'),'holders':ha.get('read'),'nt_stocks':len(snap_missing) if False else len([x for x in nt if x['nt_ratio']>0.05]),'market':mkt['market_chip_read'],'sectors':len(smap),'key_stocks':len(ks)},ensure_ascii=False))
 if __name__=='__main__':main()

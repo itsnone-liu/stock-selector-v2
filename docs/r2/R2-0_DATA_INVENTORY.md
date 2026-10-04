@@ -23,3 +23,12 @@
 
 ## 硬底线执行情况
 不造数据（失败显式记录）；不未来信息（抓取止于 2026-09-30）；不静默错误（fails 列表+meta 溯源）。
+
+## R2-0 增量（2026-10-05 晚，goal round 3-4）
+| 数据 | 状态 |
+|---|---|
+| E4 股东户数 22 期全市场（cninfo） | ✅ data/r2/holders/ |
+| 机构/国家队画像 84 股×22 季（CSR-8 披露解析） | ✅ data/r2/institutional/ + NATIONAL_TEAM_REGISTRY.json |
+| E5 融资余额 SSE 2021–2026 逐日 | ✅ data/r2/margin/（SZSE 源连接重置=SSE_ONLY） |
+| amount/turnover/free_float 全市场 | 🔄 3 分片并行抓取中（~960+/5430） |
+| 龙虎榜 / 大宗交易 | ❌ EM 源全部超时/断连，标 MISSING（可人工投喂） |
