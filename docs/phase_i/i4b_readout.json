@@ -1,0 +1,208 @@
+{
+ "banners": {
+  "general": "FORBIDDEN: causal language; actor attribution on the ETF layer; 'regime threshold' claims; treating the 120d-median index regime as a market model (it is a coarse modifier); capital-state labels immutable.",
+  "nd_nopit": "stock_layer ND-vs-NO_PIT: DESCRIPTIVE_ONLY, EXCLUDED from theory re-upgrade by user ruling; context columns are descriptive only."
+ },
+ "contract": "i4a sha b1278342... + addendum-semantic-1 (two-tier evidence semantics)",
+ "mode": "frozen-contract execution",
+ "nd_vs_nopit_descriptive_only": {
+  "ALL": {
+   "d": -0.025597932429465627,
+   "median_R5_ND": -0.019546462895638706,
+   "median_R5_NO_PIT": 0.006051469533826919,
+   "n_ND": 86,
+   "n_NO_PIT": 18
+  },
+  "DOWN": {
+   "d": -0.06201315265388017,
+   "median_R5_ND": -0.027978454050367516,
+   "median_R5_NO_PIT": 0.03403469860351265,
+   "n_ND": 24,
+   "n_NO_PIT": 1
+  },
+  "UP": {
+   "d": -0.022411650637914823,
+   "median_R5_ND": -0.016369336181952163,
+   "median_R5_NO_PIT": 0.006042314455962662,
+   "n_ND": 62,
+   "n_NO_PIT": 17
+  }
+ },
+ "phase": "CSR-8 Phase I / I4B",
+ "relation_results": [
+  {
+   "cells": {
+    "A": "4",
+    "B": "8"
+   },
+   "consistent_with_I3": true,
+   "context_classification": "CONDITIONAL",
+   "context_classification_semantics": null,
+   "i3_standing": "THEORY_ELIGIBLE",
+   "overall": {
+    "dates_A": 11,
+    "dates_B": 8,
+    "dedup_d": -0.016266271706128536,
+    "lco": {
+     "d_case_level": -0.035558980210722485,
+     "d_dedup": -0.004834972625925315,
+     "dropped": "2021-03-08",
+     "dropped_cases": 7
+    },
+    "max_date_multiplicity": 7,
+    "nA": 15,
+    "nB": 17,
+    "naive_cliffs": -0.3176470588235294,
+    "naive_d": -0.0635039788302307,
+    "signs": {
+     "dedup": "-",
+     "lco_case": "-",
+     "lco_dedup": "-",
+     "naive": "-"
+    }
+   },
+   "relation": "ETF_4_vs_8",
+   "strata": {
+    "DOWN": {
+     "dates_A": 3,
+     "dates_B": 3,
+     "dedup_d": 0.051265473020469673,
+     "lco": {
+      "d_case_level": 0.013640273787414295,
+      "d_dedup": 0.013640273787414295,
+      "dropped": "2022-07-18",
+      "dropped_cases": 1
+     },
+     "low_coverage": true,
+     "low_coverage_banner": "LOW_COVERAGE — output coverage only; not theory-grade evidence (R4(d)>=5 unmet in this stratum)",
+     "max_date_multiplicity": 1,
+     "nA": 3,
+     "nB": 3,
+     "naive_cliffs": 0.1111111111111111,
+     "naive_d": 0.051265473020469673,
+     "output_coverage_floor_met": true,
+     "signs": {
+      "dedup": "+",
+      "lco_case": "+",
+      "lco_dedup": "+",
+      "naive": "+"
+     },
+     "stratum_r4_theory_grade": false
+    },
+    "UP": {
+     "dates_A": 8,
+     "dates_B": 5,
+     "dedup_d": -0.03749967429572465,
+     "lco": {
+      "d_case_level": -0.09552372185226904,
+      "d_dedup": -0.03705995660735,
+      "dropped": "2021-03-08",
+      "dropped_cases": 7
+     },
+     "low_coverage": false,
+     "low_coverage_banner": null,
+     "max_date_multiplicity": 7,
+     "nA": 12,
+     "nB": 14,
+     "naive_cliffs": -0.38095238095238093,
+     "naive_d": -0.08625112875701452,
+     "output_coverage_floor_met": true,
+     "signs": {
+      "dedup": "-",
+      "lco_case": "-",
+      "lco_dedup": "-",
+      "naive": "-"
+     },
+     "stratum_r4_theory_grade": true
+    }
+   }
+  },
+  {
+   "cells": {
+    "A": "8",
+    "B": "9"
+   },
+   "consistent_with_I3": true,
+   "context_classification": "CONDITIONAL",
+   "context_classification_semantics": null,
+   "i3_standing": "THEORY_ELIGIBLE",
+   "overall": {
+    "dates_A": 8,
+    "dates_B": 11,
+    "dedup_d": 0.04333278632977166,
+    "lco": {
+     "d_case_level": 0.015656000539627398,
+     "d_dedup": 0.03190148724956844,
+     "dropped": "2021-03-08",
+     "dropped_cases": 7
+    },
+    "max_date_multiplicity": 7,
+    "nA": 17,
+    "nB": 14,
+    "naive_cliffs": 0.4789915966386555,
+    "naive_d": 0.04360099915913562,
+    "signs": {
+     "dedup": "+",
+     "lco_case": "+",
+     "lco_dedup": "+",
+     "naive": "+"
+    }
+   },
+   "relation": "ETF_8_vs_9",
+   "strata": {
+    "DOWN": {
+     "dates_A": 3,
+     "dates_B": 3,
+     "dedup_d": -0.02419895839682655,
+     "lco": {
+      "d_case_level": -0.024975858278307866,
+      "d_dedup": -0.024975858278307866,
+      "dropped": "2022-11-22",
+      "dropped_cases": 1
+     },
+     "low_coverage": true,
+     "low_coverage_banner": "LOW_COVERAGE — output coverage only; not theory-grade evidence (R4(d)>=5 unmet in this stratum)",
+     "max_date_multiplicity": 1,
+     "nA": 3,
+     "nB": 3,
+     "naive_cliffs": 0.1111111111111111,
+     "naive_d": -0.02419895839682655,
+     "output_coverage_floor_met": true,
+     "signs": {
+      "dedup": "-",
+      "lco_case": "-",
+      "lco_dedup": "-",
+      "naive": "-"
+     },
+     "stratum_r4_theory_grade": false
+    },
+    "UP": {
+     "dates_A": 5,
+     "dates_B": 8,
+     "dedup_d": 0.055087466999386166,
+     "lco": {
+      "d_case_level": 0.05704372371049656,
+      "d_dedup": 0.05464774931101152,
+      "dropped": "2021-03-08",
+      "dropped_cases": 7
+     },
+     "low_coverage": false,
+     "low_coverage_banner": null,
+     "max_date_multiplicity": 7,
+     "nA": 14,
+     "nB": 11,
+     "naive_cliffs": 0.5194805194805194,
+     "naive_d": 0.047771130615242054,
+     "output_coverage_floor_met": true,
+     "signs": {
+      "dedup": "+",
+      "lco_case": "+",
+      "lco_dedup": "+",
+      "naive": "+"
+     },
+     "stratum_r4_theory_grade": true
+    }
+   }
+  }
+ ]
+}
