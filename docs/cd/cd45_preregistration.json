@@ -1,0 +1,39 @@
+{
+ "phase": "CD-4.5 — L1 Market Observable Regime",
+ "authority": "user GO ruling 2026-10-04 (L1 before CD-5; regime = context never BUY/SELL; no rescuing V1; stratification first; V2 design principle frozen verbatim)",
+ "preregistration_id": "cd45-prereg-v1",
+ "v2_design_principle_frozen_verbatim": "Candidate funnel 应优先承担「高召回、低成本、稳定的资源调度」职责；MID/SHORT 等高频行为信号原则上作为候选来源或优先级元数据，而不是连续硬 AND gate。",
+ "market_level_axes_daily_frozen": {
+  "source": "DATA-1 cross-sections (5430 stocks), computed per trade date over all stocks with a prior close",
+  "mkt_ret_20d": "20-session cumulative equal-weight market return",
+  "mkt_breadth": "fraction of participating stocks advancing",
+  "mkt_participation": "total market volume / its trailing 20-session mean total volume",
+  "mkt_concentration": "top-50 positive-contribution share: sum of top-50 (max(r,0)*vol) / sum of all positive contributions",
+  "mkt_dispersion": "cross-sectional std of stock returns",
+  "mkt_trend": "equal-weight market index (cumprod of mean daily return) vs its 250-session mean — binary ABOVE/BELOW (PREREG-EXECUTION FIX: 500d lookfront would start regimes at 2023-01 leaving dev window a single year; fixed to 250d BEFORE any regime result produced, dev=2022-2023) (long-term background)"
+ },
+ "discretization_frozen": {
+  "protocol": "Support-First census on dev window 2021-01..2023-12; POOLED quantiles (market level, no sector-size stratification applicable); q33/q67 bands frozen, holdout 2024+ pure application",
+  "bands": {"mkt_ret_20d": "LOW/MID/HIGH", "mkt_breadth": "LOW/MID/HIGH", "mkt_participation": "LOW/MID/HIGH", "mkt_concentration": "LOW/MID/HIGH", "mkt_dispersion": "LOW/MID/HIGH", "mkt_trend": "ABOVE/BELOW"}
+ },
+ "regime_composition_frozen_v1": {
+  "principle": "small number of observable regimes from PRIMARY axes only (trend x breadth x ret_20d); concentration/dispersion/participation recorded as auxiliary metadata on each regime-day (not in the regime code itself) to keep the state count small",
+  "rules": {
+   "ABOVE-trend + breadth HIGH/MID + ret20d HIGH/MID": "R_RISK_ON_BROAD (broad risk-on)",
+   "ABOVE-trend + breadth LOW or ret20d LOW": "R_RISK_ON_NARROW (index/background up but narrow participation)",
+   "BELOW-trend + breadth MID/HIGH + ret20d MID/HIGH": "R_REBOUND_MIXED (below long trend, current recovery)",
+   "BELOW-trend + ret20d LOW + breadth LOW": "R_RISK_OFF (falling with broad weakness)",
+   "BELOW-trend + (breadth LOW, ret20d MID) or (breadth MID, ret20d LOW)": "R_DEPRESSED (weak drift without active selloff)"
+  },
+  "note": "final names decided at reporting; codes R1..R5 stable in artifacts"
+ },
+ "research_questions_protocol": {
+  "Q1_stable_structures": "regime day-counts + share; any regime <2% of days tagged LOW_SUPPORT",
+  "Q2_persistence": "episode durations per regime (consecutive-day runs): median/mean/max; transition counts",
+  "Q3_2021_22_vs_2023plus": "regime share by year; which axes drive the difference (band distributions by year)",
+  "Q4_funnel_x_regime": "V1 funnel (lvl_long/mid/full pool sizes and recall where computable) stratified by regime of checkpoint month — STRATIFICATION ONLY, no threshold changes",
+  "Q5_continuous_vs_bands": "multimodality check on the continuous axes (40-bin histograms, dev window) — are the underlying axes themselves banded or unimodal"
+ },
+ "prohibited": ["per-regime funnel threshold tuning", "direction prediction claims", "regime->BUY/SELL mapping", "rescuing V1", "executing CD-4V2"],
+ "status": "PREREGISTERED"
+}

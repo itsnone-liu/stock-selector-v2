@@ -1,0 +1,174 @@
+{
+ "generated": "2026-10-04T18:56:53",
+ "frozen_bands_dev": {
+  "ret20d": [
+   -0.022005,
+   0.021709
+  ],
+  "breadth": [
+   0.358952,
+   0.580866
+  ],
+  "part": [
+   0.927072,
+   1.051596
+  ],
+  "conc50": [
+   0.547186,
+   0.649401
+  ],
+  "disp": [
+   0.02392,
+   0.027802
+  ]
+ },
+ "regime_counts": {
+  "R_RISK_ON_NARROW": 336,
+  "R_RISK_ON_BROAD": 426,
+  "R_RISK_OFF": 95,
+  "R_REBOUND_MIXED": 204,
+  "R_DEPRESSED": 82
+ },
+ "regime_share": {
+  "R_RISK_ON_NARROW": 0.294,
+  "R_RISK_ON_BROAD": 0.3727,
+  "R_RISK_OFF": 0.0831,
+  "R_REBOUND_MIXED": 0.1785,
+  "R_DEPRESSED": 0.0717
+ },
+ "low_support_regimes": [],
+ "persistence": {
+  "R_RISK_ON_NARROW": {
+   "n_runs": 152,
+   "median_days": 1,
+   "mean_days": 2.2,
+   "max_days": 21
+  },
+  "R_RISK_ON_BROAD": {
+   "n_runs": 153,
+   "median_days": 2,
+   "mean_days": 2.8,
+   "max_days": 14
+  },
+  "R_RISK_OFF": {
+   "n_runs": 57,
+   "median_days": 1,
+   "mean_days": 1.7,
+   "max_days": 6
+  },
+  "R_REBOUND_MIXED": {
+   "n_runs": 78,
+   "median_days": 1,
+   "mean_days": 2.6,
+   "max_days": 23
+  },
+  "R_DEPRESSED": {
+   "n_runs": 65,
+   "median_days": 1,
+   "mean_days": 1.3,
+   "max_days": 4
+  }
+ },
+ "transitions_top": {
+  "R_RISK_ON_BROAD->R_RISK_ON_NARROW": 146,
+  "R_RISK_ON_NARROW->R_RISK_ON_BROAD": 138,
+  "R_RISK_OFF->R_REBOUND_MIXED": 37,
+  "R_DEPRESSED->R_REBOUND_MIXED": 37,
+  "R_REBOUND_MIXED->R_DEPRESSED": 36,
+  "R_REBOUND_MIXED->R_RISK_OFF": 26,
+  "R_DEPRESSED->R_RISK_OFF": 24,
+  "R_RISK_OFF->R_DEPRESSED": 19,
+  "R_REBOUND_MIXED->R_RISK_ON_BROAD": 13,
+  "R_RISK_ON_NARROW->R_RISK_OFF": 6,
+  "R_RISK_ON_NARROW->R_DEPRESSED": 5,
+  "R_RISK_ON_BROAD->R_DEPRESSED": 5
+ },
+ "year_share": {
+  "2022": {
+   "R_RISK_ON_NARROW": 0.285,
+   "R_RISK_ON_BROAD": 0.294,
+   "R_RISK_OFF": 0.115,
+   "R_REBOUND_MIXED": 0.247,
+   "R_DEPRESSED": 0.06
+  },
+  "2023": {
+   "R_RISK_ON_NARROW": 0.322,
+   "R_RISK_ON_BROAD": 0.488,
+   "R_RISK_OFF": 0.054,
+   "R_DEPRESSED": 0.062,
+   "R_REBOUND_MIXED": 0.074
+  },
+  "2024": {
+   "R_DEPRESSED": 0.169,
+   "R_REBOUND_MIXED": 0.388,
+   "R_RISK_OFF": 0.186,
+   "R_RISK_ON_BROAD": 0.174,
+   "R_RISK_ON_NARROW": 0.083
+  },
+  "2025": {
+   "R_RISK_ON_NARROW": 0.436,
+   "R_RISK_ON_BROAD": 0.564
+  },
+  "2026": {
+   "R_RISK_ON_BROAD": 0.331,
+   "R_RISK_ON_NARROW": 0.359,
+   "R_RISK_OFF": 0.055,
+   "R_DEPRESSED": 0.066,
+   "R_REBOUND_MIXED": 0.188
+  }
+ },
+ "funnel_by_regime": {
+  "R_RISK_ON_NARROW": {
+   "n_checkpoints": 16,
+   "median_long": 1768,
+   "median_mid": 610,
+   "median_full": 316,
+   "median_recall_full": 0.0582
+  },
+  "R_RISK_ON_BROAD": {
+   "n_checkpoints": 23,
+   "median_long": 1945,
+   "median_mid": 592,
+   "median_full": 366,
+   "median_recall_full": 0.0933
+  },
+  "R_REBOUND_MIXED": {
+   "n_checkpoints": 13,
+   "median_long": 725,
+   "median_mid": 242,
+   "median_full": 71,
+   "median_recall_full": 0.0231
+  },
+  "R_RISK_OFF": {
+   "n_checkpoints": 2,
+   "median_long": 440,
+   "median_mid": 129,
+   "median_full": 68,
+   "median_recall_full": 0.0249
+  },
+  "R_DEPRESSED": {
+   "n_checkpoints": 3,
+   "median_long": 1056,
+   "median_mid": 347,
+   "median_full": 193,
+   "median_recall_full": 0.0602
+  }
+ },
+ "multimodality": {
+  "ret20d": {
+   "verdict": "NO"
+  },
+  "breadth": {
+   "verdict": "NO"
+  },
+  "part": {
+   "verdict": "NO"
+  },
+  "conc50": {
+   "verdict": "NO"
+  },
+  "disp": {
+   "verdict": "NO"
+  }
+ }
+}
