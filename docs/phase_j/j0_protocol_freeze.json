@@ -1,0 +1,65 @@
+{
+ "protocol_id": "csr8-phase-j-j0-external-validation-protocol-v1",
+ "phase": "CSR-8 Phase J / J0 — External Validation Protocol Freeze",
+ "mode": "PROTOCOL FREEZE ONLY — no validation sample may enter until this contract is frozen; J1+ produce the corpus under it",
+ "authority_chain": [
+  "user ruling 2026-10-04: Phase J GO conditional on J0 protocol freeze first; Phase H 129+ UNAUTHORIZED-HOLD unchanged; Phase J = independent namespace/ledger/corpus, NOT a Phase H continuation",
+  "Phase I final freeze sha be1cdd7e... (670e226) with Phase J preregistration sketch",
+  "frozen index + regime rule: I4A contract sha b1278342... (000985, raw close, 120d median, trade_date<T)",
+  "frozen universe: Phase A sample_selection.json universe84, list-sha256 2cd7d202bd4aa987cbe7753b4b9126d2403b594811dac6cbd096a525bd357d23"
+ ],
+ "single_scientific_question": {
+  "discovery_frozen_UP": {"ETF_4_vs_8": "<0", "ETF_8_vs_9": ">0"},
+  "validation_hypotheses_DOWN": {"H_J1 (ETF_4_vs_8)": ">0", "H_J2 (ETF_8_vs_9)": "<0"},
+  "question": "does the UP-theory-gated ordering 4<8>9 reverse to 4>8<9 in an independent, date-diverse DOWN corpus?"
+ },
+ "date_first_hard_gate": {
+  "order": ["enumerate eligible calendar dates (frozen 000985 series)", "classify DOWN via frozen I4A rule", "admit by preregistered mechanical rule", "freeze admitted dates (DONE in J0: j0_admitted_dates.json)", "derive entities mechanically", "build packets", "only then observe ETF cell composition", "later compute R5"],
+  "blindness": "date admission is blind to outcomes AND to ETF-level composition; DOWN dates missing a cell remain admitted-but-non-contributing and are never silently dropped"
+ },
+ "date_rules_frozen": {
+  "eligibility": "trading day in frozen series; regime(T)=DOWN by frozen rule; R10 forward window fully inside frozen series (T <= series[-11]); T not among the 122 discovery observation dates (isolation)",
+  "census_result": "524 eligible DOWN dates (2021-03-09..2026-04-07); 27 discovery dates excluded",
+  "admission_rule": "newest-first greedy scan; admit T iff trading-day distance >= 11 to EVERY admitted date (disjoint R10 outcome windows — Phase I clustering lesson applied one level up: adjacent DOWN dates are the same regime episode with overlapping outcomes); cap 12",
+  "admitted_dates_frozen": ["2024-08-23", "2024-09-09", "2024-09-26", "2025-01-14", "2025-02-06", "2025-04-15", "2025-04-30", "2025-05-20", "2025-06-05", "2025-06-24", "2025-12-17", "2026-04-07"]
+ },
+ "case_entry_rule_frozen": {
+  "entity_source": "Phase A frozen universe84 (canonical order as stored, sha above); NO reverse-picking to fill cells",
+  "per_date_procedure": "for each admitted date, iterate universe84 in canonical order, build a full PIT-compliant case (packet + national context via the Phase H production machinery) for every entity whose data supports it; record every skip with reason in the ledger; per-date cap 32 cases",
+  "cell_observation": "ETF expansion count observed ONLY AFTER the case is built; cases are never filtered on it"
+ },
+ "stopping_rule_frozen": {
+  "batches": "3 production batches x 4 admitted dates, in frozen list order (batch1: first 4, batch2: next 4, batch3: last 4)",
+  "early_stop": "production halts as soon as BOTH arms reach >=5 contributing distinct dates per side (a coverage condition — blind to effect direction)",
+  "hard_stop": "after batch 3 production stops regardless of coverage; NO batch may be added or dropped based on observed effect direction; sampling-until-satisfied is FORBIDDEN",
+  "contributing_date_definition": "an admitted date where BOTH cells of an arm have >=1 built case"
+ },
+ "eligibility_gates_inherited": {
+  "R4": "inherited verbatim: naive direction + date-dedup direction + leave-max-cluster-out direction must agree in the hypothesis sign, AND >=5 contributing distinct dates per side per arm",
+  "calibers": "all four calibers reported (naive case-level; date-dedup per (T,cell) median over dates; LCO case-level; LCO dedup) — leave-max-cluster-out drops the arm's largest multiplicity date",
+  "effective_evidence_reporting": "mandatory per arm: raw n / distinct contributing dates / max date multiplicity / date-dedup effective N; distinct DOWN dates are the PRIMARY unit; raw n is auxiliary",
+  "outcome": "R5 definition and machinery inherited unchanged from discovery (same calendar/mapping/outcomes implementation)"
+ },
+ "data_isolation": {
+  "namespace": "Phase J independent namespace (docs/phase_j/ + data/phase_j/), corpus id pj-val-0001, independent admission ledger / build ledger / skip ledger",
+  "prohibition": "NEVER merged with the discovery 128 corpus for re-estimation; final report may show discovery vs validation SIDE BY SIDE only",
+  "phase_h": "129+ UNAUTHORIZED-HOLD unchanged; Phase J is not a Phase H continuation"
+ },
+ "zero_exploratory_degrees": {
+  "forbidden_additions": ["new ETF levels (only cells 4/8/9 as frozen)", "new outcomes or horizons", "another index", "any regime-algorithm change", "sector context", "subgroup analyses"],
+  "exploratory_observations": "any finding outside the two hypotheses goes to a separately-marked exploratory annex and future phases only — NEVER into the J confirmatory verdict"
+ },
+ "verdict_table_frozen": {
+  "arm_supported": "all four calibers in the hypothesis sign AND >=5 contributing dates per side",
+  "arm_insufficient": "contributing dates <5 per side (after hard stop)",
+  "arm_not_supported": "coverage sufficient but direction fails (includes zero)",
+  "overall": {
+   "both_supported": "VALIDATED — independent validation supports the market-conditional mirror ordering (UP: 4<8>9 / DOWN: 4>8<9)",
+   "one_supported_one_not": "PARTIAL_VALIDATION — mirror ordering as a whole fails; only the passing arm's conditional evidence is retained",
+   "both_not_supported": "NOT_REPLICATED — I4B's DOWN mirror is classified as a low-coverage discovery phenomenon",
+   "any_arm_insufficient": "INCONCLUSIVE (overall) — per-arm results reported as-is; INCONCLUSIVE is NEVER counted as failure and NEVER justifies further sampling"
+  }
+ },
+ "success_language_ceiling": "even on 2/2 success the only permitted upgrade: 'in the frozen observation system, a market-regime-conditional ordering of ETF-expansion discrete states 4/8/9 relative to subsequent R5 paths replicated in an independent DOWN corpus' — causal language ('ETF levels cause price paths') remains FORBIDDEN",
+ "change_control": "frozen on commit; changes require append-only erratum + explicit user authorization"
+}

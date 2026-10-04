@@ -1,0 +1,21 @@
+{
+ "admitted": [
+  "2024-08-23",
+  "2024-09-09",
+  "2024-09-26",
+  "2025-01-14",
+  "2025-02-06",
+  "2025-04-15",
+  "2025-04-30",
+  "2025-05-20",
+  "2025-06-05",
+  "2025-06-24",
+  "2025-12-17",
+  "2026-04-07"
+ ],
+ "blind": "admission uses only the frozen index calendar; zero outcome/ETF/entity information",
+ "eligible_pool": 524,
+ "n_admitted": 12,
+ "rationale": "adjacent DOWN dates belong to the same regime episode and share overlapping forward-outcome windows; >=11 trading days makes R10 windows disjoint, maximizing outcome independence at date level (Phase I clustering lesson applied one level up)",
+ "rule": "newest-first greedy admit; trading-day distance >=11 to every admitted date (non-overlapping R10 windows); cap 12"
+}
