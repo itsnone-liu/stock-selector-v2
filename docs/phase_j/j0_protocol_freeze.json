@@ -61,5 +61,20 @@
   }
  },
  "success_language_ceiling": "even on 2/2 success the only permitted upgrade: 'in the frozen observation system, a market-regime-conditional ordering of ETF-expansion discrete states 4/8/9 relative to subsequent R5 paths replicated in an independent DOWN corpus' — causal language ('ETF levels cause price paths') remains FORBIDDEN",
- "change_control": "frozen on commit; changes require append-only erratum + explicit user authorization"
+ "change_control": "frozen on commit; changes require append-only erratum + explicit user authorization",
+ "appendix_1_semantic_boundary_added_at_j0_acceptance": {
+  "added_by": "user ruling at J0 acceptance (append-only; wording clarification, NOT an erratum; no date re-selection)",
+  "statement": "11-trading-day separation guarantees non-overlapping R10 outcome windows; it does not establish that admitted dates belong to statistically independent market episodes",
+  "consequence": "the 12 distinct admitted dates must never be phrased as 12 independent bear-market episodes"
+ },
+ "appendix_2_preregistered_reporting_items_no_verdict_impact": {
+  "added_by": "user ruling at J0 acceptance (preregistered as REPORTING items only)",
+  "items": ["unique opaque entities", "entities appearing on >1 admitted date", "max dates per entity", "per-cell entity recurrence"],
+  "semantics": "dependency-structure disclosure only — NO new gates, NO sensitivity analyses, NO effect on the preregistered verdict",
+  "purpose": "on 2/2 success the permitted claim is precisely 'replicated on an independently frozen set of DOWN observation dates' — never silently widened to 'replicated across many independent entities and independent market episodes'"
+ },
+ "appendix_3_j1_blindness_implementation": {
+  "added_by": "user ruling at J0 acceptance (execution discipline)",
+  "rule": "the production control plane reads ONLY coverage counts (4v8 and 8v9 contributing-date counts); R5 signs, deltas, and intermediate verdicts are NOT computed or exposed during production; the confirmatory readout opens only after the preregistered stopping point"
+ }
 }
