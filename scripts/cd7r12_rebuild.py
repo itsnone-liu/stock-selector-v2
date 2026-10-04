@@ -71,6 +71,7 @@ def main():
         lo, hi = bands[ax_]
         return 'LOW' if v < lo else 'HIGH' if v >= hi else 'MID'
     trades = {'CHASE': [], 'ZONE': [], 'C': []}
+    p0_events = []
     never_cls = Counter()
     fwd_by_ep = {}
     for code, elist in by_stock.items():
@@ -149,8 +150,11 @@ def main():
                             # P0 fix: reducing a 1-unit position to zero IS an exit -> must record the trade.
                             # close_trade guards on pos>0, so close BEFORE decrementing (the original engines
                             # decremented first, so the guard rejected every reduce-exit and the trade vanished).
+                            position_before = pos
                             close_trade(k, 'REDUCED_OUT')
                             pos = 0; reduce_done = True
+                            if arm == 'ZONE':
+                                p0_events.append({'trade_id': f"{e['episode_id']}@{rows[k][0]}", 'episode_id': e['episode_id'], 'stock': e['stock'], 'decision_date': rows[k][0], 'decision': 'REDUCE', 'position_before': position_before, 'remaining_position': pos, 'terminal_reason': 'REDUCED_OUT', 'entry_date': entry_d, 'entry_price': entry_px, 'reduction_price': cl, 'lifecycle_state': st, 'ordering': ['close_record_created', 'position_discarded']})
                             break
                     else:
                         if arm == 'CHASE':
@@ -197,6 +201,7 @@ def main():
     print('CLS:', CLS)
     print('trades CHASE', len(trades['CHASE']), 'ZONE', len(trades['ZONE']), 'C', len(trades['C']), '({:.0f}s)'.format(time.time()-t0))
     print('never:', dict(never_cls))
+    json.dump(p0_events, open(ROOT/'docs/cd'/'cd7_p0_reduced_out_events.json','w'), indent=1)
     month = defaultdict(list)
     for e in eps:
         if e['episode_id'] in fwd_by_ep: month[e['start'][:7]].append(e['episode_id'])

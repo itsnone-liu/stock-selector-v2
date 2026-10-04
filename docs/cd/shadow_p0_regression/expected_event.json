@@ -1,0 +1,92 @@
+[
+  {
+    "trade_id": "000001#0003@2024-11-04",
+    "episode_id": "000001#0003",
+    "stock": "000001",
+    "decision_date": "2024-11-04",
+    "decision": "REDUCE",
+    "position_before": 1,
+    "remaining_position": 0,
+    "terminal_reason": "REDUCED_OUT",
+    "entry_date": "2024-10-16",
+    "entry_price": 10.853,
+    "reduction_price": 10.253,
+    "lifecycle_state": "DECAYING",
+    "ordering": [
+      "close_record_created",
+      "position_discarded"
+    ]
+  },
+  {
+    "trade_id": "000001#0004@2026-02-04",
+    "episode_id": "000001#0004",
+    "stock": "000001",
+    "decision_date": "2026-02-04",
+    "decision": "REDUCE",
+    "position_before": 1,
+    "remaining_position": 0,
+    "terminal_reason": "REDUCED_OUT",
+    "entry_date": "2025-06-24",
+    "entry_price": 11.085,
+    "reduction_price": 10.361,
+    "lifecycle_state": "DECAYING",
+    "ordering": [
+      "close_record_created",
+      "position_discarded"
+    ]
+  },
+  {
+    "trade_id": "000002#0001@2022-02-15",
+    "episode_id": "000002#0001",
+    "stock": "000002",
+    "decision_date": "2022-02-15",
+    "decision": "REDUCE",
+    "position_before": 1,
+    "remaining_position": 0,
+    "terminal_reason": "REDUCED_OUT",
+    "entry_date": "2022-01-20",
+    "entry_price": 20.466,
+    "reduction_price": 18.166,
+    "lifecycle_state": "DECAYING",
+    "ordering": [
+      "close_record_created",
+      "position_discarded"
+    ]
+  },
+  {
+    "trade_id": "000002#0004@2024-11-01",
+    "episode_id": "000002#0004",
+    "stock": "000002",
+    "decision_date": "2024-11-01",
+    "decision": "REDUCE",
+    "position_before": 1,
+    "remaining_position": 0,
+    "terminal_reason": "REDUCED_OUT",
+    "entry_date": "2024-10-16",
+    "entry_price": 10.0,
+    "reduction_price": 9.11,
+    "lifecycle_state": "DECAYING",
+    "ordering": [
+      "close_record_created",
+      "position_discarded"
+    ]
+  },
+  {
+    "trade_id": "000002#0005@2025-10-15",
+    "episode_id": "000002#0005",
+    "stock": "000002",
+    "decision_date": "2025-10-15",
+    "decision": "REDUCE",
+    "position_before": 1,
+    "remaining_position": 0,
+    "terminal_reason": "REDUCED_OUT",
+    "entry_date": "2025-09-10",
+    "entry_price": 6.86,
+    "reduction_price": 6.49,
+    "lifecycle_state": "DECAYING",
+    "ordering": [
+      "close_record_created",
+      "position_discarded"
+    ]
+  }
+]

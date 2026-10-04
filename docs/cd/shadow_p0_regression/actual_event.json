@@ -1,0 +1,67 @@
+[
+  {
+    "trade_id": "000001#0003@2024-11-04",
+    "episode_id": "000001#0003",
+    "decision": "REDUCE",
+    "position_before": 1,
+    "position_after": 0,
+    "terminal_reason": "REDUCED_OUT",
+    "ordering": [
+      "close_record_created",
+      "position_discarded"
+    ],
+    "actual_producer": "independent_accounting_replay"
+  },
+  {
+    "trade_id": "000001#0004@2026-02-04",
+    "episode_id": "000001#0004",
+    "decision": "REDUCE",
+    "position_before": 1,
+    "position_after": 0,
+    "terminal_reason": "REDUCED_OUT",
+    "ordering": [
+      "close_record_created",
+      "position_discarded"
+    ],
+    "actual_producer": "independent_accounting_replay"
+  },
+  {
+    "trade_id": "000002#0001@2022-02-15",
+    "episode_id": "000002#0001",
+    "decision": "REDUCE",
+    "position_before": 1,
+    "position_after": 0,
+    "terminal_reason": "REDUCED_OUT",
+    "ordering": [
+      "close_record_created",
+      "position_discarded"
+    ],
+    "actual_producer": "independent_accounting_replay"
+  },
+  {
+    "trade_id": "000002#0004@2024-11-01",
+    "episode_id": "000002#0004",
+    "decision": "REDUCE",
+    "position_before": 1,
+    "position_after": 0,
+    "terminal_reason": "REDUCED_OUT",
+    "ordering": [
+      "close_record_created",
+      "position_discarded"
+    ],
+    "actual_producer": "independent_accounting_replay"
+  },
+  {
+    "trade_id": "000002#0005@2025-10-15",
+    "episode_id": "000002#0005",
+    "decision": "REDUCE",
+    "position_before": 1,
+    "position_after": 0,
+    "terminal_reason": "REDUCED_OUT",
+    "ordering": [
+      "close_record_created",
+      "position_discarded"
+    ],
+    "actual_producer": "independent_accounting_replay"
+  }
+]

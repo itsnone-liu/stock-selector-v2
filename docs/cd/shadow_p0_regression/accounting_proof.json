@@ -1,0 +1,10 @@
+{
+  "opened_positions": 5,
+  "closed_positions": 5,
+  "current_open_positions": 0,
+  "position_conservation": true,
+  "event_identity_preserved": true,
+  "terminal_reason_exactly_one": true,
+  "ordering_proof": true,
+  "no_silent_disappearance": true
+}

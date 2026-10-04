@@ -1,0 +1,17 @@
+{
+  "package": "G-SHADOW-AUTHORITY-P0-REGRESSION",
+  "status": "EVIDENCE_PACKAGE",
+  "authority_status": "ROUND1_FROZEN",
+  "producer": "corrected CD-7 execution",
+  "producer_commit": "2105cc3",
+  "n_anchors": 5,
+  "materialized_at": "2026-10-04T15:39:35.499196+00:00",
+  "files": {
+    "accounting_proof.json": "09c2bb4824942efa7b3aca388f55d6bb0453df3499617fb15cdd6dfc782f1ad3",
+    "expected_event.json": "4e85c7a4361339099e841a3c79ec724b46924056bc5c39b7bc9f8ebc667ef9f3",
+    "manifest.json": "f1414c0f328f64ad02d9e52791163278f5f8cc0c084e6948f8978983eeea50c1",
+    "fixture_input.json": "bed0ab98f1169eb7ea2f2d05644c4884a07bce9aa0605d583795ca0a8884f2fb",
+    "actual_event.json": "e99ae5e85f74d8aeb5e7fb7f96c870c8b88cbee5c3dd6714c0809df64eb0cc16"
+  },
+  "policy_mutation": false
+}
