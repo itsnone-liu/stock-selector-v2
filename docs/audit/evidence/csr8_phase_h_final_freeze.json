@@ -1,0 +1,547 @@
+{
+ "evidence_completeness_manifest": {
+  "batch_archives_expected": 15,
+  "batch_archives_found": 15,
+  "local_capture_pruning_disclosure": "local captures/batch12 + captures/batch13 were pruned during the H16 closeout disk incident AFTER confirming their release assets remain live (see batch_h_batch16_status.json); authoritative evidence for every batch is the GitHub Release archive + committed manifest/descriptor, local captures/ are a recoverable cache, /tmp is ephemeral",
+  "per_batch": {
+   "2": {
+    "archive_id": "batch-h-b2-evidence-archive-v1",
+    "archive_sha256": "f44a9e0f4049f2c9bfacf420a6477543028125ebf1a48ff5c2905eda996d2881",
+    "asset_name": "batch_h_b2_evidence.tar.gz",
+    "capture_sets": 41,
+    "closed_world": null,
+    "closeout_replay_verification": "PASS (123 files closed-world, 40/40 samples full DSH-v4 chain, incident capture ",
+    "descriptor": "batch_h_batch2_evidence_archive.json",
+    "file_count": 123,
+    "manifest_sha256": "6b65b0bd6548c8ac5b570ce7ab3007c865f93b7bc1b2f674062bbcdd052204ba",
+    "ordinals": "15-22",
+    "release_live_check": {
+     "asset_id": 605784335,
+     "asset_size": 586599454,
+     "asset_state": "uploaded",
+     "release_id": 401891119,
+     "size_matches_recorded_bytes": true
+    },
+    "release_tag": "batch-h-b2-evidence-archive-v1",
+    "samples_verified": null
+   },
+   "3": {
+    "archive_id": "batch-h-b3-evidence-archive-v1",
+    "archive_sha256": "60576f17d81bacd695e81dc8acdfa02a79d1b4380c0dbcdde733296eaf52218e",
+    "asset_name": "batch_h_b3_evidence.tar.gz",
+    "capture_sets": 40,
+    "closed_world": null,
+    "closeout_replay_verification": "PASS (120 files closed-world, 40/40 samples full DSH-v4 chain, no failed-attempt",
+    "descriptor": "batch_h_batch3_evidence_archive.json",
+    "file_count": 120,
+    "manifest_sha256": "790b7e423f4ca94f953ce0d1399119a75bb7bf9d9f4429ab1b4cdec818088154",
+    "ordinals": "23-30",
+    "release_live_check": {
+     "asset_id": 605879925,
+     "asset_size": 599686551,
+     "asset_state": "uploaded",
+     "release_id": 401929930,
+     "size_matches_recorded_bytes": true
+    },
+    "release_tag": "batch-h-b3-evidence-archive-v1",
+    "samples_verified": null
+   },
+   "4": {
+    "archive_id": "batch-h-b4-evidence-archive-v1",
+    "archive_sha256": "777969d45569696574a19b0afe8dae21518076a5e8b25fe5f54adb0d4f84189d",
+    "asset_name": "batch_h_b4_evidence.tar.gz",
+    "capture_sets": 40,
+    "closed_world": null,
+    "closeout_replay_verification": "PASS (120 files closed-world, 40/40 DSH-v4, incident NONE)",
+    "descriptor": "batch_h_batch4_evidence_archive.json",
+    "file_count": 120,
+    "manifest_sha256": "68e905ff69211eb4befdc5a76758c529e87a2211598c76905903ace713a91eb6",
+    "ordinals": "31-38",
+    "release_live_check": {
+     "asset_id": 605992516,
+     "asset_size": 642950678,
+     "asset_state": "uploaded",
+     "release_id": 401972458,
+     "size_matches_recorded_bytes": true
+    },
+    "release_tag": "batch-h-b4-evidence-archive-v1",
+    "samples_verified": null
+   },
+   "5": {
+    "archive_id": "batch-h-b5-evidence-archive-v1",
+    "archive_sha256": "5e30a4ce358e9b2dee4b8ffe85336d7cf1ea1061819819bccd6d7e870b82ccca",
+    "asset_name": "batch_h_b5_evidence.tar.gz",
+    "capture_sets": 40,
+    "close_out_at_batch_time": "EXECUTION CLOSED / EVIDENCE ARCHIVED LOCALLY; RELEASE PENDING",
+    "closed_world": null,
+    "closeout_replay_verification": "PASS (120 files closed-world, 40/40 DSH-v4, incident NONE)",
+    "descriptor": "batch_h_batch5_evidence_archive.json",
+    "file_count": 120,
+    "manifest_sha256": "6f9232747b07a60cb803bf289c34e953f547cbaa5b1fb1a22bd5268b771bf061",
+    "ordinals": "39-46",
+    "release_live_check": {
+     "asset_id": 608870012,
+     "asset_size": 784220681,
+     "asset_state": "uploaded",
+     "release_id": 402765500,
+     "size_matches_recorded_bytes": true
+    },
+    "release_tag": "batch-h-b5-evidence-archive-v1",
+    "samples_verified": null
+   },
+   "6": {
+    "archive_id": "batch-h-b6-evidence-archive-v1",
+    "archive_sha256": "78e5cb49b6031e35885612d4b07f278a123cba1280e28d93b3bf9f4f085865e1",
+    "asset_name": "batch_h_b6_evidence.tar.gz",
+    "capture_sets": 40,
+    "closed_world": "PASS",
+    "descriptor": "batch_h_batch6_evidence_archive.json",
+    "file_count": 120,
+    "manifest_sha256": "a7ca65280f0481c2e518ddcfc6313723ed5b0cfdb3ddec4d568732637d199c0f",
+    "ordinals": "47-54",
+    "release_live_check": {
+     "asset_id": 607256711,
+     "asset_size": 839393155,
+     "asset_state": "uploaded",
+     "release_id": 402356462,
+     "size_matches_recorded_bytes": true
+    },
+    "release_tag": "batch-h-b6-evidence-archive-v1",
+    "samples_verified": 21
+   },
+   "7": {
+    "archive_id": "batch-h-b7-evidence-archive-v1",
+    "archive_sha256": "4c2400369a099fb7a8af74c714ebf0b1bf28f1e1cbfdfe248190703acf56e7fa",
+    "asset_name": "batch_h_b7_evidence.tar.gz",
+    "capture_sets": 40,
+    "closed_world": "PASS",
+    "descriptor": "batch_h_batch7_evidence_archive.json",
+    "disclosed_events_in_descriptor": 2,
+    "file_count": 120,
+    "manifest_sha256": "d67094b9cb93999936a074e7c356436c3edb762679a1151e954e5d92a4c9f4ff",
+    "ordinals": "55-62",
+    "release_live_check": {
+     "asset_id": 607413418,
+     "asset_size": 889368869,
+     "asset_state": "uploaded",
+     "release_id": 402400445,
+     "size_matches_recorded_bytes": true
+    },
+    "release_tag": "batch-h-b7-evidence-archive-v1",
+    "samples_verified": 40
+   },
+   "8": {
+    "archive_id": "batch-h-b8-evidence-archive-v1",
+    "archive_sha256": "0cb94c27258812c3b9962953ab7dfd8668a69a528a9f1e6194aa1811c1450aab",
+    "asset_name": "batch_h_b8_evidence.tar.gz",
+    "capture_sets": 10,
+    "closed_world": "PASS",
+    "descriptor": "batch_h_batch8_evidence_archive.json",
+    "disclosed_events_in_descriptor": 1,
+    "file_count": 30,
+    "manifest_sha256": "f4993ea90665ade719b421f76f6653956f47bec696a41593d2185c873e30b4ed",
+    "ordinals": "63-64",
+    "release_live_check": {
+     "asset_id": 607460914,
+     "asset_size": 224707816,
+     "asset_state": "uploaded",
+     "release_id": 402414183,
+     "size_matches_recorded_bytes": true
+    },
+    "release_tag": "batch-h-b8-evidence-archive-v1",
+    "samples_verified": 10
+   },
+   "9": {
+    "archive_id": "batch-h-b9-evidence-archive-v1",
+    "archive_sha256": "01d6851b984b9254a5a5bb2dea33a7f2ae46598d2db641977320b7366ab79840",
+    "asset_name": "batch_h_b9_evidence.tar.gz",
+    "capture_sets": 43,
+    "closed_world": "PASS",
+    "descriptor": "batch_h_batch9_evidence_archive.json",
+    "disclosed_events_in_descriptor": 5,
+    "file_count": 129,
+    "manifest_sha256": "ef15f5b336ca81d1bd89f633fb494d4fcbb3a5ec26da8ae1ad93ff44fe4ab82b",
+    "ordinals": "65-72",
+    "release_live_check": {
+     "asset_id": 607693368,
+     "asset_size": 1034915248,
+     "asset_state": "uploaded",
+     "release_id": 402479219,
+     "size_matches_recorded_bytes": true
+    },
+    "release_tag": "batch-h-b9-evidence-archive-v1",
+    "samples_verified": 10
+   },
+   "10": {
+    "archive_id": "batch-h-b10-evidence-archive-v1",
+    "archive_sha256": "a7c8d8cefda8d994935c9bc513805f1b379cf6e0bb7a96eac0029b4d9222be95",
+    "asset_name": "batch_h_b10_evidence.tar.gz",
+    "capture_sets": 40,
+    "closed_world": "PASS",
+    "descriptor": "batch_h_batch10_evidence_archive.json",
+    "disclosed_events_in_descriptor": 2,
+    "file_count": 120,
+    "manifest_sha256": "4b0b1c8aa5dcc43cec1867202d045606affd1f1d22d0c1b9cae086b483f765e4",
+    "ordinals": "73-80",
+    "release_live_check": {
+     "asset_id": 607826024,
+     "asset_size": 993958279,
+     "asset_state": "uploaded",
+     "release_id": 402516332,
+     "size_matches_recorded_bytes": true
+    },
+    "release_tag": "batch-h-b10-evidence-archive-v1",
+    "samples_verified": 10
+   },
+   "11": {
+    "archive_id": "batch-h-b11-evidence-archive-v1",
+    "archive_sha256": "8686fde6d6f10c8fd897a3c214fcdbd1aac2504e58c28fa33b2a8e68198017fb",
+    "asset_name": "batch_h_b11_evidence.tar.gz",
+    "capture_sets": 40,
+    "closed_world": "PASS",
+    "descriptor": "batch_h_batch11_evidence_archive.json",
+    "disclosed_events_in_descriptor": 2,
+    "file_count": 120,
+    "manifest_sha256": "e564262d2543315713aebc1a4c9eb10aa9f6f3ca9c4b99f81e527249fece20da",
+    "ordinals": "81-88",
+    "release_live_check": {
+     "asset_id": 608032976,
+     "asset_size": 1008692656,
+     "asset_state": "uploaded",
+     "release_id": 402569815,
+     "size_matches_recorded_bytes": true
+    },
+    "release_tag": "batch-h-b11-evidence-archive-v1",
+    "samples_verified": 10
+   },
+   "12": {
+    "archive_id": "batch-h-b12-evidence-archive-v1",
+    "archive_sha256": "88bf7e5c771cc8cda8213b3e67a74a97dbdfb13f4895a5f82db533eef6ac84f7",
+    "asset_name": "batch_h_b12_evidence.tar.gz",
+    "capture_sets": 40,
+    "closed_world": "PASS",
+    "descriptor": "batch_h_batch12_evidence_archive.json",
+    "disclosed_events_in_descriptor": 2,
+    "file_count": 120,
+    "manifest_sha256": "d332aa494ea76206d44a8386ed6efe1f6659bdead02ffc7efb51366633dbb796",
+    "ordinals": "89-96",
+    "release_live_check": {
+     "asset_id": 608159775,
+     "asset_size": 1022760982,
+     "asset_state": "uploaded",
+     "release_id": 402600800,
+     "size_matches_recorded_bytes": true
+    },
+    "release_tag": "batch-h-b12-evidence-archive-v1",
+    "samples_verified": 10
+   },
+   "13": {
+    "archive_id": "batch-h-b13-evidence-archive-v1",
+    "archive_sha256": "862a89e0894c397f608ce8aabb1e03d24a5a7b132d98eed6e913c300962baeb1",
+    "asset_name": "batch_h_b13_evidence.tar.gz",
+    "capture_sets": 40,
+    "closed_world": "PASS",
+    "descriptor": "batch_h_batch13_evidence_archive.json",
+    "disclosed_events_in_descriptor": 1,
+    "file_count": 120,
+    "manifest_sha256": "e260e5c0f758bd5197467b954883a06e95536094a3d75a589cf3a67a10e90c57",
+    "ordinals": "97-104",
+    "release_live_check": {
+     "asset_id": 608279337,
+     "asset_size": 1034888923,
+     "asset_state": "uploaded",
+     "release_id": 402630948,
+     "size_matches_recorded_bytes": true
+    },
+    "release_tag": "batch-h-b13-evidence-archive-v1",
+    "samples_verified": 10
+   },
+   "14": {
+    "archive_id": "batch-h-b14-evidence-archive-v1",
+    "archive_sha256": "2451b8fb705e0273fe557ab22fee0c4a8123ad7b36ed6170243386e24f931e2b",
+    "asset_name": "batch_h_b14_evidence.tar.gz",
+    "capture_sets": 40,
+    "closed_world": "PASS",
+    "descriptor": "batch_h_batch14_evidence_archive.json",
+    "file_count": 120,
+    "manifest_sha256": "9ddbbec9745695625a4646b17c61ac9e4eb7b9cbf5ced85c8797725136f04c56",
+    "ordinals": "105-112",
+    "release_live_check": {
+     "asset_id": 608392978,
+     "asset_size": 1044812636,
+     "asset_state": "uploaded",
+     "release_id": 402658666,
+     "size_matches_recorded_bytes": true
+    },
+    "release_tag": "batch-h-b14-evidence-archive-v1",
+    "samples_verified": 10
+   },
+   "15": {
+    "archive_id": "batch-h-b15-evidence-archive-v1",
+    "archive_sha256": "432b92380e420e36fdf0a695e4fd67c0f37c217b196c48e90b249ccf3732aad6",
+    "asset_name": "batch_h_b15_evidence.tar.gz",
+    "capture_sets": 40,
+    "closed_world": "PASS",
+    "descriptor": "batch_h_batch15_evidence_archive.json",
+    "file_count": 120,
+    "manifest_sha256": "21fc357711fbed4fe1addcf1d1748051bd2bdb5cb67f04398b2a488427bb9bd3",
+    "ordinals": "113-120",
+    "release_live_check": {
+     "asset_id": 608504623,
+     "asset_size": 1056435883,
+     "asset_state": "uploaded",
+     "release_id": 402684285,
+     "size_matches_recorded_bytes": true
+    },
+    "release_tag": "batch-h-b15-evidence-archive-v1",
+    "samples_verified": 10
+   },
+   "16": {
+    "archive_id": "batch-h-b16-evidence-archive-v1",
+    "archive_sha256": "dc2e5cfd572397e7f90eb2be2d0298b7d13141c965919228b3e08e9cfda11ed8",
+    "asset_name": "batch_h_b16_evidence.tar.gz",
+    "capture_sets": 40,
+    "closed_world": "PASS",
+    "descriptor": "batch_h_batch16_evidence_archive.json",
+    "file_count": 120,
+    "manifest_sha256": "938e23f0213167374f906c397ef470c13a513c463b4a334e97a5e77e1453d153",
+    "ordinals": "121-128",
+    "release_live_check": {
+     "asset_id": 608605844,
+     "asset_size": 1066617878,
+     "asset_state": "uploaded",
+     "release_id": 402707773,
+     "size_matches_recorded_bytes": true
+    },
+    "release_tag": "batch-h-b16-evidence-archive-v1",
+    "samples_verified": 10
+   }
+  },
+  "pre_archive_era_coverage": {
+   "erratum": "BATCH-H-RECOVERY-ERRATUM-1",
+   "evidence_mode": "APPEND_ONLY_RECOVERED_PREFIX",
+   "note": "the earliest production era predates the capture-path relocation; no per-op DSH capture archive exists for ordinals 1-14 by design of that era — their production state is carried by the sealing log (all 128 seals), epoch-1 campaign artifacts, and the batch1 completion record with its recovery erratum",
+   "ordinals": "1-14 (batch1)",
+   "realtime_pre_spawn_capture": "NOT_AVAILABLE",
+   "record": "docs/audit/evidence/batch_h_batch1_completion.json"
+  }
+ },
+ "failures": [],
+ "final_readout_authority": {
+  "authority_commit": "3f46515",
+  "corpus": {
+   "complete": 122,
+   "complete_R5_fraction": 1.0,
+   "n": 122,
+   "ordinals": "7-128"
+  },
+  "decision": "A",
+  "decision_rule": "P3 >=1 CONSISTENT qualifying pair",
+  "equivalence_gates": {
+   "chained_7_64_vs_second_committed": "PASS (replicated 7-64 readout deep-equals committed phase_i_second_readout_64_report.json)",
+   "pilot_7_38_vs_frozen_i2": "PASS (replicated readout+taxonomy over ordinals 7-38 deep-equal frozen phase_i_i2_readout_report.json)"
+  },
+  "exploratory_drift_64_to_128": {
+   "PRESERVED": 12,
+   "REVERSED": 3,
+   "WEAKENED": 18
+  },
+  "identity_cross_lineage_violations": 0,
+  "non_dominant_support_ordinals": {
+   "n": 20,
+   "ordinals": [
+    8,
+    15,
+    41,
+    44,
+    48,
+    51,
+    53,
+    55,
+    63,
+    67,
+    68,
+    72,
+    79,
+    105,
+    108,
+    112,
+    115,
+    117,
+    119,
+    127
+   ]
+  },
+  "preregistered_targets": [
+   {
+    "CONSISTENT": true,
+    "cellA": "NOT_DISCLOSED_IN_LATEST_VISIBLE_TOP10",
+    "cellB": "NO_PIT_VISIBLE_REPORT",
+    "classification": "PRESERVED",
+    "cliffs_delta_R5": -0.24935400516795866,
+    "dR5": -0.025597932429465627,
+    "nA": 86,
+    "nB": 18,
+    "qualifying_pair": true,
+    "variable": "stock_layer_summary"
+   },
+   {
+    "CONSISTENT": true,
+    "cellA": "4",
+    "cellB": "8",
+    "classification": "PRESERVED",
+    "cliffs_delta_R5": -0.3176470588235294,
+    "dR5": -0.0635039788302307,
+    "nA": 15,
+    "nB": 17,
+    "qualifying_pair": true,
+    "variable": "etf_expansion_count"
+   },
+   {
+    "CONSISTENT": true,
+    "cellA": "8",
+    "cellB": "9",
+    "classification": "PRESERVED",
+    "cliffs_delta_R5": 0.4789915966386555,
+    "dR5": 0.04360099915913562,
+    "nA": 17,
+    "nB": 14,
+    "qualifying_pair": true,
+    "variable": "etf_expansion_count"
+   }
+  ],
+  "reports": {
+   "frozen_i2_pilot_7_38": {
+    "path": "docs/audit/evidence/phase_i_i2_readout_report.json",
+    "sha256": "c3d86305c0aad86f937afe870bc45d19dc7dd899fa7925f2ab4b4281cb97e3e1"
+   },
+   "second_readout_7_64": {
+    "path": "docs/audit/evidence/phase_i_second_readout_64_report.json",
+    "sha256": "deb2046c93809660bd53f5b6f14172a8f78351f52145c88577108269b929dd4b"
+   },
+   "third_readout_7_128": {
+    "path": "docs/audit/evidence/phase_i_third_readout_128_report.json",
+    "sha256": "cc87cd8dc2abbd21f0fee40768553471f269e60821893f377abffc78ade07917"
+   }
+  },
+  "taxonomy_v2_diagnostic": false
+ },
+ "freeze_id": "csr8-phase-h-final-freeze-v1",
+ "frozen_at": "2026-10-04T01:17:31Z",
+ "git_head_at_freeze": "3f46515",
+ "known_incidents_and_errata": {
+  "all_entries_evidence_chain_intact": true,
+  "known_open_non_blocking_items": [
+   "P1 debt: reviewer tool optional cross-check of context commitments (carried from earlier review; does not affect frozen evidence or readout results)"
+  ],
+  "ledger_provenance_note": "epoch-2 ledger opens with RECOVERY_GENESIS (seq0) and RECOVERY_CHECKPOINT (seq1) rows predating Phase H session scope (epoch transition at ordinal ~50); they are provenance rows, not incidents, and are covered by the hash chain",
+  "register": [
+   {
+    "batch": "H9",
+    "event": "wrong ANNOTATION commitments admitted (ledger seq75/seq81) and retained append-only",
+    "evidence_chain_intact": true,
+    "id": "ERR-1",
+    "ordinals": "65/66",
+    "resolution": "ANNOTATION_CORRECTION rows seq76/seq82 APPROVED; receipt gates stopped irreversible action; pre-admission annotation binding guard deployed (commit 2651d59); readout binding uses the LATEST of (ANNOTATION, ANNOTATION_CORRECTION)"
+   },
+   {
+    "batch": "H10",
+    "event": "organic pre-admission guard rejection",
+    "evidence_chain_intact": true,
+    "id": "ERR-2",
+    "ordinals": "79",
+    "resolution": "fail-closed pre-correction, re-admitted exactly once; no sealed-state change"
+   },
+   {
+    "batch": "H11",
+    "event": "transport timeout during reviewer admission",
+    "evidence_chain_intact": true,
+    "id": "ERR-3",
+    "ordinals": "81",
+    "resolution": "live ledger/verdict state checked first, fresh reviewer spawned, no double admission"
+   },
+   {
+    "batch": "H12",
+    "event": "reviewer-interpretation divergence on uniform 2099-01-02T00:00:00Z packet template marker",
+    "evidence_chain_intact": true,
+    "id": "ERR-4",
+    "ordinals": "96",
+    "resolution": "fail-closed pre-admission (zero ledger mutation); marker verified uniform across all packets; fresh reviewer admitted seq231 exactly once; o97+ reviewer prompts carry uniformity context proactively (zero divergence since)"
+   },
+   {
+    "batch": "H14",
+    "event": "NATIONAL_ACTORS_PRESENT stock-records states",
+    "evidence_chain_intact": true,
+    "id": "ERR-5",
+    "ordinals": "105/108/112",
+    "resolution": "reviewer-verified disclosed-presence consistent; no control/causality inference drawn"
+   },
+   {
+    "batch": "H15",
+    "event": "stock_records=1 combined with NOT_DISCLOSED_IN_LATEST_VISIBLE_TOP10 (record existence vs contemporaneous disclosure edge case)",
+    "evidence_chain_intact": true,
+    "id": "ERR-6",
+    "ordinals": "119",
+    "resolution": "deep reviewer verification: A2-SSF NOT_DISCLOSED_IN_TOP10 for current period 2025-09-30; prior-period holding does not establish current top-10 presence; retained as the canonical \"record existence != contemporaneous disclosure\" exemplar"
+   },
+   {
+    "batch": "H16",
+    "event": "NATIONAL_ACTORS_PRESENT stock_records=1 (A2-SSF FIRST_DISCLOSED 2023-03-31)",
+    "evidence_chain_intact": true,
+    "id": "ERR-7",
+    "ordinals": "127",
+    "resolution": "reviewer-verified disclosure-presence consistent; no control/causality inference drawn"
+   },
+   {
+    "batch": "H16 closeout",
+    "event": "local disk filled during evidence-archive verify (100% /)",
+    "evidence_chain_intact": true,
+    "id": "ERR-8",
+    "ordinals": null,
+    "resolution": "stale /tmp tooling caches cleared; local captures/batch12+batch13 pruned only after live confirmation of their GitHub release assets; event disclosed in batch_h_batch16_status.json; authoritative evidence chain unaffected (see three-layer evidence model in the freeze markdown)"
+   },
+   {
+    "batch": "H5 (repaired at final freeze)",
+    "event": "release asset batch-h-b5-evidence-archive-v1 found MISSING at final-freeze live check (descriptor claimed hash-pinned durable GitHub asset; the only missing one of 15 batches). Root cause visible in batch_h_batch5_status.json: close_out was left \"EVIDENCE ARCHIVED LOCALLY; RELEASE PENDING\" — the upload step was never completed at batch time",
+    "evidence_chain_intact": true,
+    "id": "ERR-9",
+    "ordinals": "39-46",
+    "resolution": "local captures/batch5 re-verified and re-packed byte-identically to the committed root commitment (archive sha256 5e30a4ce358e9b2dee4b8ffe85336d7cf1ea1061819819bccd6d7e870b82ccca and 784220681 bytes reproduced exactly; manifest sha 6f9232747b07a60cb803bf289c34e953f547cbaa5b1fb1a22bd5268b771bf061; 120 files / 40 capture sets closed_world PASS; 40 samples full DSH-v4 trust-root re-verified); asset re-uploaded under the original pinned tag (release 402765500, asset 608870012) and download-back hash verified"
+   }
+  ]
+ },
+ "ordinal_policy": {
+  "1-128": "CLOSED",
+  "129+": "UNAUTHORIZED / HOLD"
+ },
+ "production_terminal_manifest": {
+  "campaign_structure": {
+   "distinct_opaque_case_entities": 64,
+   "pairs_distinct_packet_and_T": true,
+   "readout_note": "the third readout corpus treats (case, T) observations; (code, T) injectivity across 122 ordinals was verified separately and holds",
+   "two_epoch_design": "ordinals 1-64 (epoch 1) and 65-128 (epoch 2) sample the same 64 opaque case entities at different as_of dates; paired ordinals i and i+64 share opaque_case_id but differ in packet bytes (packet_sha256) and observation date T"
+  },
+  "event_hash_chain_prev_event_linkage": true,
+  "head_json": {
+   "count": 256,
+   "head_hash": "4fd1d50de05f0baa10fcb26da55b95cffca2d7b2aa644ebadebf856297e7ab39"
+  },
+  "pair_opaque_id_match": true,
+  "reveal_seal_pairs": 128,
+  "seal_anchor_production_head": "4fd1d50de05f0baa10fcb26da55b95cffca2d7b2aa644ebadebf856297e7ab39",
+  "sealing_events": 256,
+  "sequence_numbers_contiguous_0_255": true,
+  "strict_alternation": true,
+  "terminal_seal_hash": "4fd1d50de05f0baa10fcb26da55b95cffca2d7b2aa644ebadebf856297e7ab39",
+  "terminal_state_consistent": true
+ },
+ "ruling": "user ruling 2026-10-04: PHASE H 128 PRODUCTION MILESTONE ACCEPT / READY TO FREEZE; read-only terminal freeze; ordinal 129+ UNAUTHORIZED/HOLD",
+ "scientific_conclusions": {
+  "exploratory_structure_drift_64_to_128": "12 PRESERVED / 18 WEAKENED / 3 REVERSED (exploratory structures contract under corpus expansion; preregistered core persists)",
+  "frozen_claims_only": true,
+  "interpretation_boundary": "persistence of descriptive structure associations ONLY; no causality, control, or investment-alpha inference is made or implied",
+  "preregistered_persistence_targets": "3/3 PRESERVED (NOT_DISCLOSED vs NO_PIT; ETF expansion 4v8; ETF expansion 8v9) — direction, sign-consistency and qualifying status retained at corpus 7-128 (n=122)",
+  "taxonomy_v2_diagnostic": "False — taxonomy describes dominant structure but corpus expansion exposes real heterogeneity (20 non-dominant support ordinals); not closed-world complete"
+ },
+ "status": "FROZEN"
+}
