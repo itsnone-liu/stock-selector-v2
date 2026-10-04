@@ -1,0 +1,73 @@
+{
+  "round": 1,
+  "status": "FROZEN",
+  "execution_mode": "SHADOW_ONLY",
+  "orders_allowed": false,
+  "capital_allowed": false,
+  "authority": "Authoritative replacement for superseded CD-7/CD-7R2 absolute statistics; frozen after P0 REDUCED_OUT accounting correction.",
+  "authoritative_commits": {
+    "cd7d_completion_and_accounting_fix": "2105cc3",
+    "cd7_baseline": "463878a",
+    "cd7r2_baseline": "b8c8204"
+  },
+  "authoritative_artifacts": {
+    "round1_freeze": "docs/cd/ROUND1_SYSTEM_FREEZE.json",
+    "round1_readme": "docs/cd/ROUND1_SYSTEM_FREEZE.md",
+    "cd7d_preregistration": "docs/cd/cd7d_preregistration.json",
+    "cd7d_results": "docs/cd/cd7d_results.json",
+    "corrected_entry_results": "docs/cd/cd7_rebuild_results.json",
+    "cd7d_report": "docs/cd/CD7D_COMPLETION_REPORT.md",
+    "shadow_protocol": "docs/cd/SHADOW_MONITORING_PROTOCOL.json"
+  },
+  "validated": [
+    {"layer":"L0","claim":"PIT/provenance/fail-closed data discipline is mandatory and inheritable."},
+    {"layer":"L1","claim":"Market regime functions as participation permission and risk context, not stock alpha."},
+    {"layer":"L2","claim":"Sector state is context/risk, not an alpha ranking; NARROWING has late-stage-risk semantics but no validated standalone entry/exit trigger."},
+    {"layer":"L3","claim":"Observation Pool, multi-source candidate union, and candidate_source provenance are valid infrastructure."},
+    {"layer":"L4","claim":"Episode identity, lifecycle state, model-derived cost context, and source sequence are valid context infrastructure; lifecycle is meaningful for holding/decay/exit."},
+    {"layer":"ENTRY","claim":"After accounting correction, PRIMARY_ZONE remains lower-risk than CHASE on holdout: MAE -5.04% vs -7.88%, ret_rel -5.02% vs -6.60%. Absolute alpha remains negative."},
+    {"layer":"EXIT","claim":"Frozen lifecycle EXIT/REDUCE semantics remain actionable and must never be skipped because size is small."}
+  ],
+  "rejected": [
+    {"claim":"BUILDING as accumulation inference for entry", "status":"REJECTED"},
+    {"claim":"EXPANSION as alpha entry", "status":"REJECTED"},
+    {"claim":"STRENGTHENING as chase entry", "status":"REJECTED_NEVER_REVIVE"},
+    {"claim":"SECONDARY entry under current OHLCV", "status":"NOT_VALIDATED_PROHIBITED"},
+    {"claim":"P75 intact discriminator", "status":"NOT_VALIDATED_PROHIBITED"},
+    {"claim":"Continuous or searched sizing", "status":"PROHIBITED"},
+    {"claim":"E-class risk ordering under current inputs", "status":"NOT_VALIDATED"}
+  ],
+  "unresolved": [
+    "Absolute risk budget under new data or structurally changed evidence",
+    "Re-entry/add timing",
+    "Precise entry timing beyond PRIMARY_ZONE",
+    "E-class sizing with a newly justified risk-ordering signal"
+  ],
+  "superseded": [
+    {"artifact":"CD7_COMPLETION_REPORT.md", "scope":"Original absolute n/ret_rel/MAE/adverse and opportunity-cost statistics dependent on old close_trade behavior."},
+    {"artifact":"CD7R2_COMPLETION_REPORT.md", "scope":"Original absolute R1/R2 statistics and 241-event SECONDARY-only accounting where REDUCED_OUT trades were affected."},
+    {"artifact":"cd7_results.json/cd7r2_results.json", "scope":"Use only as historical audit records, never as current evidence."},
+    {"artifact":"cd7d_results.json E-class verdict before final split/accounting corrections", "scope":"Replaced by the committed final result."}
+  ],
+  "production_policy": {
+    "entry": "L1 permission AND PRIMARY_ZONE only",
+    "secondary": "disabled",
+    "chase": "control-only telemetry; non-actionable",
+    "sizing": "no E-class sizing action; risk-budget research stopped after holdout monotonicity failure",
+    "lifecycle": "frozen HOLD/REDUCE/EXIT rules",
+    "accounting": "every decision, episode terminal, REDUCE-to-zero, and EXIT must produce a ledger record",
+    "mode": "NO_ORDER_NO_CAPITAL"
+  },
+  "data_limitations": [
+    "Current evidence is bounded by the available PIT OHLCV and derived context inputs.",
+    "Amount, turnover rate, free-float capitalization, and stronger PIT classification are unavailable or outside this freeze.",
+    "Absolute returns are negative; this freeze is a risk-management and prospective-observation decision, not an alpha approval."
+  ],
+  "reopen_conditions": [
+    "New valid PIT data source materially changes the observable information boundary.",
+    "Sustained structural drift in candidate throughput, source mix, lifecycle, regime, or decision distributions.",
+    "Prospective Shadow evidence contradicts the frozen PRIMARY_ZONE-vs-CHASE risk conclusion with sufficient predeclared sample.",
+    "Implementation or accounting defect: invalidate affected results, rebuild, and issue a new authoritative replacement."
+  ],
+  "shadow_next": "Run SHADOW_MONITORING_PROTOCOL.json; no daily policy changes based on P&L or short-term outcomes."
+}
