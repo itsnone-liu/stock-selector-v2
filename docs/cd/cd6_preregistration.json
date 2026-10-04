@@ -1,0 +1,60 @@
+{
+ "phase": "CD-6 — Integrated Capital Decision Engine",
+ "authority": "user GO ruling 2026-10-04 (first full-chain acceptance; three-layer architecture; rule table not classifier; 12-condition gate; stop rule)",
+ "preregistration_id": "cd6-prereg-v1",
+ "cd0_decision_set_verbatim": ["market risk budget", "sector priority", "candidate stock filtering", "stock ranking", "entry-zone construction", "position add/hold/reduce/exit"],
+ "action_mapping": {"ENTER": "entry-zone construction", "ADD/HOLD/REDUCE/EXIT": "position add/hold/reduce/exit", "AVOID": "candidate stock filtering (negative side)", "market regime permissions": "market risk budget", "sector context": "sector priority"},
+ "cd6a_input_contract": {
+  "provenance_labels": {
+   "lifecycle_state_asof_T": "PIT (all axes trailing; frozen dev bands are preregistered global params)",
+   "regime_daily/regime_20d_mode": "PIT (trailing)",
+   "sector_state/sector_path": "PIT (CD-2 table as-of date)",
+   "narrowing_risk": "PIT (trailing-10d NARROWING presence of the stock's L2)",
+   "cost_band_position": "model_derived (episode running proxy, trailing)",
+   "origin_source/source_active": "PIT (frozen V2 definitions trailing)",
+   "episode_terminal_asof_T": "PIT only on trigger day: STRUCTURAL_FAILURE knowable at 15th streak day; INACTIVE_TERMINATION knowable at 40th no-source day; NEVER back-stamped",
+   "sw2": "RETROSPECTIVE_GROUPING — NEVER enters policy validation",
+   "BUILDING": "NOT VALIDATED NOT USED (CD-3)"
+  }
+ },
+ "opportunity_state_frozen": {
+  "OPP_NONE": "no active episode as-of T",
+  "OPP_HOLDING": "active episode, lifecycle HOLDING",
+  "OPP_STRENGTHENING": "active episode, lifecycle STRENGTHENING",
+  "OPP_DECAYING": "active episode, lifecycle DECAYING",
+  "OPP_FAILED": "T is the STRUCTURAL_FAILURE trigger day (as-of-T)"
+ },
+ "risk_context_frozen": {
+  "base": "regime_20d_mode: RISK_ON_BROAD->SUPPORTIVE; RISK_ON_NARROW/REBOUND_MIXED->NEUTRAL; DEPRESSED->RESTRICTIVE; RISK_OFF->RISK_OFF",
+  "sector_overlay": "sector FADING or NARROWING path active (trailing 10d) -> downgrade one level (min RESTRICTIVE)",
+  "note": "context only — never standalone direction"
+ },
+ "position_state_frozen": {"states": ["FLAT", "HELD"], "carried": ["entry_date", "entry_cost (close of entry day)", "exposure (single unit E1 in round 1; CD-6D discrete classes only later)"], "cost_separation": "portfolio_actual_cost != episode_cost_proxy — never conflated"},
+ "rule_table_v1_frozen": {
+  "FLAT+OPP_STRENGTHENING+{SUPPORTIVE,NEUTRAL}+cost inside-or-above band": "ENTER",
+  "FLAT+OPP_STRENGTHENING+{RESTRICTIVE,RISK_OFF}": "AVOID (logged, not held)",
+  "FLAT+{OPP_HOLDING,OPP_DECAYING,OPP_NONE}": "no action",
+  "HELD+OPP_FAILED": "EXIT",
+  "HELD+episode terminated as-of T (STRUCTURAL_FAILURE trigger day or INACTIVE 40th day, position still open)": "EXIT",
+  "HELD+OPP_DECAYING+{RESTRICTIVE,RISK_OFF or below cost band}": "REDUCE (half)",
+  "HELD+OPP_DECAYING otherwise": "HOLD",
+  "HELD+OPP_STRENGTHENING+SUPPORTIVE+cost INSIDE band+not NARROWING": "ADD (stricter-than-ENTER by construction: requires SUPPORTIVE + inside-band + no-NARROWING)",
+  "HELD+OPP_STRENGTHENING otherwise": "HOLD",
+  "HELD+OPP_HOLDING": "HOLD"
+ },
+ "baseline_frozen": "episode-hold baseline: ENTER every episode at start (close), EXIT at episode end (close), no constraints, no lifecycle awareness, unit exposure",
+ "ablations_frozen": {
+  "layers": ["BASE (episode-hold, no policy)", "A=policy+lifecycle only (no market/sector/cost/origin constraints)", "B=A+market permissions", "C=B+sector context overlay", "D=C+NARROWING overlay", "E=D+cost-band ADD/ENTER modulation", "F=E+origin (M-origin: ADD requires SUPPORTIVE strictly, ENTER allowed)"],
+  "narrowing_usage": ["OFF (layer C stops before NARROWING)", "ADD_VETO (D)", "ENTER_PLUS_ADD_VETO (supplementary run)", "FLAG_ONLY (no action change, logged)"],
+  "origin_context": "M-origin risk enters as context; F-layer only tightens ADD for M-origin episodes"
+ },
+ "metrics_frozen": {
+  "episode_aware": ["decision events", "distinct episodes", "distinct stocks", "distinct sectors", "distinct regimes"],
+  "outcome": ["per-trade relative & absolute return (vs market eq)", "MFE/MAE", "max_drawdown", "holding duration", "adverse transition (STRENGTHENING->DECAYING/FAIL while HELD)", "missed-upside (AVOID/ENTER-denied episodes that reached top-decile 60d)", "false-exit (EXIT then episode logic re-STRENGTHENING within 20d)", "false-reduce", "turnover"],
+  "judgment": "risk actions must FIRST improve downside structure (MAE/drawdown/adverse transitions); return maximization is NOT the primary test"
+ },
+ "stop_rule_frozen": "if discrete policy shows NO stable value in CD-6C (dev/holdout), do NOT proceed to CD-6D tuning to rescue",
+ "gate_12_conditions": ["inputs PIT-safe", "CD-0 set unchanged", "no retrospective SW2 in validation", "no BUILDING", "position modeled", "accounting labels separated from real-time observables", "rules frozen before holdout", "dev/holdout separate", "ablations complete", "NARROWING tested", "no continuous exposure before discrete validation", "no hidden score/ranking"],
+ "honest_outcome_space": "functional division (lifecycle=direction/holding, market=permissions, NARROWING=late-stage ADD block, cost=anti-chase, origin=confidence, sector-broad=possibly no alpha) IS success",
+ "status": "PREREGISTERED"
+}
