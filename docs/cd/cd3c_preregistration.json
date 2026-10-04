@@ -1,0 +1,12 @@
+{
+ "phase": "CD-3C — SW2 Divergence Decomposition (third sublayer of CD-3)",
+ "authority": "user GO ruling 2026-10-04: three questions exactly; RETROSPECTIVE_GROUPING semantics isolated (explanation/structure/L3-usefulness ONLY, never feeds CD-3B validation or L2 thresholds)",
+ "preregistration_id": "cd3c-prereg-v1",
+ "semantic_label": "ALL SW2 historical decomposition outputs carry classification_mode=RETROSPECTIVE_CURRENT_SW2 (sw2_v1_static_declared, membership_change_frequency=UNKNOWN)",
+ "sw2_daily_returns": "per (sw2 industry, date): equal-weight mean of member qfq daily returns (members traded that day, >=5 participating members else SUB-industry day = NULL); built from DATA-1 x sw2_v1 membership — same operator family as CD-1B axis_1, retrospective label",
+ "q1_divergent_split": "on L2 DIVERGENT days: cross-SW2-child return dispersion measured as (max-min) range and std across children with >=5 participants (>=2 children required); comparison pool = same-sector, same-year, same-regime-tercile NON-DIVERGENT days (reusing CD-3B edges); report median range/std episode-free day-level distributions, dev/holdout separately; ANSWER YES if DIVERGENT median range > pool median range in BOTH splits",
+ "q2_narrow_leadership": "on NARROW_STRENGTH+HIGH_CONCENTRATION days: compute SW2-child positive-contribution shares (child eq return x child volume, positive part); top1_share and top2_share of total positive contributions (>=2 children with positive return); ANSWER YES if median top2_share >= 0.6 in both splits (1-2 sub-industries dominate)",
+ "q3_broad_agreement": "on L2 BROAD_STRENGTH days: fraction of participating SW2 children with positive return (>=3 children); ANSWER 'L2 breadth faithful' if median child-positive-fraction >= 0.8 in both splits, else 'L2 breadth masks sub-industry structure'",
+ "prohibited": ["SW2 results flowing into forward validation", "threshold tuning", "intent vocabulary", "using Q1/Q2/Q3 to adjust CD-2 states"],
+ "status": "PREREGISTERED"
+}

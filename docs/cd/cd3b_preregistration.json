@@ -1,0 +1,25 @@
+{
+ "phase": "CD-3B — Economic / Forward Validation (second sublayer of CD-3)",
+ "authority": "user GO ruling 2026-10-04: future outcomes for VALIDATION only; distributions not means; matched baseline mandatory; episode-level independence; state continuation >= returns in importance; EARLY_BUILD not 吸筹",
+ "preregistration_id": "cd3b-prereg-v1",
+ "event_classes": "CD-2C path labels FADING / EXPANSION / NARROWING / BUILDING (frozen definitions from cd2b2c_preregistration; NOT re-tuned)",
+ "episode_definition_frozen": "per sector: consecutive days carrying the SAME path label collapse into one episode (>=1 gap day breaks it); T_e = first day of episode; report event_days, episodes, distinct sectors, distinct calendar years",
+ "outcomes_frozen": {
+  "horizons": [5, 20, 60],
+  "forward_sector_rel_return_eq": "sum of (sector_eq - mkt_eq) over T_e+1..T_e+H (compounded: prod(1+sector_eq)/prod(1+mkt_eq)-1)",
+  "forward_breadth_mean": "mean advance_frac over horizon",
+  "forward_participation_mean": "mean d_share over horizon",
+  "forward_max_relative_drawdown": "min over horizon of (cum sector rel return from T_e); recorded as negative number",
+  "state_continuation": {"EXPANSION": "share of horizon days with base=BROAD_STRENGTH", "FADING": "share with base=BROAD_WEAKNESS", "NARROWING": "P(FADING path label appears within horizon)", "BUILDING": "P(EXPANSION path label appears within horizon)"},
+  "incomplete_horizons": "if data ends inside horizon, mark available_days and keep row in separate 'truncated' list (excluded from headline stats, reported separately)"
+ },
+ "matched_baseline_frozen": {
+  "matching_axes": ["same L2 sector", "same calendar year", "same market-regime tercile (market 20d eq return, tercile edges fit on dev window)"],
+  "pool_exclusion": "baseline days exclude any day carrying ANY path label and exclude days within 5 sessions after any episode T_e of any label (avoid event contamination)",
+  "comparison": "full distribution of matched pool vs episode outcomes; stats = median/q25/q75/P(>0)/P(<q10-of-pool)/std; no sampling — use entire matched pool",
+  "regime_tercile_edges": "fit on dev 2021-2023, frozen, applied to holdout"
+ },
+ "dev_holdout": {"dev": "episodes with T_e <= 2023-12-29", "holdout": "T_e >= 2024-01-01", "reported_separately": true},
+ "prohibited": ["using forward outcomes to redefine episodes/labels/features", "pooling dev+holdout for headline claims", "averages-only reporting", "intent vocabulary"],
+ "status": "PREREGISTERED"
+}

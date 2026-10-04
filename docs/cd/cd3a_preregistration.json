@@ -1,0 +1,26 @@
+{
+ "phase": "CD-3A — Long-window Path Representation (first sublayer of CD-3)",
+ "authority": "user GO ruling 2026-10-04: path features BEFORE clustering; all three windows reported; dev/holdout discipline; future outcomes never enter construction",
+ "preregistration_id": "cd3a-prereg-v1",
+ "inputs": "CD-2B state table (base+mods per l2,date, sha f40d55df) + CD-1B four-axis table (continuous axis values, sha 0f747662) ; OK rows only; INSUFFICIENT_SUPPORT breaks windows (window requires W consecutive OK days ending at T)",
+ "windows": [20, 40, 60],
+ "path_features_per_sector_T_W_frozen": {
+  "occupancy": "share of days in window by base collapsed to {BROAD_STRENGTH, NARROW_STRENGTH, BROAD_WEAKNESS, NARROW_WEAKNESS, DIVERGENT, NEUTRAL_ANY(=NEUTRAL|NEUTRAL_WIDE_UP|NEUTRAL_WIDE_DOWN)} — 6 shares summing to 1",
+  "slopes": "OLS slope x W (window-total magnitude) computed on daily series: rel_eq_mkt, advance_frac, d_share(=vol_share-vol_share_20d), ret_contrib_top5 (NULL days excluded from fit, require >=W/2 non-null), ret_gap(=top5_mean_ret-rest_mean_ret, same rule)",
+  "persistence": ["longest_strength_run (max consecutive days base in {BROAD_STRENGTH,NARROW_STRENGTH})", "longest_weakness_run ({BROAD_WEAKNESS,NARROW_WEAKNESS})", "state_switch_count (base changes within window)"],
+  "endpoints": ["start_state (base at T-W+1)", "end_state (base at T)"],
+  "structure_changes": ["breadth_delta = advance_frac(T) - advance_frac(T-W+1)", "conc_delta = ret_contrib_top5(T) - ret_contrib_top5(T-W+1) (NULL->NA, recorded)", "gap_delta = ret_gap(T) - ret_gap(T-W+1) (same rule)"]
+ },
+ "census_protocol": {
+  "per_feature_per_window": ["q10/q25/q50/q75/q90 on dev window", "size-stratum (SMALL/MID/LARGE from CD-2A) median comparison", "annual medians 2021/2022/2023"],
+  "multimodality_check": "for the two primary occupancy features (share_broad_strength, share_divergent) and share_broad_weakness: dev-window histogram (40 bins) — bimodality evidence = interior bin count < 25% of both edge-peak bins for some valley between two local maxima; decision recorded as MULTIMODAL_YES/NO with histogram data",
+  "cluster_decision_rule": "clustering (KMeans, K in 2..8 by max mean silhouette, standardized with dev-fitted mean/std, cosine of features NOT including endpoints' one-hot) is performed IFF at least one checked feature shows MULTIMODAL_YES; else NO clustering and CD-3B proceeds with continuous features + CD-2C path labels; the decision and its evidence are frozen before CD-3B"
+ },
+ "dev_holdout": {"fit": "2021-01-04..2023-12-29", "apply": "2024-01-01..2026-09-30", "rule": "feature DEFINITIONS frozen globally; only standardization params and cluster centroids (if any) are dev-fit"},
+ "output_contracts": {
+  "path_table": "data/cd/sector_axes/l2_path_features.json.gz — per (l2, date, window) feature vector; dual-run sha check",
+  "census": "docs/cd/cd3a_path_census.json — quantiles, stratum/annual stability, multimodality evidence, cluster decision"
+ },
+ "prohibited": ["outcome-informed features", "window cherry-picking", "threshold/cluster tuning by future returns", "intent vocabulary"],
+ "status": "PREREGISTERED"
+}

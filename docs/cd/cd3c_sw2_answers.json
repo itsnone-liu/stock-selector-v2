@@ -1,0 +1,41 @@
+{
+ "classification_mode": "RETROSPECTIVE_CURRENT_SW2",
+ "generated": "2026-10-04T18:37:17",
+ "Q1_divergent_split": {
+  "dev": {
+   "n_div_days": 5734,
+   "div_median_range": 0.014351735705643492,
+   "n_pool_days": 13142,
+   "pool_median_range": 0.01154473036948967
+  },
+  "holdout": {
+   "n_div_days": 5049,
+   "div_median_range": 0.013711505755446187,
+   "n_pool_days": 12267,
+   "pool_median_range": 0.011208210970122562
+  },
+  "answer": "YES"
+ },
+ "Q2_narrow_top2": {
+  "dev": {
+   "n": 279,
+   "median_top2_share": 1.0
+  },
+  "holdout": {
+   "n": 389,
+   "median_top2_share": 1.0
+  },
+  "answer": "YES"
+ },
+ "Q3_broad_agreement": {
+  "dev": {
+   "n": 1457,
+   "median_pos_frac": 1.0
+  },
+  "holdout": {
+   "n": 1479,
+   "median_pos_frac": 1.0
+  },
+  "answer": "L2_BREADTH_FAITHFUL"
+ }
+}
