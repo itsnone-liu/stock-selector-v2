@@ -1,11 +1,11 @@
 {
   "gate":"G-SHADOW-RUNTIME-READY",
   "status":"NOT_READY",
-  "reason":"Authoritative repository contains L1/L2/L3/L4 historical artifacts, but does not contain per-asof frozen lifecycle, corrected PRIMARY_ZONE, or frozen-decision artifacts required for a faithful runtime projection.",
-  "safe_behavior":"fail_closed",
-  "parity_matrix":"docs/cd/shadow_runtime_parity_matrix.json",
-  "observed_blocker":"PARITY_INPUT_MISSING for lifecycle/YYYY-MM-DD.json.gz",
-  "not_done":["no synthetic per-day lifecycle cache was generated","no PRIMARY_ZONE was reimplemented in the adapter","no decision policy was inferred from aggregate reports","no SHADOW_VALID claim was made"],
-  "required_authority_artifacts":["data/cd/shadow_authority/lifecycle/YYYY-MM-DD.json.gz","data/cd/shadow_authority/primary_zone/YYYY-MM-DD.json.gz","data/cd/shadow_authority/decisions/YYYY-MM-DD.json.gz"],
-  "next_allowed_action":"Materialize or expose these exact frozen per-asof authority outputs, then rerun parity; do not alter policy."
+  "authority":"PASS for five eligible promoted pilot dates; exact-byte promotion recorded in shadow_authority_promotion.json",
+  "p0_regression":"PASS",
+  "parity":"NOT_READY",
+  "parity_detail":"Level-A artifact read parity passes; Level-B historical semantic parity is not evidenced because independent expected field snapshots/anchors are absent.",
+  "unavailable_date":"2021-07-30 AUTHORITY_UNAVAILABLE, not a parity failure",
+  "activation_record":"not written",
+  "reason":"Do not convert adapter-to-itself equality into semantic PASS. Runtime remains fail-closed until independent historical parity evidence is bound."
 }

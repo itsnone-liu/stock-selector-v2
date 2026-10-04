@@ -1,0 +1,186 @@
+{
+  "transaction": "SHADOW_AUTHORITY_EXACT_BYTE_PROMOTION",
+  "status": "PROMOTED",
+  "files": [
+    {
+      "path": "decisions/2022-04-29.json.gz",
+      "pilot_sha256": "2292d1dae6e44d7f25167f8e78dcdbcebccfb8254246e048f090bc7542830e5a",
+      "formal_sha256": "2292d1dae6e44d7f25167f8e78dcdbcebccfb8254246e048f090bc7542830e5a",
+      "exact_bytes": true
+    },
+    {
+      "path": "decisions/2022-04-29.json.manifest.json",
+      "pilot_sha256": "af3a4f90e300a2ec7e01dfe1221275cdd90d520e52adfd82f4e706512fb99306",
+      "formal_sha256": "af3a4f90e300a2ec7e01dfe1221275cdd90d520e52adfd82f4e706512fb99306",
+      "exact_bytes": true
+    },
+    {
+      "path": "decisions/2023-03-31.json.gz",
+      "pilot_sha256": "048d14b81e1bd3e4aa09a4bf4bdc209d8005bbf6149fb16e5763422f700032bd",
+      "formal_sha256": "048d14b81e1bd3e4aa09a4bf4bdc209d8005bbf6149fb16e5763422f700032bd",
+      "exact_bytes": true
+    },
+    {
+      "path": "decisions/2023-03-31.json.manifest.json",
+      "pilot_sha256": "394347346db7d8555390376f3ed1403123a10984e15593c2a54a6e027f5517b6",
+      "formal_sha256": "394347346db7d8555390376f3ed1403123a10984e15593c2a54a6e027f5517b6",
+      "exact_bytes": true
+    },
+    {
+      "path": "decisions/2024-06-28.json.gz",
+      "pilot_sha256": "6d8483a8452d73bf84bd7430159d1cbd213a3f5d138b2cc37b6f1bcec97f3817",
+      "formal_sha256": "6d8483a8452d73bf84bd7430159d1cbd213a3f5d138b2cc37b6f1bcec97f3817",
+      "exact_bytes": true
+    },
+    {
+      "path": "decisions/2024-06-28.json.manifest.json",
+      "pilot_sha256": "f71f17c26e0d493ae95f7424b5222b59f47a8bd003df269e023187343eae26ce",
+      "formal_sha256": "f71f17c26e0d493ae95f7424b5222b59f47a8bd003df269e023187343eae26ce",
+      "exact_bytes": true
+    },
+    {
+      "path": "decisions/2025-12-31.json.gz",
+      "pilot_sha256": "818cfeb32073016cd23389f8ad6c2bdc8245828460afc57886885550ace64c0a",
+      "formal_sha256": "818cfeb32073016cd23389f8ad6c2bdc8245828460afc57886885550ace64c0a",
+      "exact_bytes": true
+    },
+    {
+      "path": "decisions/2025-12-31.json.manifest.json",
+      "pilot_sha256": "bde659d9035fc8fbf89738297937f9888556ec1c514fe215c6ff2f8dc1ee671f",
+      "formal_sha256": "bde659d9035fc8fbf89738297937f9888556ec1c514fe215c6ff2f8dc1ee671f",
+      "exact_bytes": true
+    },
+    {
+      "path": "decisions/2026-09-30.json.gz",
+      "pilot_sha256": "945e8ef90104b57c6e1f2fb325286a28adfdd6d4d233186832bf442685ab5c23",
+      "formal_sha256": "945e8ef90104b57c6e1f2fb325286a28adfdd6d4d233186832bf442685ab5c23",
+      "exact_bytes": true
+    },
+    {
+      "path": "decisions/2026-09-30.json.manifest.json",
+      "pilot_sha256": "8371db0b30e132e21a03998cd17256f8f53c6afe18ba9d7dc9c2465427ac18a4",
+      "formal_sha256": "8371db0b30e132e21a03998cd17256f8f53c6afe18ba9d7dc9c2465427ac18a4",
+      "exact_bytes": true
+    },
+    {
+      "path": "lifecycle/2022-04-29.json.gz",
+      "pilot_sha256": "46f4d4201570d5c064061baf7a668ce564e4d676b8963446714017e465d2e7ba",
+      "formal_sha256": "46f4d4201570d5c064061baf7a668ce564e4d676b8963446714017e465d2e7ba",
+      "exact_bytes": true
+    },
+    {
+      "path": "lifecycle/2022-04-29.json.manifest.json",
+      "pilot_sha256": "ad889f9f081c034a7faf38e9e05054bb0af45acdbc11a9da669f218db5b1584a",
+      "formal_sha256": "ad889f9f081c034a7faf38e9e05054bb0af45acdbc11a9da669f218db5b1584a",
+      "exact_bytes": true
+    },
+    {
+      "path": "lifecycle/2023-03-31.json.gz",
+      "pilot_sha256": "cfee6ef6938e7b5a09088a48a2005375d749cff760322e9bd366cc829a2dadc8",
+      "formal_sha256": "cfee6ef6938e7b5a09088a48a2005375d749cff760322e9bd366cc829a2dadc8",
+      "exact_bytes": true
+    },
+    {
+      "path": "lifecycle/2023-03-31.json.manifest.json",
+      "pilot_sha256": "7cd1dfbc9e1734fb1ae524a019e1c3e0601d53b5406b5f0898e7343f960b8019",
+      "formal_sha256": "7cd1dfbc9e1734fb1ae524a019e1c3e0601d53b5406b5f0898e7343f960b8019",
+      "exact_bytes": true
+    },
+    {
+      "path": "lifecycle/2024-06-28.json.gz",
+      "pilot_sha256": "7518589a325e8d01e28abd39d86eacc70718f8f35b7a1c677b8ad6fcd39a2a4b",
+      "formal_sha256": "7518589a325e8d01e28abd39d86eacc70718f8f35b7a1c677b8ad6fcd39a2a4b",
+      "exact_bytes": true
+    },
+    {
+      "path": "lifecycle/2024-06-28.json.manifest.json",
+      "pilot_sha256": "6a80504159c3f27043e2a69de59f85bb6cf3c2c7130b9e4957ab715fca2927b2",
+      "formal_sha256": "6a80504159c3f27043e2a69de59f85bb6cf3c2c7130b9e4957ab715fca2927b2",
+      "exact_bytes": true
+    },
+    {
+      "path": "lifecycle/2025-12-31.json.gz",
+      "pilot_sha256": "2fea0e5b0c7f646f9317f4b17e11a7d3bb558233c1b1690b36ad1958004bbf55",
+      "formal_sha256": "2fea0e5b0c7f646f9317f4b17e11a7d3bb558233c1b1690b36ad1958004bbf55",
+      "exact_bytes": true
+    },
+    {
+      "path": "lifecycle/2025-12-31.json.manifest.json",
+      "pilot_sha256": "85f90a67fd0cba31a3b5f1e9011832572404c4b6e6de829e1db7d672e7f64139",
+      "formal_sha256": "85f90a67fd0cba31a3b5f1e9011832572404c4b6e6de829e1db7d672e7f64139",
+      "exact_bytes": true
+    },
+    {
+      "path": "lifecycle/2026-09-30.json.gz",
+      "pilot_sha256": "5ddda74c9cb9322b2b358a4fafdc802ed01ae434e565022553d8f9192d446343",
+      "formal_sha256": "5ddda74c9cb9322b2b358a4fafdc802ed01ae434e565022553d8f9192d446343",
+      "exact_bytes": true
+    },
+    {
+      "path": "lifecycle/2026-09-30.json.manifest.json",
+      "pilot_sha256": "c6f8b359d1ee8de50f00cc271eb9fafe68524091b4c1e63a6eb8a9ae90effcf0",
+      "formal_sha256": "c6f8b359d1ee8de50f00cc271eb9fafe68524091b4c1e63a6eb8a9ae90effcf0",
+      "exact_bytes": true
+    },
+    {
+      "path": "primary_zone/2022-04-29.json.gz",
+      "pilot_sha256": "e2d7dc9e3b10f2387832c1a25f76bfd32406c276396ea47bfcd6212e39fee36b",
+      "formal_sha256": "e2d7dc9e3b10f2387832c1a25f76bfd32406c276396ea47bfcd6212e39fee36b",
+      "exact_bytes": true
+    },
+    {
+      "path": "primary_zone/2022-04-29.json.manifest.json",
+      "pilot_sha256": "02594e36758ede42fb0ec98c0a4b01afb5a2922d095d5d2d648be9fbc8ad5d1e",
+      "formal_sha256": "02594e36758ede42fb0ec98c0a4b01afb5a2922d095d5d2d648be9fbc8ad5d1e",
+      "exact_bytes": true
+    },
+    {
+      "path": "primary_zone/2023-03-31.json.gz",
+      "pilot_sha256": "c3436cf4d322a0da3239ccecdee8c56019efe05d1ece6c389eaff7c2f3e04208",
+      "formal_sha256": "c3436cf4d322a0da3239ccecdee8c56019efe05d1ece6c389eaff7c2f3e04208",
+      "exact_bytes": true
+    },
+    {
+      "path": "primary_zone/2023-03-31.json.manifest.json",
+      "pilot_sha256": "f23b5dbf7112f62864894059c747962d1b1902196e8b6353fc3e816e71ec942a",
+      "formal_sha256": "f23b5dbf7112f62864894059c747962d1b1902196e8b6353fc3e816e71ec942a",
+      "exact_bytes": true
+    },
+    {
+      "path": "primary_zone/2024-06-28.json.gz",
+      "pilot_sha256": "683e33c843a6acdd30036bac2169ca2a5e45f3b72a003d084582d3c872e54167",
+      "formal_sha256": "683e33c843a6acdd30036bac2169ca2a5e45f3b72a003d084582d3c872e54167",
+      "exact_bytes": true
+    },
+    {
+      "path": "primary_zone/2024-06-28.json.manifest.json",
+      "pilot_sha256": "6faa21a3cdce483f472c48e29e692fdecf8e0d733745a6db8396ae7fca4030f5",
+      "formal_sha256": "6faa21a3cdce483f472c48e29e692fdecf8e0d733745a6db8396ae7fca4030f5",
+      "exact_bytes": true
+    },
+    {
+      "path": "primary_zone/2025-12-31.json.gz",
+      "pilot_sha256": "736d8f641745b976959cf9d03116c46ec46ba8bb69754fd14af11526903da952",
+      "formal_sha256": "736d8f641745b976959cf9d03116c46ec46ba8bb69754fd14af11526903da952",
+      "exact_bytes": true
+    },
+    {
+      "path": "primary_zone/2025-12-31.json.manifest.json",
+      "pilot_sha256": "3af0d229750f05bb89b060ba7d95d6493ff733624343fbefaa152b9b3295674e",
+      "formal_sha256": "3af0d229750f05bb89b060ba7d95d6493ff733624343fbefaa152b9b3295674e",
+      "exact_bytes": true
+    },
+    {
+      "path": "primary_zone/2026-09-30.json.gz",
+      "pilot_sha256": "4c87fc585f0b86248614165bbe1044743aba891c29683134c8269bf46c328010",
+      "formal_sha256": "4c87fc585f0b86248614165bbe1044743aba891c29683134c8269bf46c328010",
+      "exact_bytes": true
+    },
+    {
+      "path": "primary_zone/2026-09-30.json.manifest.json",
+      "pilot_sha256": "c41d7e8c9b89fad50f1a12639498e463c90da70e2e53e416af20bea08d6336fb",
+      "formal_sha256": "c41d7e8c9b89fad50f1a12639498e463c90da70e2e53e416af20bea08d6336fb",
+      "exact_bytes": true
+    }
+  ]
+}
