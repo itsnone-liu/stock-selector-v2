@@ -1,0 +1,689 @@
+{
+ "cell_regime_coverage": {
+  "ETF_4_vs_8": {
+   "cell4|DOWN": {
+    "cases": 3,
+    "distinct_dates": 3
+   },
+   "cell4|UP": {
+    "cases": 12,
+    "distinct_dates": 8
+   },
+   "cell8|DOWN": {
+    "cases": 3,
+    "distinct_dates": 3
+   },
+   "cell8|UP": {
+    "cases": 14,
+    "distinct_dates": 5
+   }
+  },
+  "ETF_8_vs_9": {
+   "cell8|DOWN": {
+    "cases": 3,
+    "distinct_dates": 3
+   },
+   "cell8|UP": {
+    "cases": 14,
+    "distinct_dates": 5
+   },
+   "cell9|DOWN": {
+    "cases": 3,
+    "distinct_dates": 3
+   },
+   "cell9|UP": {
+    "cases": 11,
+    "distinct_dates": 8
+   }
+  }
+ },
+ "index_inventory": {
+  "T_range": [
+   "2021-03-08",
+   "2026-04-08"
+  ],
+  "distinct_T": 92,
+  "fetch_channel": "Tencent fqkline HTTP API (same family as production-era market data channels), provenance = full URL recorded in manifest",
+  "in_repo_index_series": [
+   "NONE found under data/ (csr8_ingest: dzjy/lhb/margin; national_capital: etf_shares/holdings; t4: sector_map only)"
+  ],
+  "in_repo_sector_classification": "data/t4/sector_map/csrc_industry_snapshot.json — 5555 rows ALL stamped 2026-09-21 (single current snapshot, some empty industry labels)",
+  "readout_cases": 122
+ },
+ "insufficient_context_coverage": "NONE — every eligible cell×regime stratum has >= 3 distinct observation dates",
+ "manifest": {
+  "fetched_at_utc": "2026-10-04T01:59:23.433029+00:00",
+  "n_rows": 1280,
+  "normalized_file_sha256": "046ca5ad1d3321a12ae16b5702622717eef1b685a2efb3496581225ca0ad23df",
+  "pit_rule": "analysis uses trade_date < T strictly; index EOD bar public on trade_date",
+  "trade_date_range": [
+   "2020-08-12",
+   "2026-04-30"
+  ],
+  "url_segments": [
+   "https://web.ifzq.gtimg.cn/appstock/app/fqkline/get?param=sh000985,day,2020-06-01,2023-03-31,640,qfq",
+   "https://web.ifzq.gtimg.cn/appstock/app/fqkline/get?param=sh000985,day,2023-04-01,2026-04-30,640,qfq"
+  ]
+ },
+ "note": "coverage matrix contains dates/counts only; NO path outcomes or relation statistics were computed in I4A",
+ "per_case_regime": {
+  "10": {
+   "T": "2021-07-21",
+   "etf_expansion": "8",
+   "regime": "UP"
+  },
+  "100": {
+   "T": "2021-09-23",
+   "etf_expansion": "5",
+   "regime": "UP"
+  },
+  "101": {
+   "T": "2021-04-06",
+   "etf_expansion": "0",
+   "regime": "UP"
+  },
+  "102": {
+   "T": "2021-07-12",
+   "etf_expansion": "6",
+   "regime": "UP"
+  },
+  "103": {
+   "T": "2026-02-13",
+   "etf_expansion": "5",
+   "regime": "UP"
+  },
+  "104": {
+   "T": "2022-09-14",
+   "etf_expansion": "5",
+   "regime": "DOWN"
+  },
+  "105": {
+   "T": "2022-07-01",
+   "etf_expansion": "2",
+   "regime": "UP"
+  },
+  "106": {
+   "T": "2021-04-06",
+   "etf_expansion": "0",
+   "regime": "UP"
+  },
+  "107": {
+   "T": "2021-04-06",
+   "etf_expansion": "0",
+   "regime": "UP"
+  },
+  "108": {
+   "T": "2025-08-08",
+   "etf_expansion": "0",
+   "regime": "UP"
+  },
+  "109": {
+   "T": "2022-06-17",
+   "etf_expansion": "6",
+   "regime": "DOWN"
+  },
+  "11": {
+   "T": "2021-03-08",
+   "etf_expansion": "8",
+   "regime": "UP"
+  },
+  "110": {
+   "T": "2025-09-23",
+   "etf_expansion": "1",
+   "regime": "UP"
+  },
+  "111": {
+   "T": "2026-02-09",
+   "etf_expansion": "9",
+   "regime": "UP"
+  },
+  "112": {
+   "T": "2023-04-19",
+   "etf_expansion": "2",
+   "regime": "UP"
+  },
+  "113": {
+   "T": "2025-10-17",
+   "etf_expansion": "2",
+   "regime": "UP"
+  },
+  "114": {
+   "T": "2021-04-06",
+   "etf_expansion": "0",
+   "regime": "UP"
+  },
+  "115": {
+   "T": "2023-06-16",
+   "etf_expansion": "5",
+   "regime": "UP"
+  },
+  "116": {
+   "T": "2023-01-06",
+   "etf_expansion": "5",
+   "regime": "UP"
+  },
+  "117": {
+   "T": "2021-07-09",
+   "etf_expansion": "5",
+   "regime": "UP"
+  },
+  "118": {
+   "T": "2023-01-18",
+   "etf_expansion": "7",
+   "regime": "UP"
+  },
+  "119": {
+   "T": "2026-03-18",
+   "etf_expansion": "6",
+   "regime": "UP"
+  },
+  "12": {
+   "T": "2024-10-29",
+   "etf_expansion": "4",
+   "regime": "UP"
+  },
+  "120": {
+   "T": "2025-11-06",
+   "etf_expansion": "9",
+   "regime": "UP"
+  },
+  "121": {
+   "T": "2024-11-05",
+   "etf_expansion": "7",
+   "regime": "UP"
+  },
+  "122": {
+   "T": "2022-01-06",
+   "etf_expansion": "6",
+   "regime": "UP"
+  },
+  "123": {
+   "T": "2024-02-01",
+   "etf_expansion": "10",
+   "regime": "DOWN"
+  },
+  "124": {
+   "T": "2025-11-26",
+   "etf_expansion": "4",
+   "regime": "UP"
+  },
+  "125": {
+   "T": "2024-11-05",
+   "etf_expansion": "7",
+   "regime": "UP"
+  },
+  "126": {
+   "T": "2022-07-22",
+   "etf_expansion": "3",
+   "regime": "UP"
+  },
+  "127": {
+   "T": "2023-07-31",
+   "etf_expansion": "10",
+   "regime": "UP"
+  },
+  "128": {
+   "T": "2025-01-20",
+   "etf_expansion": "9",
+   "regime": "UP"
+  },
+  "13": {
+   "T": "2023-02-21",
+   "etf_expansion": "2",
+   "regime": "UP"
+  },
+  "14": {
+   "T": "2025-12-15",
+   "etf_expansion": "11",
+   "regime": "UP"
+  },
+  "15": {
+   "T": "2022-07-18",
+   "etf_expansion": "4",
+   "regime": "DOWN"
+  },
+  "16": {
+   "T": "2026-03-10",
+   "etf_expansion": "6",
+   "regime": "UP"
+  },
+  "17": {
+   "T": "2022-08-18",
+   "etf_expansion": "9",
+   "regime": "UP"
+  },
+  "18": {
+   "T": "2025-08-26",
+   "etf_expansion": "4",
+   "regime": "UP"
+  },
+  "19": {
+   "T": "2024-12-12",
+   "etf_expansion": "9",
+   "regime": "UP"
+  },
+  "20": {
+   "T": "2021-12-23",
+   "etf_expansion": "1",
+   "regime": "UP"
+  },
+  "21": {
+   "T": "2022-07-04",
+   "etf_expansion": "3",
+   "regime": "UP"
+  },
+  "22": {
+   "T": "2024-11-11",
+   "etf_expansion": "4",
+   "regime": "UP"
+  },
+  "23": {
+   "T": "2026-01-12",
+   "etf_expansion": "9",
+   "regime": "UP"
+  },
+  "24": {
+   "T": "2025-08-26",
+   "etf_expansion": "4",
+   "regime": "UP"
+  },
+  "25": {
+   "T": "2022-05-27",
+   "etf_expansion": "6",
+   "regime": "DOWN"
+  },
+  "26": {
+   "T": "2025-10-27",
+   "etf_expansion": "3",
+   "regime": "UP"
+  },
+  "27": {
+   "T": "2021-08-02",
+   "etf_expansion": "2",
+   "regime": "DOWN"
+  },
+  "28": {
+   "T": "2021-03-08",
+   "etf_expansion": "8",
+   "regime": "UP"
+  },
+  "29": {
+   "T": "2021-03-08",
+   "etf_expansion": "8",
+   "regime": "UP"
+  },
+  "30": {
+   "T": "2022-11-22",
+   "etf_expansion": "8",
+   "regime": "DOWN"
+  },
+  "31": {
+   "T": "2022-11-18",
+   "etf_expansion": "6",
+   "regime": "DOWN"
+  },
+  "32": {
+   "T": "2025-06-04",
+   "etf_expansion": "9",
+   "regime": "DOWN"
+  },
+  "33": {
+   "T": "2021-03-22",
+   "etf_expansion": "6",
+   "regime": "DOWN"
+  },
+  "34": {
+   "T": "2024-11-22",
+   "etf_expansion": "4",
+   "regime": "UP"
+  },
+  "35": {
+   "T": "2023-10-16",
+   "etf_expansion": "8",
+   "regime": "DOWN"
+  },
+  "36": {
+   "T": "2021-08-24",
+   "etf_expansion": "4",
+   "regime": "UP"
+  },
+  "37": {
+   "T": "2021-03-08",
+   "etf_expansion": "8",
+   "regime": "UP"
+  },
+  "38": {
+   "T": "2021-06-11",
+   "etf_expansion": "7",
+   "regime": "UP"
+  },
+  "39": {
+   "T": "2026-01-16",
+   "etf_expansion": "2",
+   "regime": "UP"
+  },
+  "40": {
+   "T": "2022-08-16",
+   "etf_expansion": "8",
+   "regime": "UP"
+  },
+  "41": {
+   "T": "2022-06-02",
+   "etf_expansion": "3",
+   "regime": "DOWN"
+  },
+  "42": {
+   "T": "2021-03-08",
+   "etf_expansion": "8",
+   "regime": "UP"
+  },
+  "43": {
+   "T": "2021-03-08",
+   "etf_expansion": "8",
+   "regime": "UP"
+  },
+  "44": {
+   "T": "2025-07-11",
+   "etf_expansion": "3",
+   "regime": "UP"
+  },
+  "45": {
+   "T": "2022-05-19",
+   "etf_expansion": "4",
+   "regime": "DOWN"
+  },
+  "46": {
+   "T": "2025-08-26",
+   "etf_expansion": "4",
+   "regime": "UP"
+  },
+  "47": {
+   "T": "2026-01-12",
+   "etf_expansion": "9",
+   "regime": "UP"
+  },
+  "48": {
+   "T": "2023-03-21",
+   "etf_expansion": "4",
+   "regime": "UP"
+  },
+  "49": {
+   "T": "2025-09-11",
+   "etf_expansion": "2",
+   "regime": "UP"
+  },
+  "50": {
+   "T": "2021-03-08",
+   "etf_expansion": "8",
+   "regime": "UP"
+  },
+  "51": {
+   "T": "2023-05-19",
+   "etf_expansion": "2",
+   "regime": "UP"
+  },
+  "52": {
+   "T": "2022-12-08",
+   "etf_expansion": "5",
+   "regime": "DOWN"
+  },
+  "53": {
+   "T": "2021-06-10",
+   "etf_expansion": "6",
+   "regime": "UP"
+  },
+  "54": {
+   "T": "2022-12-20",
+   "etf_expansion": "10",
+   "regime": "DOWN"
+  },
+  "55": {
+   "T": "2026-02-10",
+   "etf_expansion": "7",
+   "regime": "UP"
+  },
+  "56": {
+   "T": "2025-10-09",
+   "etf_expansion": "4",
+   "regime": "UP"
+  },
+  "57": {
+   "T": "2024-10-08",
+   "etf_expansion": "9",
+   "regime": "UP"
+  },
+  "58": {
+   "T": "2021-12-08",
+   "etf_expansion": "6",
+   "regime": "UP"
+  },
+  "59": {
+   "T": "2024-01-04",
+   "etf_expansion": "3",
+   "regime": "DOWN"
+  },
+  "60": {
+   "T": "2025-10-29",
+   "etf_expansion": "10",
+   "regime": "UP"
+  },
+  "61": {
+   "T": "2024-10-08",
+   "etf_expansion": "9",
+   "regime": "UP"
+  },
+  "62": {
+   "T": "2022-06-24",
+   "etf_expansion": "9",
+   "regime": "UP"
+  },
+  "63": {
+   "T": "2023-07-03",
+   "etf_expansion": "7",
+   "regime": "UP"
+  },
+  "64": {
+   "T": "2024-12-20",
+   "etf_expansion": "8",
+   "regime": "UP"
+  },
+  "65": {
+   "T": "2023-11-10",
+   "etf_expansion": "3",
+   "regime": "DOWN"
+  },
+  "66": {
+   "T": "2021-04-06",
+   "etf_expansion": "0",
+   "regime": "UP"
+  },
+  "67": {
+   "T": "2022-01-20",
+   "etf_expansion": "8",
+   "regime": "DOWN"
+  },
+  "68": {
+   "T": "2021-08-30",
+   "etf_expansion": "8",
+   "regime": "UP"
+  },
+  "69": {
+   "T": "2023-02-02",
+   "etf_expansion": "1",
+   "regime": "UP"
+  },
+  "7": {
+   "T": "2021-08-02",
+   "etf_expansion": "2",
+   "regime": "DOWN"
+  },
+  "70": {
+   "T": "2021-04-06",
+   "etf_expansion": "0",
+   "regime": "UP"
+  },
+  "71": {
+   "T": "2021-08-30",
+   "etf_expansion": "8",
+   "regime": "UP"
+  },
+  "72": {
+   "T": "2024-12-09",
+   "etf_expansion": "12",
+   "regime": "UP"
+  },
+  "73": {
+   "T": "2024-01-30",
+   "etf_expansion": "4",
+   "regime": "DOWN"
+  },
+  "74": {
+   "T": "2021-08-18",
+   "etf_expansion": "7",
+   "regime": "UP"
+  },
+  "75": {
+   "T": "2021-04-06",
+   "etf_expansion": "0",
+   "regime": "UP"
+  },
+  "76": {
+   "T": "2024-11-26",
+   "etf_expansion": "6",
+   "regime": "UP"
+  },
+  "77": {
+   "T": "2023-03-21",
+   "etf_expansion": "4",
+   "regime": "UP"
+  },
+  "78": {
+   "T": "2026-01-14",
+   "etf_expansion": "5",
+   "regime": "UP"
+  },
+  "79": {
+   "T": "2022-08-15",
+   "etf_expansion": "7",
+   "regime": "UP"
+  },
+  "8": {
+   "T": "2024-11-11",
+   "etf_expansion": "4",
+   "regime": "UP"
+  },
+  "80": {
+   "T": "2026-04-08",
+   "etf_expansion": "10",
+   "regime": "DOWN"
+  },
+  "81": {
+   "T": "2022-09-16",
+   "etf_expansion": "6",
+   "regime": "DOWN"
+  },
+  "82": {
+   "T": "2025-09-23",
+   "etf_expansion": "1",
+   "regime": "UP"
+  },
+  "83": {
+   "T": "2025-01-10",
+   "etf_expansion": "3",
+   "regime": "DOWN"
+  },
+  "84": {
+   "T": "2022-01-21",
+   "etf_expansion": "9",
+   "regime": "DOWN"
+  },
+  "85": {
+   "T": "2022-08-01",
+   "etf_expansion": "3",
+   "regime": "UP"
+  },
+  "86": {
+   "T": "2024-12-09",
+   "etf_expansion": "12",
+   "regime": "UP"
+  },
+  "87": {
+   "T": "2026-02-09",
+   "etf_expansion": "9",
+   "regime": "UP"
+  },
+  "88": {
+   "T": "2025-09-23",
+   "etf_expansion": "1",
+   "regime": "UP"
+  },
+  "89": {
+   "T": "2022-06-27",
+   "etf_expansion": "2",
+   "regime": "UP"
+  },
+  "9": {
+   "T": "2024-01-02",
+   "etf_expansion": "9",
+   "regime": "DOWN"
+  },
+  "90": {
+   "T": "2025-11-24",
+   "etf_expansion": "13",
+   "regime": "UP"
+  },
+  "91": {
+   "T": "2021-08-30",
+   "etf_expansion": "8",
+   "regime": "UP"
+  },
+  "92": {
+   "T": "2021-04-06",
+   "etf_expansion": "0",
+   "regime": "UP"
+  },
+  "93": {
+   "T": "2021-04-06",
+   "etf_expansion": "0",
+   "regime": "UP"
+  },
+  "94": {
+   "T": "2022-12-20",
+   "etf_expansion": "10",
+   "regime": "DOWN"
+  },
+  "95": {
+   "T": "2022-12-16",
+   "etf_expansion": "6",
+   "regime": "DOWN"
+  },
+  "96": {
+   "T": "2025-07-02",
+   "etf_expansion": "3",
+   "regime": "UP"
+  },
+  "97": {
+   "T": "2021-04-20",
+   "etf_expansion": "7",
+   "regime": "UP"
+  },
+  "98": {
+   "T": "2024-12-20",
+   "etf_expansion": "8",
+   "regime": "UP"
+  },
+  "99": {
+   "T": "2023-11-13",
+   "etf_expansion": "3",
+   "regime": "DOWN"
+  }
+ },
+ "regime_definition": {
+  "rule": "close(T-1) vs median(close of last 120 trading days ending T-1, all trade_date < T)",
+  "values": [
+   "UP",
+   "DOWN"
+  ],
+  "window_trading_days": 120
+ }
+}

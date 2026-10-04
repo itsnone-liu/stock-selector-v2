@@ -1,0 +1,7 @@
+{
+ "urls": [
+  "https://web.ifzq.gtimg.cn/appstock/app/fqkline/get?param=sh000985,day,2020-06-01,2023-03-31,640,qfq",
+  "https://web.ifzq.gtimg.cn/appstock/app/fqkline/get?param=sh000985,day,2023-04-01,2026-04-30,640,qfq"
+ ],
+ "note": "raw HTTP responses not persisted; provenance = URL list + row count + trade-date range; normalized file is the frozen artifact"
+}

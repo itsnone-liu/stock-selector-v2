@@ -1,0 +1,14 @@
+{
+ "fetched_at_utc": "2026-10-04T01:59:23.433029+00:00",
+ "n_rows": 1280,
+ "normalized_file_sha256": "046ca5ad1d3321a12ae16b5702622717eef1b685a2efb3496581225ca0ad23df",
+ "pit_rule": "analysis uses trade_date < T strictly; index EOD bar public on trade_date",
+ "trade_date_range": [
+  "2020-08-12",
+  "2026-04-30"
+ ],
+ "url_segments": [
+  "https://web.ifzq.gtimg.cn/appstock/app/fqkline/get?param=sh000985,day,2020-06-01,2023-03-31,640,qfq",
+  "https://web.ifzq.gtimg.cn/appstock/app/fqkline/get?param=sh000985,day,2023-04-01,2026-04-30,640,qfq"
+ ]
+}
