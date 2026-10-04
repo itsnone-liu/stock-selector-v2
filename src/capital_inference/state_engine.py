@@ -36,13 +36,23 @@ def infer(f):
  if sup=='HIGH': e3-=1
  if pr is not None and pr>0.5: e3-=1
  fam['E3_chip']=max(-2,min(2,int(e3)))
- fam['E4_ownership']='MISSING'; fam['E5_public']='MISSING'; fam['E6_context']='MISSING'
+ hc=f.get('holders_chg_pct'); hc2=f.get('holders_chg2_pct')
+ e4=0
+ if hc is not None:
+  if hc<-10: e4+=2
+  elif hc<-5: e4+=1
+  elif hc>10: e4-=1
+ if hc2 is not None and hc2<-5: e4+=1
+ if hc2 is not None and hc2>5: e4-=1
+ fam['E4_ownership']=max(-2,min(2,e4))
+ fam['E5_public']='MISSING'; fam['E6_context']='MISSING'
  scores=[v for v in fam.values() if isinstance(v,int)]
+ cov_adj=fam['E4_ownership']!='MISSING'
  sup=sum(v for v in scores if v>0); con=sum(-v for v in scores if v<0); cov=len([v for v in fam.values() if v!='MISSING'])/6
  conf=round(min(0.9,0.3+0.1*sup+0.35*cov),2)
  # state rules v1 (price/chip driven; ownership pending -> confidence cap)
  if con>=2: state='CONFLICTED'
- elif sup>=4 and (pos is not None and pos<0.45) and (r60 is not None and r60<0.25) and (bc is not None and bc<0): state='ACCUMULATION_MATURE' if sup>=5 else 'ACCUMULATION'
+ elif sup>=4 and (pos is not None and pos<0.45) and (f.get('holders_chg_pct') is None or f.get('holders_chg_pct')<5) and (r60 is not None and r60<0.25) and (bc is not None and bc<0): state='ACCUMULATION_MATURE' if sup>=5 else 'ACCUMULATION'
  elif (r60 is not None and r60>0.25) and (cm is not None and cm>0.03) and sup>=3: state='MARKUP_ACTIVE'
  elif sup>=3 and (cm is not None and cm>=0) and lock in ('MEDIUM','HIGH'): state='MARKUP_READY'
  elif (pos is not None and pos>0.8) and (sup=='HIGH' or (pr is not None and pr>0.6)): state='DISTRIBUTION_RISK'

@@ -6,10 +6,23 @@ from pathlib import Path
 ROOT=Path(__file__).resolve().parents[2]; sys.path.insert(0,str(ROOT))
 from src.capital_inference.features import snapshot
 from src.capital_inference.state_engine import infer
+def load_holders():
+ H={}
+ for f in sorted((ROOT/'data/r2/holders').glob('*.json')):
+  for row in json.loads(f.read_text())['rows']:
+   H.setdefault(row['code'],[]).append((row['chg_date'],row.get('holders_chg_pct'),row.get('avg_hold')))
+ for c in H: H[c].sort()
+ return H
 D=ROOT/'data/cd/daily_fullmarket'; EXT=ROOT/'data/r2/market_ext'
+def _avail(chg_date,asof):
+ from datetime import date
+ y,m,d=int(chg_date[:4]),int(chg_date[5:7]),int(chg_date[8:10])
+ ay,am,ad=int(asof[:4]),int(asof[5:7]),int(asof[8:10])
+ return (date(ay,am,ad)-date(y,m,d)).days>=60
+
 def main():
  ap=argparse.ArgumentParser();ap.add_argument('--out',default=str(ROOT/'data/r2/panel_monthly.jsonl'));a=ap.parse_args()
- t0=time.time(); n=0
+ t0=time.time(); n=0; H=load_holders()
  with open(a.out,'w') as f:
   for p in sorted(D.glob('*.json.gz')):
    code=p.name[:-8]
@@ -38,6 +51,12 @@ def main():
     for name,w in (('f60',60),('f120',120),('f250',250)):
      seg=cl[i+1:min(len(cl),i+1+w)]
      lab[name]=round(max(seg)/cl[i]-1,4) if seg else None
+    e4=None; e4b=None
+    hs=H.get(code,[])
+    ok=[h for h in hs if h[0] and (h[0][:7]<=ds[i][:7] and _avail(h[0],ds[i]))]
+    if ok:
+     e4=ok[-1][1]; e4b=sum((x[1] or 0) for x in ok[-2:])/min(2,len(ok))
+    f_['holders_chg_pct']=e4; f_['holders_chg2_pct']=e4b if e4b is not None else None
     st=infer(f_)
     row={'stock':code,'ym':ym,'close':cl[i],**f_,**st,**lab}
     f.write(json.dumps(row,ensure_ascii=False)+'\n'); n+=1
