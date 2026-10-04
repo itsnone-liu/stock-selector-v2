@@ -1,0 +1,118 @@
+{
+ "authority_chain": [
+  "user rulings 2026-10-04: I1 acceptance + three rulings; I2 APPROVE/FROZEN + I3 GO; I3 COMPLETE + I4 GO (two-stage); I4B APPROVE/COMPLETE + Phase I final freeze GO",
+  "Phase H final freeze csr8-phase-h-final-freeze-v1 (9dfc516); third readout (3f46515)",
+  "I2 contract sha e32bf614... + addendum-1; I4A contract sha b1278342... + addendum-semantic-1"
+ ],
+ "evidence_hierarchy_table": [
+  {
+   "I3_date_clustering": "direction holds; dates 74/4",
+   "I4B_market_context": "DOWN unreadable (NO_PIT n=1)",
+   "phase_H": "PRESERVED",
+   "relation": "stock_layer ND vs NO_PIT",
+   "standing": "DESCRIPTIVE_ONLY — excluded from re-upgrade"
+  },
+  {
+   "I3_date_clustering": "THEORY_ELIGIBLE (direction robust; naive magnitude sampling-amplified)",
+   "I4B_market_context": "UP − / DOWN + (DOWN 3/3 dates LOW_COVERAGE)",
+   "phase_H": "PRESERVED",
+   "relation": "ETF 4 vs 8",
+   "standing": "CONDITIONAL"
+  },
+  {
+   "I3_date_clustering": "THEORY_ELIGIBLE (direction+magnitude robust)",
+   "I4B_market_context": "UP + / DOWN − (DOWN 3/3 dates LOW_COVERAGE)",
+   "phase_H": "PRESERVED",
+   "relation": "ETF 8 vs 9",
+   "standing": "CONDITIONAL"
+  }
+ ],
+ "freeze_id": "csr8-phase-i-final-synthesis-theory-boundary-v1",
+ "guarantees": [
+  "zero new results computed in this freeze (assertions re-verify frozen artifacts only)",
+  "all interpretation boundaries carried verbatim from I2/I3/I4A contracts + addenda + user rulings",
+  "change control: append-only erratum + explicit user authorization"
+ ],
+ "phase_j_preregistration_sketch": {
+  "frozen_directions": {
+   "already_frozen_from_discovery_UP": {
+    "ETF_4_vs_8": "<0",
+    "ETF_8_vs_9": ">0"
+   },
+   "down_validation_hypotheses": {
+    "ETF_4_vs_8": ">0",
+    "ETF_8_vs_9": "<0"
+   }
+  },
+  "locks": [
+   "no re-search of ETF levels; only cells 4/8/9 as frozen",
+   "no new comparisons",
+   "120-day median regime definition unchanged",
+   "index stays 000985 raw close with trade_date<T",
+   "R5 definition unchanged",
+   "R4 hard gate + date-dedup + leave-max-cluster-out + effective-N reporting all inherited",
+   "discovery corpus never merged into the validation corpus"
+  ],
+  "name": "Phase J — DOWN-Regime External Validation",
+  "purpose": "raise DOWN-regime observation-date diversity on an INDEPENDENT corpus (the 128 discovery corpus stays immutable) and test the frozen mirror-direction predictions",
+  "status": "AUTHORIZED AFTER THIS FREEZE — NOT STARTED; sketch frozen now to prevent post-hoc design"
+ },
+ "status_block": {
+  "I1-I4B": "COMPLETE (I1 cee5efd / I2 eddd1ff / I3 5674101 / I4A 664b35d+597e4a1 / I4B c0937c9)",
+  "ORDINALS 129+": "UNAUTHORIZED — HOLD",
+  "PHASE H 128 CORPUS": "IMMUTABLE (freeze 9dfc516 lineage)",
+  "PHASE I": "FROZEN — interpretation authority",
+  "PHASE J DOWN-REGIME VALIDATION": "GO AFTER THIS FREEZE — new INDEPENDENT corpus; directions preregistered below",
+  "SAME-128-CORPUS ANALYSIS": "CLOSED — no further analysis on the frozen corpus",
+  "SECTOR CONTEXT": "DEFERRED — requires independent historical-membership + PIT-provenance pipeline"
+ },
+ "theory_map": {
+  "conditional": {
+   "ETF_4_vs_8": "market-environment-conditional structural relation; refined from I3 \"magnitude fragile\": overall magnitude unstable, but clearly more stable within the UP condition (dedup -0.0375 / LCO -0.0371); composition attenuation (mixing UP and DOWN) is a natural but UNPROVEN explanation candidate",
+   "ETF_8_vs_9": "market-environment-conditional structural relation; in the preregistered UP regime theory-grade positive structural evidence exists; the stronger \"cross-context structural relation\" candidacy is RETRACTED (refuted by I4B DOWN flip)",
+   "mirror_ordering_observed_fact": {
+    "fact": "UP: 4<8>9; DOWN: 4>8<9 (DOWN strata 3/3 dates, LOW_COVERAGE — sign reported under output-coverage semantics only)",
+    "wording_frozen": "mirror ordering across the observed ETF-expansion levels 4/8/9"
+   }
+  },
+  "established": {
+   "corpus_identity_provenance": "128 sealed cases (64 opaque entities x 2 epochs), Phase H immutable freeze 9dfc516; identity-lineage violations 0; I1 atlas (cee5efd) provides per-case structural cards with deterministic rebuild",
+   "date_clustering_facts": [
+    "128 cases != 128 independent environment observations: observation-date clusters (2021-04-06: 9, 2021-03-08: 7) materially move cell medians",
+    "the 3 Phase-H REVERSED pairs are sampling-dependent structure (T=2021-04-06 cluster lifted cell-8 median -0.0362 -> -0.0088; epoch-1 restriction reproduces the 64-corpus sign)",
+    "I3 three-way evidence-tier split: ND/NO_PIT DESCRIPTIVE_ONLY (NO_PIT 18 cases on 4 dates); ETF 4v8 & 8v9 THEORY_ELIGIBLE (date-dedup + leave-max-cluster-out direction-stable)"
+   ],
+   "up_stratum_theory_grade_relations": {
+    "ETF_4_vs_8_UP": {
+     "dates": "8/5",
+     "dedup_d": -0.03749967429572465,
+     "lco_dedup": -0.03705995660735,
+     "naive_d": -0.08625112875701452,
+     "statement": "in the preregistered UP regime the 4<8 direction is theory-grade (within-stratum R4 fully passed)"
+    },
+    "ETF_8_vs_9_UP": {
+     "dates": "5/8",
+     "dedup_d": 0.055087466999386166,
+     "lco_dedup": 0.05464774931101152,
+     "naive_d": 0.047771130615242054,
+     "statement": "in the preregistered UP regime the 8>9 direction is theory-grade with magnitude stable across all calibers"
+    }
+   }
+  },
+  "forbidden_inference": [
+   "causal claims of any form (e.g. \"the 9th ETF expansion causes R5 to rise\")",
+   "actor-intention attribution (national team / 主力 / institutional intent) on any layer",
+   "treating 4/8/9 as points on a continuous function; U-shape or inverted-U mechanism language; \"8 is a regime threshold\"",
+   "\"the more ETF expansion, the ...\" monotonic extrapolation",
+   "\"DOWN market mechanism proven\" — DOWN strata are output-coverage only",
+   "treating the 000985 120-day-median regime as a complete market-state model (it is a coarse modifier)",
+   "re-opening the 128 corpus, ordinal 129+ production, capital-state label redefinition"
+  ],
+  "unresolved": [
+   "DOWN regime has only 3 distinct observation dates per side — the flipped directions cannot be upgraded to theory grade in this corpus",
+   "sector context DEFERRED entirely (single-snapshot 2026-09-21 classification is lookahead; an independent historical-membership + PIT-provenance + coverage-census pipeline is required before any sector analysis)",
+   "ND-vs-NO_PIT: NO_PIT arm covers only 4 observation dates; upgrade requires new sampling diversity (production problem)",
+   "whether the mirror ordering is a genuine market-conditional structure or an artifact of 3 dates — answerable ONLY by an independent DOWN-diverse validation corpus (Phase J)"
+  ]
+ }
+}
