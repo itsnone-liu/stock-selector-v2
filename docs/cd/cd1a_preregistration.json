@@ -1,0 +1,55 @@
+{
+ "phase": "CD-1A — Sector Data & PIT Feasibility",
+ "authority": "user GO ruling 2026-10-04 (CD-1 split 1A/1B; CD-2 not started; synthetic PIT sector portfolio = core route, external indices = oracle; never fake-repair the 2026-09-21 snapshot into history)",
+ "preregistration_id": "cd1a-prereg-v1",
+ "scope": "FULL-MARKET DAILY DATA (CD-1A-DATA-1) + historical PIT sector membership feasibility + per-level coverage census + sector series feasibility. NO market conclusions, NO sector ranking, NO CD-2 production.",
+ "environment_probe_findings": {
+  "probed": "2026-10-04, read-only",
+  "baostock": "UNAVAILABLE in this sandbox — protocol port 17021/17022 blocked (HTTP 80/443 open); login fails 10002007; recorded as environment limitation, not data-source failure",
+  "eastmoney_push2his_kline": "REACHABLE — single request returns FULL history per stock (verified sh.600000: 6400 rows 1999..2026); fields date/open/close/high/low/volume/amount/amplitude/pct_chg/chg/turnover",
+  "eastmoney_push2_clist": "BLOCKED — stable 502 on all mirror domains (list/board endpoints unusable)",
+  "tencent_qt": "REACHABLE (CSR-8-proven fallback for quotes)",
+  "sina_industry": "REACHABLE — newSinaHy.php returns 49 industry nodes; Market_Center.getHQNodeData pages members per node (current classification)",
+  "swsresearch": "SSL FAIL — SW official history not directly fetchable",
+  "csindex": "REACHABLE (200) — oracle-route candidate, history-depth to be evaluated during execution"
+ },
+ "data_source_priority": {
+  "daily_kline_primary": "EM push2his kline, fqt=0 AND fqt=1 both fetched from 2021-01-01; adjust_factor derived per (date) as close_fqt1/close_fqt0 ratio anchored at latest=1 — model_derived, documented",
+  "daily_kline_fallback": "Tencent fqkline (CSR-8 pipeline)",
+  "stock_list": "sina hs_a paged + existing csrc_industry_snapshot (5555 stocks) cross-check; union with listing dates from kline first dates",
+  "classification_seed": "L1/L2 = csrc_industry_snapshot taxonomy (证监会 门类/大类, current); L3 = sina 49-industry table (current); BOTH are taxonomy SEEDS ONLY, downgraded per static-declared semantics below",
+  "oracle_route": "csindex industry indices (cross-check only, never authority)"
+ },
+ "taxonomy_v1_static_declared": {
+  "honest_position": "no free public channel provides TRUE historical membership changes for A-share industry classification in this environment (SW blocked; no structured change history). CD-1A therefore does NOT pretend historical PIT.",
+  "semantics": "taxonomy v1-static: membership valid_from = max(stock listing date, 2021-01-04); valid_to = null; membership_change_frequency = UNKNOWN; every artifact carrying it must display the declaration: 'static classification extended backward under the declared assumption of no intra-window reclassification; reclassifications are INVISIBLE in this build'",
+  "hard_rules": "the snapshot is a SEED, never historical authority; any future real historical source REPLACES v1-static wholesale with a new taxonomy_version (no merging); PIT-affected analyses must cite the declaration"
+ },
+ "census_protocol_per_level": {
+  "levels": ["L1_csrc", "L2_csrc", "L3_sina"],
+  "fields": ["stock coverage fraction of full-market list", "historical time coverage (dates with usable daily data)", "distinct sector dates", "member-count distribution per sector (min/median/max)", "single-stock-sector fraction", "small-sample sector fraction (members < 10)", "membership change frequency (UNKNOWN for v1-static, declared)", "historical gaps (long empty windows per sector)", "source provenance completeness (per-stock: has classification? has daily data?)"],
+  "output": "per-level census json + pass/fail vs support thresholds; mixed granularity allowed (some industries may only qualify at L1)"
+ },
+ "data1_daily_schema": ["code", "trade_date", "open", "high", "low", "close", "volume", "amount", "turnover_rate", "adjust_factor(model_derived)", "free_float_market_cap(model_derived: close*volume/(turnover/100), only where turnover>0)", "listing_status(derived from first/last kline date vs window)", "st_flag(not directly available from kline; recorded as GAP — candidate source: EM f10 or tencent, evaluated during acquisition)"],
+ "acquisition_plan": {
+  "universe": "full A-share list (~5000+) from sina+csrc union",
+  "window": "2021-01-01 .. latest available (matches CSR-8 era)",
+  "rate": "0.25s inter-request, 2 requests per stock (fqt=0, fqt=1)",
+  "storage": "per-stock gzip JSON under data/cd/daily_fullmarket/{code}.json.gz (same layout as CSR-84 store); resumable (skip existing); no file >2GB (per-stock files are KB-scale)",
+  "estimated": "~40-60 min wall clock, ~600MB compressed"
+ },
+ "sector_series_feasibility_demo": "from v1-static membership + DATA-1 daily, deterministically rebuild ONE synthetic series per weighting (equal/free-float-amount/amount) for a FIXED sample sector and verify rebuild determinism (two runs identical bytes) — feasibility proof only, no ranking, no conclusions",
+ "gate_G_CD1A_1": {
+  "conditions": {
+   "c1_historical_pit_membership_usable": "at least one taxonomy usable under DECLARED semantics (v1-static declaration counts as usable-DECLARED, not as historical PIT; the gate records which)",
+   "c2_meaningful_level_support_qualified": "at least one of L1/L2/L3 census PASS: stock coverage >= 95%, median sector size >= 15, single-stock sectors <= 5%, sector set with daily data covering >= 90% of window",
+   "c3_full_market_daily_same_window": "DATA-1 acquired for >= 97% of list, window overlap with census window >= 95%",
+   "c4_deterministic_rebuild": "synthetic series rebuild from (membership, daily) is pure function; two runs byte-identical",
+   "c5_provenance_complete": "every stock traceable to source+fetch-time+content-hash; classification source recorded per stock",
+   "c6_no_future_backfill": "v1-static declaration enforced on every artifact; any unqualified stock marked NO_CLASSIFICATION (fail-closed), never guessed"
+  },
+  "on_fail": "deliver 'current data conditions cannot test the sector hypothesis at level X' — no sector engine is built",
+  "on_pass": "CD-1B (PIT Sector Infrastructure) may be proposed, pending user GO"
+ },
+ "status": "PREREGISTERED — acquisition may start after this commit; census and gate evaluation follow acquisition"
+}
