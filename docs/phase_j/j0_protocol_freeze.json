@@ -76,5 +76,11 @@
  "appendix_3_j1_blindness_implementation": {
   "added_by": "user ruling at J0 acceptance (execution discipline)",
   "rule": "the production control plane reads ONLY coverage counts (4v8 and 8v9 contributing-date counts); R5 signs, deltas, and intermediate verdicts are NOT computed or exposed during production; the confirmatory readout opens only after the preregistered stopping point"
+ },
+ "appendix_4_contributing_date_semantics_clarification": {
+  "added_before": "J1 Batch 1 production (append-only clarification, NOT an erratum; discovered while implementing the production machinery)",
+  "issue": "protocol body defines a contributing date as 'an admitted date where BOTH cells of an arm have >=1 built case' — but the ETF expansion count is a market-level function of T (identical for every case on the same date; this was also true in discovery, where each arm's two sides are disjoint date sets). The literal wording is therefore unsatisfiable.",
+  "clarified_semantics": "per arm, per side (cell value): a contributing date is an admitted date whose frozen expansion count EQUALS that side's cell AND on which >=1 case was built. The arm coverage gate is unchanged and inherited from R4: >=5 distinct contributing dates for EACH side of the arm.",
+  "impact": "none on gates, thresholds, hypotheses, verdict table, or blindness — this matches how discovery's R4(d) was computed (dates_A / dates_B are per-side date counts)."
  }
 }
