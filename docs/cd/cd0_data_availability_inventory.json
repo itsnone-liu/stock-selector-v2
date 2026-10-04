@@ -1,0 +1,110 @@
+{
+ "audit": "CD-0 data availability inventory — availability only, ZERO market conclusions",
+ "assets": [
+  {
+   "asset": "per_stock_price_baostock",
+   "scope": "5240 codes",
+   "coverage": "2021-01-04..2026-09-18",
+   "sides": "unadj+hfq",
+   "pit": "trading data, PIT-trivial",
+   "cd_usability": "OK for price/outcome; unadj for cost distribution",
+   "note": "only the 84-code CSR universe — CD needs full-market expansion (L0 gap)"
+  },
+  {
+   "asset": "etf_share_daily_sse",
+   "scope": "13 SSE ETF codes",
+   "coverage": "2021-03-01..2026-09-18 (1351 dates)",
+   "pit": "AVAILABLE_PIT rule with available_date",
+   "cd_usability": "OK for L1 ETF-structure features",
+   "note": "SZSE ETF history missing (known CSR-8 limitation)"
+  },
+  {
+   "asset": "national_holdings_pit",
+   "scope": "84 codes",
+   "coverage": "2021-03-31..2026-06-30 (22 report periods)",
+   "pit": "available_date join, PIT-safe",
+   "cd_usability": "OK for ownership-layer features (84-code universe only)",
+   "note": "full-market expansion needed for CD funnel"
+  },
+  {
+   "asset": "market_index_000985",
+   "scope": "CSI All-Share",
+   "coverage": "2020-08-12..2026-04-30 (1280 rows)",
+   "pit": "close-only, PIT-trivial",
+   "cd_usability": "OK for L1 baseline regime; 4-regime design needs broader index set (L0 gap)",
+   "note": "frozen CSR-8 artifact, reusable"
+  },
+  {
+   "asset": "csrc_industry_snapshot",
+   "scope": "5555 rows",
+   "coverage": "single snapshot 2026-09-21",
+   "pit": "NOT PIT — current labels only",
+   "cd_usability": "FORBIDDEN for historical backfill; usable ONLY as a CD-1 source input for building VERSIONED membership",
+   "note": "CD-1 primary target"
+  },
+  {
+   "asset": "dzjy",
+   "scope": "134 raw files",
+   "coverage": "unaudited",
+   "pit": "raw, needs pipeline",
+   "cd_usability": "candidate L1/L2 active-capital features",
+   "note": "coverage census required before any use"
+  },
+  {
+   "asset": "lhb",
+   "scope": "134 raw files",
+   "coverage": "unaudited",
+   "pit": "raw, needs pipeline",
+   "cd_usability": "candidate L1/L2 active-capital features",
+   "note": "coverage census required before any use"
+  },
+  {
+   "asset": "margin_sse",
+   "scope": "2690 raw files",
+   "coverage": "unaudited",
+   "pit": "raw, needs pipeline",
+   "cd_usability": "candidate L1/L2 active-capital features",
+   "note": "coverage census required before any use"
+  },
+  {
+   "asset": "margin_szse",
+   "scope": "2690 raw files",
+   "coverage": "unaudited",
+   "pit": "raw, needs pipeline",
+   "cd_usability": "candidate L1/L2 active-capital features",
+   "note": "coverage census required before any use"
+  },
+  {
+   "asset": "frozen_exchange_calendar",
+   "scope": "universe_stem_union",
+   "coverage": "2021-01-04..2026-09-18 (1386 sessions)",
+   "pit": "calendar, PIT-trivial",
+   "cd_usability": "OK session clock for CSR universe; full-market CD needs its own calendar",
+   "note": ""
+  },
+  {
+   "asset": "universe84_sample_selection",
+   "scope": "84 codes (Phase A frozen)",
+   "coverage": "n/a",
+   "pit": "frozen selection",
+   "cd_usability": "CSR-8 discovery universe; CD funnel requires a FULL-market universe definition (L0 gap)",
+   "note": ""
+  },
+  {
+   "asset": "full_market_daily_quotes",
+   "scope": "~5000 stocks OHLCV/turnover/float/shares",
+   "coverage": "MISSING",
+   "pit": "-",
+   "cd_usability": "BLOCKING GAP for CD-2 funnel",
+   "note": "largest L0 gap; acquisition + PIT plan required at CD-1/CD-2 boundary"
+  },
+  {
+   "asset": "industry_indices_family",
+   "scope": "L1/L2/L3 sector index series",
+   "coverage": "MISSING",
+   "pit": "-",
+   "cd_usability": "BLOCKING GAP for L2 relative strength",
+   "note": "needed alongside versioned membership"
+  }
+ ]
+}

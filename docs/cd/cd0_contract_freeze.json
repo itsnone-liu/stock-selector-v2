@@ -1,0 +1,62 @@
+{
+ "program": "CAPITAL DECISION PROGRAM (CD)",
+ "contract_id": "cd0-contract-freeze-v1",
+ "authority": "user GO ruling 2026-10-04 (eight contract families; SUPPORT-FIRST promoted to program-level mandatory constraint; CD-0 proves NO market conclusions)",
+ "cd0_scope_rule": {
+  "allowed": ["schema inventory", "coverage-census framework definitions", "data-availability audit", "contract freezing"],
+  "forbidden": ["proving any market conclusion", "computing any decision metric on market data", "revising state definitions after seeing G0-G5 results"],
+  "production_gate": "NO NEW PRODUCTION BEFORE CD-0 FREEZE (and CD-1..CD-8 each require their own freeze/GO)"
+ },
+ "contract_1_decision": {
+  "final_decisions_served": ["market risk budget", "sector priority", "candidate stock filtering", "stock ranking", "entry-zone construction", "position add/hold/reduce/exit"],
+  "rule": "any future feature must map to >=1 of the six decisions or it stays out of the production chain (research annexes allowed, production chain closed)"
+ },
+ "contract_2_pit_provenance": {
+  "availability_rule": "available_at <= decision_time for ALL historical features",
+  "sector_membership": "versioned (stock, taxonomy, level, valid_from, valid_to, source, available_at); sector_of(stock, T) only; current-label backfill FORBIDDEN",
+  "missing_data": "FAIL CLOSED: emit INSUFFICIENT_DATA / NO_PIT_DATA states; default value imputation that fabricates a state is FORBIDDEN",
+  "provenance": "every dataset carries source, retrieval time, and content hash; raw evidence retained for rebuild"
+ },
+ "contract_3_support_first_PROGRAM_LEVEL": {
+  "lesson_authority": "Phase J (CSR-8): a discrete state with near-zero historical support makes downstream rigor irrelevant — the protocol correctly returns INCONCLUSIVE, but the research question dies anyway",
+  "applies_to": ["L1 market regime (RISK_ON / DEFENSIVE_ACCUMULATION / TACTICAL / RISK_OFF)", "L2 sector states", "lifecycle states", "accumulation / re-accumulation flags", "G0-G5 evaluation strata"],
+  "prior_census_required_per_state": ["raw count", "distinct dates", "time span", "max cluster (same-date) multiplicity", "sector / market coverage", "long gaps (empty windows)", "era concentration (does the state exist only in one era)"],
+  "verdict_when_insufficient": "INSUFFICIENT_SUPPORT — adjusting thresholds, merging states, or switching windows to rescue is FORBIDDEN",
+  "ordering": "census FIRST, use SECOND; a state without a frozen census report may not enter any decision or validation artifact"
+ },
+ "contract_4_sector": {
+  "hierarchy": "three levels frozen (L1 industry / L2 sector / L3 sub-sector), first version targets investment-meaningful granularity, no infinite knowledge graph",
+  "membership_schema": {"stock": "code", "taxonomy": "sector_v1", "level_1": "str", "level_2": "str", "level_3": "str", "valid_from": "date", "valid_to": "date|null", "source": "str", "available_at": "date"},
+  "source_priority": "declared in CD-1 freeze before fetching; conflicts resolved by declared priority, never ad hoc",
+  "cd1_first_question": "do we OWN a classification fine enough, historical enough, and with enough support to act as the middle layer — answered by per-level historical coverage census BEFORE any sector-strength computation",
+  "fragmentation_guard": "finer taxonomy => support fragmentation; each level's census must show researchable support before that level is used"
+ },
+ "contract_5_observable_cost": {
+  "definition": "'cost' means an OBSERVABLE COST STRUCTURE estimated from transactions, turnover, and public holdings information — NEVER 'real dealer cost'",
+  "cost_layers": ["C0 long-term cost", "C1 markup capital cost", "C2 trapped high cost", "C3 current re-accumulation cost"],
+  "schema_fields_marked": {"direct_observation": ["volume x price成交分布原始统计"], "model_derived": ["turnover survival decay", "cost band aggregation", "overhang fraction", "cost concentration (IQR)"]},
+  "survival_models": "two frozen variants for sensitivity (exp(-k*turnover) and 1-adjusted_turnover), k frozen BEFORE outcomes; tuning k for better outcomes FORBIDDEN",
+  "naming": "production fields use structure language; '庄家' vocabulary forbidden"
+ },
+ "contract_6_lifecycle": {
+  "states_v1": ["BASE_FORMING", "ACCUMULATION_CONSISTENT", "MATURE_ACCUMULATION", "MARKUP", "PULLBACK", "RE_ACCUMULATION_CONSISTENT", "DISTRIBUTION_RISK", "STRUCTURE_BROKEN"],
+  "semantics_frozen_now": "each state is a capital/chip-structure interpretation (decline stop + turnover + cost concentration + overhang decay patterns), NOT actor intention; _CONSISTENT suffix marks 'consistent with accumulation' rather than asserting an accumulator exists",
+  "thresholds": "NOT frozen here — frozen at CD-5 with prior support census per state; semantic revision after seeing outcomes FORBIDDEN",
+  "transitions": "rule-based, machine-auditable, every transition emits its evidence vector"
+ },
+ "contract_7_outcome_decision_value": {
+  "frozen_evaluation_family": ["R5", "R10", "R20", "MFE", "MAE", "max_drawdown", "breakout_failure_rate", "markup_conversion_rate", "second_wave_success_rate", "time_to_target", "structure_break_probability"],
+  "two_axis_reporting": ["predictive performance (return family)", "trading value (risk-adjusted + failure-path family)"],
+  "final_judgment_rule": "never average return alone; every comparison reports the full family including failure-path metrics",
+  "no_late_outcome_picking": "this family is frozen at CD-0; CD-8 may not add, drop, or re-weight outcomes after seeing results"
+ },
+ "contract_8_falsification": {
+  "layers": {"G0": "naked breakout (B20/B60 mechanical)", "G1": "G0 + market regime", "G2": "G1 + sector selection", "G3": "G2 + accumulation state", "G4": "G3 + supply absorption", "G5": "G4 + cost support & lifecycle"},
+  "marginal_contribution_mandatory": "EVERY layer delta (Gk - G(k-1)) must be reported, not just G0 vs G5 — a framework propped up by one layer (e.g. sector only) must not masquerade as full-theory success",
+  "rescue_ban": "if layer-wise additions do not stably improve decision results, adding new variables to rescue the theory is FORBIDDEN",
+  "stability_criterion_format_frozen_now": "improvement judged on preregistered replay windows; a layer 'stably improves' iff its marginal contribution has consistent direction in >=2/3 of preregistered windows AND median direction matches; the replay-window SET is declared at CD-8 preregistration and this criterion format may not be re-chosen afterwards",
+  "final_wording": "CD-8 verdict is GO/NO-GO for the practical value of the capital-structure funnel, not for statistical significance"
+ },
+ "csr8_standing": "H IMMUTABLE / I FROZEN / J CLOSED / K NOT STARTED — CSR-8 remains the evidence-and-discipline infrastructure; CD is the new program line",
+ "change_control": "frozen on commit; append-only erratum + explicit user authorization for any change; state semantics cannot be revised after outcome observation"
+}
