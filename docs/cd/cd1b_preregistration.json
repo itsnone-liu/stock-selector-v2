@@ -1,0 +1,74 @@
+{
+ "phase": "CD-1B — PIT Sector Infrastructure (four core axes on L2)",
+ "authority": "user GO ruling 2026-10-04 (granularity contract; three-tier semantic registry; L3 escalation mechanism; TDX as L3-A current layer)",
+ "preregistration_id": "cd1b-prereg-v1",
+ "granularity_contract": {
+  "historical_production_granularity": "L2_csrc v1-static-declared (83 sectors, coverage 99.94%, census PASS)",
+  "l3_role": "supplementary decomposition layer, NOT in CD-1B hard dependency chain",
+  "l3_a_current": "tdx_v1 taxonomy for CURRENT / near-current structure, rotation, sub-industry decomposition, stock-selection context",
+  "l3_b_backcast": "RETROSPECTIVE_GROUPING ONLY — allowed for research/explanation/sensitivity/visualization with mandatory label classification_mode=RETROSPECTIVE_CURRENT_L3; PROHIBITED as primary historical decision signal, as strategy threshold source, or pretending the classification existed then"
+ },
+ "semantic_registry": {
+  "PIT": "data formed/available at decision time T; the only mode admitted to historical decision signals",
+  "STATIC_DECLARED": "current snapshot extended backward under an explicit declared assumption (change_frequency UNKNOWN); usable in historical production ONLY with mandatory declaration and downgrade record (L2_csrc is this mode)",
+  "RETROSPECTIVE_GROUPING": "today's grouping used to look at past behavior; research/explanation only; never a historical decision signal",
+  "note": "replaces binary legal/illegal; every sector artifact must carry its mode"
+ },
+ "l3_escalation_spec_frozen_as_design": {
+  "principle": "L3 is resolution-on-demand, not default infrastructure; L2 runs first, L3 opens only when L2 information is insufficient",
+  "trigger_candidates_L2_INTERNAL_HETEROGENEITY": [
+   "breadth mid/low AND concentration high",
+   "volume-weighted return strong while equal-weighted return weak",
+   "high intra-sector return dispersion",
+   "top5 vs remaining members directional split"
+  ],
+  "flow": "L2 state homogeneous -> accept L2 state; L2 internally split -> L3 decomposition",
+  "status": "SPEC ONLY in CD-1B (no L3 logic built this phase); operationalization thresholds deferred to the phase that consumes them"
+ },
+ "four_core_axes_operators_preregistered": {
+  "input": "DATA-1 daily (unadj OHLCV + adjust_factor model_derived) x L2_csrc v1-static membership; ONLY trailing data through T (no future windows)",
+  "axis_1_relative_performance": {
+   "sector_return_eq": "cross-sectional mean of member daily returns (qfq-adjusted via adjust_factor; members traded on T with a prior close)",
+   "sector_return_vw": "volume-weighted mean (raw volume; DECLARED model_derived substitute for amount until EM backfill)",
+   "market_return_eq": "cross-sectional mean over all stocks with data on T (equal-weight market proxy)",
+   "market_return_vw": "volume-weighted market proxy",
+   "parent_return_eq_vw": "same operators on the L1 parent aggregate",
+   "rel_outputs": ["sector_eq_minus_market_eq", "sector_vw_minus_market_vw", "sector_eq_minus_parent_eq", "sector_vw_minus_parent_vw"]
+  },
+  "axis_2_participation": {
+   "sector_volume": "sum of member raw volume on T",
+   "market_volume": "sum over all stocks on T",
+   "output": "sector_volume_share (DECLARED: volume-based until amount backfill)",
+   "extra": "sector_volume_share_20d_mean (trailing 20-session mean of the share)"
+  },
+  "axis_3_breadth": {
+   "advance_fraction": "fraction of participating members with close>prev_close (qfq)",
+   "volume_confirmed_fraction": "fraction of participating members with volume > trailing 20-session mean volume of that member (strictly prior 20 sessions)",
+   "new_high_participation": "fraction of participating members whose qfq close = max(qfq close over trailing 60 sessions incl. T)"
+  },
+  "axis_4_concentration": {
+   "return_contribution_top3_top5": "sum of the 3/5 largest POSITIVE member (weight x return) contributions / sum of all positive contributions (zero-denominator -> NULL, never imputed)",
+   "volume_concentration_top3_top5": "sum of top 3/5 member volumes / sector volume",
+   "split_indicator_inputs": "top5 mean return vs rest mean return (for the escalation spec)"
+  },
+  "common_rules": {
+   "min_participation_floor": "a (sector,date) cell requires >=5 participating members, else emitted as INSUFFICIENT_PARTICIPATION (fail-closed)",
+   "suspended_stocks": "no trade on T -> not participating that day (never forward/backward filled)",
+   "no_final_score": "axes are emitted as separate observables; NO composite strength score, NO ranking (that is CD-2+ business and requires its own preregistration)"
+  }
+ },
+ "engine_contract": {
+  "determinism": "pure function of (DATA-1 files, membership file); dual-run byte-identical sha required",
+  "output": "per-(sector,date) rows keyed (l2_code, date) stored as partitioned gzip JSON under data/cd/sector_axes/; coverage report of emitted rows vs expected (sector x calendar) with fail-closed gap list",
+  "resources": "streaming per-date computation, memory <=2.5G, batched, resumable, no single intermediate >2GB",
+  "pit_discipline": "all window features are trailing-only (20d/60d lookback ends at T inclusive); no forward returns anywhere in this table"
+ },
+ "tdx_l3a_acquisition": {
+  "source": "tdx.com.cn installer (HTTP reachable verified) -> 7z extract tdxhy.cfg -> parse to data/cd/sector_seeds/tdx_v1.json (v1-static-declared header)",
+  "census": "coverage vs DATA-1 universe (target >=95%); member-count distribution; if fail -> explicit downgrade record",
+  "role": "L3-A current decomposition candidate ONLY; not in CD-1B dependency chain",
+  "future_audit_deferred": "L3_STATIC_BACKCAST_RISK_AUDIT (company stability; L3-changes-L2-conclusions?; stable-incumbent-subset sensitivity) recorded, NOT started"
+ },
+ "prohibited_in_cd1b": ["final sector strength score", "sector ranking artifacts", "CD-2 production", "L3 in hard dependency chain", "RETROSPECTIVE_GROUPING as decision signal", "forward-looking windows"],
+ "status": "PREREGISTERED"
+}
