@@ -5,13 +5,16 @@ import argparse, json
 from datetime import date
 from pathlib import Path
 HORIZONS=(5,20,60)
+HORIZON_SEMANTICS='trading_days'
+ENTRY_PRICE_DEFINITION='decision-day PRIMARY_ZONE close'
+BENCHMARK_DEFINITION='frozen market benchmark as-of decision day'
 def load(path): return json.loads(path.read_text()) if path.exists() else []
 def append_decisions(path: Path, decisions: list[dict], decision_date: str):
  rows=load(path); known={r['decision_id'] for r in rows}
  for d in decisions:
   did=d.get('decision_id')
   if not did or did in known: continue
-  rows.append({'decision_id':did,'episode_id':d.get('episode_id'),'decision_date':decision_date,**{f'H{h}':{'status':'PENDING'} for h in HORIZONS}})
+  rows.append({'decision_id':did,'episode_id':d.get('episode_id'),'decision_date':decision_date,'horizon_semantics':HORIZON_SEMANTICS,'entry_price_definition':d.get('entry_price_definition',ENTRY_PRICE_DEFINITION),'benchmark_definition':d.get('benchmark_definition',BENCHMARK_DEFINITION),**{f'H{h}':{'status':'PENDING'} for h in HORIZONS}})
  path.parent.mkdir(parents=True,exist_ok=True); path.write_text(json.dumps(rows,ensure_ascii=False,indent=2)+'\n'); return rows
 def mature(path: Path, evaluations: list[dict]):
  rows=load(path); by={r['decision_id']:r for r in rows}

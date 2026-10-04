@@ -1,0 +1,16 @@
+{
+  "status":"FROZEN_INTEGRATION_SCOPE",
+  "name":"Shadow Integration — Frozen Runtime Wiring",
+  "research_number":null,
+  "policy_mutation":false,
+  "objective":"Prove the live runner is semantically equivalent to frozen historical outputs, not discover or tune a new policy.",
+  "adapter_interfaces":["load_market_state(asof)","load_sector_states(asof)","load_candidate_pool(asof)","load_episode_state(asof)","load_lifecycle_state(asof)","derive_primary_zone(asof)","derive_frozen_decisions(asof)"],
+  "adapter_contract":["read-only","data <= asof","fail closed on missing inputs","no threshold changes","no future fallback","no retrospective SW2","no dynamic policy selection"],
+  "gates":["G-SHADOW-PARITY","G-SHADOW-ACCOUNTING","deterministic rerun","invalid-day behavior","no-order/no-capital"],
+  "parity_fields":["market_state","sector_states","candidate_pool","candidate_source","episode identity","lifecycle state","PRIMARY_ZONE flag","decision","position transition","terminal reason"],
+  "episode_continuity":"previous SHADOW_VALID snapshot is the only state source; an invalid-day gap blocks continuity and requires explicit repair/backfill, never silent reconstruction.",
+  "backfill":"write shadow/backfill/YYYY-MM-DD/ or a versioned repair artifact; never overwrite the original INVALID snapshot.",
+  "first_prospective_gate":["all adapters wired","selected historical dates across regimes and event types pass parity","accounting passes","deterministic rerun passes","invalid behavior passes","trading-day horizon semantics frozen","one complete valid snapshot exists"],
+  "runtime_status":{"valid":"SHADOW_VALID","invalid":"SHADOW_INVALID"},
+  "forbidden":"Do not create CD-8 or any research task from this wiring phase."
+}

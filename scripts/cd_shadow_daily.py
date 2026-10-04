@@ -11,6 +11,7 @@ from dataclasses import dataclass
 from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import Any, Callable, Mapping
+from scripts.cd_shadow_runtime import RuntimeAdapters
 
 ROOT = Path(__file__).resolve().parents[1]
 STAGES = ("ingest", "pit", "l1", "l2", "l3", "l4", "primary_zone", "decision")
@@ -74,7 +75,9 @@ def run_shadow_day(day: str, out_root: Path, *, git_commit: str = "unknown", pol
     if existing_manifest.exists():
         created_at = json.loads(existing_manifest.read_text()).get("created_at", "")
     else:
-        created_at = datetime.now(timezone.utc).isoformat()
+        # Logical creation time is deterministic; wall-clock execution metadata is not
+        # part of the canonical artifact contract.
+        created_at = f"{day}T23:59:59Z"
     data_asof = day; decision_asof = f"{day}T23:59:59Z"
     run = {"status":"SHADOW_INVALID", "data_asof":data_asof, "decision_asof":decision_asof, "created_at":created_at, "git_commit":git_commit, "policy_version":policy_version, "freeze_version":freeze_version, "orders_allowed":False, "capital_allowed":False, "stages":{}}
     stages = stages or {}
@@ -89,6 +92,7 @@ def run_shadow_day(day: str, out_root: Path, *, git_commit: str = "unknown", pol
     except Exception as exc:
         run["error"] = {"type": type(exc).__name__, "message": str(exc)}
         accounting = {"gate":"G-SHADOW-ACCOUNTING", "status":"SHADOW_INVALID", "checks":{}, "counts":{}}
+        run["status"] = "SHADOW_INVALID"
         write_immutable(target / "run_manifest.json", json_bytes(run))
         write_immutable(target / "accounting_report.json", json_bytes(accounting))
         return {"status":"SHADOW_INVALID", "day":day, "error":run["error"]}
