@@ -1,0 +1,30 @@
+{
+ "contract": "L2_RISK_CONTEXT_V1",
+ "status": "FROZEN-INPUT-FOR-L5 (not operationalized; consumed only at CD-6 Decision Engine)",
+ "authority": "user ruling 2026-10-04: evidence suffices to PROVE it belongs in the future decision layer, NOT to prescribe how the layer uses it",
+ "layer_position": "Sector = Context/Risk Layer, NOT Alpha Layer — market/sector tells you the environment, the risk structure of an opportunity, and how to interpret stock behavior; it does not tell you which stock to buy",
+ "inputs": {
+  "NARROWING": {
+   "evidence": {
+     "forward_relative_performance": "replicated_negative (dev H60 -2.48% vs pool +0.05%; holdout -2.74% vs -0.57%)",
+     "transition_to_fading": "replicated_high (91.9% dev / 74.1% holdout within 60d)",
+     "source": "cd3b_validation.json, commit 0d9258f"},
+   "allowed_semantics": ["late-stage-risk-warning"],
+   "prohibited_semantics": ["alpha_short_signal", "mandatory_sell", "fixed_position_multiplier"],
+   "deferred_operationalization_questions": ["forbid new entries?", "lower candidate priority?", "lower initial exposure?", "disallow ADD?", "shorten holding lifecycle?", "raise risk flag only?"]
+  },
+  "FADING": {"evidence": "weakly negative consistent", "allowed_semantics": ["weak-context-flag"], "prohibited": ["hard exclusion of candidates"]},
+  "EXPANSION": {"evidence": "forward returns UNDERPERFORM matched pool (reversal structure)", "allowed_semantics": ["participation-peak-context (interpretive)"], "prohibited": ["buy-signal", "chase-entry justification"]},
+  "DIVERGENT": {"evidence": "SW2 children actually split (CD-3C Q1 YES)", "allowed_semantics": ["trigger SW2 decomposition for explanation"], "prohibited": ["entering PIT signal validation with SW2 retrospective results"]}
+ },
+ "consumption_point": "CD-6 (L5 Decision Engine) — NARROWING enters a COMPLETE decision condition set (market context + sector context + candidate evidence + lifecycle + cost structure + current position) and is validated there, never as a standalone trading rule",
+ "cd_program_map": {
+  "L0_Data_PIT": "COMPLETE (CD-0/CD-1A)",
+  "L1_Market_Regime": "PENDING (not yet started; CSR-8 legacy regime work separate)",
+  "L2_Sector_Capital_State": "COMPLETE (CD-1B/CD-2/CD-3) — positioned as Context/Risk",
+  "L3_Candidate_Funnel": "CD-4 NEXT",
+  "L4_Cost_Lifecycle": "CD-5",
+  "L5_Decision_Engine": "CD-6 (consumes L2_RISK_CONTEXT_V1)"
+ },
+ "status_note": "This file is the frozen handoff contract; modification requires user ruling"
+}

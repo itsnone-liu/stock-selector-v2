@@ -1,0 +1,1358 @@
+{
+ "generated": "2026-10-04T18:46:31",
+ "n_checkpoints": 64,
+ "summary": {
+  "dev": {
+   "n_checkpoints": 31,
+   "median_lvl_excl": 4480,
+   "median_lvl_long": 0,
+   "median_lvl_mid": 0,
+   "median_lvl_full": 0,
+   "median_recall_full": 0.0,
+   "median_recall_mid": 0.0,
+   "median_turnover_jaccard": 1.0,
+   "median_excluded": {
+    "EXCLUDED_NEW": 196,
+    "EXCLUDED_LOW_PRICE": 102,
+    "EXCLUDED_SUSPENDED": 0,
+    "EXCLUDED_ILLIQUID": 90
+   }
+  },
+  "holdout": {
+   "n_checkpoints": 33,
+   "median_lvl_excl": 4956,
+   "median_lvl_long": 2078,
+   "median_lvl_mid": 744,
+   "median_lvl_full": 366,
+   "median_recall_full": 0.07855000000000001,
+   "median_recall_mid": 0.14525,
+   "median_turnover_jaccard": 0.1073,
+   "median_excluded": {
+    "EXCLUDED_NEW": 59,
+    "EXCLUDED_LOW_PRICE": 195,
+    "EXCLUDED_SUSPENDED": 0,
+    "EXCLUDED_ILLIQUID": 100
+   }
+  }
+ },
+ "checkpoints": [
+  {
+   "checkpoint": "2021-06-30",
+   "universe": 4379,
+   "excluded": {
+    "EXCLUDED_NEW": 4379
+   },
+   "lvl_excl": 0,
+   "lvl_long": 0,
+   "lvl_mid": 0,
+   "lvl_full": 0,
+   "recall": null,
+   "pool_jaccard_vs_prev": null
+  },
+  {
+   "checkpoint": "2021-07-30",
+   "universe": 4428,
+   "excluded": {
+    "EXCLUDED_ILLIQUID": 80,
+    "EXCLUDED_LOW_PRICE": 83,
+    "EXCLUDED_NEW": 275
+   },
+   "lvl_excl": 3990,
+   "lvl_long": 0,
+   "lvl_mid": 0,
+   "lvl_full": 0,
+   "recall": {
+    "top_decile_n": 398,
+    "recall_excl": 1.0,
+    "recall_long": 0.0,
+    "recall_mid": 0.0,
+    "recall_full": 0.0
+   },
+   "pool_jaccard_vs_prev": 1.0
+  },
+  {
+   "checkpoint": "2021-08-31",
+   "universe": 4469,
+   "excluded": {
+    "EXCLUDED_ILLIQUID": 81,
+    "EXCLUDED_LOW_PRICE": 57,
+    "EXCLUDED_NEW": 280
+   },
+   "lvl_excl": 4051,
+   "lvl_long": 0,
+   "lvl_mid": 0,
+   "lvl_full": 0,
+   "recall": {
+    "top_decile_n": 404,
+    "recall_excl": 1.0,
+    "recall_long": 0.0,
+    "recall_mid": 0.0,
+    "recall_full": 0.0
+   },
+   "pool_jaccard_vs_prev": 1.0
+  },
+  {
+   "checkpoint": "2021-09-30",
+   "universe": 4509,
+   "excluded": {
+    "EXCLUDED_ILLIQUID": 82,
+    "EXCLUDED_LOW_PRICE": 54,
+    "EXCLUDED_NEW": 280
+   },
+   "lvl_excl": 4093,
+   "lvl_long": 0,
+   "lvl_mid": 0,
+   "lvl_full": 0,
+   "recall": {
+    "top_decile_n": 409,
+    "recall_excl": 1.0,
+    "recall_long": 0.0,
+    "recall_mid": 0.0,
+    "recall_full": 0.0
+   },
+   "pool_jaccard_vs_prev": 1.0
+  },
+  {
+   "checkpoint": "2021-10-29",
+   "universe": 4541,
+   "excluded": {
+    "EXCLUDED_ILLIQUID": 83,
+    "EXCLUDED_LOW_PRICE": 64,
+    "EXCLUDED_NEW": 267
+   },
+   "lvl_excl": 4127,
+   "lvl_long": 0,
+   "lvl_mid": 0,
+   "lvl_full": 0,
+   "recall": {
+    "top_decile_n": 412,
+    "recall_excl": 1.0,
+    "recall_long": 0.0,
+    "recall_mid": 0.0,
+    "recall_full": 0.0
+   },
+   "pool_jaccard_vs_prev": 1.0
+  },
+  {
+   "checkpoint": "2021-11-30",
+   "universe": 4574,
+   "excluded": {
+    "EXCLUDED_ILLIQUID": 84,
+    "EXCLUDED_LOW_PRICE": 59,
+    "EXCLUDED_NEW": 253
+   },
+   "lvl_excl": 4178,
+   "lvl_long": 0,
+   "lvl_mid": 0,
+   "lvl_full": 0,
+   "recall": {
+    "top_decile_n": 417,
+    "recall_excl": 1.0,
+    "recall_long": 0.0,
+    "recall_mid": 0.0,
+    "recall_full": 0.0
+   },
+   "pool_jaccard_vs_prev": 1.0
+  },
+  {
+   "checkpoint": "2021-12-31",
+   "universe": 4619,
+   "excluded": {
+    "EXCLUDED_LOW_PRICE": 46,
+    "EXCLUDED_ILLIQUID": 85,
+    "EXCLUDED_NEW": 242
+   },
+   "lvl_excl": 4246,
+   "lvl_long": 0,
+   "lvl_mid": 0,
+   "lvl_full": 0,
+   "recall": {
+    "top_decile_n": 424,
+    "recall_excl": 1.0,
+    "recall_long": 0.0,
+    "recall_mid": 0.0,
+    "recall_full": 0.0
+   },
+   "pool_jaccard_vs_prev": 1.0
+  },
+  {
+   "checkpoint": "2022-01-28",
+   "universe": 4649,
+   "excluded": {
+    "EXCLUDED_LOW_PRICE": 62,
+    "EXCLUDED_ILLIQUID": 86,
+    "EXCLUDED_NEW": 231
+   },
+   "lvl_excl": 4270,
+   "lvl_long": 0,
+   "lvl_mid": 0,
+   "lvl_full": 0,
+   "recall": {
+    "top_decile_n": 426,
+    "recall_excl": 1.0,
+    "recall_long": 0.0,
+    "recall_mid": 0.0,
+    "recall_full": 0.0
+   },
+   "pool_jaccard_vs_prev": 1.0
+  },
+  {
+   "checkpoint": "2022-02-28",
+   "universe": 4664,
+   "excluded": {
+    "EXCLUDED_LOW_PRICE": 59,
+    "EXCLUDED_NEW": 214,
+    "EXCLUDED_ILLIQUID": 86
+   },
+   "lvl_excl": 4305,
+   "lvl_long": 0,
+   "lvl_mid": 0,
+   "lvl_full": 0,
+   "recall": {
+    "top_decile_n": 428,
+    "recall_excl": 1.0,
+    "recall_long": 0.0,
+    "recall_mid": 0.0,
+    "recall_full": 0.0
+   },
+   "pool_jaccard_vs_prev": 1.0
+  },
+  {
+   "checkpoint": "2022-03-31",
+   "universe": 4698,
+   "excluded": {
+    "EXCLUDED_LOW_PRICE": 66,
+    "EXCLUDED_NEW": 206,
+    "EXCLUDED_ILLIQUID": 87
+   },
+   "lvl_excl": 4339,
+   "lvl_long": 0,
+   "lvl_mid": 0,
+   "lvl_full": 0,
+   "recall": {
+    "top_decile_n": 431,
+    "recall_excl": 1.0,
+    "recall_long": 0.0,
+    "recall_mid": 0.0,
+    "recall_full": 0.0
+   },
+   "pool_jaccard_vs_prev": 1.0
+  },
+  {
+   "checkpoint": "2022-04-29",
+   "universe": 4733,
+   "excluded": {
+    "EXCLUDED_LOW_PRICE": 113,
+    "EXCLUDED_NEW": 203,
+    "EXCLUDED_ILLIQUID": 87
+   },
+   "lvl_excl": 4330,
+   "lvl_long": 0,
+   "lvl_mid": 0,
+   "lvl_full": 0,
+   "recall": {
+    "top_decile_n": 431,
+    "recall_excl": 1.0,
+    "recall_long": 0.0,
+    "recall_mid": 0.0,
+    "recall_full": 0.0
+   },
+   "pool_jaccard_vs_prev": 1.0
+  },
+  {
+   "checkpoint": "2022-05-31",
+   "universe": 4748,
+   "excluded": {
+    "EXCLUDED_LOW_PRICE": 98,
+    "EXCLUDED_NEW": 191,
+    "EXCLUDED_ILLIQUID": 88
+   },
+   "lvl_excl": 4371,
+   "lvl_long": 0,
+   "lvl_mid": 0,
+   "lvl_full": 0,
+   "recall": {
+    "top_decile_n": 435,
+    "recall_excl": 1.0,
+    "recall_long": 0.0,
+    "recall_mid": 0.0,
+    "recall_full": 0.0
+   },
+   "pool_jaccard_vs_prev": 1.0
+  },
+  {
+   "checkpoint": "2022-06-30",
+   "universe": 4772,
+   "excluded": {
+    "EXCLUDED_LOW_PRICE": 99,
+    "EXCLUDED_NEW": 173,
+    "EXCLUDED_ILLIQUID": 89
+   },
+   "lvl_excl": 4411,
+   "lvl_long": 0,
+   "lvl_mid": 0,
+   "lvl_full": 0,
+   "recall": {
+    "top_decile_n": 440,
+    "recall_excl": 1.0,
+    "recall_long": 0.0,
+    "recall_mid": 0.0,
+    "recall_full": 0.0
+   },
+   "pool_jaccard_vs_prev": 1.0
+  },
+  {
+   "checkpoint": "2022-07-29",
+   "universe": 4800,
+   "excluded": {
+    "EXCLUDED_LOW_PRICE": 93,
+    "EXCLUDED_NEW": 167,
+    "EXCLUDED_ILLIQUID": 89
+   },
+   "lvl_excl": 4451,
+   "lvl_long": 0,
+   "lvl_mid": 0,
+   "lvl_full": 0,
+   "recall": {
+    "top_decile_n": 444,
+    "recall_excl": 1.0,
+    "recall_long": 0.0,
+    "recall_mid": 0.0,
+    "recall_full": 0.0
+   },
+   "pool_jaccard_vs_prev": 1.0
+  },
+  {
+   "checkpoint": "2022-08-31",
+   "universe": 4848,
+   "excluded": {
+    "EXCLUDED_LOW_PRICE": 95,
+    "EXCLUDED_NEW": 196,
+    "EXCLUDED_ILLIQUID": 90
+   },
+   "lvl_excl": 4467,
+   "lvl_long": 0,
+   "lvl_mid": 0,
+   "lvl_full": 0,
+   "recall": {
+    "top_decile_n": 446,
+    "recall_excl": 1.0,
+    "recall_long": 0.0,
+    "recall_mid": 0.0,
+    "recall_full": 0.0
+   },
+   "pool_jaccard_vs_prev": 1.0
+  },
+  {
+   "checkpoint": "2022-09-30",
+   "universe": 4890,
+   "excluded": {
+    "EXCLUDED_LOW_PRICE": 118,
+    "EXCLUDED_NEW": 202,
+    "EXCLUDED_ILLIQUID": 90
+   },
+   "lvl_excl": 4480,
+   "lvl_long": 0,
+   "lvl_mid": 0,
+   "lvl_full": 0,
+   "recall": {
+    "top_decile_n": 447,
+    "recall_excl": 1.0,
+    "recall_long": 0.0,
+    "recall_mid": 0.0,
+    "recall_full": 0.0
+   },
+   "pool_jaccard_vs_prev": 1.0
+  },
+  {
+   "checkpoint": "2022-10-31",
+   "universe": 4914,
+   "excluded": {
+    "EXCLUDED_LOW_PRICE": 124,
+    "EXCLUDED_NEW": 196,
+    "EXCLUDED_ILLIQUID": 90
+   },
+   "lvl_excl": 4504,
+   "lvl_long": 0,
+   "lvl_mid": 0,
+   "lvl_full": 0,
+   "recall": {
+    "top_decile_n": 450,
+    "recall_excl": 1.0,
+    "recall_long": 0.0,
+    "recall_mid": 0.0,
+    "recall_full": 0.0
+   },
+   "pool_jaccard_vs_prev": 1.0
+  },
+  {
+   "checkpoint": "2022-11-30",
+   "universe": 4938,
+   "excluded": {
+    "EXCLUDED_LOW_PRICE": 89,
+    "EXCLUDED_NEW": 198,
+    "EXCLUDED_ILLIQUID": 92
+   },
+   "lvl_excl": 4559,
+   "lvl_long": 0,
+   "lvl_mid": 0,
+   "lvl_full": 0,
+   "recall": {
+    "top_decile_n": 455,
+    "recall_excl": 1.0,
+    "recall_long": 0.0,
+    "recall_mid": 0.0,
+    "recall_full": 0.0
+   },
+   "pool_jaccard_vs_prev": 1.0
+  },
+  {
+   "checkpoint": "2022-12-30",
+   "universe": 4966,
+   "excluded": {
+    "EXCLUDED_LOW_PRICE": 112,
+    "EXCLUDED_NEW": 200,
+    "EXCLUDED_ILLIQUID": 92
+   },
+   "lvl_excl": 4562,
+   "lvl_long": 0,
+   "lvl_mid": 0,
+   "lvl_full": 0,
+   "recall": {
+    "top_decile_n": 455,
+    "recall_excl": 1.0,
+    "recall_long": 0.0,
+    "recall_mid": 0.0,
+    "recall_full": 0.0
+   },
+   "pool_jaccard_vs_prev": 1.0
+  },
+  {
+   "checkpoint": "2023-01-31",
+   "universe": 4972,
+   "excluded": {
+    "EXCLUDED_LOW_PRICE": 106,
+    "EXCLUDED_NEW": 188,
+    "EXCLUDED_ILLIQUID": 92
+   },
+   "lvl_excl": 4586,
+   "lvl_long": 1402,
+   "lvl_mid": 280,
+   "lvl_full": 149,
+   "recall": {
+    "top_decile_n": 458,
+    "recall_excl": 1.0,
+    "recall_long": 0.2991,
+    "recall_mid": 0.059,
+    "recall_full": 0.0306
+   },
+   "pool_jaccard_vs_prev": 0.0
+  },
+  {
+   "checkpoint": "2023-02-28",
+   "universe": 4987,
+   "excluded": {
+    "EXCLUDED_LOW_PRICE": 102,
+    "EXCLUDED_NEW": 161,
+    "EXCLUDED_ILLIQUID": 93
+   },
+   "lvl_excl": 4631,
+   "lvl_long": 1945,
+   "lvl_mid": 530,
+   "lvl_full": 361,
+   "recall": {
+    "top_decile_n": 461,
+    "recall_excl": 1.0,
+    "recall_long": 0.4143,
+    "recall_mid": 0.141,
+    "recall_full": 0.0933
+   },
+   "pool_jaccard_vs_prev": 0.0828
+  },
+  {
+   "checkpoint": "2023-03-31",
+   "universe": 5012,
+   "excluded": {
+    "EXCLUDED_LOW_PRICE": 111,
+    "EXCLUDED_NEW": 139,
+    "EXCLUDED_ILLIQUID": 94
+   },
+   "lvl_excl": 4668,
+   "lvl_long": 1800,
+   "lvl_mid": 574,
+   "lvl_full": 353,
+   "recall": {
+    "top_decile_n": 464,
+    "recall_excl": 1.0,
+    "recall_long": 0.5,
+    "recall_mid": 0.2198,
+    "recall_full": 0.1401
+   },
+   "pool_jaccard_vs_prev": 0.0968
+  },
+  {
+   "checkpoint": "2023-04-28",
+   "universe": 5040,
+   "excluded": {
+    "EXCLUDED_LOW_PRICE": 126,
+    "EXCLUDED_NEW": 140,
+    "EXCLUDED_ILLIQUID": 94
+   },
+   "lvl_excl": 4680,
+   "lvl_long": 1484,
+   "lvl_mid": 592,
+   "lvl_full": 328,
+   "recall": {
+    "top_decile_n": 466,
+    "recall_excl": 1.0,
+    "recall_long": 0.3133,
+    "recall_mid": 0.1245,
+    "recall_full": 0.0601
+   },
+   "pool_jaccard_vs_prev": 0.1523
+  },
+  {
+   "checkpoint": "2023-05-31",
+   "universe": 5064,
+   "excluded": {
+    "EXCLUDED_LOW_PRICE": 144,
+    "EXCLUDED_NEW": 142,
+    "EXCLUDED_ILLIQUID": 94
+   },
+   "lvl_excl": 4684,
+   "lvl_long": 1529,
+   "lvl_mid": 548,
+   "lvl_full": 319,
+   "recall": {
+    "top_decile_n": 467,
+    "recall_excl": 1.0,
+    "recall_long": 0.2548,
+    "recall_mid": 0.0685,
+    "recall_full": 0.0407
+   },
+   "pool_jaccard_vs_prev": 0.1915
+  },
+  {
+   "checkpoint": "2023-06-30",
+   "universe": 5097,
+   "excluded": {
+    "EXCLUDED_LOW_PRICE": 145,
+    "EXCLUDED_NEW": 151,
+    "EXCLUDED_ILLIQUID": 95
+   },
+   "lvl_excl": 4706,
+   "lvl_long": 1599,
+   "lvl_mid": 540,
+   "lvl_full": 281,
+   "recall": {
+    "top_decile_n": 469,
+    "recall_excl": 1.0,
+    "recall_long": 0.2751,
+    "recall_mid": 0.0768,
+    "recall_full": 0.049
+   },
+   "pool_jaccard_vs_prev": 0.0969
+  },
+  {
+   "checkpoint": "2023-07-31",
+   "universe": 5128,
+   "excluded": {
+    "EXCLUDED_LOW_PRICE": 121,
+    "EXCLUDED_NEW": 172,
+    "EXCLUDED_ILLIQUID": 95
+   },
+   "lvl_excl": 4740,
+   "lvl_long": 1698,
+   "lvl_mid": 463,
+   "lvl_full": 264,
+   "recall": {
+    "top_decile_n": 473,
+    "recall_excl": 1.0,
+    "recall_long": 0.3256,
+    "recall_mid": 0.1226,
+    "recall_full": 0.0761
+   },
+   "pool_jaccard_vs_prev": 0.1191
+  },
+  {
+   "checkpoint": "2023-08-31",
+   "universe": 5155,
+   "excluded": {
+    "EXCLUDED_LOW_PRICE": 130,
+    "EXCLUDED_NEW": 176,
+    "EXCLUDED_ILLIQUID": 95
+   },
+   "lvl_excl": 4754,
+   "lvl_long": 1315,
+   "lvl_mid": 294,
+   "lvl_full": 144,
+   "recall": {
+    "top_decile_n": 474,
+    "recall_excl": 1.0,
+    "recall_long": 0.3186,
+    "recall_mid": 0.0781,
+    "recall_full": 0.0359
+   },
+   "pool_jaccard_vs_prev": 0.0765
+  },
+  {
+   "checkpoint": "2023-09-28",
+   "universe": 5170,
+   "excluded": {
+    "EXCLUDED_LOW_PRICE": 134,
+    "EXCLUDED_NEW": 169,
+    "EXCLUDED_ILLIQUID": 96
+   },
+   "lvl_excl": 4771,
+   "lvl_long": 1238,
+   "lvl_mid": 241,
+   "lvl_full": 123,
+   "recall": {
+    "top_decile_n": 476,
+    "recall_excl": 1.0,
+    "recall_long": 0.3214,
+    "recall_mid": 0.0903,
+    "recall_full": 0.042
+   },
+   "pool_jaccard_vs_prev": 0.0854
+  },
+  {
+   "checkpoint": "2023-10-31",
+   "universe": 5178,
+   "excluded": {
+    "EXCLUDED_LOW_PRICE": 141,
+    "EXCLUDED_NEW": 153,
+    "EXCLUDED_ILLIQUID": 96
+   },
+   "lvl_excl": 4788,
+   "lvl_long": 1303,
+   "lvl_mid": 381,
+   "lvl_full": 241,
+   "recall": {
+    "top_decile_n": 478,
+    "recall_excl": 1.0,
+    "recall_long": 0.41,
+    "recall_mid": 0.09,
+    "recall_full": 0.0523
+   },
+   "pool_jaccard_vs_prev": 0.0898
+  },
+  {
+   "checkpoint": "2023-11-30",
+   "universe": 5187,
+   "excluded": {
+    "EXCLUDED_LOW_PRICE": 138,
+    "EXCLUDED_NEW": 133,
+    "EXCLUDED_ILLIQUID": 97
+   },
+   "lvl_excl": 4819,
+   "lvl_long": 1562,
+   "lvl_mid": 591,
+   "lvl_full": 352,
+   "recall": {
+    "top_decile_n": 481,
+    "recall_excl": 1.0,
+    "recall_long": 0.5177,
+    "recall_mid": 0.0894,
+    "recall_full": 0.0582
+   },
+   "pool_jaccard_vs_prev": 0.1105
+  },
+  {
+   "checkpoint": "2023-12-29",
+   "universe": 5202,
+   "excluded": {
+    "EXCLUDED_LOW_PRICE": 147,
+    "EXCLUDED_NEW": 117,
+    "EXCLUDED_ILLIQUID": 97
+   },
+   "lvl_excl": 4841,
+   "lvl_long": 1282,
+   "lvl_mid": 439,
+   "lvl_full": 221,
+   "recall": {
+    "top_decile_n": 483,
+    "recall_excl": 1.0,
+    "recall_long": 0.4265,
+    "recall_mid": 0.0704,
+    "recall_full": 0.0311
+   },
+   "pool_jaccard_vs_prev": 0.071
+  },
+  {
+   "checkpoint": "2024-01-31",
+   "universe": 5212,
+   "excluded": {
+    "EXCLUDED_LOW_PRICE": 186,
+    "EXCLUDED_NEW": 94,
+    "EXCLUDED_ILLIQUID": 97
+   },
+   "lvl_excl": 4835,
+   "lvl_long": 440,
+   "lvl_mid": 129,
+   "lvl_full": 68,
+   "recall": {
+    "top_decile_n": 482,
+    "recall_excl": 1.0,
+    "recall_long": 0.1701,
+    "recall_mid": 0.0394,
+    "recall_full": 0.0249
+   },
+   "pool_jaccard_vs_prev": 0.0358
+  },
+  {
+   "checkpoint": "2024-02-29",
+   "universe": 5217,
+   "excluded": {
+    "EXCLUDED_LOW_PRICE": 188,
+    "EXCLUDED_NEW": 80,
+    "EXCLUDED_ILLIQUID": 97
+   },
+   "lvl_excl": 4852,
+   "lvl_long": 725,
+   "lvl_mid": 242,
+   "lvl_full": 101,
+   "recall": {
+    "top_decile_n": 483,
+    "recall_excl": 1.0,
+    "recall_long": 0.1843,
+    "recall_mid": 0.0663,
+    "recall_full": 0.0269
+   },
+   "pool_jaccard_vs_prev": 0.1901
+  },
+  {
+   "checkpoint": "2024-03-29",
+   "universe": 5224,
+   "excluded": {
+    "EXCLUDED_LOW_PRICE": 189,
+    "EXCLUDED_NEW": 73,
+    "EXCLUDED_ILLIQUID": 98
+   },
+   "lvl_excl": 4864,
+   "lvl_long": 1015,
+   "lvl_mid": 319,
+   "lvl_full": 146,
+   "recall": {
+    "top_decile_n": 484,
+    "recall_excl": 1.0,
+    "recall_long": 0.3017,
+    "recall_mid": 0.0971,
+    "recall_full": 0.0434
+   },
+   "pool_jaccard_vs_prev": 0.0556
+  },
+  {
+   "checkpoint": "2024-04-30",
+   "universe": 5228,
+   "excluded": {
+    "EXCLUDED_LOW_PRICE": 231,
+    "EXCLUDED_NEW": 66,
+    "EXCLUDED_ILLIQUID": 97
+   },
+   "lvl_excl": 4834,
+   "lvl_long": 1056,
+   "lvl_mid": 435,
+   "lvl_full": 233,
+   "recall": {
+    "top_decile_n": 482,
+    "recall_excl": 1.0,
+    "recall_long": 0.3008,
+    "recall_mid": 0.1328,
+    "recall_full": 0.0602
+   },
+   "pool_jaccard_vs_prev": 0.1114
+  },
+  {
+   "checkpoint": "2024-05-31",
+   "universe": 5230,
+   "excluded": {
+    "EXCLUDED_LOW_PRICE": 256,
+    "EXCLUDED_NEW": 60,
+    "EXCLUDED_ILLIQUID": 97
+   },
+   "lvl_excl": 4817,
+   "lvl_long": 1073,
+   "lvl_mid": 404,
+   "lvl_full": 182,
+   "recall": {
+    "top_decile_n": 480,
+    "recall_excl": 1.0,
+    "recall_long": 0.3312,
+    "recall_mid": 0.0917,
+    "recall_full": 0.0396
+   },
+   "pool_jaccard_vs_prev": 0.1096
+  },
+  {
+   "checkpoint": "2024-06-28",
+   "universe": 5236,
+   "excluded": {
+    "EXCLUDED_LOW_PRICE": 340,
+    "EXCLUDED_NEW": 53,
+    "EXCLUDED_ILLIQUID": 95
+   },
+   "lvl_excl": 4748,
+   "lvl_long": 743,
+   "lvl_mid": 202,
+   "lvl_full": 75,
+   "recall": {
+    "top_decile_n": 474,
+    "recall_excl": 1.0,
+    "recall_long": 0.0865,
+    "recall_mid": 0.0169,
+    "recall_full": 0.0063
+   },
+   "pool_jaccard_vs_prev": 0.0664
+  },
+  {
+   "checkpoint": "2024-07-31",
+   "universe": 5242,
+   "excluded": {
+    "EXCLUDED_LOW_PRICE": 316,
+    "EXCLUDED_NEW": 47,
+    "EXCLUDED_ILLIQUID": 96
+   },
+   "lvl_excl": 4783,
+   "lvl_long": 710,
+   "lvl_mid": 163,
+   "lvl_full": 68,
+   "recall": {
+    "top_decile_n": 477,
+    "recall_excl": 1.0,
+    "recall_long": 0.1488,
+    "recall_mid": 0.0461,
+    "recall_full": 0.0231
+   },
+   "pool_jaccard_vs_prev": 0.0672
+  },
+  {
+   "checkpoint": "2024-08-30",
+   "universe": 5249,
+   "excluded": {
+    "EXCLUDED_LOW_PRICE": 310,
+    "EXCLUDED_NEW": 48,
+    "EXCLUDED_ILLIQUID": 96
+   },
+   "lvl_excl": 4795,
+   "lvl_long": 508,
+   "lvl_mid": 61,
+   "lvl_full": 27,
+   "recall": {
+    "top_decile_n": 478,
+    "recall_excl": 1.0,
+    "recall_long": 0.1046,
+    "recall_mid": 0.0251,
+    "recall_full": 0.0188
+   },
+   "pool_jaccard_vs_prev": 0.0326
+  },
+  {
+   "checkpoint": "2024-09-30",
+   "universe": 5257,
+   "excluded": {
+    "EXCLUDED_LOW_PRICE": 227,
+    "EXCLUDED_NEW": 48,
+    "EXCLUDED_ILLIQUID": 98
+   },
+   "lvl_excl": 4884,
+   "lvl_long": 1466,
+   "lvl_mid": 494,
+   "lvl_full": 376,
+   "recall": {
+    "top_decile_n": 487,
+    "recall_excl": 1.0,
+    "recall_long": 0.3388,
+    "recall_mid": 0.1335,
+    "recall_full": 0.0903
+   },
+   "pool_jaccard_vs_prev": 0.0228
+  },
+  {
+   "checkpoint": "2024-10-31",
+   "universe": 5265,
+   "excluded": {
+    "EXCLUDED_LOW_PRICE": 184,
+    "EXCLUDED_NEW": 54,
+    "EXCLUDED_ILLIQUID": 99
+   },
+   "lvl_excl": 4928,
+   "lvl_long": 2078,
+   "lvl_mid": 1837,
+   "lvl_full": 1685,
+   "recall": {
+    "top_decile_n": 491,
+    "recall_excl": 1.0,
+    "recall_long": 0.4134,
+    "recall_mid": 0.3585,
+    "recall_full": 0.3299
+   },
+   "pool_jaccard_vs_prev": 0.171
+  },
+  {
+   "checkpoint": "2024-11-29",
+   "universe": 5271,
+   "excluded": {
+    "EXCLUDED_LOW_PRICE": 171,
+    "EXCLUDED_NEW": 57,
+    "EXCLUDED_ILLIQUID": 99
+   },
+   "lvl_excl": 4944,
+   "lvl_long": 2167,
+   "lvl_mid": 1584,
+   "lvl_full": 715,
+   "recall": {
+    "top_decile_n": 493,
+    "recall_excl": 1.0,
+    "recall_long": 0.4402,
+    "recall_mid": 0.3367,
+    "recall_full": 0.1704
+   },
+   "pool_jaccard_vs_prev": 0.1958
+  },
+  {
+   "checkpoint": "2024-12-31",
+   "universe": 5279,
+   "excluded": {
+    "EXCLUDED_LOW_PRICE": 179,
+    "EXCLUDED_NEW": 58,
+    "EXCLUDED_ILLIQUID": 99
+   },
+   "lvl_excl": 4943,
+   "lvl_long": 1768,
+   "lvl_mid": 965,
+   "lvl_full": 413,
+   "recall": {
+    "top_decile_n": 493,
+    "recall_excl": 1.0,
+    "recall_long": 0.3469,
+    "recall_mid": 0.213,
+    "recall_full": 0.1136
+   },
+   "pool_jaccard_vs_prev": 0.1246
+  },
+  {
+   "checkpoint": "2025-01-27",
+   "universe": 5290,
+   "excluded": {
+    "EXCLUDED_LOW_PRICE": 198,
+    "EXCLUDED_NEW": 64,
+    "EXCLUDED_ILLIQUID": 99
+   },
+   "lvl_excl": 4929,
+   "lvl_long": 1740,
+   "lvl_mid": 521,
+   "lvl_full": 166,
+   "recall": {
+    "top_decile_n": 491,
+    "recall_excl": 1.0,
+    "recall_long": 0.3462,
+    "recall_mid": 0.1385,
+    "recall_full": 0.0631
+   },
+   "pool_jaccard_vs_prev": 0.1331
+  },
+  {
+   "checkpoint": "2025-02-28",
+   "universe": 5290,
+   "excluded": {
+    "EXCLUDED_LOW_PRICE": 188,
+    "EXCLUDED_NEW": 59,
+    "EXCLUDED_ILLIQUID": 99
+   },
+   "lvl_excl": 4944,
+   "lvl_long": 1833,
+   "lvl_mid": 750,
+   "lvl_full": 368,
+   "recall": {
+    "top_decile_n": 492,
+    "recall_excl": 1.0,
+    "recall_long": 0.315,
+    "recall_mid": 0.1057,
+    "recall_full": 0.0528
+   },
+   "pool_jaccard_vs_prev": 0.1033
+  },
+  {
+   "checkpoint": "2025-03-31",
+   "universe": 5303,
+   "excluded": {
+    "EXCLUDED_LOW_PRICE": 193,
+    "EXCLUDED_NEW": 64,
+    "EXCLUDED_ILLIQUID": 99
+   },
+   "lvl_excl": 4947,
+   "lvl_long": 1806,
+   "lvl_mid": 610,
+   "lvl_full": 303,
+   "recall": {
+    "top_decile_n": 492,
+    "recall_excl": 1.0,
+    "recall_long": 0.2805,
+    "recall_mid": 0.1138,
+    "recall_full": 0.065
+   },
+   "pool_jaccard_vs_prev": 0.1073
+  },
+  {
+   "checkpoint": "2025-04-30",
+   "universe": 5313,
+   "excluded": {
+    "EXCLUDED_LOW_PRICE": 210,
+    "EXCLUDED_NEW": 66,
+    "EXCLUDED_ILLIQUID": 99
+   },
+   "lvl_excl": 4938,
+   "lvl_long": 1640,
+   "lvl_mid": 506,
+   "lvl_full": 191,
+   "recall": {
+    "top_decile_n": 492,
+    "recall_excl": 1.0,
+    "recall_long": 0.2947,
+    "recall_mid": 0.1138,
+    "recall_full": 0.0386
+   },
+   "pool_jaccard_vs_prev": 0.0511
+  },
+  {
+   "checkpoint": "2025-05-30",
+   "universe": 5318,
+   "excluded": {
+    "EXCLUDED_LOW_PRICE": 198,
+    "EXCLUDED_NEW": 64,
+    "EXCLUDED_ILLIQUID": 100
+   },
+   "lvl_excl": 4956,
+   "lvl_long": 2133,
+   "lvl_mid": 619,
+   "lvl_full": 316,
+   "recall": {
+    "top_decile_n": 494,
+    "recall_excl": 1.0,
+    "recall_long": 0.4879,
+    "recall_mid": 0.1215,
+    "recall_full": 0.0668
+   },
+   "pool_jaccard_vs_prev": 0.1022
+  },
+  {
+   "checkpoint": "2025-06-30",
+   "universe": 5324,
+   "excluded": {
+    "EXCLUDED_LOW_PRICE": 194,
+    "EXCLUDED_NEW": 63,
+    "EXCLUDED_ILLIQUID": 100
+   },
+   "lvl_excl": 4967,
+   "lvl_long": 2476,
+   "lvl_mid": 834,
+   "lvl_full": 473,
+   "recall": {
+    "top_decile_n": 495,
+    "recall_excl": 1.0,
+    "recall_long": 0.5919,
+    "recall_mid": 0.2101,
+    "recall_full": 0.1273
+   },
+   "pool_jaccard_vs_prev": 0.0958
+  },
+  {
+   "checkpoint": "2025-07-31",
+   "universe": 5331,
+   "excluded": {
+    "EXCLUDED_LOW_PRICE": 195,
+    "EXCLUDED_NEW": 58,
+    "EXCLUDED_ILLIQUID": 100
+   },
+   "lvl_excl": 4978,
+   "lvl_long": 2624,
+   "lvl_mid": 1046,
+   "lvl_full": 633,
+   "recall": {
+    "top_decile_n": 496,
+    "recall_excl": 1.0,
+    "recall_long": 0.5766,
+    "recall_mid": 0.256,
+    "recall_full": 0.1391
+   },
+   "pool_jaccard_vs_prev": 0.1093
+  },
+  {
+   "checkpoint": "2025-08-29",
+   "universe": 5334,
+   "excluded": {
+    "EXCLUDED_LOW_PRICE": 189,
+    "EXCLUDED_NEW": 58,
+    "EXCLUDED_ILLIQUID": 100
+   },
+   "lvl_excl": 4987,
+   "lvl_long": 3041,
+   "lvl_mid": 1664,
+   "lvl_full": 1066,
+   "recall": {
+    "top_decile_n": 497,
+    "recall_excl": 1.0,
+    "recall_long": 0.5895,
+    "recall_mid": 0.2877,
+    "recall_full": 0.1811
+   },
+   "pool_jaccard_vs_prev": 0.1274
+  },
+  {
+   "checkpoint": "2025-09-30",
+   "universe": 5342,
+   "excluded": {
+    "EXCLUDED_LOW_PRICE": 185,
+    "EXCLUDED_NEW": 53,
+    "EXCLUDED_ILLIQUID": 101
+   },
+   "lvl_excl": 5003,
+   "lvl_long": 3190,
+   "lvl_mid": 1173,
+   "lvl_full": 566,
+   "recall": {
+    "top_decile_n": 499,
+    "recall_excl": 1.0,
+    "recall_long": 0.6834,
+    "recall_mid": 0.2745,
+    "recall_full": 0.1523
+   },
+   "pool_jaccard_vs_prev": 0.114
+  },
+  {
+   "checkpoint": "2025-10-31",
+   "universe": 5348,
+   "excluded": {
+    "EXCLUDED_LOW_PRICE": 181,
+    "EXCLUDED_NEW": 52,
+    "EXCLUDED_ILLIQUID": 101
+   },
+   "lvl_excl": 5014,
+   "lvl_long": 3382,
+   "lvl_mid": 1039,
+   "lvl_full": 538,
+   "recall": {
+    "top_decile_n": 500,
+    "recall_excl": 1.0,
+    "recall_long": 0.762,
+    "recall_mid": 0.352,
+    "recall_full": 0.18
+   },
+   "pool_jaccard_vs_prev": 0.1572
+  },
+  {
+   "checkpoint": "2025-11-28",
+   "universe": 5354,
+   "excluded": {
+    "EXCLUDED_LOW_PRICE": 180,
+    "EXCLUDED_NEW": 51,
+    "EXCLUDED_ILLIQUID": 101
+   },
+   "lvl_excl": 5022,
+   "lvl_long": 3259,
+   "lvl_mid": 852,
+   "lvl_full": 524,
+   "recall": {
+    "top_decile_n": 500,
+    "recall_excl": 1.0,
+    "recall_long": 0.772,
+    "recall_mid": 0.256,
+    "recall_full": 0.136
+   },
+   "pool_jaccard_vs_prev": 0.1607
+  },
+  {
+   "checkpoint": "2025-12-31",
+   "universe": 5369,
+   "excluded": {
+    "EXCLUDED_LOW_PRICE": 192,
+    "EXCLUDED_NEW": 60,
+    "EXCLUDED_ILLIQUID": 101
+   },
+   "lvl_excl": 5016,
+   "lvl_long": 3179,
+   "lvl_mid": 744,
+   "lvl_full": 393,
+   "recall": {
+    "top_decile_n": 500,
+    "recall_excl": 1.0,
+    "recall_long": 0.73,
+    "recall_mid": 0.21,
+    "recall_full": 0.102
+   },
+   "pool_jaccard_vs_prev": 0.093
+  },
+  {
+   "checkpoint": "2026-01-30",
+   "universe": 5373,
+   "excluded": {
+    "EXCLUDED_LOW_PRICE": 193,
+    "EXCLUDED_NEW": 58,
+    "EXCLUDED_ILLIQUID": 101
+   },
+   "lvl_excl": 5021,
+   "lvl_long": 3781,
+   "lvl_mid": 1668,
+   "lvl_full": 1050,
+   "recall": {
+    "top_decile_n": 500,
+    "recall_excl": 1.0,
+    "recall_long": 0.868,
+    "recall_mid": 0.444,
+    "recall_full": 0.242
+   },
+   "pool_jaccard_vs_prev": 0.0833
+  },
+  {
+   "checkpoint": "2026-02-27",
+   "universe": 5378,
+   "excluded": {
+    "EXCLUDED_LOW_PRICE": 190,
+    "EXCLUDED_NEW": 61,
+    "EXCLUDED_ILLIQUID": 101
+   },
+   "lvl_excl": 5026,
+   "lvl_long": 4146,
+   "lvl_mid": 1290,
+   "lvl_full": 646,
+   "recall": {
+    "top_decile_n": 500,
+    "recall_excl": 1.0,
+    "recall_long": 0.906,
+    "recall_mid": 0.338,
+    "recall_full": 0.176
+   },
+   "pool_jaccard_vs_prev": 0.2733
+  },
+  {
+   "checkpoint": "2026-03-31",
+   "universe": 5383,
+   "excluded": {
+    "EXCLUDED_LOW_PRICE": 196,
+    "EXCLUDED_NEW": 61,
+    "EXCLUDED_ILLIQUID": 101
+   },
+   "lvl_excl": 5025,
+   "lvl_long": 3500,
+   "lvl_mid": 972,
+   "lvl_full": 495,
+   "recall": {
+    "top_decile_n": 500,
+    "recall_excl": 1.0,
+    "recall_long": 0.85,
+    "recall_mid": 0.26,
+    "recall_full": 0.11
+   },
+   "pool_jaccard_vs_prev": 0.0867
+  },
+  {
+   "checkpoint": "2026-04-30",
+   "universe": 5394,
+   "excluded": {
+    "EXCLUDED_LOW_PRICE": 202,
+    "EXCLUDED_NEW": 63,
+    "EXCLUDED_ILLIQUID": 101
+   },
+   "lvl_excl": 5028,
+   "lvl_long": 3537,
+   "lvl_mid": 813,
+   "lvl_full": 366,
+   "recall": {
+    "top_decile_n": 500,
+    "recall_excl": 1.0,
+    "recall_long": 0.696,
+    "recall_mid": 0.152,
+    "recall_full": 0.066
+   },
+   "pool_jaccard_vs_prev": 0.0817
+  },
+  {
+   "checkpoint": "2026-05-29",
+   "universe": 5401,
+   "excluded": {
+    "EXCLUDED_LOW_PRICE": 218,
+    "EXCLUDED_NEW": 64,
+    "EXCLUDED_ILLIQUID": 101
+   },
+   "lvl_excl": 5018,
+   "lvl_long": 2927,
+   "lvl_mid": 956,
+   "lvl_full": 525,
+   "recall": {
+    "top_decile_n": 499,
+    "recall_excl": 1.0,
+    "recall_long": 0.6253,
+    "recall_mid": 0.2325,
+    "recall_full": 0.1323
+   },
+   "pool_jaccard_vs_prev": 0.1124
+  },
+  {
+   "checkpoint": "2026-06-30",
+   "universe": 5404,
+   "excluded": {
+    "EXCLUDED_LOW_PRICE": 257,
+    "EXCLUDED_NEW": 56,
+    "EXCLUDED_ILLIQUID": 100
+   },
+   "lvl_excl": 4991,
+   "lvl_long": 2201,
+   "lvl_mid": 868,
+   "lvl_full": 334,
+   "recall": {
+    "top_decile_n": 493,
+    "recall_excl": 1.0,
+    "recall_long": 0.2779,
+    "recall_mid": 0.0791,
+    "recall_full": 0.0304
+   },
+   "pool_jaccard_vs_prev": 0.1243
+  },
+  {
+   "checkpoint": "2026-07-31",
+   "universe": 5409,
+   "excluded": {
+    "EXCLUDED_LOW_PRICE": 248,
+    "EXCLUDED_NEW": 53,
+    "EXCLUDED_ILLIQUID": 101
+   },
+   "lvl_excl": 5007,
+   "lvl_long": 1785,
+   "lvl_mid": 283,
+   "lvl_full": 71,
+   "recall": null,
+   "pool_jaccard_vs_prev": 0.0305
+  },
+  {
+   "checkpoint": "2026-08-31",
+   "universe": 5418,
+   "excluded": {
+    "EXCLUDED_LOW_PRICE": 236,
+    "EXCLUDED_NEW": 56,
+    "EXCLUDED_ILLIQUID": 101
+   },
+   "lvl_excl": 5025,
+   "lvl_long": 2305,
+   "lvl_mid": 387,
+   "lvl_full": 165,
+   "recall": null,
+   "pool_jaccard_vs_prev": 0.0442
+  },
+  {
+   "checkpoint": "2026-09-30",
+   "universe": 5430,
+   "excluded": {
+    "EXCLUDED_LOW_PRICE": 239,
+    "EXCLUDED_NEW": 62,
+    "EXCLUDED_ILLIQUID": 101
+   },
+   "lvl_excl": 5028,
+   "lvl_long": 2038,
+   "lvl_mid": 347,
+   "lvl_full": 193,
+   "recall": null,
+   "pool_jaccard_vs_prev": 0.1084
+  }
+ ]
+}

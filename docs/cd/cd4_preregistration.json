@@ -1,0 +1,40 @@
+{
+ "phase": "CD-4 — L3 Candidate Funnel Infrastructure (recall & compression research, not ranking)",
+ "authority": "user GO ruling 2026-10-04 (four research questions RQ1-RQ4; sector as metadata; fail-closed; recall evaluated with future outcomes for EVALUATION ONLY)",
+ "preregistration_id": "cd4-prereg-v1",
+ "sampling_grid": "monthly checkpoints (last trading day of each month, 2021-01..2026-09, 70 checkpoints) — funnel state evaluated at each; candidate pool dynamics measured across checkpoints",
+ "rq1_exclusions_frozen": {
+  "judged_at_T": "rolling, T-and-prior data only",
+  "rules": {
+   "EXCLUDED_NEW": "fewer than 120 trading days of history at T",
+   "EXCLUDED_DELISTED_SOON": "PIT-safe formulation: no lookahead — simply absent if no more data after T (a stock with data at T is eligible; survivorship handled by universe construction)",
+   "EXCLUDED_SUSPENDED": "fewer than 10 trading days with volume>0 in trailing 60 sessions at T",
+   "EXCLUDED_LOW_PRICE": "qfq close < 2.0 CNY at T (DECLARED proxy for delisting-risk/ST shell — st_flag is a declared DATA-1 gap)",
+   "EXCLUDED_ILLIQUID": "trailing 20-session mean volume below the 2nd percentile of the whole market's 20d mean volumes at T (volume as DECLARED amount substitute)"
+  },
+  "census_output": "per checkpoint: excluded counts by reason, remaining pool size; reasons never overridden"
+ },
+ "rq2_triggers_frozen": {
+  "principle": "three timescales under capital-structure mainline; each trigger is a cheap observable, trailing-only",
+  "T_LONG (monthly capital background)": "qfq close at T > its 24-month (approx 500-session) mean AND 24-month qfq return > 0 — 'worth watching'",
+  "T_MID (weekly participation/momentum change)": "13-week (65-session) qfq return > 0 AND stock volume-share of market (stock 20d mean volume / market 20d mean total volume) higher at T than its own 52-week (250-session) median by factor > 1.5 — 'capital behavior changing'",
+  "T_SHORT (daily structure event)": "within trailing 20 sessions at T: qfq close made a 60-session new high on a day with volume > 2x that stock's trailing-20 mean — 'entered state needing deep inspection'",
+  "funnel_levels": {
+   "LEVEL_EXCL": "universe minus RQ1 exclusions",
+   "LEVEL_LONG": "LEVEL_EXCL & T_LONG",
+   "LEVEL_MID": "LEVEL_LONG & T_MID",
+   "LEVEL_FULL": "LEVEL_MID & T_SHORT (candidate pool — deep-analysis eligible)"
+  }
+ },
+ "rq3_evaluation_frozen": {
+  "metrics_per_checkpoint": ["pool_size at each level", "recall_top_decile_60d: share of stocks in the forward-60d top decile of market-relative return (computed among LEVEL_EXCL, evaluation only) that are retained at each level", "turnover: Jaccard distance between candidate pools at consecutive checkpoints", "stability: median consecutive-checkpoint survival of candidates", "cost_reduction: 1 - pool_size/LEVEL_EXCL size"],
+  "target_compression_reference": "report pool sizes at all levels vs the ~1000/500/200/100 reference marks; NO optimization of triggers to hit a mark",
+  "dev_holdout": "dev 2021-01..2023-12 / holdout 2024-01..2026-09 reported separately; forward windows extending past 2026-09-30 excluded (incomplete)"
+ },
+ "rq4_sector_metadata_frozen": {
+  "attach": "for every LEVEL_FULL candidate at checkpoint T: sector_state (base at T), sector_path (any path label at T), narrowing_risk (NARROWING active within trailing 10 sessions of its L2), divergent (base=DIVERGENT at T), sw2_context_if_needed (deferred: populated on demand at L4/L5, RETROSPECTIVE label)",
+  "no_gating": "metadata never filters the funnel"
+ },
+ "prohibited": ["threshold tuning by recall/returns", "rescuing exclusions", "composite stock score", "final ranking", "forward data in construction", "L4/L5 work"],
+ "status": "PREREGISTERED"
+}
