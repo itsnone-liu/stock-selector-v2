@@ -1,0 +1,42 @@
+{
+  "protocol":"SHADOW_QUALIFICATION",
+  "status":"FROZEN",
+  "declared":"2026-10-05",
+  "runtime_mode":"SHADOW_QUALIFICATION",
+  "guards":{"orders_allowed":false,"capital_allowed":false,"policy_mutation":false,"prospective_evidence_eligible":false},
+  "motivation":"Historical action-semantic evidence for lifecycle/PRIMARY_ZONE/decision cannot be created post hoc (see ROUND1_ACTION_SEMANTIC_EVIDENCE_GAP). The only admissible new evidence is generated on genuinely future as-of-T days with inputs frozen at decision time.",
+  "non_evidence_rule":{
+    "qualification_dates":"FOREVER_NON_EVIDENCE",
+    "detail":"Every day run under SHADOW_QUALIFICATION is permanently excluded from the H5/H20/H60 prospective research cohort, even if its audit passes. No selective retroactive inclusion.",
+    "drill_days":"Historical dates used only to validate machinery are marked DRILL_ONLY and can never count toward qualification coverage."
+  },
+  "flow":[
+    "real as-of-T frozen inputs arrive",
+    "frozen producer materializes day-T authority with deterministic traces",
+    "immutable qualification snapshot written under data/cd/shadow_qualification/YYYY-MM-DD/",
+    "independent bounded audit re-derives expected anchors from the same frozen inputs and written contracts",
+    "G-SHADOW-ACTION-QUALIFICATION accumulates coverage across real qualification days"
+  ],
+  "trace_requirements":{
+    "lifecycle":{"rule_id":true,"inputs":true,"predicates":true,"previous_state":true,"next_state":true},
+    "PRIMARY_ZONE":{"rule_id":true,"price_cost_band_inputs":true,"predicate_results":true,"zone_boolean":true},
+    "decision":{"market_permission":true,"position_state":true,"lifecycle_state":true,"PRIMARY_ZONE":true,"matched_rule_id":true,"decision":true,"position_transition":true}
+  },
+  "required_coverage":{
+    "lifecycle":["STRENGTHENING","HOLDING","DECAYING","terminal-relevant transition"],
+    "PRIMARY_ZONE":[true,false],
+    "decision":["ENTER","HOLD","REDUCE","EXIT","NO_ACTION-as-applicable-per-frozen-policy"]
+  },
+  "independence_boundary":"The audit must not import cd_shadow_runtime, cd_shadow_real_adapters, cd_shadow_materialize_*, or CD-7 production engines. Explicit re-written frozen rules are preferred over shared helpers.",
+  "gate":"G-SHADOW-ACTION-QUALIFICATION",
+  "activation_rule":{
+    "precondition":"G-SHADOW-ACTION-QUALIFICATION PASS (all production-critical categories covered with exact match on real qualification days)",
+    "action":"write docs/cd/SHADOW_ACTIVATION.json",
+    "effect":"prospective evidence eligibility begins the NEXT trading day after activation; qualification days remain permanently non-evidence"
+  },
+  "readiness_composition":{
+    "historical":"authority/provenance/artifact-read/P0/L1-L3 anchors PASS; historical action parity stays EVIDENCE_UNAVAILABLE",
+    "prospective":"action semantic qualification PASS",
+    "note":"This substitutes new admissible evidence for unobtainable historical evidence; it does not rewrite history."
+  }
+}

@@ -1,13 +1,24 @@
 {
   "gate":"G-SHADOW-RUNTIME-READY",
   "status":"NOT_READY",
-  "authority":"PASS",
-  "p0_regression":"PASS",
-  "exact_byte_promotion":"PASS",
-  "artifact_read_parity":"PASS",
-  "semantic_anchors":"NOT_READY",
-  "semantic_anchor_detail":"Independent oracle covers L1, L2, L3, provenance and P0. It cannot independently reconstruct lifecycle, PRIMARY_ZONE, or decision anchors from frozen inputs/contracts without importing production/materializer logic; these are production-critical action semantics and remain an explicit blocker.",
-  "unavailable_date":"2021-07-30 AUTHORITY_UNAVAILABLE",
-  "activation_record":"not written",
-  "reason":"Do not promote bounded metadata anchors into runtime readiness while PRIMARY_ZONE and decision semantics lack independent exact anchors."
+  "runtime_mode":"SHADOW_QUALIFICATION",
+  "mode_guards":{"orders_allowed":false,"capital_allowed":false,"policy_mutation":false,"prospective_evidence_eligible":false},
+  "historical":{
+    "G-SHADOW-AUTHORITY":"PASS",
+    "G-SHADOW-AUTHORITY-P0-REGRESSION":"PASS",
+    "exact_byte_promotion":"PASS",
+    "artifact_read_parity":"PASS",
+    "independent_L1_L2_L3_anchors":"PASS",
+    "G-SHADOW-HISTORICAL-SEMANTIC-PARITY":"EVIDENCE_UNAVAILABLE (terminal; frozen in ROUND1_ACTION_SEMANTIC_EVIDENCE_GAP; never becomes PASS)"
+  },
+  "prospective":{
+    "G-SHADOW-ACTION-QUALIFICATION":"PENDING",
+    "real_qualification_days":0,
+    "drill_days":["2022-04-29 (machinery validated; never counts)"],
+    "drill_result":"independent audit 35/35 anchors exact match; coverage DECAYING/HOLDING/STRENGTHENING, zone true/false, ENTER/NO_ACTION",
+    "missing_coverage":["TERMINAL_RELEVANT lifecycle transition","REDUCE","EXIT (requires open positions from a real ENTER day)"]
+  },
+  "instrumentation":"deterministic traces added to frozen producer; payload byte-identity vs promoted authority verified for 2026-09-30 and drill day 2022-04-29",
+  "activation_record":"not written; prospective evidence eligibility begins only the trading day after G-SHADOW-ACTION-QUALIFICATION PASS",
+  "unavailable_date":"2021-07-30 AUTHORITY_UNAVAILABLE"
 }
