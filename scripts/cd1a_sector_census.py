@@ -81,8 +81,10 @@ def main():
         small10 = sum(1 for s in sizes if s < 10) / max(1, len(sizes))
         withdaily = sum(1 for lab in members if sec_frac[lab] > 0)
         n_gaps = sum(v['n_long_gaps_gt20'] for v in gap_stats.values())
+        source_complete = sum(1 for c in mapping if c in have) / max(1, len(mapping))
         return {'level': level_name, 'sectors': len(members), 'stocks_classified': n_cls,
                 'stock_coverage_of_universe': round(cov_uni, 4), 'stock_coverage_of_daily': round(cov_daily, 4),
+                'source_provenance_completeness': round(source_complete, 4),
                 'member_count_min': sizes[0] if sizes else 0, 'member_count_median': med, 'member_count_max': sizes[-1] if sizes else 0,
                 'single_stock_sector_fraction': round(single, 4), 'small_sector_lt10_fraction': round(small10, 4),
                 'sectors_with_any_daily': withdaily,
