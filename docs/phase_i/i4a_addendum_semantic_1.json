@@ -1,0 +1,14 @@
+{
+ "addendum_id": "csr8-phase-i-i4a-addendum-semantic-1 (I4A-ADDENDUM-SEMANTIC)",
+ "base_contract": "csr8-phase-i-i4a-external-market-context-preregistration-v1 (effective sha b12783420d8e4d2428c0e895f1114a97143b28dcd46fe2d54d8c2ee6bb06b49a)",
+ "authorization": "explicit user ruling 2026-10-04: I4A APPROVE / FROZEN; I4B GO conditional on appending this semantic clarification BEFORE execution. No data, threshold, or classification-algorithm change — this addendum separates two evidence tiers and closes a potential interpretation loophole in advance.",
+ "clarifications": [
+  "1. R4(d) >= 5 distinct observation dates per side remains THE theory-eligibility standard (I2/I3 lineage); nothing in I4 lowers, replaces, or reinterprets it.",
+  "2. The I4 stratified minimum of >= 3 distinct observation dates per cell x regime is an OUTPUT-COVERAGE threshold only: it decides whether a stratum's numbers may be printed at all, never whether evidence is theory-grade.",
+  "3. A regime stratum with 3-4 distinct dates may contribute its preregistered sign to the deterministic CONTEXT_ROBUST / CONDITIONAL / MARKET_COMPOSITION_DEPENDENT classification, but must carry LOW_COVERAGE and cannot independently support a theory-grade claim.",
+  "4. Therefore CONTEXT_ROBUST + LOW_COVERAGE (e.g. DOWN stratum at 3 dates) means exactly: 'no observed contextual sign reversal in available evidence' — NOT 'all regimes independently satisfy R4'."
+ ],
+ "reporting_lock": "any I4B stratum table row with <5 distinct dates on either side must print 'LOW_COVERAGE — output coverage only; not theory-grade evidence (R4(d)>=5 unmet in this stratum)'",
+ "no_change_confirmation": "index/regime/window/eligible relations/context classification rule/INSUFFICIENT_CONTEXT_COVERAGE floor all unchanged; this addendum adds zero analytical degrees of freedom",
+ "change_control": "append-only; base contract text and sha untouched"
+}
