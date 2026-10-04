@@ -1,0 +1,31 @@
+{
+ "phase": "CD-7R2 — Secondary Entry / Re-entry Architecture",
+ "authority": "user GO ruling 2026-10-04; CD7_ROUND1_FREEZE.json inheritance",
+ "preregistration_id": "cd7r2-prereg-v1",
+ "secondary_zone_frozen": {
+  "provenance": "model_derived cost band (CD-5C); all as-of-T trailing; never 主力成本",
+  "mechanism": "time-consolidation型: price NOT falling while band rises toward price — time-for-space digestion, economically distinct from chase",
+  "conditions": {
+   "1_eligible": "ENTER_ELIGIBLE verbatim from R1 (age>=10 sessions, >=1 STRENGTHENING day, not DECAYING/FAILED)",
+   "2_convergence": "d_t = close/band_upper - 1 <= 0.5 * d_max_20 AND d_t <= 0.03",
+   "3_band_rising": "band_upper_t >= band_upper_{t-20}",
+   "4_structure": "participation not-LOW AND close >= 0.93 * max(close, last 20 sessions)",
+   "5_primary_priority": "PRIMARY_ZONE fires first if it triggers first; SECONDARY only on days where PRIMARY has not yet triggered in the episode"
+  },
+  "hard_boundary": "NOT 'no pullback + continuous rise -> buy': dual condition convergence AND band-rising required; if price keeps running away (d expands) no trigger"
+ },
+ "re_entry": "DEFERRED this round (priority B) — recorded, not silently dropped",
+ "arms_frozen": {"A_CHASE": "historical control ONLY", "B_PRIMARY": "R1 frozen verbatim", "C_PRIMARY_PLUS_SECONDARY": "the only new arm; verdict = C-vs-B incrementality"},
+ "stratified_report_mandatory": ["PRIMARY entries", "SECONDARY-only entries", "NEVER-entered"],
+ "five_metrics": ["top-decile capture", "MAE", "adverse rate", "entry delay (sessions)", "incremental entries"],
+ "pareto_success_frozen": {
+   "philosophy": "NOT capture-back-to-CHASE; new Pareto improvement",
+   "MAE": "C-arm MAE may worsen at most ~1pp vs B",
+   "capture": "SECONDARY-only entries >= 500 AND SECONDARY-only top-decile rate >= 8% (approaching never-cohort 10.2%)",
+   "ret_rel": "C >= B (holdout)",
+   "adverse": "C <= B + 3pp"
+ },
+ "stop_rule_frozen": "if SECONDARY cannot simultaneously retain position improvement AND recover meaningful missed upside -> information boundary for precise entry timing reached: STOP timing expansion (no R3/R4), record boundary honestly, then user decides CD-7D/deployment as risk-management system (ret_rel>0 NOT required for that path)",
+ "prohibited": ["reviving CHASE", "patching P75 intact discriminator", "holdout-driven threshold changes", "position sizing over incomplete entry architecture"],
+ "status": "PREREGISTERED"
+}
