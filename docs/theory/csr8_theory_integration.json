@@ -1,0 +1,18 @@
+{
+ "document_id": "csr8-theory-integration-v1",
+ "title": "CSR-8 Observable Capital-State Framework — Theory Integration (H→I→J)",
+ "status": "FORMAL THEORY DOCUMENT · supersedes nothing · freezes the interpretation framework across Phases H, I, J",
+ "authority_chain": {
+  "phase_H": "128-corpus discovery + final freeze 9dfc516; third readout 3f46515",
+  "phase_I": "I1 cee5efd / I2 eddd1ff / I3 5674101 / I4A 664b35d+597e4a1 / I4B c0937c9 / final freeze 670e226 (sha be1cdd7e...)",
+  "phase_J": "J0 683e2f3 (protocol sha 5ddd2866...) + appendices 6916568/fe03fef / J1 717200b / final freeze 3783d7b (sha 73fc8dd3...)",
+  "standing_rulings": "Phase K NOT STARTED; sector DEFERRED; ordinals 129+ UNAUTHORIZED"
+ },
+ "chapters": ["1 Observable Capital-State Framework", "2 Evidence Hierarchy", "3 Current Structural Findings", "4 Context and Transportability", "5 Theory Boundary / Forbidden Claims"],
+ "chapter_3_frozen_numbers": {
+  "ETF_4_vs_8_UP": {"dates": "8/5", "naive": -0.0863, "dedup": -0.0375, "lco_dedup": -0.0371, "grade": "theory-grade within stratum"},
+  "ETF_8_vs_9_UP": {"dates": "5/8", "naive": 0.0478, "dedup": 0.0551, "lco_dedup": 0.0546, "grade": "theory-grade, magnitude stable"},
+  "ND_vs_NO_PIT": {"d_all": -0.0256, "status": "DESCRIPTIVE_ONLY permanently (NO_PIT arm 4 dates)"},
+  "phase_J_support": {"cell_4": "2/12 dates", "cell_8": "1/12", "cell_9": "0/12", "observed_values": [0,2,3,4,4,5,7,7,8,10,11,12]}
+ }
+}
