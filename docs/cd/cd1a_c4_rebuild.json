@@ -1,0 +1,16 @@
+{
+ "build1_seconds": 52.23,
+ "build2_seconds": 52.54,
+ "byte_identical": true,
+ "declaration": "v1-static membership; volume-weighted uses raw volume (amount unavailable — declared gap); feasibility proof only, NO conclusions",
+ "fixed_sector": "C39",
+ "note": "full-universe proof re-run after DATA-1 completes; this fixes the SCHEME now, on partial data",
+ "phase": "CD-1A c4 deterministic rebuild proof",
+ "sample": {
+  "days_counted": 1392,
+  "members_with_daily": 666
+ },
+ "sha_build1": "302892e981c566a759b4cb534892239c3f5c8eb96dab1e8a7a953e5626e08d72",
+ "sha_build2": "302892e981c566a759b4cb534892239c3f5c8eb96dab1e8a7a953e5626e08d72",
+ "verdict_c4": "PASS"
+}

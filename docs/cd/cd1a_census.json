@@ -1,0 +1,1035 @@
+{
+ "censuses": [
+  {
+   "gap_detail_per_sector": {
+    "A": {
+     "first_covered": "2021-01-04",
+     "last_covered": "2026-09-30",
+     "max_gap_days": 0,
+     "n_long_gaps_gt20": 0
+    },
+    "B": {
+     "first_covered": "2021-01-04",
+     "last_covered": "2026-09-30",
+     "max_gap_days": 0,
+     "n_long_gaps_gt20": 0
+    },
+    "C": {
+     "first_covered": "2021-01-04",
+     "last_covered": "2026-09-30",
+     "max_gap_days": 0,
+     "n_long_gaps_gt20": 0
+    },
+    "D": {
+     "first_covered": "2021-01-04",
+     "last_covered": "2026-09-30",
+     "max_gap_days": 0,
+     "n_long_gaps_gt20": 0
+    },
+    "E": {
+     "first_covered": "2021-01-04",
+     "last_covered": "2026-09-30",
+     "max_gap_days": 0,
+     "n_long_gaps_gt20": 0
+    },
+    "F": {
+     "first_covered": "2021-01-04",
+     "last_covered": "2026-09-30",
+     "max_gap_days": 0,
+     "n_long_gaps_gt20": 0
+    },
+    "G": {
+     "first_covered": "2021-01-04",
+     "last_covered": "2026-09-30",
+     "max_gap_days": 0,
+     "n_long_gaps_gt20": 0
+    },
+    "H": {
+     "first_covered": "2021-01-04",
+     "last_covered": "2026-09-30",
+     "max_gap_days": 0,
+     "n_long_gaps_gt20": 0
+    },
+    "I": {
+     "first_covered": "2021-01-04",
+     "last_covered": "2026-09-30",
+     "max_gap_days": 0,
+     "n_long_gaps_gt20": 0
+    },
+    "J": {
+     "first_covered": "2021-01-04",
+     "last_covered": "2026-09-30",
+     "max_gap_days": 0,
+     "n_long_gaps_gt20": 0
+    },
+    "K": {
+     "first_covered": "2021-01-04",
+     "last_covered": "2026-09-30",
+     "max_gap_days": 0,
+     "n_long_gaps_gt20": 0
+    },
+    "L": {
+     "first_covered": "2021-01-04",
+     "last_covered": "2026-09-30",
+     "max_gap_days": 0,
+     "n_long_gaps_gt20": 0
+    },
+    "M": {
+     "first_covered": "2021-01-04",
+     "last_covered": "2026-09-30",
+     "max_gap_days": 0,
+     "n_long_gaps_gt20": 0
+    },
+    "N": {
+     "first_covered": "2021-01-04",
+     "last_covered": "2026-09-30",
+     "max_gap_days": 0,
+     "n_long_gaps_gt20": 0
+    },
+    "O": {
+     "first_covered": "2021-01-04",
+     "last_covered": "2026-09-30",
+     "max_gap_days": 0,
+     "n_long_gaps_gt20": 0
+    },
+    "P": {
+     "first_covered": "2021-01-04",
+     "last_covered": "2026-09-30",
+     "max_gap_days": 0,
+     "n_long_gaps_gt20": 0
+    },
+    "Q": {
+     "first_covered": "2021-01-04",
+     "last_covered": "2026-09-30",
+     "max_gap_days": 0,
+     "n_long_gaps_gt20": 0
+    },
+    "R": {
+     "first_covered": "2021-01-04",
+     "last_covered": "2026-09-30",
+     "max_gap_days": 0,
+     "n_long_gaps_gt20": 0
+    },
+    "S": {
+     "first_covered": "2021-01-04",
+     "last_covered": "2026-09-30",
+     "max_gap_days": 0,
+     "n_long_gaps_gt20": 0
+    }
+   },
+   "level": "L1_csrc",
+   "long_gaps_gt20_trading_days_total": 0,
+   "max_sector_gap_days": 0,
+   "median_sector_daily_member_fraction": 1.0,
+   "member_count_max": 3550,
+   "member_count_median": 88,
+   "member_count_min": 1,
+   "membership_change_frequency": "UNKNOWN (v1-static-declared)",
+   "sectors": 19,
+   "sectors_with_any_daily": 19,
+   "single_stock_sector_fraction": 0.0526,
+   "small_sector_lt10_fraction": 0.1579,
+   "source_provenance_completeness": 1.0,
+   "stock_coverage_of_daily": 0.9615,
+   "stock_coverage_of_universe": 0.9994,
+   "stocks_classified": 5221
+  },
+  {
+   "gap_detail_per_sector": {
+    "A01": {
+     "first_covered": "2021-01-04",
+     "last_covered": "2026-09-30",
+     "max_gap_days": 0,
+     "n_long_gaps_gt20": 0
+    },
+    "A02": {
+     "first_covered": "2021-01-04",
+     "last_covered": "2026-09-30",
+     "max_gap_days": 0,
+     "n_long_gaps_gt20": 0
+    },
+    "A03": {
+     "first_covered": "2021-01-04",
+     "last_covered": "2026-09-30",
+     "max_gap_days": 0,
+     "n_long_gaps_gt20": 0
+    },
+    "A04": {
+     "first_covered": "2021-01-04",
+     "last_covered": "2026-09-30",
+     "max_gap_days": 0,
+     "n_long_gaps_gt20": 0
+    },
+    "A05": {
+     "first_covered": "2021-01-04",
+     "last_covered": "2026-09-30",
+     "max_gap_days": 0,
+     "n_long_gaps_gt20": 0
+    },
+    "B06": {
+     "first_covered": "2021-01-04",
+     "last_covered": "2026-09-30",
+     "max_gap_days": 0,
+     "n_long_gaps_gt20": 0
+    },
+    "B07": {
+     "first_covered": "2021-01-04",
+     "last_covered": "2026-09-30",
+     "max_gap_days": 0,
+     "n_long_gaps_gt20": 0
+    },
+    "B08": {
+     "first_covered": "2021-01-04",
+     "last_covered": "2026-09-30",
+     "max_gap_days": 0,
+     "n_long_gaps_gt20": 0
+    },
+    "B09": {
+     "first_covered": "2021-01-04",
+     "last_covered": "2026-09-30",
+     "max_gap_days": 0,
+     "n_long_gaps_gt20": 0
+    },
+    "B10": {
+     "first_covered": "2021-01-04",
+     "last_covered": "2026-09-30",
+     "max_gap_days": 0,
+     "n_long_gaps_gt20": 0
+    },
+    "B11": {
+     "first_covered": "2021-01-04",
+     "last_covered": "2026-09-30",
+     "max_gap_days": 0,
+     "n_long_gaps_gt20": 0
+    },
+    "C13": {
+     "first_covered": "2021-01-04",
+     "last_covered": "2026-09-30",
+     "max_gap_days": 0,
+     "n_long_gaps_gt20": 0
+    },
+    "C14": {
+     "first_covered": "2021-01-04",
+     "last_covered": "2026-09-30",
+     "max_gap_days": 0,
+     "n_long_gaps_gt20": 0
+    },
+    "C15": {
+     "first_covered": "2021-01-04",
+     "last_covered": "2026-09-30",
+     "max_gap_days": 0,
+     "n_long_gaps_gt20": 0
+    },
+    "C17": {
+     "first_covered": "2021-01-04",
+     "last_covered": "2026-09-30",
+     "max_gap_days": 0,
+     "n_long_gaps_gt20": 0
+    },
+    "C18": {
+     "first_covered": "2021-01-04",
+     "last_covered": "2026-09-30",
+     "max_gap_days": 0,
+     "n_long_gaps_gt20": 0
+    },
+    "C19": {
+     "first_covered": "2021-01-04",
+     "last_covered": "2026-09-30",
+     "max_gap_days": 0,
+     "n_long_gaps_gt20": 0
+    },
+    "C20": {
+     "first_covered": "2021-01-04",
+     "last_covered": "2026-09-30",
+     "max_gap_days": 0,
+     "n_long_gaps_gt20": 0
+    },
+    "C21": {
+     "first_covered": "2021-01-04",
+     "last_covered": "2026-09-30",
+     "max_gap_days": 0,
+     "n_long_gaps_gt20": 0
+    },
+    "C22": {
+     "first_covered": "2021-01-04",
+     "last_covered": "2026-09-30",
+     "max_gap_days": 0,
+     "n_long_gaps_gt20": 0
+    },
+    "C23": {
+     "first_covered": "2021-01-04",
+     "last_covered": "2026-09-30",
+     "max_gap_days": 0,
+     "n_long_gaps_gt20": 0
+    },
+    "C24": {
+     "first_covered": "2021-01-04",
+     "last_covered": "2026-09-30",
+     "max_gap_days": 0,
+     "n_long_gaps_gt20": 0
+    },
+    "C25": {
+     "first_covered": "2021-01-04",
+     "last_covered": "2026-09-30",
+     "max_gap_days": 0,
+     "n_long_gaps_gt20": 0
+    },
+    "C26": {
+     "first_covered": "2021-01-04",
+     "last_covered": "2026-09-30",
+     "max_gap_days": 0,
+     "n_long_gaps_gt20": 0
+    },
+    "C27": {
+     "first_covered": "2021-01-04",
+     "last_covered": "2026-09-30",
+     "max_gap_days": 0,
+     "n_long_gaps_gt20": 0
+    },
+    "C28": {
+     "first_covered": "2021-01-04",
+     "last_covered": "2026-09-30",
+     "max_gap_days": 0,
+     "n_long_gaps_gt20": 0
+    },
+    "C29": {
+     "first_covered": "2021-01-04",
+     "last_covered": "2026-09-30",
+     "max_gap_days": 0,
+     "n_long_gaps_gt20": 0
+    },
+    "C30": {
+     "first_covered": "2021-01-04",
+     "last_covered": "2026-09-30",
+     "max_gap_days": 0,
+     "n_long_gaps_gt20": 0
+    },
+    "C31": {
+     "first_covered": "2021-01-04",
+     "last_covered": "2026-09-30",
+     "max_gap_days": 0,
+     "n_long_gaps_gt20": 0
+    },
+    "C32": {
+     "first_covered": "2021-01-04",
+     "last_covered": "2026-09-30",
+     "max_gap_days": 0,
+     "n_long_gaps_gt20": 0
+    },
+    "C33": {
+     "first_covered": "2021-01-04",
+     "last_covered": "2026-09-30",
+     "max_gap_days": 0,
+     "n_long_gaps_gt20": 0
+    },
+    "C34": {
+     "first_covered": "2021-01-04",
+     "last_covered": "2026-09-30",
+     "max_gap_days": 0,
+     "n_long_gaps_gt20": 0
+    },
+    "C35": {
+     "first_covered": "2021-01-04",
+     "last_covered": "2026-09-30",
+     "max_gap_days": 0,
+     "n_long_gaps_gt20": 0
+    },
+    "C36": {
+     "first_covered": "2021-01-04",
+     "last_covered": "2026-09-30",
+     "max_gap_days": 0,
+     "n_long_gaps_gt20": 0
+    },
+    "C37": {
+     "first_covered": "2021-01-04",
+     "last_covered": "2026-09-30",
+     "max_gap_days": 0,
+     "n_long_gaps_gt20": 0
+    },
+    "C38": {
+     "first_covered": "2021-01-04",
+     "last_covered": "2026-09-30",
+     "max_gap_days": 0,
+     "n_long_gaps_gt20": 0
+    },
+    "C39": {
+     "first_covered": "2021-01-04",
+     "last_covered": "2026-09-30",
+     "max_gap_days": 0,
+     "n_long_gaps_gt20": 0
+    },
+    "C40": {
+     "first_covered": "2021-01-04",
+     "last_covered": "2026-09-30",
+     "max_gap_days": 0,
+     "n_long_gaps_gt20": 0
+    },
+    "C41": {
+     "first_covered": "2021-01-04",
+     "last_covered": "2026-09-30",
+     "max_gap_days": 0,
+     "n_long_gaps_gt20": 0
+    },
+    "C42": {
+     "first_covered": "2021-01-04",
+     "last_covered": "2026-09-30",
+     "max_gap_days": 0,
+     "n_long_gaps_gt20": 0
+    },
+    "C43": {
+     "first_covered": "2021-01-04",
+     "last_covered": "2026-09-30",
+     "max_gap_days": 0,
+     "n_long_gaps_gt20": 0
+    },
+    "D44": {
+     "first_covered": "2021-01-04",
+     "last_covered": "2026-09-30",
+     "max_gap_days": 0,
+     "n_long_gaps_gt20": 0
+    },
+    "D45": {
+     "first_covered": "2021-01-04",
+     "last_covered": "2026-09-30",
+     "max_gap_days": 0,
+     "n_long_gaps_gt20": 0
+    },
+    "D46": {
+     "first_covered": "2021-01-04",
+     "last_covered": "2026-09-30",
+     "max_gap_days": 0,
+     "n_long_gaps_gt20": 0
+    },
+    "E47": {
+     "first_covered": "2021-01-04",
+     "last_covered": "2026-09-30",
+     "max_gap_days": 0,
+     "n_long_gaps_gt20": 0
+    },
+    "E48": {
+     "first_covered": "2021-01-04",
+     "last_covered": "2026-09-30",
+     "max_gap_days": 0,
+     "n_long_gaps_gt20": 0
+    },
+    "E49": {
+     "first_covered": "2021-01-04",
+     "last_covered": "2026-09-30",
+     "max_gap_days": 0,
+     "n_long_gaps_gt20": 0
+    },
+    "E50": {
+     "first_covered": "2021-01-04",
+     "last_covered": "2026-09-30",
+     "max_gap_days": 0,
+     "n_long_gaps_gt20": 0
+    },
+    "F51": {
+     "first_covered": "2021-01-04",
+     "last_covered": "2026-09-30",
+     "max_gap_days": 0,
+     "n_long_gaps_gt20": 0
+    },
+    "F52": {
+     "first_covered": "2021-01-04",
+     "last_covered": "2026-09-30",
+     "max_gap_days": 0,
+     "n_long_gaps_gt20": 0
+    },
+    "G53": {
+     "first_covered": "2021-01-04",
+     "last_covered": "2026-09-30",
+     "max_gap_days": 0,
+     "n_long_gaps_gt20": 0
+    },
+    "G54": {
+     "first_covered": "2021-01-04",
+     "last_covered": "2026-09-30",
+     "max_gap_days": 0,
+     "n_long_gaps_gt20": 0
+    },
+    "G55": {
+     "first_covered": "2021-01-04",
+     "last_covered": "2026-09-30",
+     "max_gap_days": 0,
+     "n_long_gaps_gt20": 0
+    },
+    "G56": {
+     "first_covered": "2021-01-04",
+     "last_covered": "2026-09-30",
+     "max_gap_days": 0,
+     "n_long_gaps_gt20": 0
+    },
+    "G58": {
+     "first_covered": "2021-01-04",
+     "last_covered": "2026-09-30",
+     "max_gap_days": 0,
+     "n_long_gaps_gt20": 0
+    },
+    "G59": {
+     "first_covered": "2021-01-04",
+     "last_covered": "2026-09-30",
+     "max_gap_days": 0,
+     "n_long_gaps_gt20": 0
+    },
+    "G60": {
+     "first_covered": "2021-01-04",
+     "last_covered": "2026-09-30",
+     "max_gap_days": 0,
+     "n_long_gaps_gt20": 0
+    },
+    "H61": {
+     "first_covered": "2021-01-04",
+     "last_covered": "2026-09-30",
+     "max_gap_days": 0,
+     "n_long_gaps_gt20": 0
+    },
+    "H62": {
+     "first_covered": "2021-01-04",
+     "last_covered": "2026-09-30",
+     "max_gap_days": 0,
+     "n_long_gaps_gt20": 0
+    },
+    "I63": {
+     "first_covered": "2021-01-04",
+     "last_covered": "2026-09-30",
+     "max_gap_days": 0,
+     "n_long_gaps_gt20": 0
+    },
+    "I64": {
+     "first_covered": "2021-01-04",
+     "last_covered": "2026-09-30",
+     "max_gap_days": 0,
+     "n_long_gaps_gt20": 0
+    },
+    "I65": {
+     "first_covered": "2021-01-04",
+     "last_covered": "2026-09-30",
+     "max_gap_days": 0,
+     "n_long_gaps_gt20": 0
+    },
+    "J66": {
+     "first_covered": "2021-01-04",
+     "last_covered": "2026-09-30",
+     "max_gap_days": 0,
+     "n_long_gaps_gt20": 0
+    },
+    "J67": {
+     "first_covered": "2021-01-04",
+     "last_covered": "2026-09-30",
+     "max_gap_days": 0,
+     "n_long_gaps_gt20": 0
+    },
+    "J68": {
+     "first_covered": "2021-01-04",
+     "last_covered": "2026-09-30",
+     "max_gap_days": 0,
+     "n_long_gaps_gt20": 0
+    },
+    "J69": {
+     "first_covered": "2021-01-04",
+     "last_covered": "2026-09-30",
+     "max_gap_days": 0,
+     "n_long_gaps_gt20": 0
+    },
+    "K70": {
+     "first_covered": "2021-01-04",
+     "last_covered": "2026-09-30",
+     "max_gap_days": 0,
+     "n_long_gaps_gt20": 0
+    },
+    "L71": {
+     "first_covered": "2021-01-04",
+     "last_covered": "2026-09-30",
+     "max_gap_days": 0,
+     "n_long_gaps_gt20": 0
+    },
+    "L72": {
+     "first_covered": "2021-01-04",
+     "last_covered": "2026-09-30",
+     "max_gap_days": 0,
+     "n_long_gaps_gt20": 0
+    },
+    "M73": {
+     "first_covered": "2021-01-04",
+     "last_covered": "2026-09-30",
+     "max_gap_days": 0,
+     "n_long_gaps_gt20": 0
+    },
+    "M74": {
+     "first_covered": "2021-01-04",
+     "last_covered": "2026-09-30",
+     "max_gap_days": 0,
+     "n_long_gaps_gt20": 0
+    },
+    "M75": {
+     "first_covered": "2021-01-04",
+     "last_covered": "2026-09-30",
+     "max_gap_days": 0,
+     "n_long_gaps_gt20": 0
+    },
+    "N76": {
+     "first_covered": "2021-01-04",
+     "last_covered": "2026-09-30",
+     "max_gap_days": 0,
+     "n_long_gaps_gt20": 0
+    },
+    "N77": {
+     "first_covered": "2021-01-04",
+     "last_covered": "2026-09-30",
+     "max_gap_days": 0,
+     "n_long_gaps_gt20": 0
+    },
+    "N78": {
+     "first_covered": "2021-01-04",
+     "last_covered": "2026-09-30",
+     "max_gap_days": 0,
+     "n_long_gaps_gt20": 0
+    },
+    "O81": {
+     "first_covered": "2021-01-04",
+     "last_covered": "2026-09-30",
+     "max_gap_days": 0,
+     "n_long_gaps_gt20": 0
+    },
+    "P83": {
+     "first_covered": "2021-01-04",
+     "last_covered": "2026-09-30",
+     "max_gap_days": 0,
+     "n_long_gaps_gt20": 0
+    },
+    "Q84": {
+     "first_covered": "2021-01-04",
+     "last_covered": "2026-09-30",
+     "max_gap_days": 0,
+     "n_long_gaps_gt20": 0
+    },
+    "R86": {
+     "first_covered": "2021-01-04",
+     "last_covered": "2026-09-30",
+     "max_gap_days": 0,
+     "n_long_gaps_gt20": 0
+    },
+    "R87": {
+     "first_covered": "2021-01-04",
+     "last_covered": "2026-09-30",
+     "max_gap_days": 0,
+     "n_long_gaps_gt20": 0
+    },
+    "R88": {
+     "first_covered": "2021-01-04",
+     "last_covered": "2026-09-30",
+     "max_gap_days": 0,
+     "n_long_gaps_gt20": 0
+    },
+    "R89": {
+     "first_covered": "2021-01-04",
+     "last_covered": "2026-09-30",
+     "max_gap_days": 0,
+     "n_long_gaps_gt20": 0
+    },
+    "S91": {
+     "first_covered": "2021-01-04",
+     "last_covered": "2026-09-30",
+     "max_gap_days": 0,
+     "n_long_gaps_gt20": 0
+    }
+   },
+   "level": "L2_csrc",
+   "long_gaps_gt20_trading_days_total": 0,
+   "max_sector_gap_days": 0,
+   "median_sector_daily_member_fraction": 1.0,
+   "member_count_max": 666,
+   "member_count_median": 25,
+   "member_count_min": 1,
+   "membership_change_frequency": "UNKNOWN (v1-static-declared)",
+   "sectors": 83,
+   "sectors_with_any_daily": 83,
+   "single_stock_sector_fraction": 0.0241,
+   "small_sector_lt10_fraction": 0.2651,
+   "source_provenance_completeness": 1.0,
+   "stock_coverage_of_daily": 0.9615,
+   "stock_coverage_of_universe": 0.9994,
+   "stocks_classified": 5221
+  },
+  {
+   "gap_detail_per_sector": {
+    "交通运输": {
+     "first_covered": "2021-01-04",
+     "last_covered": "2026-09-30",
+     "max_gap_days": 0,
+     "n_long_gaps_gt20": 0
+    },
+    "仪器仪表": {
+     "first_covered": "2021-01-04",
+     "last_covered": "2026-09-30",
+     "max_gap_days": 0,
+     "n_long_gaps_gt20": 0
+    },
+    "传媒娱乐": {
+     "first_covered": "2021-01-04",
+     "last_covered": "2026-09-30",
+     "max_gap_days": 0,
+     "n_long_gaps_gt20": 0
+    },
+    "供水供气": {
+     "first_covered": "2021-01-04",
+     "last_covered": "2026-09-30",
+     "max_gap_days": 0,
+     "n_long_gaps_gt20": 0
+    },
+    "公路桥梁": {
+     "first_covered": "2021-01-04",
+     "last_covered": "2026-09-30",
+     "max_gap_days": 0,
+     "n_long_gaps_gt20": 0
+    },
+    "其它行业": {
+     "first_covered": "2021-01-04",
+     "last_covered": "2026-09-30",
+     "max_gap_days": 0,
+     "n_long_gaps_gt20": 0
+    },
+    "农林牧渔": {
+     "first_covered": "2021-01-04",
+     "last_covered": "2026-09-30",
+     "max_gap_days": 0,
+     "n_long_gaps_gt20": 0
+    },
+    "农药化肥": {
+     "first_covered": "2021-01-04",
+     "last_covered": "2026-09-30",
+     "max_gap_days": 0,
+     "n_long_gaps_gt20": 0
+    },
+    "化工行业": {
+     "first_covered": "2021-01-04",
+     "last_covered": "2026-09-30",
+     "max_gap_days": 0,
+     "n_long_gaps_gt20": 0
+    },
+    "化纤行业": {
+     "first_covered": "2021-01-04",
+     "last_covered": "2026-09-30",
+     "max_gap_days": 0,
+     "n_long_gaps_gt20": 0
+    },
+    "医疗器械": {
+     "first_covered": "2021-01-04",
+     "last_covered": "2026-09-30",
+     "max_gap_days": 0,
+     "n_long_gaps_gt20": 0
+    },
+    "印刷包装": {
+     "first_covered": "2021-01-04",
+     "last_covered": "2026-09-30",
+     "max_gap_days": 0,
+     "n_long_gaps_gt20": 0
+    },
+    "发电设备": {
+     "first_covered": "2021-01-04",
+     "last_covered": "2026-09-30",
+     "max_gap_days": 0,
+     "n_long_gaps_gt20": 0
+    },
+    "商业百货": {
+     "first_covered": "2021-01-04",
+     "last_covered": "2026-09-30",
+     "max_gap_days": 0,
+     "n_long_gaps_gt20": 0
+    },
+    "塑料制品": {
+     "first_covered": "2021-01-04",
+     "last_covered": "2026-09-30",
+     "max_gap_days": 0,
+     "n_long_gaps_gt20": 0
+    },
+    "家具行业": {
+     "first_covered": "2021-01-04",
+     "last_covered": "2026-09-30",
+     "max_gap_days": 0,
+     "n_long_gaps_gt20": 0
+    },
+    "家电行业": {
+     "first_covered": "2021-01-04",
+     "last_covered": "2026-09-30",
+     "max_gap_days": 0,
+     "n_long_gaps_gt20": 0
+    },
+    "建筑建材": {
+     "first_covered": "2021-01-04",
+     "last_covered": "2026-09-30",
+     "max_gap_days": 0,
+     "n_long_gaps_gt20": 0
+    },
+    "开发区": {
+     "first_covered": "2021-01-04",
+     "last_covered": "2026-09-30",
+     "max_gap_days": 0,
+     "n_long_gaps_gt20": 0
+    },
+    "房地产": {
+     "first_covered": "2021-01-04",
+     "last_covered": "2026-09-30",
+     "max_gap_days": 0,
+     "n_long_gaps_gt20": 0
+    },
+    "摩托车": {
+     "first_covered": "2021-01-04",
+     "last_covered": "2026-09-30",
+     "max_gap_days": 0,
+     "n_long_gaps_gt20": 0
+    },
+    "有色金属": {
+     "first_covered": "2021-01-04",
+     "last_covered": "2026-09-30",
+     "max_gap_days": 0,
+     "n_long_gaps_gt20": 0
+    },
+    "服装鞋类": {
+     "first_covered": "2021-01-04",
+     "last_covered": "2026-09-30",
+     "max_gap_days": 0,
+     "n_long_gaps_gt20": 0
+    },
+    "机械行业": {
+     "first_covered": "2021-01-04",
+     "last_covered": "2026-09-30",
+     "max_gap_days": 0,
+     "n_long_gaps_gt20": 0
+    },
+    "次新股": {
+     "first_covered": "2025-10-17",
+     "last_covered": "2026-09-30",
+     "max_gap_days": 0,
+     "n_long_gaps_gt20": 0
+    },
+    "水泥行业": {
+     "first_covered": "2021-01-04",
+     "last_covered": "2026-09-30",
+     "max_gap_days": 0,
+     "n_long_gaps_gt20": 0
+    },
+    "汽车制造": {
+     "first_covered": "2021-01-04",
+     "last_covered": "2026-09-30",
+     "max_gap_days": 0,
+     "n_long_gaps_gt20": 0
+    },
+    "煤炭行业": {
+     "first_covered": "2021-01-04",
+     "last_covered": "2026-09-30",
+     "max_gap_days": 0,
+     "n_long_gaps_gt20": 0
+    },
+    "物资外贸": {
+     "first_covered": "2021-01-04",
+     "last_covered": "2026-09-30",
+     "max_gap_days": 0,
+     "n_long_gaps_gt20": 0
+    },
+    "环保行业": {
+     "first_covered": "2021-01-04",
+     "last_covered": "2026-09-30",
+     "max_gap_days": 0,
+     "n_long_gaps_gt20": 0
+    },
+    "玻璃行业": {
+     "first_covered": "2021-01-04",
+     "last_covered": "2026-09-30",
+     "max_gap_days": 0,
+     "n_long_gaps_gt20": 0
+    },
+    "生物制药": {
+     "first_covered": "2021-01-04",
+     "last_covered": "2026-09-30",
+     "max_gap_days": 0,
+     "n_long_gaps_gt20": 0
+    },
+    "电力行业": {
+     "first_covered": "2021-01-04",
+     "last_covered": "2026-09-30",
+     "max_gap_days": 0,
+     "n_long_gaps_gt20": 0
+    },
+    "电器行业": {
+     "first_covered": "2021-01-04",
+     "last_covered": "2026-09-30",
+     "max_gap_days": 0,
+     "n_long_gaps_gt20": 0
+    },
+    "电子信息": {
+     "first_covered": "2021-01-04",
+     "last_covered": "2026-09-30",
+     "max_gap_days": 0,
+     "n_long_gaps_gt20": 0
+    },
+    "电子器件": {
+     "first_covered": "2021-01-04",
+     "last_covered": "2026-09-30",
+     "max_gap_days": 0,
+     "n_long_gaps_gt20": 0
+    },
+    "石油行业": {
+     "first_covered": "2021-01-04",
+     "last_covered": "2026-09-30",
+     "max_gap_days": 0,
+     "n_long_gaps_gt20": 0
+    },
+    "纺织机械": {
+     "first_covered": "2021-01-04",
+     "last_covered": "2026-09-30",
+     "max_gap_days": 0,
+     "n_long_gaps_gt20": 0
+    },
+    "纺织行业": {
+     "first_covered": "2021-01-04",
+     "last_covered": "2026-09-30",
+     "max_gap_days": 0,
+     "n_long_gaps_gt20": 0
+    },
+    "综合行业": {
+     "first_covered": "2021-01-04",
+     "last_covered": "2026-09-30",
+     "max_gap_days": 0,
+     "n_long_gaps_gt20": 0
+    },
+    "船舶制造": {
+     "first_covered": "2021-01-04",
+     "last_covered": "2026-09-30",
+     "max_gap_days": 0,
+     "n_long_gaps_gt20": 0
+    },
+    "造纸行业": {
+     "first_covered": "2021-01-04",
+     "last_covered": "2026-09-30",
+     "max_gap_days": 0,
+     "n_long_gaps_gt20": 0
+    },
+    "酒店旅游": {
+     "first_covered": "2021-01-04",
+     "last_covered": "2026-09-30",
+     "max_gap_days": 0,
+     "n_long_gaps_gt20": 0
+    },
+    "酿酒行业": {
+     "first_covered": "2021-01-04",
+     "last_covered": "2026-09-30",
+     "max_gap_days": 0,
+     "n_long_gaps_gt20": 0
+    },
+    "金融行业": {
+     "first_covered": "2021-01-04",
+     "last_covered": "2026-09-30",
+     "max_gap_days": 0,
+     "n_long_gaps_gt20": 0
+    },
+    "钢铁行业": {
+     "first_covered": "2021-01-04",
+     "last_covered": "2026-09-30",
+     "max_gap_days": 0,
+     "n_long_gaps_gt20": 0
+    },
+    "陶瓷行业": {
+     "first_covered": "2021-01-04",
+     "last_covered": "2026-09-30",
+     "max_gap_days": 0,
+     "n_long_gaps_gt20": 0
+    },
+    "飞机制造": {
+     "first_covered": "2021-01-04",
+     "last_covered": "2026-09-30",
+     "max_gap_days": 0,
+     "n_long_gaps_gt20": 0
+    },
+    "食品行业": {
+     "first_covered": "2021-01-04",
+     "last_covered": "2026-09-30",
+     "max_gap_days": 0,
+     "n_long_gaps_gt20": 0
+    }
+   },
+   "level": "L3_sina",
+   "long_gaps_gt20_trading_days_total": 0,
+   "max_sector_gap_days": 0,
+   "median_sector_daily_member_fraction": 0.9804,
+   "member_count_max": 247,
+   "member_count_median": 40,
+   "member_count_min": 6,
+   "membership_change_frequency": "UNKNOWN (v1-static-declared)",
+   "sectors": 49,
+   "sectors_with_any_daily": 49,
+   "single_stock_sector_fraction": 0.0,
+   "small_sector_lt10_fraction": 0.0816,
+   "source_provenance_completeness": 0.9143,
+   "stock_coverage_of_daily": 0.5048,
+   "stock_coverage_of_universe": 0.4903,
+   "stocks_classified": 2998
+  }
+ ],
+ "data1": {
+  "acquired": 5430,
+  "universe": 5223
+ },
+ "declaration": "static classification, change_frequency UNKNOWN, NOT historical authority",
+ "gate_G_CD1A_1_final": {
+  "OVERALL": "PASS — with explicit downgrades: production granularity = L2_csrc; L1 marginal-fail recorded; L3_sina coverage-fail recorded",
+  "c1_membership_usable_declared": true,
+  "c1_note": "v1-static-declared usable (NOT historical PIT; declaration mandatory)",
+  "c2_any_pass": true,
+  "c2_levels": {
+   "L1_csrc": {
+    "pass": false,
+    "reason": "single_stock_sector_fraction 0.0526 > 0.05 threshold (marginal)"
+   },
+   "L2_csrc": {
+    "pass": true,
+    "reason": "coverage 0.9994, median members 25, single-stock 0.0241, zero long gaps, 83/83 sectors with daily"
+   },
+   "L3_sina": {
+    "pass": false,
+    "reason": "stock coverage 0.4903 < 0.95 (sina classifies only 2998 of 5223)"
+   }
+  },
+  "c3_detail": "5430 files (5223 listed + 207 delisted recovered) / 5223 universe = 104%",
+  "c3_full_market_daily": true,
+  "c4_deterministic_rebuild": {
+   "detail": "sector C39, 666 members w/ daily, 1392 days, dual-run sha byte-identical, 52.2s/build",
+   "verdict": "PASS"
+  },
+  "c5_provenance": {
+   "detail": "per-stock source+fetch_time embedded; docs/cd/cd1a_data1_manifest.json sha256 manifest of all 5430 files",
+   "verdict": "PASS"
+  },
+  "c6_no_future_backfill": {
+   "detail": "v1-static declaration on every artifact; 334 NO_CLASSIFICATION fail-closed; 128 delisted no-data-on-source recorded, never guessed",
+   "verdict": "PASS"
+  }
+ },
+ "gate_G_CD1A_1_partial": {
+  "c1_membership_usable_declared": true,
+  "c1_note": "v1-static-declared usable (NOT historical PIT; declaration mandatory on artifacts)",
+  "c2_any_pass": true,
+  "c2_levels": {
+   "L1_csrc": false,
+   "L2_csrc": true,
+   "L3_sina": false
+  },
+  "c3_detail": "5430/5223",
+  "c3_full_market_daily": true,
+  "c4_deterministic_rebuild": "evaluated in sector-series feasibility step",
+  "c5_provenance": "per-stock source+fetch_time embedded in gz; sha manifest at census final",
+  "c6_no_future_backfill": "v1-static declaration enforced; NO_CLASSIFICATION fail-closed counts recorded"
+ },
+ "generated_at": "2026-10-04T16:55:03",
+ "incomplete_run": false,
+ "phase": "CD-1A census",
+ "survivorship_guard": {
+  "csrc_snapshot": 5555,
+  "delisted_delta": 335,
+  "delta_no_data_on_source": 128,
+  "delta_recovered": 207,
+  "listed_universe": 5223,
+  "new_listings_not_in_snapshot": 3
+ }
+}
