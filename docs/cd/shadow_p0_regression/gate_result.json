@@ -1,0 +1,20 @@
+{
+  "gate":"G-SHADOW-AUTHORITY-P0-REGRESSION",
+  "status":"PASS",
+  "n_anchors":5,
+  "checks":{
+    "nonempty_anchors":true,
+    "event_identity_preserved":true,
+    "expected_actual_identity":true,
+    "actual_position_after_zero":true,
+    "actual_independent_producer":true,
+    "reduce_decision":true,
+    "position_before_positive":true,
+    "position_after_zero":true,
+    "exactly_one_close":true,
+    "ordering":true,
+    "conservation":true,
+    "no_silent_disappearance":true
+  },
+  "note":"Five real corrected CD-7 ZONE REDUCED_OUT anchors; close record precedes irreversible position discard."
+}
