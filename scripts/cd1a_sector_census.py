@@ -5,6 +5,7 @@ Writes: docs/cd/cd1a_census.json (census + gate). NO market conclusions — cove
 import json, gzip, sys, hashlib, time
 from pathlib import Path
 from collections import defaultdict
+from bisect import bisect_left
 
 ROOT = Path(__file__).resolve().parent.parent
 D = ROOT / 'data' / 'cd' / 'daily_fullmarket'
@@ -22,6 +23,15 @@ def main():
         if rec['dates']:
             have[code] = rec['dates'][0], rec['dates'][-1], len(rec['dates'])
     print(f'DATA-1 files present: {len(have)} / universe {len(uni)}')
+
+    # 1b. market trading-calendar union + per-code date sets (streamed, memory-bounded)
+    market_dates = set()
+    for code in have:
+        f = D / f'{code}.json.gz'
+        rec = json.loads(gzip.decompress(f.read_bytes()))
+        market_dates.update(rec['dates'])
+    cal = sorted(market_dates)
+    print(f'market union calendar: {len(cal)} dates {cal[0]}..{cal[-1]}')
 
     # 2. csrc seeds L1/L2
     csrc = json.load(open(SEEDS / 'csrc_v1.json'))['members']
@@ -45,22 +55,42 @@ def main():
         n_cls = len(mapping)
         cov_uni = sum(1 for c in uni if c in mapping) / len(uni)
         cov_daily = sum(1 for c in have if c in mapping) / max(1, len(have))
-        # daily-data coverage of window per sector + gaps
-        sec_dates = {}
+        # per-sector: daily member fraction + window-gap profile (on union calendar)
+        sec_frac = {}
+        gap_stats = {}
         for lab, codes in members.items():
-            sec_dates[lab] = len(codes) and sum(1 for c in codes if c in have) / len(codes)
+            sec_frac[lab] = sum(1 for c in codes if c in have) / len(codes) if codes else 0
+            ds = set()
+            for c in codes:
+                if c in have:
+                    f = D / f'{c}.json.gz'
+                    ds.update(json.loads(gzip.decompress(f.read_bytes()))['dates'])
+            covered = sorted(ds)
+            gaps = []
+            if covered:
+                prev_idx = -1
+                for d in covered:
+                    i = cal.index(d) if False else bisect_left(cal, d)
+                    if prev_idx >= 0 and i - prev_idx - 1 > 20:  # >20 trading-day hole
+                        gaps.append((cal[prev_idx], d, i - prev_idx - 1))
+                    prev_idx = i
+            gap_stats[lab] = {'n_long_gaps_gt20': len(gaps), 'max_gap_days': max((g[2] for g in gaps), default=0),
+                              'first_covered': covered[0] if covered else None, 'last_covered': covered[-1] if covered else None}
         med = sizes[len(sizes)//2] if sizes else 0
         single = sum(1 for s in sizes if s == 1) / max(1, len(sizes))
         small10 = sum(1 for s in sizes if s < 10) / max(1, len(sizes))
-        withdaily = sum(1 for lab, codes in members.items() if any(c in have for c in codes))
+        withdaily = sum(1 for lab in members if sec_frac[lab] > 0)
+        n_gaps = sum(v['n_long_gaps_gt20'] for v in gap_stats.values())
         return {'level': level_name, 'sectors': len(members), 'stocks_classified': n_cls,
                 'stock_coverage_of_universe': round(cov_uni, 4), 'stock_coverage_of_daily': round(cov_daily, 4),
                 'member_count_min': sizes[0] if sizes else 0, 'member_count_median': med, 'member_count_max': sizes[-1] if sizes else 0,
                 'single_stock_sector_fraction': round(single, 4), 'small_sector_lt10_fraction': round(small10, 4),
                 'sectors_with_any_daily': withdaily,
-                'median_sector_daily_member_fraction': sorted(sec_dates.values())[len(sec_dates)//2] if sec_dates else 0,
+                'median_sector_daily_member_fraction': round(sorted(sec_frac.values())[len(sec_frac)//2], 4) if sec_frac else 0,
                 'membership_change_frequency': 'UNKNOWN (v1-static-declared)',
-                'gaps': 'per-sector window gaps computed in final census run', }
+                'long_gaps_gt20_trading_days_total': n_gaps,
+                'max_sector_gap_days': max((v['max_gap_days'] for v in gap_stats.values()), default=0),
+                'gap_detail_per_sector': gap_stats, }
 
     c1 = census('L1_csrc', l1); c2 = census('L2_csrc', l2); c3 = census('L3_sina', l3)
 
