@@ -1,10 +1,13 @@
 {
   "gate":"G-SHADOW-AUTHORITY",
   "status":"NOT_READY",
-  "reason":"Independent producer payloads for per-asof lifecycle, corrected PRIMARY_ZONE, and frozen decisions are not yet present as historical authority artifacts.",
-  "producer":"scripts/cd_shadow_materialize_authority.py",
-  "consumer":"scripts/cd_shadow_real_adapters.py",
-  "p0_regression":"NOT_RUN",
+  "pilot_status":"PARTIAL_MATERIALIZATION_REJECTED",
+  "materializer":"scripts/cd_shadow_materialize_pilot.py",
+  "materialized_pilot_dates":["2022-04-29","2023-03-31","2024-06-28","2025-12-31","2026-09-30"],
+  "unavailable_requested_date":["2021-07-30"],
+  "reason":"Pilot artifacts can be deterministically expanded for available L1 dates, but G-SHADOW-AUTHORITY correctly rejects them because the mandatory independent CD-7 REDUCED_OUT regression anchor is absent. The current aggregate corrected result does not contain event-level terminal records from which that anchor can be extracted.",
+  "p0_regression":"BLOCKED_NOT_EVIDENCED",
   "circular_self_proof":"forbidden",
-  "next_allowed_action":"Supply producer outputs from frozen CD-5/CD-7/Round-1 authority, materialize pilot dates, then run authority gate before adapter parity."
+  "artifact_policy":"Pilot files are not promoted as authority and must not be consumed as SHADOW_VALID evidence until the authority gate passes.",
+  "next_allowed_action":"Obtain an independent event-level corrected CD-7 authority fixture proving DECAYING -> REDUCE -> position zero -> exactly one REDUCED_OUT close; then rerun authority and parity gates."
 }
