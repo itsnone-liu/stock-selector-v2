@@ -1,0 +1,10 @@
+{
+  "gate":"G-SHADOW-AUTHORITY",
+  "status":"NOT_READY",
+  "reason":"Independent producer payloads for per-asof lifecycle, corrected PRIMARY_ZONE, and frozen decisions are not yet present as historical authority artifacts.",
+  "producer":"scripts/cd_shadow_materialize_authority.py",
+  "consumer":"scripts/cd_shadow_real_adapters.py",
+  "p0_regression":"NOT_RUN",
+  "circular_self_proof":"forbidden",
+  "next_allowed_action":"Supply producer outputs from frozen CD-5/CD-7/Round-1 authority, materialize pilot dates, then run authority gate before adapter parity."
+}
