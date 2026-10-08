@@ -59,9 +59,12 @@ def main():
   cross[k]={kk:{'n':len(v),'mean':round(st.mean(v),4),'median':round(st.median(v),4),'up_ratio':round(sum(1 for x in v if x>0)/len(v),3)} for kk,v in g.items() if len(v)>=8}
  # BROKEN critical queue: exit_distance = close(day)/trigger - 1, trigger=band_low*0.95
  q=[]
+ ACTIONABLE={'CONFIRM_CANDIDATE','BUILD','WATCH'}
+ n_below_all=0
  for c in cards:
   cs=c.get('capital_support',{})
   if not cs or cs.get('support_state')=='BROKEN': continue
+  if c.get('decision',{}).get('decision_tier') not in ACTIONABLE: continue
   mkt='sh' if c['stock'][0] in '69' else ('bj' if c['stock'][0] in '48' else 'sz')
   p=TDX/mkt/'lday'/f'{mkt}{c["stock"]}.day'
   if not p.exists(): continue
