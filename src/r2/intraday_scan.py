@@ -32,8 +32,11 @@ def quotes(codes):
 def main():
  ap=argparse.ArgumentParser(); ap.add_argument('--pool',default='candidates')
  ap.add_argument('--push',action='store_true'); a=ap.parse_args()
- latest=sorted(SCANS.glob('current_scan_*.json'))[-1]
- d=json.load(open(latest)); base_day=latest.stem[-10:]
+ snap=sorted(SCANS.glob('current_scan_*.json'))
+ if snap:
+  latest=snap[-1]; base_day=latest.stem[-10:]; d=json.load(open(latest))
+ else:
+  latest=ROOT/'data/r2/current_scan_v0.json'; d=json.load(open(latest)); base_day=d.get('asof_ym','v0')
  cards=[c for c in d['cards'] if c.get('capital_support') and c.get('decision')]
  if a.pool=='confirm':
   cards=[c for c in cards if c['decision']['decision_tier']=='CONFIRM_CANDIDATE']
