@@ -61,7 +61,7 @@ def decision_tiers(code,cs):
  from support_gate import load
  st=load(code)
  if not st: return None
- ds,cl=st[0],st[1]
+ ds,cl=st[0],st[1]; _lo=st[4-1] if len(st)>=4 else None
  d=ds[-1].replace('-','')
  i=md.index(d) if d in md else len(md)-1
  pre=[part.get(x) for x in md[max(0,i-20):i] if part.get(x) is not None]
@@ -83,12 +83,13 @@ def decision_tiers(code,cs):
  reg=_c.Counter(tail5).most_common(1)[0][0] if tail5 else 'UNKNOWN'
  bear=reg.startswith(('R_DEPRESSED','R_RISK_OFF')) if reg else False
  ss=cs['support_state'] if cs else 'NA'
+ hl=bool(_lo and len(_lo)>=10) and min(_lo[-5:])>min(_lo[-10:-5])   # R2-8A frozen: HL_RAISE as HOLD/RISK license (NOT an ADD signal)
  if ss=='BROKEN': tier='EXIT'
- elif ss in('IN_SUPPORT','UNDERCUT_TEST') and t3: tier='CONFIRM_CANDIDATE'
+ elif ss in('IN_SUPPORT','UNDERCUT_TEST') and t3: tier='CONFIRM_CANDIDATE' if (not bear or hl) else 'RISK_HOLD'
  elif ss in('IN_SUPPORT','UNDERCUT_TEST') and t2 and not bear: tier='BUILD'
  elif ss=='ABOVE_SUPPORT' and t2: tier='WATCH'
  else: tier='NO_BUILD'
- return {'market_tier':t1,'sector_tier':t2,'stock_rs_tier':t3,'regime':reg,'decision_tier':tier}
+ return {'market_tier':t1,'sector_tier':t2,'stock_rs_tier':t3,'regime':reg,'higher_low':hl,'decision_tier':tier}
 
 def main():
  margin={}
