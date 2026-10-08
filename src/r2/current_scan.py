@@ -77,10 +77,10 @@ def decision_tiers(code,cs):
    t2=cs20>cm
    s20=cl[-1]/cl[-21]-1 if len(cl)>21 else None
    t3=(s20 is not None and s20>cs20-1)
- reg=None
- for r in l1:
-  if r['date'].replace('-','')==d: reg=r['regime']; break
- if reg is None: reg=l1[-1]['regime']
+ # D: 5-day majority vote (frozen 2026-10-08; daily regime is non-persistent, median 1-2d)
+ import collections as _c
+ tail5=[r['regime'] for r in l1 if r['date'].replace('-','')<=d][-5:]
+ reg=_c.Counter(tail5).most_common(1)[0][0] if tail5 else 'UNKNOWN'
  bear=reg.startswith(('R_DEPRESSED','R_RISK_OFF')) if reg else False
  ss=cs['support_state'] if cs else 'NA'
  if ss=='BROKEN': tier='EXIT'
@@ -138,6 +138,10 @@ def main():
   md.append(f"| {x['stock']} | {x['state']} | {x['confidence']} | {cb} | {x['dist_to_cost']} | {x['chip_locking']} | {x['holders_chg_pct']} | {x['margin_ratio']} | {';'.join(map(str,x['contradictions'])) or '无'} |")
  md.append('')
  md.append(f"共 {len(cards)} 只进入判断池（ACCUMULATION/MATURE/READY）。完整证据矩阵: data/r2/current_scan_v0.json")
+ # E: dated snapshot for daily pipeline
+ asof=sorted({r['ym'] for r in last.values()})[-1]
+ (ROOT/'data/r2/scans').mkdir(exist_ok=True)
+ (ROOT/f'data/r2/scans/current_scan_{asof}.json').write_text((ROOT/'data/r2/current_scan_v0.json').read_text())
  (ROOT/'docs/r2/R2-5_SCAN_v0.md').write_text('\n'.join(md)+'\n')
  print(json.dumps({'judged':len(cards),'mature':sum(1 for x in cards if x['state']=='ACCUMULATION_MATURE'),'top15':[x['stock'] for x in top[:5]]},ensure_ascii=False))
 if __name__=='__main__':main()
