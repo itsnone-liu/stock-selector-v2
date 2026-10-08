@@ -138,8 +138,11 @@ def main():
   md.append(f"| {x['stock']} | {x['state']} | {x['confidence']} | {cb} | {x['dist_to_cost']} | {x['chip_locking']} | {x['holders_chg_pct']} | {x['margin_ratio']} | {';'.join(map(str,x['contradictions'])) or '无'} |")
  md.append('')
  md.append(f"共 {len(cards)} 只进入判断池（ACCUMULATION/MATURE/READY）。完整证据矩阵: data/r2/current_scan_v0.json")
- # E: dated snapshot for daily pipeline
- asof=sorted({r['ym'] for r in last.values()})[-1]
+ # E: dated snapshot for daily pipeline — filename = trading day (TDX clock, pipeline's date authority)
+ import struct as _st
+ _b=open('/root/tdx_data/vipdoc/sz/lday/sz000001.day','rb').read()
+ _d=_st.unpack('<I',_b[-32:-28])[0]; _ds=f'{_d:08d}'
+ asof=f'{_ds[:4]}-{_ds[4:6]}-{_ds[6:]}'
  (ROOT/'data/r2/scans').mkdir(exist_ok=True)
  (ROOT/f'data/r2/scans/current_scan_{asof}.json').write_text((ROOT/'data/r2/current_scan_v0.json').read_text())
  (ROOT/'docs/r2/R2-5_SCAN_v0.md').write_text('\n'.join(md)+'\n')

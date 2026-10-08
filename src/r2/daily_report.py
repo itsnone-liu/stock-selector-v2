@@ -13,16 +13,6 @@ ROOT=Path(__file__).resolve().parents[2]
 TDX=Path('/root/tdx_data/vipdoc'); SCANS=ROOT/'data/r2/scans'
 OUTD=ROOT/'data/r2/daily_update'
 
-def tdx_pct(code,day):
- mkt='sh' if code[0] in '69' else ('bj' if code[0] in '48' else 'sz')
- p=TDX/mkt/'lday'/f'{mkt}{code}.day'
- if not p.exists(): return None
- b=p.read_bytes(); prev=None
- for i in range(len(b)//32):
-  d=struct.unpack('<I',b[i*32:i*32+4])[0]
-  if str(d)==day.replace('-',''): return b and struct.unpack('<f',b[i*32+24:i*32+28])[0]  # placeholder
- return None
-
 def day_pct(code,day):
  """pct chg on `day` from TDX raw bars; None if suspended (no bar) or file missing."""
  mkt='sh' if code[0] in '69' else ('bj' if code[0] in '48' else 'sz')
@@ -48,8 +38,8 @@ def main():
  ap=argparse.ArgumentParser(); ap.add_argument('--day',required=True); a=ap.parse_args()
  day=a.day; cur=json.load(open(SCANS/f'current_scan_{day}.json'))
  cards=cur['cards']
- prevs=sorted(SCANS.glob('current_scan_*.json'))
- prev=json.load(open(prevs[-2])) if len(prevs)>=2 else None
+ prevs=[p for p in sorted(SCANS.glob('current_scan_*.json')) if p.stem[-10:]!=day]
+ prev=json.load(open(prevs[-1])) if prevs else None
  mig=[]
  if prev:
   pt={c['stock']:c.get('decision',{}).get('decision_tier') for c in prev['cards']}

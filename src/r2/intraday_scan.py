@@ -7,6 +7,8 @@ price-dependent quantities (support_state, exit_distance, band test/reclaim,
 live RS vs market) from tencent batch quotes. Designed for 11:35 / 13:55 runs.
 
 Usage: intraday_scan.py [--pool all|candidates|confirm]  → data/r2/daily_update/intraday_<ts>.json
+Note: BAND_TEST only fires for --pool candidates/all (confirm pool has no ABOVE_SUPPORT
+frozen states); RS_VS_INDEX benchmarks the SH composite index, not the pool itself.
 """
 from __future__ import annotations
 import argparse,json,time,urllib.request
@@ -29,6 +31,11 @@ def quotes(codes):
   time.sleep(0.4)
  return out
 
+def idx_pct():
+ r=urllib.request.Request('http://qt.gtimg.cn/q=sh000001',headers={'User-Agent':'Mozilla/5.0'})
+ f=urllib.request.urlopen(r,timeout=15).read().decode('gbk').split('~')
+ return float(f[32]) if len(f)>32 and f[32] else 0.0
+
 def main():
  ap=argparse.ArgumentParser(); ap.add_argument('--pool',default='candidates')
  ap.add_argument('--push',action='store_true'); a=ap.parse_args()
@@ -43,8 +50,10 @@ def main():
  elif a.pool=='candidates':
   keep={'CONFIRM_CANDIDATE','BUILD','WATCH'}
   cards=[c for c in cards if c['decision']['decision_tier'] in keep or c['capital_support']['support_state'] in ('IN_SUPPORT','UNDERCUT_TEST')]
- q=quotes([c['stock'] for c in cards])
- mkt=[v['pct'] for v in q.values()]; mkt_pct=sum(mkt)/len(mkt) if mkt else 0.0
+ want=[c['stock'] for c in cards]
+ q=quotes(want)
+ mkt_pct=idx_pct()  # FIX: benchmark = SH composite index, not pool average
+ missing=[c for c in want if c not in q or q[c]['price']<=0]
  rows=[]
  for c in cards:
   t=q.get(c['stock'])
@@ -61,7 +70,7 @@ def main():
   elif px/trig-1<0.02: alerts.append('NEAR_TRIGGER')
   if frozen=='ABOVE_SUPPORT' and px<bh: alerts.append('BAND_TEST')      # 回落进带=可BUILD评估
   if frozen in('UNDERCUT_TEST','IN_SUPPORT') and px>bh: alerts.append('BAND_BREAKOUT')
-  if t['pct']>mkt_pct+1.0: alerts.append('RS_STRONG')
+  if t['pct']>mkt_pct+1.0: alerts.append('RS_VS_INDEX')
   rows.append({'stock':c['stock'],'name':t['name'],'tier':c['decision']['decision_tier'],
    'px':px,'pct':t['pct'],'frozen_state':frozen,'live_state':ss,
    'exit_dist':round(px/trig-1,4),'alerts':alerts,'band_pos_live':round(px/cs['cost_band_mid']-1,4)})
@@ -69,10 +78,11 @@ def main():
  ts=time.strftime('%Y%m%d_%H%M')
  OUTD.mkdir(parents=True,exist_ok=True)
  (OUTD/f'intraday_{ts}.json').write_text(json.dumps({'ts':ts,'base_scan':base_day,
-  'market_avg_pct':round(mkt_pct,2),'n':len(rows),'rows':rows},ensure_ascii=False,indent=1))
+  'idx_pct':round(mkt_pct,2),'n':len(rows),'n_missing':len(missing),'missing':missing,'rows':rows},ensure_ascii=False,indent=1))
  al=[r for r in rows if r['alerts']]
- print(json.dumps({'ts':ts,'base':base_day,'n':len(rows),'alerts':len(al),
+ print(json.dumps({'ts':ts,'base':base_day,'n':len(rows),'n_missing':len(missing),'missing':missing[:20],'idx_pct':mkt_pct,'alerts':len(al),
   'cross_trigger':[r['stock'] for r in rows if 'CROSS_TRIGGER' in r['alerts']],
-  'band_test':[r['stock'] for r in rows if 'BAND_TEST' in r['alerts']][:10],
-  'band_breakout':[r['stock'] for r in rows if 'BAND_BREAKOUT' in r['alerts']][:10]},ensure_ascii=False))
+  'near_trigger':[r['stock'] for r in rows if 'NEAR_TRIGGER' in r['alerts']],
+  'band_test':[r['stock'] for r in rows if 'BAND_TEST' in r['alerts']],
+  'band_breakout':[r['stock'] for r in rows if 'BAND_BREAKOUT' in r['alerts']]},ensure_ascii=False))
 if __name__=='__main__':main()
