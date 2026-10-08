@@ -1,5 +1,5 @@
 {
- "generated": "2026-10-04T21:45:48",
+ "generated": "2026-10-04T23:31:09",
  "coverage_fix": "P0 REDUCED_OUT fix: prior cd7/cd7r2 engines silently dropped trades closed by DECAYING-reduce (survivorship 2813/25164); all CD-7 R1/R2 numbers superseded",
  "never": {
   "never_eligible": 4203,

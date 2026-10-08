@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """R2 §14-18 support: monthly PIT panel with markup labels, streaming build."""
 from __future__ import annotations
-import argparse,gzip,json,sys,time
+import argparse,gzip,json,sqlite3,sys,time
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[2]; sys.path.insert(0,str(ROOT))
 from src.capital_inference.features import snapshot
@@ -23,6 +23,20 @@ def _avail(chg_date,asof):
 def main():
  ap=argparse.ArgumentParser();ap.add_argument('--out',default=str(ROOT/'data/r2/panel_monthly.jsonl'));a=ap.parse_args()
  t0=time.time(); n=0; H=load_holders()
+ e5=sqlite3.connect(str(ROOT/'data/r2/e5/e5.db'))
+ def e5_feats(code,ds,i):
+  out={'margin_chg20':None,'lhb_inst_net60':None,'lhb_events60':0,'block_amt60':None}
+  win=[d.replace('-','') for d in ds[max(0,i-59):i+1]]
+  lo,hi=win[0],win[-1]
+  mg=e5.execute('SELECT date,rzye FROM margin WHERE code=? AND date<=? ORDER BY date DESC LIMIT 40',(code,hi)).fetchall()
+  if len(mg)>=21 and mg[0][1] and mg[20][1]:
+   out['margin_chg20']=round(mg[0][1]/mg[20][1]-1,4)
+  lh=e5.execute('SELECT date,inst_net FROM lhb WHERE code=? AND date BETWEEN ? AND ?',(code,lo,hi)).fetchall()
+  if lh:
+   out['lhb_events60']=len(lh); out['lhb_inst_net60']=round(sum(x[1] or 0 for x in lh)/1e8,4)
+  bl=e5.execute('SELECT amount FROM block WHERE code=? AND date BETWEEN ? AND ?',(code,lo,hi)).fetchall()
+  if bl: out['block_amt60']=round(sum(x[0] or 0 for x in bl)/1e8,4)
+  return out
  with open(a.out,'w') as f:
   for p in sorted(D.glob('*.json.gz')):
    code=p.name[:-8]
@@ -57,6 +71,7 @@ def main():
     if ok:
      e4=ok[-1][1]; e4b=sum((x[1] or 0) for x in ok[-2:])/min(2,len(ok))
     f_['holders_chg_pct']=e4; f_['holders_chg2_pct']=e4b if e4b is not None else None
+    f_.update(e5_feats(code,ds,i))
     st=infer(f_)
     row={'stock':code,'ym':ym,'close':cl[i],**f_,**st,**lab}
     f.write(json.dumps(row,ensure_ascii=False)+'\n'); n+=1

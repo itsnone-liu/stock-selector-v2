@@ -45,7 +45,16 @@ def infer(f):
  if hc2 is not None and hc2<-5: e4+=1
  if hc2 is not None and hc2>5: e4-=1
  fam['E4_ownership']=max(-2,min(2,e4))
- fam['E5_public']='MISSING'; fam['E6_context']='MISSING'
+ mc=f.get('margin_chg20'); li=f.get('lhb_inst_net60'); le=f.get('lhb_events60')
+ e5s=0
+ if mc is not None:
+  if mc>0.15: e5s+=1
+  elif mc<-0.15: e5s-=1
+ if li is not None:
+  if li>0.3: e5s+=1
+  elif li<-0.3: e5s-=1
+ fam['E5_public']=max(-2,min(2,e5s)) if (mc is not None or li is not None) else 'MISSING'
+ fam['E6_context']='MISSING'
  scores=[v for v in fam.values() if isinstance(v,int)]
  cov_adj=fam['E4_ownership']!='MISSING'
  sup=sum(v for v in scores if v>0); con=sum(-v for v in scores if v<0); cov=len([v for v in fam.values() if v!='MISSING'])/6

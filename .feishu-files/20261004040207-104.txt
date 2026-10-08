@@ -1,0 +1,1707 @@
+# 资金结构驱动选股与持仓决策系统
+## 技术实施方案 v1.0
+
+---
+
+# 1. 项目目标
+
+构建一套从市场资金背景到个股交易建议的完整决策系统：
+
+```text
+市场资金结构
+    ↓
+细分板块资金选择
+    ↓
+候选股票漏斗
+    ↓
+资本成本与筹码生命周期
+    ↓
+个股优先级排序
+    ↓
+建仓 / 加仓 / 持有 / 减仓 / 退出
+```
+
+系统最终不以“预测明天涨跌”为主要目标，而是回答：
+
+```text
+当前钱在哪里？
+哪些资金仍然在场？
+成本在哪里？
+哪些板块正在被资金选择？
+哪些股票筹码结构最好？
+哪些股票处于 accumulation / re-accumulation？
+哪里是合理建仓区？
+什么条件下原判断失效？
+```
+
+---
+
+# 2. 工程原则
+
+## 2.1 决策优先
+
+任何指标、模型或研究模块必须对应至少一个决策：
+
+```text
+市场风险预算
+板块优先级
+候选股过滤
+个股排序
+建仓区间
+加减仓
+退出
+```
+
+不能改变任何决策的研究模块，不进入主生产链。
+
+---
+
+## 2.2 漏斗式计算
+
+禁止全市场对所有股票执行昂贵筹码分析。
+
+采用：
+
+```text
+5000+ 股票
+    ↓
+市场 Gate
+    ↓
+优先板块
+    ↓
+300–800 股票
+    ↓
+轻量筛选
+    ↓
+50–150 股票
+    ↓
+完整 Cost/Lifecycle 分析
+    ↓
+10–30 高质量候选
+```
+
+---
+
+## 2.3 PIT-first
+
+所有用于历史回放和研究的数据必须满足：
+
+```text
+available_at <= decision_time
+```
+
+尤其：
+
+- 行业分类；
+- 机构持仓；
+- ETF 持仓；
+- 股东数据；
+- 财务数据；
+- 国家队披露；
+- 主题分类。
+
+禁止当前分类倒灌历史。
+
+---
+
+## 2.4 价格形态只是资金状态投影
+
+不以：
+
+```text
+MACD
+均线
+突破
+缩量
+```
+
+本身作为理论终点。
+
+这些都只是：
+
+```text
+资金进入
+筹码交换
+成本变化
+供给减少
+资金撤离
+```
+
+在市场价格上的可观测结果。
+
+---
+
+# 3. 系统总体架构
+
+建议分成六层。
+
+```text
+┌─────────────────────────────┐
+│ L0 Data / PIT Evidence      │
+├─────────────────────────────┤
+│ L1 Market Capital Regime    │
+├─────────────────────────────┤
+│ L2 Sector Capital Selection │
+├─────────────────────────────┤
+│ L3 Candidate Funnel         │
+├─────────────────────────────┤
+│ L4 Cost & Lifecycle Engine  │
+├─────────────────────────────┤
+│ L5 Decision Engine          │
+└─────────────────────────────┘
+```
+
+---
+
+# 4. L0：统一数据层
+
+这是整个系统底座。
+
+## 4.1 基础行情
+
+必须包括：
+
+```text
+股票：
+OHLCV
+成交额
+换手率
+自由流通市值
+复权因子
+停牌状态
+
+指数：
+宽基
+一级行业
+二级行业
+细分板块
+
+ETF：
+价格
+份额
+规模
+成交
+申赎变化
+```
+
+时间粒度：
+
+```text
+日线 = 主研究粒度
+周线 = 中期趋势
+月线 = 长期状态
+```
+
+盘中以后再加，不进入第一版。
+
+---
+
+# 5. PIT Sector 数据模型
+
+这是下一阶段最关键的基础工程之一。
+
+禁止：
+
+```text
+stock → 一个静态行业标签
+```
+
+采用 versioned membership：
+
+```json
+{
+  "stock": "600xxx",
+  "taxonomy": "sector_v1",
+  "level_1": "电子",
+  "level_2": "半导体",
+  "level_3": "半导体设备",
+  "valid_from": "2022-01-01",
+  "valid_to": "2024-06-30",
+  "source": "...",
+  "available_at": "..."
+}
+```
+
+必须支持：
+
+```text
+sector_of(stock, T)
+```
+
+而不是：
+
+```text
+sector_of(stock)
+```
+
+---
+
+# 6. Sector 层级
+
+第一版建议固定三级。
+
+## L1 一级产业
+
+例如：
+
+```text
+电子
+医药
+机械
+电力设备
+有色
+汽车
+```
+
+## L2 行业
+
+例如：
+
+```text
+电子
+ └ 半导体
+```
+
+## L3 细分
+
+例如：
+
+```text
+半导体
+ ├ 设计
+ ├ 制造
+ ├ 设备
+ ├ 材料
+ ├ 封测
+ ├ 存储
+ ├ 功率
+ └ 模拟
+```
+
+先做到真正有投资意义的粒度。
+
+不要一开始建立无限细知识图谱。
+
+---
+
+# 7. L1：Market Capital Regime
+
+市场层回答：
+
+> 当前总体风险预算应该是多少？
+
+不是选股。
+
+---
+
+# 8. Market State 数据结构
+
+建议输出：
+
+```json
+{
+  "date": "T",
+  "long_term_capital": "STABLE",
+  "active_liquidity": "CONTRACTING",
+  "market_regime": "RISK_OFF",
+  "structural_support": 0.78,
+  "liquidity_temperature": 0.31,
+  "risk_budget": 0.35
+}
+```
+
+其中 score 用于内部排序。
+
+最终标签必须离散。
+
+---
+
+# 9. Market 层指标
+
+分两组。
+
+## 9.1 长期压舱石
+
+包括：
+
+```text
+国家级/宽基 ETF 结构
+长期机构持仓
+宽基长期成本
+长期趋势
+长期成交结构
+```
+
+目标：
+
+> 判断长期资本结构是否破坏。
+
+输出：
+
+```text
+STABLE
+WEAKENING
+BROKEN
+```
+
+---
+
+## 9.2 活跃资金
+
+包括：
+
+```text
+全市场成交额
+上涨/下跌成交分布
+融资余额
+ETF 短期份额变化
+风险偏好
+短周期趋势
+市场宽度 breadth
+```
+
+输出：
+
+```text
+EXPANDING
+NEUTRAL
+CONTRACTING
+```
+
+---
+
+# 10. 市场最终映射
+
+例如：
+
+```text
+长期稳定 + 活跃扩张
+→ RISK_ON
+
+长期稳定 + 活跃收缩
+→ DEFENSIVE_ACCUMULATION
+
+长期弱化 + 活跃扩张
+→ TACTICAL_ONLY
+
+长期破坏
+→ RISK_OFF
+```
+
+建议不要只保留三态。
+
+更适合交易的是：
+
+```text
+RISK_ON
+DEFENSIVE_ACCUMULATION
+TACTICAL
+RISK_OFF
+```
+
+其中：
+
+## DEFENSIVE_ACCUMULATION
+
+非常重要。
+
+表示：
+
+```text
+压舱石仍在
++
+短期资金撤退
+```
+
+这正是寻找：
+
+```text
+成本支撑
+低位建仓
+等待资金回流
+```
+
+的环境。
+
+---
+
+# 11. L2：Sector Capital Selection
+
+目标：
+
+> 判断活跃资金正在选择哪些方向。
+
+---
+
+# 12. Sector Feature Set
+
+每个细分板块 T 时点计算：
+
+## 12.1 Relative Strength
+
+相对：
+
+```text
+全市场
+一级行业
+上级板块
+```
+
+计算：
+
+```text
+R5
+R10
+R20
+R60
+```
+
+但只作为一个轴。
+
+---
+
+## 12.2 Capital Participation
+
+包括：
+
+```text
+成交额占全市场比例
+成交额占上级行业比例
+换手
+上涨成交/下跌成交
+ETF份额变化
+融资活跃度
+```
+
+---
+
+## 12.3 Breadth
+
+例如：
+
+```text
+上涨股票比例
+站上20日线比例
+站上60日线比例
+创新高比例
+```
+
+防止：
+
+> 一个龙头上涨把整个板块看成强。
+
+---
+
+## 12.4 Internal Concentration
+
+判断资金是否集中于少量个股：
+
+```text
+top5成交占比
+top10成交占比
+龙头贡献率
+```
+
+---
+
+## 12.5 Lifecycle
+
+板块本身也有生命周期：
+
+```text
+BASE
+ACCUMULATION
+BREAKOUT
+MARKUP
+PULLBACK
+RE-ACCUMULATION
+DISTRIBUTION
+DECLINE
+```
+
+---
+
+# 13. Sector 输出
+
+每个板块形成：
+
+```json
+{
+  "sector": "半导体设备",
+  "state": "RE_ACCUMULATION",
+  "capital_flow": "IMPROVING",
+  "relative_strength": 0.81,
+  "breadth": 0.67,
+  "participation": 0.74,
+  "support_quality": 0.72,
+  "priority": "A"
+}
+```
+
+---
+
+# 14. Sector Priority
+
+建议：
+
+```text
+A = LEADING / RE-ACCUMULATION
+B = IMPROVING
+C = NEUTRAL
+D = WEAKENING
+E = OUTFLOW / BROKEN
+```
+
+进入深度选股的原则：
+
+```text
+A/B 主选
+C 少量观察
+D/E 默认不做
+```
+
+这样可以把几千股票快速缩小。
+
+---
+
+# 15. L3：Candidate Funnel
+
+候选漏斗分两级。
+
+---
+
+# 16. Funnel-A：板块 Gate
+
+只展开：
+
+```text
+Sector Priority ∈ {A,B}
+```
+
+特殊情况下：
+
+```text
+C + 个股极强
+```
+
+允许少量进入观察池。
+
+---
+
+# 17. Funnel-B：个股轻筛
+
+只能使用便宜指标。
+
+禁止运行昂贵历史筹码重建。
+
+建议第一版条件：
+
+```text
+流动性达标
+非异常股票
+长期结构未破坏
+板块相对强度不差
+个股相对板块强度不差
+当前价格位置合理
+存在 accumulation / pullback / pre-breakout 候选特征
+```
+
+---
+
+# 18. 轻筛指标
+
+包括：
+
+```text
+R20 / R60 / R120
+距120/250日高低点
+ATR
+波动收缩
+累计换手
+回撤
+成交密集度
+个股/板块 RS
+周线趋势
+月线结构
+```
+
+目标不是判断“主力”。
+
+只是把：
+
+```text
+300–800
+↓
+50–150
+```
+
+---
+
+# 19. L4：Capital Cost & Lifecycle Engine
+
+这是最核心、最昂贵模块。
+
+仅对漏斗后的候选运行。
+
+---
+
+# 20. Capital Cost Map
+
+为每只候选股票构建成本地图。
+
+至少四层。
+
+```text
+C0 Long-term Cost
+C1 Markup Capital Cost
+C2 Trapped High Cost
+C3 Current Re-accumulation Cost
+```
+
+---
+
+# 21. 第一版成本估计不追求“真实庄家成本”
+
+这是非常重要的工程原则。
+
+我们无法直接知道每笔资金是谁。
+
+因此第一版做：
+
+> Observable Cost Distribution
+
+即：
+
+```text
+成交量 × 成交价格
+```
+
+形成时间衰减后的成交成本分布。
+
+类似 volume profile，但加入：
+
+```text
+时间
+换手
+流通股本
+生命周期
+```
+
+---
+
+# 22. Approximate Chip Distribution
+
+第一版可以建立简化筹码转移模型。
+
+每日：
+
+```text
+旧筹码保留比例
+=
+1 - turnover_adjusted
+```
+
+新增成交按当日价格分布写入。
+
+概念上：
+
+```text
+chips_t
+=
+chips_(t-1) × survival
++
+new_turnover_distribution
+```
+
+需要明确：
+
+这不是交易所真实账户筹码。
+
+它只是：
+
+> 成交成本分布近似。
+
+---
+
+# 23. Turnover Survival Model
+
+第一版可以使用确定性近似：
+
+```text
+survival = exp(-k × turnover)
+```
+
+或者：
+
+```text
+survival = 1 - adjusted_turnover
+```
+
+先建立两个模型做 sensitivity。
+
+不能直接调 k 找最好结果。
+
+先冻结。
+
+---
+
+# 24. 输出筹码结构
+
+例如：
+
+```json
+{
+  "median_cost": 23.4,
+  "p25_cost": 21.7,
+  "p75_cost": 25.6,
+  "cost_width": 3.9,
+  "current_profit_chip_fraction": 0.64,
+  "overhead_supply_fraction": 0.18,
+  "recent_turnover_fraction": 0.72
+}
+```
+
+---
+
+# 25. Supply Absorption Engine
+
+用于研究：
+
+> 被套筹码是否被消化。
+
+主要指标：
+
+## 25.1 Historical Overhang
+
+当前价格上方历史筹码占比。
+
+---
+
+## 25.2 Overhang Decay
+
+例如：
+
+```text
+60日前：
+上方套牢筹码 48%
+
+现在：
+19%
+```
+
+说明大量高位筹码已经换手。
+
+---
+
+## 25.3 Turnover Without Breakdown
+
+核心变量之一：
+
+```text
+累计换手很大
++
+价格没有持续下降
+```
+
+说明：
+
+> 大量筹码被重新分配，同时存在承接。
+
+---
+
+## 25.4 Cost Compression
+
+例如：
+
+```text
+cost IQR
+60日前 = 12%
+当前   = 5%
+```
+
+表示成本越来越集中。
+
+---
+
+## 25.5 Selling Efficiency
+
+定义：
+
+```text
+负收益 / 下跌成交量
+```
+
+如果持续下降：
+
+> 同样卖盘越来越难推动价格下跌。
+
+---
+
+## 25.6 Buying Efficiency
+
+```text
+正收益 / 上涨成交量
+```
+
+如果改善：
+
+> 较少资金即可推动价格上涨。
+
+---
+
+# 26. Supply Absorption Score
+
+最终形成：
+
+```text
+LOW
+MEDIUM
+HIGH
+```
+
+同时保留分项。
+
+禁止一个黑盒总分取代原始证据。
+
+---
+
+# 27. Lifecycle State Machine
+
+这是核心状态机。
+
+建议：
+
+```text
+DECLINE
+↓
+BASE_FORMING
+↓
+ACCUMULATION
+↓
+MATURE_ACCUMULATION
+↓
+PRE_BREAKOUT
+↓
+MARKUP
+↓
+PULLBACK
+↓
+RE_ACCUMULATION
+↓
+MARKUP_2
+```
+
+另一条：
+
+```text
+MARKUP
+↓
+DISTRIBUTION_RISK
+↓
+DISTRIBUTION
+↓
+STRUCTURE_BROKEN
+```
+
+---
+
+# 28. 状态转换必须规则化
+
+例如：
+
+## ACCUMULATION
+
+要求若干条件组合：
+
+```text
+长期跌幅停止扩大
+累计换手较高
+价格重心稳定
+cost width 收缩
+overhang 下降
+selling efficiency 下降
+```
+
+---
+
+## MATURE_ACCUMULATION
+
+进一步要求：
+
+```text
+overhang 明显降低
+cost concentration 高
+波动收缩
+上涨效率改善
+```
+
+---
+
+## RE_ACCUMULATION
+
+必须先存在：
+
+```text
+MARKUP history
+```
+
+然后：
+
+```text
+从高点回撤
+但长期结构未破坏
+核心成本仍有效
+高位追涨筹码下降
+新成本区形成
+```
+
+---
+
+# 29. 不直接叫“主力吸筹”
+
+生产字段使用：
+
+```text
+ACCUMULATION_CONSISTENT
+RE_ACCUMULATION_CONSISTENT
+```
+
+研究通过以后，再讨论经济解释。
+
+---
+
+# 30. Breakout Engine
+
+保持简单。
+
+第一版只保留少量机械定义。
+
+例如：
+
+```text
+B20:
+close > max(close[-20:-1])
+
+B60:
+close > max(close[-60:-1])
+```
+
+不要做几十种 breakout。
+
+主要研究：
+
+```text
+生命周期 × breakout
+```
+
+---
+
+# 31. 两条主要研究路径
+
+## Track A：First Markup
+
+```text
+MATURE_ACCUMULATION
+→ PRE_BREAKOUT
+→ BREAKOUT
+→ MARKUP
+```
+
+---
+
+## Track B：Second Markup
+
+优先研究：
+
+```text
+MARKUP_1
+→ PULLBACK
+→ RE_ACCUMULATION
+→ BREAKOUT_2
+→ MARKUP_2
+```
+
+建议先做 B。
+
+原因：
+
+> 第一轮已经证明存在真实资金选择。
+
+信噪比理论上更高。
+
+---
+
+# 32. L5：Decision Engine
+
+最终才形成建议。
+
+输入：
+
+```text
+Market
+Sector
+Stock lifecycle
+Cost structure
+Supply absorption
+Timing
+```
+
+---
+
+# 33. 股票评分不建议一开始使用 ML
+
+第一阶段建议规则式 scorecard。
+
+例如：
+
+```text
+Market       0–20
+Sector       0–25
+Cost         0–20
+Absorption   0–15
+Lifecycle    0–15
+Timing       0–5
+```
+
+总分 100。
+
+但同时必须保存所有分项。
+
+---
+
+# 34. Hard Gate + Score
+
+不能纯加权。
+
+例如：
+
+```text
+Market BROKEN → 禁止长期建仓
+
+Sector E → 默认禁止
+
+Distribution → 禁止
+
+Structure Broken → EXIT
+```
+
+其余才做 score。
+
+---
+
+# 35. Candidate 输出
+
+例如：
+
+```json
+{
+  "symbol": "xxx",
+  "market_regime": "DEFENSIVE_ACCUMULATION",
+  "sector": "半导体设备",
+  "sector_priority": "A",
+  "lifecycle": "RE_ACCUMULATION",
+  "capital_support": "STRONG",
+  "supply_absorption": "HIGH",
+  "score": 83,
+  "action": "BUILD_ON_SUPPORT"
+}
+```
+
+---
+
+# 36. 建仓区间 Engine
+
+不直接输出单一目标价。
+
+输出：
+
+```text
+WATCH ZONE
+INITIAL ENTRY
+CORE BUILD
+ADD ZONE
+INVALIDATION
+```
+
+来源：
+
+```text
+核心成本分布
+历史平台
+re-accumulation 成本
+长期成本
+波动宽度
+```
+
+---
+
+# 37. 示例
+
+```text
+现价：96
+
+核心成本：88–92
+再吸筹成本：90–94
+历史突破平台：89–91
+结构破坏：80
+```
+
+输出：
+
+```text
+96–100   WATCH
+92–96    INITIAL
+88–92    CORE BUILD
+84–88    CONDITIONAL ADD
+<80      INVALIDATE
+```
+
+---
+
+# 38. Position Management
+
+建仓后继续更新状态。
+
+不是买完等待结果。
+
+每日/每周重新判断：
+
+```text
+Sector flow
+Cost stability
+New turnover
+Buying efficiency
+Selling efficiency
+Distribution evidence
+```
+
+---
+
+# 39. Action State
+
+最终：
+
+```text
+WATCH
+ENTER
+ADD
+HOLD
+REDUCE
+EXIT
+```
+
+---
+
+# 40. Core Hypothesis Test
+
+这是整个下一阶段最重要的研究。
+
+不能直接上线交易。
+
+必须先证明漏斗每一层真的增加决策价值。
+
+---
+
+# 41. 实验结构
+
+建立固定基线：
+
+```text
+G0 = 所有 breakout
+```
+
+然后：
+
+```text
+G1 = G0 + Market
+G2 = G1 + Sector
+G3 = G2 + Accumulation
+G4 = G3 + Supply Absorption
+G5 = G4 + Cost Support
+```
+
+比较：
+
+```text
+G0 → G5
+```
+
+是否稳定递进。
+
+---
+
+# 42. Outcome
+
+至少：
+
+```text
+R5
+R10
+R20
+
+MFE
+MAE
+
+最大回撤
+突破失败率
+成功进入 markup 比例
+达到 +10% 所需时间
+跌破结构位比例
+```
+
+---
+
+# 43. 第二波专项 Outcome
+
+例如：
+
+```text
+前高突破成功率
+回到前高时间
+R10/R20
+第二波 MFE
+回撤后再破成本区概率
+```
+
+---
+
+# 44. 核心否证条件
+
+如果：
+
+```text
+G0 ≈ G1 ≈ G2 ≈ G3 ≈ G4 ≈ G5
+```
+
+则：
+
+> 当前资金—筹码理论没有足够实践价值。
+
+停止继续增加复杂度。
+
+如果：
+
+```text
+G0 < G1 < G2 < G3/G4/G5
+```
+
+且稳定：
+
+> 证明漏斗具有真实决策价值。
+
+---
+
+# 45. 研究阶段建议
+
+建议重新开启一条新工程线，不继续沿用 Phase H/I/J 编号。
+
+可以叫：
+
+# Capital Decision Program
+
+---
+
+## CD-0：Contract Freeze
+
+冻结：
+
+```text
+最终决策目标
+数据 PIT 标准
+sector schema
+cost schema
+lifecycle schema
+outcome
+否证标准
+```
+
+---
+
+## CD-1：PIT Sector Infrastructure
+
+交付：
+
+```text
+sector membership history
+sector hierarchy
+sector index
+sector relative strength
+sector capital state
+```
+
+Gate：
+
+```text
+历史日期不使用未来分类
+100% provenance
+```
+
+---
+
+## CD-2：Candidate Funnel
+
+交付：
+
+```text
+全市场
+→ sector filter
+→ lightweight stock filter
+```
+
+要求：
+
+```text
+至少降低 80–95% 深度分析量
+```
+
+同时不能明显丢掉未来最优样本。
+
+---
+
+## CD-3：Cost Distribution Engine
+
+实现：
+
+```text
+chip approximation
+cost bands
+overhang
+cost compression
+turnover survival
+```
+
+先做 offline validation。
+
+---
+
+## CD-4：Supply Absorption
+
+实现：
+
+```text
+overhang decay
+turnover without breakdown
+selling efficiency
+buying efficiency
+```
+
+---
+
+## CD-5：Lifecycle State Machine
+
+实现：
+
+```text
+BASE
+ACCUMULATION
+MATURE
+MARKUP
+PULLBACK
+RE_ACCUMULATION
+DISTRIBUTION
+BROKEN
+```
+
+---
+
+## CD-6：Second-Wave Study
+
+优先验证：
+
+```text
+第一轮上涨
+→ 回调
+→ re-accumulation
+→ 第二波
+```
+
+这是第一个核心实践实验。
+
+---
+
+## CD-7：First-Wave Study
+
+再研究：
+
+```text
+长期 accumulation
+→ breakout
+→ markup
+```
+
+---
+
+## CD-8：Core Decision Hypothesis Test
+
+比较：
+
+```text
+G0–G5
+```
+
+作最终 GO/NO-GO。
+
+---
+
+# 46. 第一阶段不要做的事情
+
+暂缓：
+
+```text
+Phase K
+复杂 ML
+深度神经网络
+盘中高频
+情绪 NLP
+大量主题标签
+复杂预测模型
+自动交易
+```
+
+原因：
+
+> 核心理论是否具有实际选股价值尚未完成验证。
+
+---
+
+# 47. 推荐代码结构
+
+```text
+src/
+  data/
+    market/
+    stock/
+    etf/
+    sector/
+    ownership/
+
+  pit/
+    provenance/
+    availability/
+
+  market/
+    regime.ts
+    capital.ts
+
+  sector/
+    taxonomy.ts
+    membership.ts
+    relative_strength.ts
+    capital_state.ts
+
+  funnel/
+    sector_gate.ts
+    stock_light_filter.ts
+
+  cost/
+    chip_distribution.ts
+    cost_bands.ts
+    turnover_survival.ts
+    overhang.ts
+
+  absorption/
+    supply_absorption.ts
+    efficiency.ts
+
+  lifecycle/
+    states.ts
+    transitions.ts
+
+  breakout/
+    breakout.ts
+
+  decision/
+    scorecard.ts
+    gates.ts
+    position.ts
+
+  research/
+    core_hypothesis.ts
+    second_wave.ts
+    first_wave.ts
+```
+
+---
+
+# 48. 每日运行架构
+
+```text
+EOD 数据更新
+    ↓
+PIT 校验
+    ↓
+Market State
+    ↓
+Sector State
+    ↓
+Sector Gate
+    ↓
+Light Stock Funnel
+    ↓
+Deep Cost/Lifecycle Analysis
+    ↓
+Candidate Ranking
+    ↓
+Decision Output
+```
+
+深度分析只跑：
+
+```text
+候选池
++
+已有持仓
++
+重点观察股票
+```
+
+---
+
+# 49. 缓存策略
+
+大量成本分析无需每天全历史重算。
+
+保存：
+
+```text
+chip state
+cost distribution
+lifecycle state
+```
+
+每天做增量更新：
+
+```text
+State(T-1)
++
+Trading Data(T)
+→
+State(T)
+```
+
+这样工程成本会大幅下降。
+
+---
+
+# 50. 最终用户界面应该看到什么
+
+不是一堆指标。
+
+首先：
+
+```text
+今日市场资金状态
+```
+
+然后：
+
+```text
+TOP 细分板块
+```
+
+然后：
+
+```text
+TOP 股票候选
+```
+
+每只股票给出：
+
+```text
+为什么入选
+当前生命周期
+核心成本
+筹码情况
+支撑区
+建仓区
+风险点
+失效条件
+```
+
+例如：
+
+```text
+半导体设备 / 股票A
+
+市场：
+长期资本稳定，短期流动性弱
+
+板块：
+RE-ACCUMULATION / Priority A
+
+个股：
+Lifecycle = RE_ACCUMULATION
+Supply absorption = HIGH
+Core cost = 88–92
+Current = 94
+
+建议：
+92–94 初始建仓
+88–92 主建仓
+<82 结构失效
+
+理由：
+第一轮资金进入已确认；
+回落未破核心成本；
+高位筹码明显减少；
+当前成本重新集中；
+板块资金状态开始改善。
+```
+
+---
+
+# 51. 项目当前最高优先级
+
+现在正式调整为：
+
+```text
+1. CD-0 总合同
+2. CD-1 PIT 细分板块
+3. CD-2 候选漏斗
+4. CD-3 Cost Engine
+5. CD-4 Supply Absorption
+6. CD-5 Lifecycle
+7. CD-6 第二波验证
+8. CD-7 第一波验证
+9. CD-8 核心决策假设总验收
+```
+
+CSR-8 H/I/J 保留作为：
+
+> 资金证据与研究纪律基础设施。
+
+但不再主导下一阶段资源投入。
+
+---
+
+# 52. 最终验收标准
+
+整个项目最后不是以：
+
+```text
+统计关系显著
+```
+
+验收。
+
+而以：
+
+> 在严格历史回放中，资金结构驱动的候选漏斗是否能够稳定地提高个股选择质量，并形成具有明确风险边界的建仓和持仓建议。
+
+真正成功的系统应该表现为：
+
+```text
+全市场
+↓
+找到资金正在选择的方向
+↓
+找到筹码结构成熟的股票
+↓
+在合理成本附近进入
+↓
+在资金生命周期继续改善时持有
+↓
+在分配或结构破坏时退出
+```
+
+若这一条不能被历史和未来数据共同支持，则项目核心理论应判定为失败或需要重新定义。
