@@ -5,6 +5,7 @@ Judgments ARE output with evidence matrices regardless of validation status
 validation_status=UNVALIDATED_V1 + honest contradict/missing rows.
 """
 from __future__ import annotations
+import statistics
 import gzip,json,sys
 from pathlib import Path
 sys.path.insert(0,str(Path(__file__).resolve().parent))
@@ -17,6 +18,7 @@ LVNAME={2:'STRONG_SUPPORT',1:'SUPPORT',0:'NEUTRAL',-1:'CONTRADICT',-2:'STRONG_CO
 
 def capital_support(code):
  from support_gate import load,cost_band
+ from support_gate import load
  st=load(code)
  if not st: return None
  ds,cl,hi,lo,vol=st; n=len(cl)
@@ -36,6 +38,57 @@ def capital_support(code):
   'price':round(px,2),'price_to_cost_mid':round(px/zm-1,4),
   'distance_to_band':round(px/zh-1,4) if px>zh else (round(px/zl-1,4) if px<zl else 0.0),
   'support_state':state,'support_quality':'VALID' if not broken else 'INVALID'}
+
+
+_AX=None
+def _axes():
+ global _AX
+ if _AX is None:
+  import gzip as _gz
+  l1=json.load(_gz.open(ROOT/'data/cd/sector_axes/l1_market_axes.json.gz','rt'))['rows']
+  md=[r['date'].replace('-','') for r in l1]; part={r['date'].replace('-',''):r.get('part') for r in l1}
+  rows=json.load(_gz.open(ROOT/'data/cd/sector_axes/l2_four_axes.json.gz','rt'))['rows']
+  byl2={}
+  for r in rows:
+   if 'sector_eq' in r: byl2.setdefault(r['l2'],[]).append(r)
+  for v in byl2.values(): v.sort(key=lambda r:r['date'])
+  _AX=(md,part,l1,byl2)
+ return _AX
+def decision_tiers(code,cs):
+ from support_gate import load
+ md,part,l1,byl2=_axes()
+ md=[r['date'].replace('-','') for r in l1]; part={r['date'].replace('-',''):r.get('part') for r in l1}
+ from support_gate import load
+ st=load(code)
+ if not st: return None
+ ds,cl=st[0],st[1]
+ d=ds[-1].replace('-','')
+ i=md.index(d) if d in md else len(md)-1
+ pre=[part.get(x) for x in md[max(0,i-20):i] if part.get(x) is not None]
+ t1=bool(pre) and part.get(d) is not None and part[d]>statistics.mean(pre)
+ l2={m['code']:m['L2'] for m in json.loads((ROOT/'data/cd/sector_seeds/csrc_v1.json').read_text())['members']}.get(code)
+ t2=None;t3=None
+ if l2:
+  v=byl2.get(l2,[])
+  j=[k for k,r in enumerate(v) if r['date'].replace('-','')==d]
+  if j and j[0]>=20:
+   cs20=1;cm=1
+   for r in v[j[0]-19:j[0]+1]: cs20*=1+(r['sector_eq'] or 0); cm*=1+(r['mkt_eq'] or 0)
+   t2=cs20>cm
+   s20=cl[-1]/cl[-21]-1 if len(cl)>21 else None
+   t3=(s20 is not None and s20>cs20-1)
+ reg=None
+ for r in l1:
+  if r['date'].replace('-','')==d: reg=r['regime']; break
+ if reg is None: reg=l1[-1]['regime']
+ bear=reg.startswith(('R_DEPRESSED','R_RISK_OFF')) if reg else False
+ ss=cs['support_state'] if cs else 'NA'
+ if ss=='BROKEN': tier='EXIT'
+ elif ss in('IN_SUPPORT','UNDERCUT_TEST') and t3: tier='CONFIRM_CANDIDATE'
+ elif ss in('IN_SUPPORT','UNDERCUT_TEST') and t2 and not bear: tier='BUILD'
+ elif ss=='ABOVE_SUPPORT' and t2: tier='WATCH'
+ else: tier='NO_BUILD'
+ return {'market_tier':t1,'sector_tier':t2,'stock_rs_tier':t3,'regime':reg,'decision_tier':tier}
 
 def main():
  margin={}
@@ -65,9 +118,11 @@ def main():
   mg=margin.get(code); iq=inst.get(code)
   fund_ratio=(iq['by_type'].get('FUND',{}).get('ratio',0)+iq['by_type'].get('INSURANCE',{}).get('ratio',0)) if iq else None
   cs=capital_support(code)
+  dt=decision_tiers(code,cs) if cs else None
   #dup-removed
   cards.append({'stock':code,'state':st['state'],'confidence':st['confidence'],'validation_status':'UNVALIDATED_V1',
    **({'capital_support':cs} if cs else {}),
+   **({'decision':dt} if dt else {}),
    'close':c,'cost_band':[f_['p25'],f_['p50'],f_['p75']],'dist_to_cost':round(c/f_['p50']-1,4) if f_['p50'] else None,
    'evidence':{'E1_price':st['evidence_family_scores']['E1_price'],'E2_participation':st['evidence_family_scores']['E2_participation'],'E3_chip':st['evidence_family_scores']['E3_chip'],'E4_ownership':st['evidence_family_scores'].get('E4_ownership','MISSING'),'E5_margin':(1 if (mg and mg.get('rz_ratio') is not None and 0<mg['rz_ratio']<0.15) else 0) if mg else 'MISSING','E6_context':'MISSING'},
    'chip_locking':f_['chip_locking'],'floating_supply':f_['floating_supply'],'band_width':f_['band_width'],
