@@ -73,7 +73,9 @@ def main():
   if t['pct']>mkt_pct+1.0: alerts.append('RS_VS_INDEX')
   rows.append({'stock':c['stock'],'name':t['name'],'tier':c['decision']['decision_tier'],
    'px':px,'pct':t['pct'],'frozen_state':frozen,'live_state':ss,
-   'exit_dist':round(px/trig-1,4),'alerts':alerts,'band_pos_live':round(px/cs['cost_band_mid']-1,4)})
+   'exit_dist':round(px/trig-1,4),'alerts':alerts,'band_pos_live':round(px/cs['cost_band_mid']-1,4),
+   'band_low':round(bl,2),'band_high':round(bh,2),'band_mid':round(cs['cost_band_mid'],2),
+   'confidence':c.get('confidence')})
  rows.sort(key=lambda r:(len(r['alerts']),r['exit_dist']))
  ts=time.strftime('%Y%m%d_%H%M')
  OUTD.mkdir(parents=True,exist_ok=True)
