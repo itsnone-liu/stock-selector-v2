@@ -5,13 +5,38 @@ Judgments ARE output with evidence matrices regardless of validation status
 validation_status=UNVALIDATED_V1 + honest contradict/missing rows.
 """
 from __future__ import annotations
-import gzip,json
+import gzip,json,sys
+from pathlib import Path
+sys.path.insert(0,str(Path(__file__).resolve().parent))
 from pathlib import Path
 import sys
 ROOT=Path(__file__).resolve().parents[2]; sys.path.insert(0,str(ROOT))
 from src.capital_inference.features import snapshot as fsnap
 from src.capital_inference.state_engine import infer
 LVNAME={2:'STRONG_SUPPORT',1:'SUPPORT',0:'NEUTRAL',-1:'CONTRADICT',-2:'STRONG_CONTRADICT',0.0:'MISSING'}
+
+def capital_support(code):
+ from support_gate import load,cost_band
+ st=load(code)
+ if not st: return None
+ ds,cl,hi,lo,vol=st; n=len(cl)
+ if n<520: return None
+ z=cost_band(cl,hi,lo,vol,n-1)
+ if not z: return None
+ zl,zh=z; zm=(zl+zh)/2; px=cl[-1]
+ recent=cl[-10:]
+ broken=any(all(cl[k]<zl*0.95 for k in range(b,min(b+5,n))) for b in range(max(0,n-60),n-4))
+ lo10=min(lo[-10:])
+ if broken: state='BROKEN'
+ elif px>zh: state='ABOVE_SUPPORT'
+ elif px>=zl: state='IN_SUPPORT'
+ elif lo10<zl: state='UNDERCUT_TEST'
+ else: state='BROKEN'
+ return {'cost_band_low':round(zl,2),'cost_band_mid':round(zm,2),'cost_band_high':round(zh,2),
+  'price':round(px,2),'price_to_cost_mid':round(px/zm-1,4),
+  'distance_to_band':round(px/zh-1,4) if px>zh else (round(px/zl-1,4) if px<zl else 0.0),
+  'support_state':state,'support_quality':'VALID' if not broken else 'INVALID'}
+
 def main():
  margin={}
  mf=ROOT/'data/r2/margin/ratio_pa_20260930.json'
@@ -39,7 +64,10 @@ def main():
   st=infer(f_); c=cl[-1]
   mg=margin.get(code); iq=inst.get(code)
   fund_ratio=(iq['by_type'].get('FUND',{}).get('ratio',0)+iq['by_type'].get('INSURANCE',{}).get('ratio',0)) if iq else None
+  cs=capital_support(code)
+  #dup-removed
   cards.append({'stock':code,'state':st['state'],'confidence':st['confidence'],'validation_status':'UNVALIDATED_V1',
+   **({'capital_support':cs} if cs else {}),
    'close':c,'cost_band':[f_['p25'],f_['p50'],f_['p75']],'dist_to_cost':round(c/f_['p50']-1,4) if f_['p50'] else None,
    'evidence':{'E1_price':st['evidence_family_scores']['E1_price'],'E2_participation':st['evidence_family_scores']['E2_participation'],'E3_chip':st['evidence_family_scores']['E3_chip'],'E4_ownership':st['evidence_family_scores'].get('E4_ownership','MISSING'),'E5_margin':(1 if (mg and mg.get('rz_ratio') is not None and 0<mg['rz_ratio']<0.15) else 0) if mg else 'MISSING','E6_context':'MISSING'},
    'chip_locking':f_['chip_locking'],'floating_supply':f_['floating_supply'],'band_width':f_['band_width'],

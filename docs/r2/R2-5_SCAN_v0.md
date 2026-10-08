@@ -20,4 +20,4 @@
 | 000659 | ACCUMULATION_MATURE | 0.9 | 2.911/3.726/4.249 | -0.2646 | MEDIUM | -2.32 | None | 无 |
 | 000708 | ACCUMULATION_MATURE | 0.9 | 13.485/14.327/15.162 | -0.0849 | HIGH | 5.07 | 1.0 | 无 |
 
-共 3871 只进入判断池（ACCUMULATION/MATURE/READY）。完整证据矩阵: data/r2/current_scan_v0.json
+共 3781 只进入判断池（ACCUMULATION/MATURE/READY）。完整证据矩阵: data/r2/current_scan_v0.json
