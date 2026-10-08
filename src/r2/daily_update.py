@@ -24,6 +24,9 @@ BUILDERS=[('C1','scripts/cd1b_four_axis_engine.py'),('C2','scripts/cd45_market_r
 ARTS={'l2_four_axes':'data/cd/sector_axes/l2_four_axes.json.gz','l1_market_axes':'data/cd/sector_axes/l1_market_axes.json.gz',
       'l2_state_table':'data/cd/sector_axes/l2_state_table.json.gz','l3_pool':'data/cd/l3_candidate_pool_v2.json.gz',
       'l4_episodes':'data/cd/l4_episodes.json.gz'}
+# lifecycle tables: open rows legitimately extend (end/seq mutate) -> check KEY survival, not serialization
+KEYED={'l4_episodes':lambda r:(r.get('episode_id'),),
+       'l3_pool':lambda r:(r.get('code'),r.get('ym') or r.get('month') or '')}
 
 def rows_of(p):
  x=json.loads(gzip.decompress(Path(p).read_bytes()))
@@ -62,9 +65,13 @@ def main():
   for tag,script in BUILDERS:
    if not run(tag,[PY,script]): raise SystemExit(f'{tag} failed')
   for k,rel in ARTS.items():
-   new={json.dumps(r,sort_keys=True) for r in rows_of(ROOT/rel)}
-   lost=old[k]-new
-   if lost: raise SystemExit(f'HISTORY LOST in {k}: {len(lost)} rows vanished — aborting (files already rewritten; restore from git)')
+   newr=rows_of(ROOT/rel)
+   if k in KEYED:
+    kf=KEYED[k]; lost={kf(r) for r in old[k]}-{kf(r) for r in newr}
+    kind='keys'
+   else:
+    lost=old[k]-{json.dumps(r,sort_keys=True) for r in newr}; kind='rows'
+   if lost: raise SystemExit(f'HISTORY LOST in {k}: {len(lost)} {kind} vanished — aborting (files already rewritten; restore from git)')
  if 'E' not in skip:
   if not run('E',[PY,'src/r2/current_scan.py']): raise SystemExit('E failed')
  if 'F' not in skip:

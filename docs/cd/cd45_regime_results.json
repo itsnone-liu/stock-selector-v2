@@ -1,5 +1,5 @@
 {
- "generated": "2026-10-04T18:56:53",
+ "generated": "2026-10-08T22:05:13",
  "frozen_bands_dev": {
   "ret20d": [
    -0.022005,
@@ -25,15 +25,15 @@
  "regime_counts": {
   "R_RISK_ON_NARROW": 336,
   "R_RISK_ON_BROAD": 426,
-  "R_RISK_OFF": 95,
+  "R_RISK_OFF": 96,
   "R_REBOUND_MIXED": 204,
   "R_DEPRESSED": 82
  },
  "regime_share": {
-  "R_RISK_ON_NARROW": 0.294,
-  "R_RISK_ON_BROAD": 0.3727,
-  "R_RISK_OFF": 0.0831,
-  "R_REBOUND_MIXED": 0.1785,
+  "R_RISK_ON_NARROW": 0.2937,
+  "R_RISK_ON_BROAD": 0.3724,
+  "R_RISK_OFF": 0.0839,
+  "R_REBOUND_MIXED": 0.1783,
   "R_DEPRESSED": 0.0717
  },
  "low_support_regimes": [],
@@ -51,7 +51,7 @@
    "max_days": 14
   },
   "R_RISK_OFF": {
-   "n_runs": 57,
+   "n_runs": 58,
    "median_days": 1,
    "mean_days": 1.7,
    "max_days": 6
@@ -76,7 +76,7 @@
   "R_DEPRESSED->R_REBOUND_MIXED": 37,
   "R_REBOUND_MIXED->R_DEPRESSED": 36,
   "R_REBOUND_MIXED->R_RISK_OFF": 26,
-  "R_DEPRESSED->R_RISK_OFF": 24,
+  "R_DEPRESSED->R_RISK_OFF": 25,
   "R_RISK_OFF->R_DEPRESSED": 19,
   "R_REBOUND_MIXED->R_RISK_ON_BROAD": 13,
   "R_RISK_ON_NARROW->R_RISK_OFF": 6,
@@ -110,11 +110,11 @@
    "R_RISK_ON_BROAD": 0.564
   },
   "2026": {
-   "R_RISK_ON_BROAD": 0.331,
-   "R_RISK_ON_NARROW": 0.359,
-   "R_RISK_OFF": 0.055,
+   "R_RISK_ON_BROAD": 0.33,
+   "R_RISK_ON_NARROW": 0.357,
+   "R_RISK_OFF": 0.06,
    "R_DEPRESSED": 0.066,
-   "R_REBOUND_MIXED": 0.188
+   "R_REBOUND_MIXED": 0.187
   }
  },
  "funnel_by_regime": {
