@@ -19,3 +19,6 @@ PASS = maxDD 或 tail/BROKEN-loss 明确改善 ∧ MAR 不恶化 ∧ capital eff
 总收益升但风险指标不动=不算 PASS；风险降但 exposure 大砍致 cap_eff/MAR 变差=不算 PASS（机械降仓）。
 FAIL → Breadth 冻结为 diagnostic only，不救。
 附带报告：各变量与 regime 的重叠度（防同信息换皮）。
+
+## 结果（2026-10-09 裁定）
+B50=PASS→SHADOW_PRODUCTION(if B50<0.50: P3 x0.75, EOD计算次日执行, 与P3 control并行); NHNL/SB=DIAGNOSTIC_ONLY; LC=FAIL_AT_FROZEN_THRESHOLD; COMBO=REJECTED。参数0.50/0.75冻结为 EI-1 v1。
