@@ -22,3 +22,6 @@ R2-11 CONFIRM 流事件为入场（t0 收盘=entry_cost，用入场时冻结成�
 ## PASS（至少一变量同时满足，全预注册）
 ① giveback20 随 Q 单调恶化 ② MAE20 恶化 ③ 非仅 MFE 更高（效率比恶化，排除大牛股假风险）④ 两 era 同向 ⑤ HL_RAISE ON 子集仍保留 ⑥ 不依赖破位后数据（已删失）。
 FAIL → REDUCE=UNRESOLVED，EI-2 关闭。单次执行，不开新窗不调阈值。
+
+## EI-2B 裁定补充（2026-10-09，冻结）
+O1=PRIMARY（唯一主变量）；三臂 R0=P3+B50 对照 / R1=Q5×0.75 / R2=Q5×0.50；Q5 定义原样继承 EI-2A（逐月横截面 80 分位，PIT）；无 hysteresis/cooldown；BROKEN→0 最高优先；指标三组：组合效用 + retained-profit（Σ终值-1 / Σ峰值-1）+ 大赢家保留（R0 top5% 事件在各臂的平均收益）。PASS 八条按用户裁定。单次执行。
