@@ -1,8 +1,8 @@
 {
  "n_episodes": 30106,
  "terminal": {
-  "INACTIVE_TERMINATION": 25487,
-  "CENSORED": 3729,
+  "INACTIVE_TERMINATION": 25488,
+  "CENSORED": 3728,
   "STRUCTURAL_FAILURE": 890
  },
  "origin": {
@@ -26,8 +26,8 @@
  },
  "median_calendar_duration_days": 139.0,
  "source_true_days_total": {
-  "M": 1272044,
-  "S": 1287393,
-  "L": 1782724
+  "M": 1272056,
+  "S": 1287412,
+  "L": 1782804
  }
 }
