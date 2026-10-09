@@ -34,12 +34,14 @@ def main():
  rows=[]
  for c in cards:
   t=c.get('decision',{}); tier=t.get('decision_tier','NO_BUILD'); hl=t.get('higher_low',False)
-  cs=c['capital_support']; px=cs.get('price',0); bl=cs.get('cost_band_low'); bh=cs.get('cost_band_high')
+  cs=c.get('capital_support')
+  if not cs: continue
+  px=cs.get('price',0); bl=cs.get('cost_band_low'); bh=cs.get('cost_band_high')
   if not bl or not bh: continue
   zm=(bl+bh)/2; dtc=px/zm-1
-  raw=p3_target(tier,hl,rg,cs.get('state',''))
+  raw=p3_target(tier,hl,rg,cs.get('support_state',''))
   rows.append({'stock':c['stock'],'name':c.get('name',''),'tier':tier,'higher_low':hl,
-   'support_state':cs.get('state',''),'px':px,'band':[bl,bh],'dtc':round(dtc,4),'p3_raw':raw})
+   'support_state':cs.get('support_state',''),'px':px,'band':[bl,bh],'dtc':round(dtc,4),'p3_raw':raw})
  act=[r for r in rows if r['p3_raw']>0]
  thr=sorted(r['dtc'] for r in act)[int(0.8*len(act))] if act else None
  for r in rows:

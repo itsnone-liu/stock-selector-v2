@@ -25,3 +25,6 @@ FAIL → REDUCE=UNRESOLVED，EI-2 关闭。单次执行，不开新窗不调阈�
 
 ## EI-2B 裁定补充（2026-10-09，冻结）
 O1=PRIMARY（唯一主变量）；三臂 R0=P3+B50 对照 / R1=Q5×0.75 / R2=Q5×0.50；Q5 定义原样继承 EI-2A（逐月横截面 80 分位，PIT）；无 hysteresis/cooldown；BROKEN→0 最高优先；指标三组：组合效用 + retained-profit（Σ终值-1 / Σ峰值-1）+ 大赢家保留（R0 top5% 事件在各臂的平均收益）。PASS 八条按用户裁定。单次执行。
+
+## EI-2 终审（2026-10-09 用户裁定）
+EI-2A PASS(O1 PRIMARY; O2/MHE supporting; O4 FAIL) / EI-2B R1×0.75 PASS, R2 ARCHIVED(TOO_AGGRESSIVE) / EI-2C COMPOSITION PASS。三账户 Shadow 上线：A=P3 raw / B=P3×B50 / C=P3×B50×Q5×0.75。Q5=当日可见 actionable 横截面 DTC 前20%（PIT，继承 EI-2A 横截面法），禁事后校准绝对阈值；改分位/窗口须开 EI-2.1。attribution: B−A=宽度增量, C−B=锁利增量, C−A=全链增量。
