@@ -376,6 +376,138 @@ def stage_labels(day: str) -> dict:
     return {'day': day, 'n_labeled': len(rows)}
 
 
+# ---------------------------------------------------------------- consistency
+def load_raw_day(day: str, stage: str) -> dict:
+    import zstandard as zstd
+    p = EI5 / 'raw' / f'{day}_{stage}.jsonl.zst'
+    if not p.exists():
+        return {}
+    out = {}
+    for line in zstd.ZstdDecompressor().decompress(p.read_bytes(), max_output_size=1 << 30).decode().splitlines():
+        if line.strip():
+            o = json.loads(line)
+            out[o['code']] = o
+    return out
+
+
+def canon_bars(bars: list) -> str:
+    """Canonical JSON of a minute-bar list: [[HHMM, price, cumvol, cumamt], ...]."""
+    return json.dumps(bars, ensure_ascii=False, sort_keys=True, separators=(',', ':'))
+
+
+def first_bar_diff(truth: list, live: list) -> str:
+    if truth == live:
+        return 'identical'
+    if len(truth) != len(live):
+        return f'n_bars {len(truth)} vs {len(live)}'
+    for t, l in zip(truth, live):
+        if list(t) != list(l):
+            return f'bar@{t[0]} live={list(l)} truth={list(t)}'
+    return 'same_len_order_diff'
+
+
+FX_CMP_FIELDS = ['auction_gap', 'auction_vol_ratio', 'auction_amt_ratio', 'n_bars',
+                 'win_vol_ratio', 'win_amt_ratio', 'disp', 'PE1', 'PE2', 'PE3',
+                 'retrace_from_peak', 'tail_vol_ratio', 'peak_dn_vol_ratio', 'close_1000']
+
+
+def _is_null(v) -> bool:
+    if v is None:
+        return True
+    try:
+        return math.isnan(float(v))
+    except (TypeError, ValueError):
+        return False
+
+
+def fx_close(a: dict, b: dict) -> tuple[bool, str]:
+    for f in FX_CMP_FIELDS:
+        x, y = a.get(f), b.get(f)
+        if _is_null(x) and _is_null(y):
+            continue
+        try:
+            xf, yf = float(x), float(y)
+        except (TypeError, ValueError):
+            if x != y:
+                return False, f'{f}: {x} vs {y}'
+            continue
+        if not math.isclose(xf, yf, rel_tol=1e-6, abs_tol=1e-9):
+            return False, f'{f}: {xf} vs {yf}'
+    return True, ''
+
+
+def stage_consistency(day: str, base: str | None, limit: int, sleep: float) -> dict:
+    """盘后真值 vs 当日 10:01 实采：逐票逐点比对，验证实采无半根量/脏数据污染。"""
+    import pandas as pd
+    t0 = time.time()
+    base_day = resolve_base(day, base)
+    cohort, meta = load_cohort(base_day)
+    if limit:
+        cohort = cohort[:limit]
+
+    live = load_raw_day(day, 'window')
+    if not live:
+        return {'day': day, 'error': f'no live window raw (raw/{day}_window.jsonl.zst)'}
+
+    fx_live: dict = {}
+    fx_path = EI5 / 'features' / f'day={day}.parquet'
+    if fx_path.exists():
+        fx_live = pd.read_parquet(fx_path).set_index('code').to_dict('index')
+
+    codes = [r['code'] for r in cohort]
+    q = quotes(codes, sleep=0.4)
+    raw_match = raw_mis = fx_match = fx_mis = live_missing = 0
+    examples: list = []
+    for n, row in enumerate(cohort, 1):
+        code = row['code']
+        if code not in live:
+            live_missing += 1
+            continue
+        try:
+            src_date, allbars = fetch_minute(code)
+            if src_date != day.replace('-', ''):
+                if len(examples) < 10:
+                    examples.append({'code': code, 'err': f'stale_date:{src_date}'})
+                continue
+            bars = [b for b in allbars if b[0] <= WIN_END]
+            lbars = live[code].get('bars') or []
+            if canon_bars(bars) == canon_bars(lbars):
+                raw_match += 1
+            else:
+                raw_mis += 1
+                if len(examples) < 10:
+                    examples.append({'code': code, 'raw_diff': first_bar_diff(bars, lbars)})
+            if code in fx_live:
+                base20 = tdx_daily(code, day)
+                fx = compute_features(day, base_day, row, q.get(code), bars, base20, 'consistency')
+                ok, why = fx_close(fx, fx_live[code])
+                if ok:
+                    fx_match += 1
+                else:
+                    fx_mis += 1
+                    if len(examples) < 10:
+                        examples.append({'code': code, 'fx_diff': why})
+        except Exception as e:                                # noqa: BLE001
+            if len(examples) < 10:
+                examples.append({'code': code, 'err': f'{type(e).__name__}:{e}'[:120]})
+        if sleep:
+            time.sleep(sleep)
+        if n % 100 == 0:
+            print(f'  ...{n}/{len(cohort)}', file=sys.stderr)
+
+    denom = max(1, len(cohort) - live_missing)
+    rate = round(raw_match / denom, 4)
+    rep = {'day': day, 'base_day': base_day, 'cohort': len(cohort), 'n_live_raw': len(live),
+           'raw_match': raw_match, 'raw_mismatch': raw_mis, 'live_missing': live_missing,
+           'raw_match_rate': rate, 'fx_match': fx_match, 'fx_mismatch': fx_mis,
+           'verdict': 'PASS' if rate >= 0.99 else 'FAIL', 'examples': examples,
+           'elapsed_s': round(time.time() - t0, 1)}
+    d = EI5 / 'consistency'
+    d.mkdir(parents=True, exist_ok=True)
+    (d / f'{day}.json').write_text(json.dumps(rep, ensure_ascii=False, indent=1))
+    return rep
+
+
 # ---------------------------------------------------------------- main
 def check_time_window(stage: str) -> tuple[bool, str]:
     """live stage 只能在自己的时间窗内写盘，防把收盘后快照当竞价/窗口数据写进去。"""
@@ -403,7 +535,8 @@ def check_trading_day(day: str) -> tuple[bool, str]:
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument('--stage', required=True, choices=['auction', 'window', 'backfill', 'labels'])
+    ap.add_argument('--stage', required=True,
+                    choices=['auction', 'window', 'backfill', 'labels', 'consistency'])
     ap.add_argument('--day', required=True, help='target trading day YYYY-MM-DD')
     ap.add_argument('--base', default=None, help='T-1 scan day (default: latest snapshot before --day)')
     ap.add_argument('--limit', type=int, default=0)
@@ -426,6 +559,9 @@ def main() -> None:
 
     if a.stage == 'labels':
         print(json.dumps(stage_labels(a.day), ensure_ascii=False)); return
+    if a.stage == 'consistency':
+        print(json.dumps(stage_consistency(a.day, a.base, a.limit, a.sleep),
+                         ensure_ascii=False, indent=1)); return
 
     for sub in ('features', 'labels', 'coverage', 'raw'):
         (EI5 / sub).mkdir(parents=True, exist_ok=True)

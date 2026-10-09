@@ -76,10 +76,14 @@ cohort = [c for c in cards
 28 9 * * 1-5  scripts/ei5_cron.sh auction
  1 10 * * 1-5 scripts/ei5_cron.sh window
  0 19 * * 1-5 scripts/ei5_cron.sh labels
+35 15 12 10 * scripts/ei5_cron.sh consistency   # 临时：仅 2026-10-12 一次
 ```
-周一 2026-10-12 起自动跑。
+周一 2026-10-12 起自动跑（10-10/10-11 休市，闸门自动跳过）。
 
-**周一额外校验（一次性）**：收盘后跑 `--stage backfill --day 2026-10-12`，与盘中 `stage=window` 落地的同一批码逐字段比对；差异即为盘中取数时点误差（尤其 1000 点是否半根），有差异就以回补口径为准并修时点。
+**周一一致性校验（临时 cron，已装）**：`35 15 12 10 *` 收盘后跑 `--stage consistency --day <T>`（等于 `10-12` 那天执行一次）。它不看盘中写的 raw，而是**盘后重拉真值**（腾讯分钟接口，同 `WIN_END=1000` 口径），与当日 10:01 `stage=window` 落地的 raw 逐票**逐点**比对 bars（`[HHMM, price, cumvol, cumamt]`），再与当日 parquet 特征比对 14 个字段（`auction_gap/…/close_1000`，NaN≡None，`rel_tol=1e-6`）；结果写 `data/r2/ei5/consistency/<T>.json`，`raw_match_rate ≥ 0.99 → PASS`，否则 `FAIL` 并给出前 10 个反例（精确到 `bar@HHMM live=… truth=…`）。
+- 一致性通过 → 证明 10:01 那一取不含量能未完的半根，live 链路可用；
+- 出现 `last_hhmm=1000` 那根的偏差 → window 时点后移（10:01:30）或丢弃该根；
+- 该 cron 为一次性，跑完确认后即可删除（`crontab -e` 删最后一行）。
 
 ## 四、存储布局
 
@@ -89,6 +93,7 @@ data/r2/ei5/features/day=<YYYY-MM-DD>.parquet   # 特征，永久追加（按日
 data/r2/ei5/labels/ei5_labels.parquet           # 标签，每日回补追加
 data/r2/ei5/manifest.jsonl                      # 每 (day,code,stage) 一行：raw_sha256/source/available_at/git_sha
 data/r2/ei5/coverage/<YYYY-MM-DD>.json          # 当日覆盖率/失败原因/字节数/耗时
+data/r2/ei5/consistency/<YYYY-MM-DD>.json       # 盘后校验报告（一致性比对）
 ```
 
 **冻结纪律**：特征代码一经跑通即记 git sha 冻结；raw 封存 sha256；后续加字段=新开一列，不改旧列。
@@ -140,6 +145,8 @@ cd /root/project/workspace/stock-selector-v2
 .venv/bin/python src/r2/ei5_collect.py --stage window  --day <T>
 # 标签回补
 .venv/bin/python src/r2/ei5_collect.py --stage labels  --day <T>
+# 一致性校验（盘后跑，只读比对，不写 features/raw）
+.venv/bin/python src/r2/ei5_collect.py --stage consistency --day <T>
 ```
 
 ## 八、执行记录
@@ -159,15 +166,28 @@ cd /root/project/workspace/stock-selector-v2
 **关键特征中位值（10-09 为下跌日，可作合理性对照）**：`auction_gap` 0.00%、`auction_vol_ratio` 0.30%、`disp(-09:30→10:00)` −0.90%、`win_amt_ratio` 26.6%、`PE3`(回撤额/上涨额) 1.40、`tail_vol_ratio` 0.40。
 → 值域与"下跌日、尾段缩量、下跌成交额大于上涨成交额"的直觉一致，特征非垃圾。
 
-### 周一 10-12 第一个真实前瞻日（必须做的一致性校验）
+### 周一 10-12 第一个真实前瞻日（一致性校验已落地）
 
-live 采集（09:28 auction / 10:01 window）与收盘后 backfill 同一 T 日，比对同一只票的 `disp / PE1 / PE2 / PE3 / win_amt_ratio`：
-- 若 **完全一致** → 说明 10:01 取数不含量能未完的半根，live 链路可用；
-- 若 **window 最后一次出现半根偏差** → 把 window 时点后移到 10:01:30 或丢弃 `last_hhmm=1000` 那根。
+`--stage consistency`：盘后重拉真值（同一 `WIN_END=1000` 口径），与盘中 10:01 落地 raw 逐票逐点比对 bars，再比对当日 parquet 的 14 个特征字段，产出 `data/r2/ei5/consistency/<T>.json`。
 
 ```bash
-# 周一收盘后
-.venv/bin/python src/r2/ei5_collect.py --stage backfill --day 2026-10-12   # 覆盖同日的 live 特征
+# 周一收盘后（已装临时 cron：35 15 12 10 *）
+.venv/bin/python src/r2/ei5_collect.py --stage consistency --day 2026-10-12
 ```
+
+- `raw_match_rate ≥ 0.99` → **PASS**：10:01 那一取不含量能未完的半根，live 链路可用；
+- 反例出现 `bar@1000` 偏差 → 窗口时点后移（10:01:30）或丢弃 `last_hhmm=1000` 那根。
+
+⚠ **不要**在已有 live 采集的日子跑 `--stage backfill`：它的特征 upsert 按 `(day, code)` 覆盖，会把当日的**时点快照**洗成回补口径，毁掉前瞻性。校验一律用 `consistency`（只读比对，不写 features/raw）。
+
+### 2026-10-09 consistency 自测（合成 live 文件，非真实盘中数据）
+
+| 场景 | 结果 |
+|---|---|
+| 把当日 backfill raw 原样当 live（模拟完美实采） | 25/25 raw 一致、25/25 特征一致 → **PASS**（rate 1.0） |
+| 人为把 `000006` 的 `bar@0935` 累计量 +100（模拟半根污染） | 24/25，rate 0.96 → **FAIL**，反例精确到 `bar@0935 live=[…52358.0…] truth=[…52258.0…]` |
+| 当日无 live raw（wrapper 冒烟） | `{"error": "no live window raw …"}`，exit 0，不报错不写脏数据 |
+
+测试用的合成 `raw/2026-10-09_window.jsonl.zst` 与 `consistency/2026-10-09.json` 已删除，`data/r2/ei5/` 保持只有真实产物。
 
 **标签不得前视**：`--stage labels` 只用 `day` 之后的 TDX 日线；T 日的 r20 在 T+20 个交易日后才落地，未足期写 NaN。cron 每日 19:00 对最近 26 个自然日滚动补标签。

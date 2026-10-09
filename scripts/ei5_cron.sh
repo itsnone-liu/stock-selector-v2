@@ -22,6 +22,9 @@ case "$STAGE" in
                "$PY" src/r2/ei5_collect.py --stage labels --day "$D" >> "$LOG" 2>&1
              fi
            done ;;
+  consistency) echo "[$(date '+%F %T')] stage=consistency day=$TODAY" >> "$LOG"
+           "$ROOT/.venv/bin/python" src/r2/ei5_collect.py --stage consistency --day "$TODAY" >> "$LOG" 2>&1
+           echo "[$(date '+%F %T')] stage=consistency rc=$?" >> "$LOG" ;;
   *) echo "unknown stage $STAGE" >&2; exit 2 ;;
 esac
 echo "[$(date '+%F %T')] stage=$STAGE done rc=$?" >> "$LOG"
