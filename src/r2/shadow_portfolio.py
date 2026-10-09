@@ -28,16 +28,20 @@ def main():
   if not de or not cs: continue
   tier=de['decision_tier']; hl=de.get('higher_low',False)
   tgt=p3_target(tier,hl,rg)
-  if tgt<=0 and tier not in('EXIT',): continue
+  if tgt<=0: continue
   rows.append({'stock':c['stock'],'name':c.get('name',''),'tier':tier,'higher_low':hl,
    'support_state':cs['support_state'],'px_close':cs.get('price'),'band_low':round(cs['cost_band_low'],2),
    'band_high':round(cs['cost_band_high'],2),'p3_target':tgt,
    'exit_distance':round(de.get('exit_distance') if 'exit_distance' in de else (cs.get('price',0)/(cs['cost_band_low']*0.95)-1),4)})
  rows.sort(key=lambda r:-r['p3_target'])
+ exits=sorted([c for c in cards if c.get('decision',{}).get('decision_tier')=='EXIT'],
+  key=lambda c:c['capital_support'].get('price',0)/(c['capital_support']['cost_band_low']*0.95)-1)[:30]
  OUT.mkdir(parents=True,exist_ok=True)
  payload={'day':a.day,'regime_5d':reg,'regime_grp':rg,'n':len(rows),
   'confirm':sum(1 for r in rows if r['tier']=='CONFIRM_CANDIDATE'),'build':sum(1 for r in rows if r['tier']=='BUILD'),
-  'risk_hold':sum(1 for r in rows if r['tier']=='RISK_HOLD'),'rows':rows}
+  'risk_hold':sum(1 for r in rows if r['tier']=='RISK_HOLD'),'rows':rows,
+  'exit_watchlist':[{'stock':c['stock'],'name':c.get('name',''),
+    'exit_distance':round(c['capital_support'].get('price',0)/(c['capital_support']['cost_band_low']*0.95)-1,4)} for c in exits]}
  body=json.dumps(payload,ensure_ascii=False,sort_keys=True)
  payload['sealed_sha256']=hashlib.sha256(body.encode()).hexdigest()[:16]
  (OUT/f'shadow_{a.day}.json').write_text(json.dumps(payload,ensure_ascii=False,indent=1))
