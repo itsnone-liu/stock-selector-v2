@@ -31,3 +31,6 @@ status: IDEA|PREREGISTERED|TESTED_PASS|TESTED_FAIL|DIAGNOSTIC_ONLY|ARCHIVED
 EI-1 Breadth→P3 → EI-2 Overextension/REDUCE → EI-3 RS 比较器 → EI-4 VWAP proxy → EI-5 盘中可行性（最后）。
 每条=一次预注册主实验+必要独立验证；禁改周期/阈值/换名重试；无清晰稳定可解释增量即归档不救。
 关闭项不重开清单：EOD 启动识别 / ADD_TRIGGER / 户数=bullish / 龙虎榜 / 新带=支撑 / 超跌反转。
+
+## EI 执行结果（2026-10-09）
+EI-1 B50 PASS→生产 | EI-2 DTC-Q5 REDUCE PASS→生产 | EI-3 RPS FAIL/T3充分 | EI-4 VWAP FAIL/ARCHIVED | EI-5F F0盘点=DEFERRED(本地无分钟数据)
