@@ -6,15 +6,13 @@ from __future__ import annotations
 import argparse,hashlib,json
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[2]; SCANS=ROOT/'data/r2/scans'; OUT=ROOT/'data/r2/shadow'
-def p3_target(tier,hl,reg):
- if tier=='EXIT': return 0.0
- if tier=='CONFIRM_CANDIDATE': base=0.5          # T3 跳档后（P3 生产规则：基座0.2+T3 0.3）
- elif tier=='RISK_HOLD': return 0.25
- elif tier=='BUILD': return 0.2
- elif tier=='WATCH': return 0.0
- else: return 0.0
- m={'BULL':1.0,'BEAR':0.5}.get(reg,0.75)
- return round(base*m,3)
+def p3_target(tier,hl,reg,support_state):
+ if tier in('EXIT','WATCH','NO_BUILD'): return 0.0
+ base={'CONFIRM_CANDIDATE':0.5,'RISK_HOLD':0.25,'BUILD':0.2}.get(tier,0.0)
+ m={'BULL':1.0,'BEAR':0.5}.get(reg,0.75)           # regime 乘数（R2-10/11 验证：base*=m）
+ t=base*m
+ if support_state=='UNDERCUT_TEST': t*=0.5         # 状态修正（验证模拟 if not sup: st*=0.5）
+ return round(t,4)
 def main():
  ap=argparse.ArgumentParser(); ap.add_argument('--day',required=True); a=ap.parse_args()
  snap=SCANS/f'current_scan_{a.day}.json'
@@ -27,7 +25,7 @@ def main():
   de=c.get('decision'); cs=c.get('capital_support')
   if not de or not cs: continue
   tier=de['decision_tier']; hl=de.get('higher_low',False)
-  tgt=p3_target(tier,hl,rg)
+  tgt=p3_target(tier,hl,rg,cs['support_state'])
   if tgt<=0: continue
   rows.append({'stock':c['stock'],'name':c.get('name',''),'tier':tier,'higher_low':hl,
    'support_state':cs['support_state'],'px_close':cs.get('price'),'band_low':round(cs['cost_band_low'],2),
