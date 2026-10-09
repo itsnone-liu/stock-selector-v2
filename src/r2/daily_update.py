@@ -56,12 +56,20 @@ def main():
  if not tdx_has_day(day): raise SystemExit(f'TDX mirror has no bars for {day} — sync not done?')
  # snapshot axes for subset-equality check
  old={}
+ l1rows=rows_of(ROOT/ARTS['l1_market_axes']) if (ROOT/ARTS['l1_market_axes']).exists() else []
+ dts=sorted({r['date'] for r in l1rows if r['date']<a.day})
+ prev_day=dts[-1] if dts else a.day
  for k,rel in ARTS.items():
   p=ROOT/rel
   if p.exists(): old[k]={json.dumps(r,sort_keys=True) for r in rows_of(p)}
  if 'A' not in skip:
   if not run('A',[PY,'src/r2/daily_price_update.py','--day',day]): raise SystemExit('A failed')
  if 'C' not in skip:
+  bk=ROOT/'data/cd/sector_axes'/f'backup_{a.day.replace("-","")}'
+  bk.mkdir(parents=True,exist_ok=True)
+  for rel in ARTS.values():
+   src=ROOT/rel
+   if src.exists(): shutil.copy(src,bk/src.name)
   for tag,script in BUILDERS:
    if not run(tag,[PY,script]): raise SystemExit(f'{tag} failed')
   for k,rel in ARTS.items():
@@ -70,8 +78,11 @@ def main():
     kf=KEYED[k]; lost={kf(r) for r in old[k]}-{kf(r) for r in newr}
     kind='keys'
    else:
-    lost=old[k]-{json.dumps(r,sort_keys=True) for r in newr}; kind='rows'
-   if lost: raise SystemExit(f'HISTORY LOST in {k}: {len(lost)} {kind} vanished — aborting (files already rewritten; restore from git)')
+    # P1 fix 2026-10-09: 近2交易日行允许重算(TDX盘后补齐/迟到bar)——早于昨日的历史仍逐字节严查
+    recent={a.day,prev_day}
+    olds={x for x in old[k] if json.loads(x).get('date') not in recent}
+    lost=olds-{json.dumps(r,sort_keys=True) for r in newr if r.get('date') not in recent}; kind='rows'
+   if lost: raise SystemExit(f'HISTORY LOST in {k}: {len(lost)} {kind} vanished — aborting (backup: data/cd/sector_axes/backup_*)')
  if 'E' not in skip:
   if not run('E',[PY,'src/r2/current_scan.py']): raise SystemExit('E failed')
  if 'F' not in skip:
