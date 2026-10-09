@@ -81,6 +81,13 @@ def main():
   'up_ratio':round(sum(1 for r in rows if r['pct']>0)/len(rows),3) if rows else None}}
  OUTD.mkdir(parents=True,exist_ok=True)
  (OUTD/f'report_{day}.json').write_text(json.dumps(rep,ensure_ascii=False,indent=1))
- with open(OUTD/'crossval_history.jsonl','a') as f: f.write(json.dumps({'day':day,**{k:cross.get(k,{})for k in('band_pos','E3','state')},'pool':rep['pool_stats']},ensure_ascii=False)+'\n')
+ # full-dim history, idempotent per day (re-run overwrites, no dup)
+ hp=OUTD/'crossval_history.jsonl'; hist={}
+ if hp.exists():
+  for ln in hp.read_text().splitlines():
+   if ln.strip(): r=json.loads(ln); hist[r['day']]=r
+ hist[day]={'day':day,**{k:cross.get(k,{})for k in('band_pos','support_state','state','conf','E3','T2','T3')},'pool':rep['pool_stats']}
+ with open(hp,'w') as f:
+  for k in sorted(hist): f.write(json.dumps(hist[k],ensure_ascii=False)+'\n')
  print(json.dumps({'day':day,'traded':len(rows),'susp':len(susp),'migrations':len(mig),'pool':rep['pool_stats']},ensure_ascii=False))
 if __name__=='__main__':main()
