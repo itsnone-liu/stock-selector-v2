@@ -13,7 +13,7 @@ Usage: .venv/bin/python src/r2/daily_update.py --day 2026-10-08 [--skip A,C,E,F]
 Exit code !=0 on any failure; manifest at data/r2/daily_update/update_<day>.json
 """
 from __future__ import annotations
-import argparse,gzip,json,subprocess,sys,time
+import argparse,gzip,json,shutil,subprocess,sys,time
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[2]
 DATA=ROOT/'data'; OUTD=ROOT/'data/r2/daily_update'
