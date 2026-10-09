@@ -272,15 +272,34 @@ def compute_features(day, base_day, row, q, bars, base20, stage) -> dict:
 
 
 # ---------------------------------------------------------------- io
-def write_raw(day: str, code: str, payload: dict) -> tuple[Path, str]:
+def write_raw_day(day: str, stage: str, items: list[tuple[str, dict]]) -> tuple[Path, dict]:
+    """Freeze raw for one (day, stage) as a single zstd jsonl (1 line per code).
+
+    Single-file layout: ~0.7 MB/day net (vs 4.1 MB on disk when split into 1036
+    tiny files, due to 4K block padding), and stages never clobber each other.
+    """
     import zstandard as zstd
-    canon = json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(',', ':'))
-    h = sha256_text(canon)
-    d = EI5 / 'raw' / day
+    d = EI5 / 'raw'
     d.mkdir(parents=True, exist_ok=True)
-    p = d / f'{code}.json.zst'
-    p.write_bytes(zstd.ZstdCompressor(level=10).compress(canon.encode('utf-8')))
-    return p, h
+    p = d / f'{day}_{stage}.jsonl.zst'
+    merged: dict[str, str] = {}
+    if p.exists():                       # merge: never lose already-frozen codes
+        prev = zstd.ZstdDecompressor().decompress(p.read_bytes(), max_output_size=1 << 30).decode()
+        for ln in prev.splitlines():
+            if ln:
+                merged[json.loads(ln)['code']] = ln
+    lines, hashes = [], {}
+    for code, payload in sorted(items):
+        canon = json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(',', ':'))
+        merged[code] = canon
+        hashes[code] = sha256_text(canon)
+    for code in sorted(merged):
+        lines.append(merged[code])
+    blob = ('\n'.join(lines) + '\n').encode('utf-8')
+    tmp = p.with_suffix('.tmp')
+    tmp.write_bytes(zstd.ZstdCompressor(level=10).compress(blob))
+    tmp.replace(p)
+    return p, hashes
 
 
 def upsert_parquet(path: Path, rows: list[dict], key=('day', 'code')) -> None:
@@ -290,12 +309,8 @@ def upsert_parquet(path: Path, rows: list[dict], key=('day', 'code')) -> None:
         old = pd.read_parquet(path)
         old = old.set_index(list(key))
         newi = new.set_index(list(key))
-        for col in newi.columns:
-            old.loc[newi.index, col] = newi[col]
-        add = newi.index.difference(old.index)
-        if len(add):
-            old = pd.concat([old, newi.loc[add]])
-        out = old.reset_index()
+        old = old[~old.index.isin(newi.index)]          # drop replaced keys
+        out = pd.concat([old, newi]).sort_index().reset_index()
     else:
         out = new
     tmp = path.with_suffix('.tmp.parquet')
@@ -405,8 +420,9 @@ def main() -> None:
     print(f'[{a.stage}] day={a.day} base={base_day} cohort={len(codes)} '
           f'(scan cards={meta["n_cards"]})', flush=True)
 
-    q = quotes(codes, sleep=0.4) if (a.stage == 'auction' or a.limit or True) else {}
-    rows_f, man, fails, ok, raw_bytes = [], [], [], 0, 0
+    q = quotes(codes, sleep=0.4)
+    rows_f, man, fails, ok = [], [], [], 0
+    raw_items: list[tuple[str, dict]] = []
 
     for n, row in enumerate(cohort, 1):
         code = row['code']
@@ -424,14 +440,8 @@ def main() -> None:
                        'stage': a.stage, 'source': 'tencent:ifzq.minute+qt.gtimg',
                        'fetched_at': now_cst(), 'git_sha': git_sha(),
                        'quote': q.get(code), 'bars': bars}
-            p, h = write_raw(a.day, code, payload)
-            raw_bytes += p.stat().st_size
+            raw_items.append((code, payload))
             rows_f.append(fx)
-            man.append({'day': a.day, 'code': code, 'stage': a.stage, 'base_day': base_day,
-                        'raw_path': str(p.relative_to(ROOT)), 'raw_sha256': h,
-                        'n_bars': fx.get('n_bars'), 'src_date': src_date,
-                        'source': 'tencent:ifzq.minute+qt.gtimg', 'fetched_at': fx['fetched_at'],
-                        'git_sha': payload['git_sha'], 'ok': True})
             ok += 1
         except Exception as e:                             # noqa: BLE001
             fails.append({'code': code, 'err': f'{type(e).__name__}:{e}'[:160]})
@@ -442,19 +452,30 @@ def main() -> None:
             print(f'  ...{n}/{len(codes)} ok={ok} fail={len(fails)} '
                   f'{time.time()-t0:.0f}s', flush=True)
 
+    raw_path, raw_bytes = '', 0
+    if raw_items:
+        p, hashes = write_raw_day(a.day, a.stage, raw_items)
+        raw_path, raw_bytes = str(p.relative_to(ROOT)), p.stat().st_size
+        for fx in rows_f:
+            man.append({'day': a.day, 'code': fx['code'], 'stage': a.stage, 'base_day': base_day,
+                        'raw_path': raw_path, 'raw_sha256': hashes.get(fx['code'], ''),
+                        'n_bars': fx.get('n_bars'), 'src_date': fx.get('src_date', ''),
+                        'source': 'tencent:ifzq.minute+qt.gtimg', 'fetched_at': fx['fetched_at'],
+                        'git_sha': git_sha(), 'ok': True})
     if rows_f:
         upsert_parquet(EI5 / 'features' / f'day={a.day}.parquet', rows_f)
     append_manifest(EI5 / 'manifest.jsonl', man)
 
     cov = {'day': a.day, 'base_day': base_day, 'stage': a.stage, 'cohort': len(codes),
            'ok': ok, 'fail': len(fails), 'coverage': round(ok / max(len(codes), 1), 4),
-           'fail_reasons': {}, 'raw_bytes': raw_bytes, 'elapsed_s': round(time.time() - t0, 1),
-           'git_sha': git_sha(), 'run_at': now_cst()}
+           'fail_reasons': {}, 'raw_file': raw_path, 'raw_bytes': raw_bytes,
+           'elapsed_s': round(time.time() - t0, 1), 'git_sha': git_sha(), 'run_at': now_cst()}
     for f in fails:
         k = f['err'].split(':')[0]
         cov['fail_reasons'][k] = cov['fail_reasons'].get(k, 0) + 1
     (EI5 / 'coverage').mkdir(parents=True, exist_ok=True)
-    (EI5 / 'coverage' / f'{a.day}.json').write_text(json.dumps(cov, ensure_ascii=False, indent=1))
+    (EI5 / 'coverage' / f'{a.day}_{a.stage}.json').write_text(
+        json.dumps(cov, ensure_ascii=False, indent=1))
     print(json.dumps(cov, ensure_ascii=False))
     if fails[:5]:
         print('sample fails:', json.dumps(fails[:5], ensure_ascii=False))

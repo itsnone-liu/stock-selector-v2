@@ -65,11 +65,21 @@ cohort = [c for c in cards
 | 时点 | 动作 | 产出 |
 |---|---|---|
 | T-1 18:10 | 现有 EOD（**不动**） | `current_scan_<T-1>.json` 冻结 cohort |
-| T 09:25:30 | 竞价快照（qt.gtimg 批量） | `stage=auction` raw |
-| T 10:00:30 | 拉 ≤31 个 1min 点 → 差分 → 特征 → 封存 | `stage=window` raw + features |
-| T 收盘后 | TDX 日线补 +1/+5/+10/+20d 标签 | `stage=labels`（每日回补） |
+| T 09:28 | 竞价快照（qt.gtimg 批量；09:25 撮合后 09:25–09:29 数据不变） | `stage=auction` raw |
+| T 10:01 | 拉 ≤31 个 1min 点 → 差分 → 特征 → 封存（等 1000 点走完再取，避免半根） | `stage=window` raw + features |
+| T 19:00 | TDX 日线补 +1/+5/+10/+20d 标签 | `stage=labels`（每日回补） |
 
-休市日（周末/节假日）：跳过。周一正常。
+**交易日闸门**：`check_trading_day()` 用 `qt.gtimg sh000001` 的 f[30] 时间戳判 T 是否开盘；非交易日直接 `skipped=NOT_TRADING_DAY` 退出，不写文件。周末由 cron `1-5` 挡，节假日由闸门挡。
+
+**已上线 cron**（`scripts/ei5_cron.sh`，2026-10-09 启用；只碰 `data/r2/ei5/`，不碰 EOD）：
+```
+28 9 * * 1-5  scripts/ei5_cron.sh auction
+ 1 10 * * 1-5 scripts/ei5_cron.sh window
+ 0 19 * * 1-5 scripts/ei5_cron.sh labels
+```
+周一 2026-10-12 起自动跑。
+
+**周一额外校验（一次性）**：收盘后跑 `--stage backfill --day 2026-10-12`，与盘中 `stage=window` 落地的同一批码逐字段比对；差异即为盘中取数时点误差（尤其 1000 点是否半根），有差异就以回补口径为准并修时点。
 
 ## 四、存储布局
 
@@ -83,10 +93,11 @@ data/r2/ei5/coverage/<YYYY-MM-DD>.json          # 当日覆盖率/失败原因/�
 
 **冻结纪律**：特征代码一经跑通即记 git sha 冻结；raw 封存 sha256；后续加字段=新开一列，不改旧列。
 
-**存储实算**（1036 只 × ≤31 点）：
-- raw：~1 MB/天（zstd 后 ~0.25 MB），90 天 ≈ 22 MB
-- features：1036 × ~30 字段 ≈ 60 KB/天（parquet），一年 ≈ 15 MB
-- 对照全市场 tick 200 MB/天 → **低约 200 倍**
+**存储实算**（1036 只 × ≤31 点，2026-10-09 实测）：
+- raw：**单文件** `raw/<day>_<stage>.jsonl.zst`，1036 只 = **435 KB/天**（未压缩 ~1.5 MB）。按票拆文件会因 4K 块对齐变成 4.1 MB/天，故只留单文件；写入按 code 合并，子集重跑不会截断已有票。90 天 ≈ **40 MB**
+- features：1036 行 × 42 列 = **252 KB/天**（parquet），一年 ≈ 64 MB
+- manifest/coverage：~400 KB/天
+- 合计 **≈ 1.1 MB/天 ≈ 0.4 GB/年**；对照全市场 tick 200 MB/天 → 低约 **200 倍**
 
 ## 五、特征定义（冻结 v1）
 
@@ -130,3 +141,33 @@ cd /root/project/workspace/stock-selector-v2
 # 标签回补
 .venv/bin/python src/r2/ei5_collect.py --stage labels  --day <T>
 ```
+
+## 八、执行记录
+
+### 2026-10-09 首日回补（T=10-09，cohort=10-08 scan，`pool=candidates`）
+
+| 项 | 实测 |
+|---|---|
+| cohort | 1036 只（scan cards=3781，tier∈{CONFIRM_CANDIDATE 85, BUILD, WATCH 416} 等） |
+| ok / fail | **1036 / 0**，覆盖率 **100%** |
+| 1 分钟点数 | 1035 只 = 31 点（0930–1000 全）；1 只 = 1 点（`partial=True`，窗口内基本无量） |
+| `src_date` | 1036/1036 = `20261009`（无陈旧数据污染） |
+| 20 日均量基线 | 1036/1036 命中 TDX 日线（`has_20d=1`） |
+| 耗时 / 体积 | 844 s（串行 0.1 s 节流）/ raw 435 KB |
+| 冻结 | raw jsonl.zst 单文件，逐票 sha256 入 manifest；`git_sha=163bf4e` |
+
+**关键特征中位值（10-09 为下跌日，可作合理性对照）**：`auction_gap` 0.00%、`auction_vol_ratio` 0.30%、`disp(-09:30→10:00)` −0.90%、`win_amt_ratio` 26.6%、`PE3`(回撤额/上涨额) 1.40、`tail_vol_ratio` 0.40。
+→ 值域与"下跌日、尾段缩量、下跌成交额大于上涨成交额"的直觉一致，特征非垃圾。
+
+### 周一 10-12 第一个真实前瞻日（必须做的一致性校验）
+
+live 采集（09:28 auction / 10:01 window）与收盘后 backfill 同一 T 日，比对同一只票的 `disp / PE1 / PE2 / PE3 / win_amt_ratio`：
+- 若 **完全一致** → 说明 10:01 取数不含量能未完的半根，live 链路可用；
+- 若 **window 最后一次出现半根偏差** → 把 window 时点后移到 10:01:30 或丢弃 `last_hhmm=1000` 那根。
+
+```bash
+# 周一收盘后
+.venv/bin/python src/r2/ei5_collect.py --stage backfill --day 2026-10-12   # 覆盖同日的 live 特征
+```
+
+**标签不得前视**：`--stage labels` 只用 `day` 之后的 TDX 日线；T 日的 r20 在 T+20 个交易日后才落地，未足期写 NaN。cron 每日 19:00 对最近 26 个自然日滚动补标签。
