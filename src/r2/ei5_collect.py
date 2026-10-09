@@ -377,6 +377,19 @@ def stage_labels(day: str) -> dict:
 
 
 # ---------------------------------------------------------------- main
+def check_time_window(stage: str) -> tuple[bool, str]:
+    """live stage 只能在自己的时间窗内写盘，防把收盘后快照当竞价/窗口数据写进去。"""
+    win = {'auction': ('0912', '0945'), 'window': ('0955', '1030')}.get(stage)
+    if not win:
+        return True, ''
+    try:
+        from zoneinfo import ZoneInfo
+        now = datetime.now(ZoneInfo('Asia/Shanghai')).strftime('%H%M')
+    except Exception:                                      # noqa: BLE001
+        now = datetime.now().strftime('%H%M')
+    return win[0] <= now <= win[1], now
+
+
 def check_trading_day(day: str) -> tuple[bool, str]:
     """True if sh000001 quote timestamp date == day (i.e. auction already happened today)."""
     try:
@@ -403,6 +416,12 @@ def main() -> None:
         if not okd:
             print(json.dumps({'day': a.day, 'stage': a.stage, 'skipped': 'NOT_TRADING_DAY',
                               'quote_ts': ts}, ensure_ascii=False))
+            return
+        okt, nowhhmm = check_time_window(a.stage)
+        if not okt:
+            print(json.dumps({'day': a.day, 'stage': a.stage, 'skipped': 'OUT_OF_TIME_WINDOW',
+                              'now': nowhhmm}, ensure_ascii=False))
+            print('  提示：live 阶段只在自己时间窗内写盘；要补历史数据用 --stage backfill', file=sys.stderr)
             return
 
     if a.stage == 'labels':
