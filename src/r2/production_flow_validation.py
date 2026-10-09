@@ -168,6 +168,6 @@ def main():
  json.dump(out,open(ROOT/'data/r2/position_policy_result.json','w'))
  # sector concentration descriptor
  from collections import Counter
- cc=Counter(x['l2'] for x in res['P1'])
+ cc=Counter(x['l2'] for x in res['P0'])
  print('sector top3:',cc.most_common(3))
 if __name__=='__main__':main()
