@@ -68,3 +68,7 @@ cd /root/project/workspace/stock-selector-v2 && \
 ## 7. 一句话验收
 
 `report_<day>.json` 存在、`n_traded+n_suspended ≈ 卡片数`、`migrations` 可解释、`update_<day>.json` 无非零失败计数 —— 当日闭环。
+
+## Shadow 封存（每晚 F 之后必跑）
+.venv/bin/python src/r2/shadow_portfolio.py --day $(date +%F)
+三账户 A/B/C + breadth + Q5 + 哈希，逐日累积 attribution。
