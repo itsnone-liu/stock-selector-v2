@@ -30,7 +30,8 @@ def main():
  snap=SCANS/f'current_scan_{a.day}.json'
  d=json.load(open(snap)); cards=d['cards']
  B50=breadth50(); B50M=0.75 if B50<0.50 else 1.0
- reg=d.get('regime_5d',''); rg=d.get('regime_grp','OTHER')
+ reg=d.get('regime_5d') or (cards[0].get('decision',{}).get('regime','') if cards else '')
+ rg='BULL' if str(reg).startswith('R_RISK_ON') else ('BEAR' if str(reg).startswith(('R_DEPRESSED','RISK_OFF','R_RISK_OFF')) else 'OTHER')
  rows=[]
  for c in cards:
   t=c.get('decision',{}); tier=t.get('decision_tier','NO_BUILD'); hl=t.get('higher_low',False)
