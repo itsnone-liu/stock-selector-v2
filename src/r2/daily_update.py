@@ -75,7 +75,7 @@ def main():
   for k,rel in ARTS.items():
    newr=rows_of(ROOT/rel)
    if k in KEYED:
-    kf=KEYED[k]; lost={kf(r) for r in old[k]}-{kf(r) for r in newr}
+    kf=KEYED[k]; lost={kf(json.loads(x)) for x in old[k]}-{kf(r) for r in newr}
     kind='keys'
    else:
     # P1 fix 2026-10-09: 近2交易日行允许重算(TDX盘后补齐/迟到bar)——早于昨日的历史仍逐字节严查
