@@ -26,7 +26,7 @@ ARTS={'l2_four_axes':'data/cd/sector_axes/l2_four_axes.json.gz','l1_market_axes'
       'l4_episodes':'data/cd/l4_episodes.json.gz'}
 # lifecycle tables: open rows legitimately extend (end/seq mutate) -> check KEY survival, not serialization
 KEYED={'l4_episodes':lambda r:(r.get('episode_id'),),
-       'l3_pool':lambda r:(r.get('code'),r.get('ym') or r.get('month') or '')}
+       'l3_pool':lambda r:((r.get('code'),r.get('ym') or r.get('month') or '') if isinstance(r,dict) else (r,))}
 
 def rows_of(p):
  x=json.loads(gzip.decompress(Path(p).read_bytes()))
