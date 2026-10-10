@@ -15,7 +15,9 @@ case "$STAGE" in
            "$PY" src/r2/ei5_collect.py --stage auction --day "$TODAY" >> "$LOG" 2>&1 ;;
   window)  echo "[$(date '+%F %T')] stage=window day=$TODAY" >> "$LOG"
            "$PY" src/r2/ei5_collect.py --stage window --day "$TODAY" >> "$LOG" 2>&1 ;;
-  labels)  echo "[$(date '+%F %T')] stage=labels sweep" >> "$LOG"
+  labels)  echo "[$(date '+%F %T')] stage=split_events refresh (after R2 A)" >> "$LOG"
+           "$PY" scripts/ei5_split_events.py --day "$TODAY" >> "$LOG" 2>&1
+           echo "[$(date '+%F %T')] stage=labels sweep" >> "$LOG"
            for d in $(seq 0 25); do
              D=$(date -d "-$d day" +%F)
              if [ -f "$ROOT/data/r2/ei5/features/day=$D.parquet" ]; then

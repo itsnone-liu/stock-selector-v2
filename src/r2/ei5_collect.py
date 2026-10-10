@@ -20,6 +20,7 @@ Outputs:
 from __future__ import annotations
 
 import argparse
+import gzip
 import hashlib
 import json
 import math
@@ -35,6 +36,7 @@ ROOT = Path(__file__).resolve().parents[2]
 SCANS = ROOT / 'data/r2/scans'
 TDX = Path('/root/tdx_data/vipdoc')
 EI5 = ROOT / 'data/r2/ei5'
+DAILY_FM = ROOT / 'data/cd/daily_fullmarket'   # 主系统每日档（权威 factor 序列）
 COHORT_KEEP = {'CONFIRM_CANDIDATE', 'BUILD', 'WATCH'}
 WIN_END = '1000'          # window upper bound (inclusive)
 CST = timezone(timedelta(hours=8))
@@ -166,8 +168,48 @@ def fetch_minute(code: str) -> tuple[str, list]:
     return date, bars
 
 
+def _factor_series(code: str) -> dict:
+    """主系统每日档的 adjust_factor_model_derived 序列 {'YYYY-MM-DD': f}；缺失返回 {}。"""
+    p = DAILY_FM / f'{code}.json.gz'
+    if not p.exists():
+        return {}
+    try:
+        j = json.loads(gzip.decompress(p.read_bytes()))
+        return dict(zip(j.get('dates') or [], j.get('adjust_factor_model_derived') or []))
+    except Exception:
+        return {}
+
+
+def _ymd(d) -> str:
+    s = str(d)
+    return s if '-' in s else f'{s[:4]}-{s[4:6]}-{s[6:]}'
+
+
+def _restate_vols(code: str, dates: list, vols: list) -> list:
+    """把基线量重述到 T-1 股本口径：vol_restated_k = vol_raw_k * f_t1 / f_k。
+
+    f = 主系统每日档 adjust_factor_model_derived（qfq/unadj）。送转除权前旧股本口径的
+    量按因子比折算，消除 auction_vol_ratio 的系统性稀释；f 缺失/非正的天不重述。
+    """
+    fmap = _factor_series(code)
+    if not fmap or not dates:
+        return vols
+    f_now = fmap.get(_ymd(dates[-1]))          # T-1 口径
+    if not f_now or f_now <= 0:
+        return vols
+    out = []
+    for d, v in zip(dates, vols):
+        fk = fmap.get(_ymd(d))
+        out.append(v * f_now / fk if (fk and fk > 0) else v)
+    return out
+
+
 def tdx_daily(code: str, before_day: str, n: int = 20) -> dict | None:
-    """Last n trading days strictly BEFORE day: avg volume(hand), avg amount(yuan), prev close."""
+    """Last n trading days strictly BEFORE day: avg volume(hand, restated), avg amount(yuan), prev close.
+
+    avg_vol 经主系统 factor 重述到 T-1 股本口径（送转不再稀释 auction_vol_ratio）；
+    avg_vol_raw 保留未重述值备审计。
+    """
     p = TDX / mkt_prefix(code) / 'lday' / f'{qcode(code)}.day'
     if not p.exists():
         return None
@@ -181,8 +223,11 @@ def tdx_daily(code: str, before_day: str, n: int = 20) -> dict | None:
     if not recs:
         return None
     tail = recs[-n:]
+    vols_raw = [x[3] for x in tail]
+    vols = _restate_vols(code, [x[0] for x in tail], vols_raw)
     return {'n_days': len(tail),
-            'avg_vol': sum(x[3] for x in tail) / len(tail),
+            'avg_vol': sum(vols) / len(vols),
+            'avg_vol_raw': sum(vols_raw) / len(vols_raw),
             'avg_amt': sum(x[2] for x in tail) / len(tail),
             'prev_close': recs[-1][1],
             'last_hist_day': recs[-1][0]}
@@ -211,6 +256,7 @@ def compute_features(day, base_day, row, q, bars, base20, stage) -> dict:
 
     if base20:
         fx['avg20_vol'] = base20['avg_vol']
+        fx['avg20_vol_raw'] = base20['avg_vol_raw']
         fx['avg20_amt'] = base20['avg_amt']
         fx['has_20d'] = True
         if bars and base20['avg_vol']:

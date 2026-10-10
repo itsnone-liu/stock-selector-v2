@@ -51,7 +51,7 @@ cohort = [c for c in cards
 |---|---|---|
 | 1 分钟点 | `https://web.ifzq.gtimg.cn/appstock/app/minute/query?code=sz000001` | 可用。当日 267 点（0930→1530），`data.<code>.data.date='20261009'`。每点 `"HHMM 价 累计量(手) 累计额(元)"` |
 | 竞价/快照 | `http://qt.gtimg.cn/q=sh600000,sz000001,...`（60 只/请求，GBK） | 可用。f[3]现价 f[4]昨收 f[5]今开(=竞价价) f[6]量(手) f[37]额(万元) |
-| 20 日均量额 | `/root/tdx_data/vipdoc/{sh,sz,bj}/lday/*.day` | 裸价未复权；volume 单位=手；amount 单位=元 |
+| 20 日均量额 | `/root/tdx_data/vipdoc/{sh,sz,bj}/lday/*.day` | 裸价未复权；volume 单位=手；amount 单位=元。**量经主系统 factor 重述**（见下） |
 | ~~1min OHLC 其他源~~ | EMI push2his klt=1 / 腾讯 mkline / fqkline | **全部不可用**（EM 超时、mkline 301、fqkline param error） |
 
 ### ⚠️ 已知数据缺口（必须记录，不得掩盖）
@@ -94,6 +94,7 @@ data/r2/ei5/labels/ei5_labels.parquet           # 标签，每日回补追加
 data/r2/ei5/manifest.jsonl                      # 每 (day,code,stage) 一行：raw_sha256/source/available_at/git_sha
 data/r2/ei5/coverage/<YYYY-MM-DD>.json          # 当日覆盖率/失败原因/字节数/耗时
 data/r2/ei5/consistency/<YYYY-MM-DD>.json       # 盘后校验报告（一致性比对）
+data/r2/ei5/split_events.json                   # 除权事件表（累积，code+date 去重）
 ```
 
 **冻结纪律**：特征代码一经跑通即记 git sha 冻结；raw 封存 sha256；后续加字段=新开一列，不改旧列。
@@ -118,13 +119,29 @@ PE1         = disp / amt_ratio                # 每单位额比的位移效率
 PE2         = disp / vol_ratio
 PE3         = Σa_i[r_i<0] / Σa_i[r_i>0]       # 回撤额 / 上涨额
 auction_gap = auction_price/prev_close - 1
-auction_vol_ratio = bar0.cumvol / avg20_volume
+auction_vol_ratio = bar0.cumvol / avg20_volume    # avg20_volume = RESTATED 口径
 range_cproxy      = max(p_i)/min(p_i) - 1
 retrace_from_peak = p_last/max(p_i) - 1
 time_to_peak_frac = argmax(p_i)/30
 tail_vol_ratio    = Σv_i[i>20] / Σv_i[i<=10]
 peak_dn_vol_ratio = 峰后量 / 峰前量
 ```
+
+### 除权重述（2026-10-10 落地，老刘定口径）
+
+基线量一律重述到 T-1 股本口径，送转不再稀释/虚增量比：
+
+```
+vol_restated_k = vol_raw_k × (f_t1 / f_k)
+f = data/cd/daily_fullmarket/<code>.json.gz 的 adjust_factor_model_derived（主系统权威因子）
+f_t1 = 基线窗口最后一天（T-1）的 factor
+```
+
+- `avg20_vol` = restated 均值（**特征层正式口径**）；`avg20_vol_raw` = 未重述原值，两列并存备审计
+- 事件表 `data/r2/ei5/split_events.json`：扫全市场 factor 相邻跳变 |Δf/f|>1% 记录（累积不删，code+date 去重），>5% 为送转大跳实质影响量纲、1–5% 小额分红影响 <5%
+- 刷新：`scripts/ei5_split_events.py`，挂在 `ei5_cron.sh labels` 开头（19:00，R2 A 步 18:10 之后）
+- 方向记录：送转票基线被旧股本小量拉低 → **修复前 auction_vol_ratio 虚高**；restated 后分母变大、ratio 回落（002961: 0.002717→0.002025，300803: 0.001724→0.001332）
+- 主系统（R2 qfq 轨道）零改动，纯 EI-5P 供数修复
 
 ## 六、门槛与判据
 
@@ -165,6 +182,18 @@ cd /root/project/workspace/stock-selector-v2
 
 **关键特征中位值（10-09 为下跌日，可作合理性对照）**：`auction_gap` 0.00%、`auction_vol_ratio` 0.30%、`disp(-09:30→10:00)` −0.90%、`win_amt_ratio` 26.6%、`PE3`(回撤额/上涨额) 1.40、`tail_vol_ratio` 0.40。
 → 值域与"下跌日、尾段缩量、下跌成交额大于上涨成交额"的直觉一致，特征非垃圾。
+
+### 2026-10-10 除权重述修复（主系统交叉证实后落地）
+
+背景：10-09 R2 主系统除权修复（`25c3d2d`，14 只 qfq 重拉）后，EI-5P 侧用每日档 factor 全市场扫描交叉证实送转大跳（>5%）共 8 只；其中 002961（09-23，jump 1.5013）、300803（09-22，jump 1.45）在 10-08 cohort 且除权日落 20 日基线窗口内。
+
+| 项 | 结果 |
+|---|---|
+| 修复 | `tdx_daily` 基线量 restated（`vol×f_t1/f_k`，f=每日档 factor），`avg20_vol` 改 restated 口径 + 新增 `avg20_vol_raw` 备审计 |
+| 事件表 | `split_events.json` 全市场扫：59640 个 >1% 事件（其中 >5% 大跳 5107 个，含历史），`scripts/ei5_split_events.py` 每晚 labels 前刷新（23.7s/5430 只） |
+| 回溯修正 | day=2026-10-09.parquet 全量 1035 行重算：002961 avg20_vol 111137→149126（ratio 0.002717→0.002025）、300803 169981→220046（0.001724→0.001332）；>1% 共 21 只、>5% 仅这 2 只，与主系统口径一致 |
+| 方向勘误 | 送转票旧基线被小量拉低 → 修复前 **auction_vol_ratio 虚高**（非偏低） |
+| 边界 | 小额分红（1–5%，全市场 220 只）量纲影响 <5% 不修；4 只 repair 票（000680/603307/003027/688676）经核验为纯分红、量特征本就干净 |
 
 ### 周一 10-12 第一个真实前瞻日（一致性校验已落地）
 
