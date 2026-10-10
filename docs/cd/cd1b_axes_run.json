@@ -1,9 +1,9 @@
 {
- "generated": "2026-10-09T21:47:16",
+ "generated": "2026-10-10T12:39:12",
  "n_rows": 115785,
  "ok": 98155,
  "insufficient": 17630,
- "sha256_rows": "ec2a242e15779f792ff1113fd94d92562f7e4120d8a306735a55e9e14b516e1e",
+ "sha256_rows": "5dd7c45de371fbfcd75a21b52ae6e095fca6042e2fff66926da445ec6cddde28",
  "sectors": 83,
  "dates": 1395,
  "per_sector_ok_insufficient": {
