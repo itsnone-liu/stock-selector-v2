@@ -89,7 +89,7 @@ def update_stock(sess,code,day,strict_tdx=True):
  # bars present in TDX window but not returned by tencent (non-suspension)
  for k in tdx:
   ks=f'{k[:4]}-{k[4:6]}-{k[6:]}'
-  if last<ks<=day and ks not in nds and len(nds)>0: mism.append((ks,'tdx_bar_not_fetched'))
+  if last<ks<=day and ks not in nds: mism.append((ks,'tdx_bar_not_fetched'))
  if mism and strict_tdx: return ('tdx_mismatch',mism)
  if not nds: return ('no_change',0)
  newu=[raw[x][:6] for x in nds]; newq=[qm[x][:6] for x in nds]
