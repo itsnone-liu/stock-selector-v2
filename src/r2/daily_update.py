@@ -13,7 +13,7 @@ Usage: .venv/bin/python src/r2/daily_update.py --day 2026-10-08 [--skip A,C,E,F]
 Exit code !=0 on any failure; manifest at data/r2/daily_update/update_<day>.json
 """
 from __future__ import annotations
-import argparse,gzip,json,shutil,subprocess,sys,time
+import argparse,gzip,json,math,shutil,subprocess,sys,time
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[2]
 DATA=ROOT/'data'; OUTD=ROOT/'data/r2/daily_update'
@@ -25,14 +25,80 @@ ARTS={'l2_four_axes':'data/cd/sector_axes/l2_four_axes.json.gz','l1_market_axes'
       'l2_state_table':'data/cd/sector_axes/l2_state_table.json.gz','l3_pool':'data/cd/l3_candidate_pool_v2.json.gz',
       'l4_episodes':'data/cd/l4_episodes.json.gz'}
 # lifecycle tables: open rows legitimately extend (end/seq mutate) -> check KEY survival, not serialization
-KEYED={'l4_episodes':lambda r:(r.get('episode_id'),),
-       'l3_pool':lambda r:((r.get('code'),r.get('ym') or r.get('month') or '') if isinstance(r,dict) else (r,))}
+KEYED={'l4_episodes':lambda r:(r.get('episode_id'),)}
+# l3_pool is NOT a row list: pools = {monthly snapshot key 'YYYY-MM-DD' -> {L,M,S,U_list}}, one key per
+# calendar month (key date = that month's last refresh). Generic rows_of() iterates the dict -> yields
+# snapshot KEYS, so the old KEYED check compared key survival and false-fired on every in-month re-key
+# (2026-10-09 -> 2026-10-12). Dedicated check_l3_pool() enforces the real invariants instead.
 
 def rows_of(p):
  x=json.loads(gzip.decompress(Path(p).read_bytes()))
  for k in ('rows','states','pools','episodes'):
   if k in x: return x[k]
  return x
+
+MASKED_FIELDS={'l1_market_axes':frozenset({'b_conc','b_disp','b_part'})}
+# ^ thresholded band READOUTS (conc50/disp quantised): rebase micro-perturbation may legitimately flip a band
+ # at the threshold edge. True states (status/n) and all other artifacts stay strict.
+
+def fingerprint(x,mask=frozenset()):
+ # structure + non-numeric + INTEGER counts stay strict; floats are masked (tolerated separately)
+ if isinstance(x,bool) or x is None or isinstance(x,str): return json.dumps(x)
+ if isinstance(x,int): return str(x)
+ if isinstance(x,float): return '#'
+ if isinstance(x,list): return '['+','.join(fingerprint(v,mask) for v in x)+']'
+ if isinstance(x,dict): return '{'+','.join(f'{json.dumps(k)}:{"#M" if k in mask else fingerprint(v,mask)}' for k,v in sorted(x.items()))+'}'
+ return repr(x)
+
+def floats_of(x,mask=frozenset()):
+ if isinstance(x,bool) or x is None or isinstance(x,str) or isinstance(x,int): return []
+ if isinstance(x,float): return [x]
+ if isinstance(x,list):
+  out=[]
+  for v in x: out+=floats_of(v,mask)
+  return out
+ if isinstance(x,dict):
+  out=[]
+  for k,v in sorted(x.items()):
+   if k not in mask: out+=floats_of(v,mask)
+  return out
+ return []
+
+def rows_tolerance_pass(lost,newr,recent,mask=frozenset()):
+ # P2 fix 2026-10-13: qfq segment-wide rebasing (exdiv_refetch; runbook §6 source trait, NOT history rewrite)
+ # propagates micro-perturbations through market/sector-layer rolling stats into history rows
+ # (observed 2026-10-13: p50~1e-5, p99.9~7e-2 rel, near-zero ratios up to ~2 rel; band readouts may flip).
+ # Tolerance: fingerprint (structure+non-numeric+int counts, minus masked band fields) EXACT;
+ # floats |a-b|<=1e-3 OR rel<=1e-2. Observed rebase propagation ceiling ~5e-4 abs (top5_mean_ret:
+ # an ex-div stock inside a sector's top-5 weights shifts that day's mean by ~0.1%/5).
+ buckets={}
+ for r in newr:
+  if r.get('date') in recent: continue
+  buckets.setdefault(fingerprint(r,mask),[]).append(floats_of(r,mask))
+ still=set()
+ for x in lost:
+  ro=json.loads(x); fs=floats_of(ro,mask)
+  if not any(len(cf)==len(fs) and all(abs(p-q)<=1e-3 or math.isclose(p,q,rel_tol=1e-2)
+             for p,q in zip(fs,cf)) for cf in buckets.get(fingerprint(ro,mask),[])):
+   still.add(x)
+ return still
+
+def check_l3_pool(oldp,newp,day):
+ # Invariants for pools (monthly snapshots, ~65-month sliding window, one key per calendar month):
+ #  1) past-month snapshots are byte-frozen (L/M/S/U_list lists must not change);
+ #  2) the CURRENT month may re-key (refresh date moves, e.g. 2026-10-09 -> 2026-10-12) and recompute freely;
+ #  3) a full window may evict months ONLY as a contiguous prefix from the OLDEST end, paired 1:1 with new months.
+ cur=day[:7]
+ ymo={k[:7]:k for k in oldp}; ymn={k[:7]:k for k in newp}
+ lost=[m for m in sorted(ymo) if m not in ymn and m!=cur]
+ added=[m for m in sorted(ymn) if m not in ymo and m!=cur]
+ if lost:
+  if sorted(ymo)[:len(lost)]!=lost or len(added)!=len(lost):
+   raise SystemExit(f'HISTORY LOST in l3_pool: months {lost} vanished (not oldest-end window eviction; added={added}) — aborting (backup: data/cd/sector_axes/backup_*)')
+ for m,k in sorted(ymo.items()):
+  if m==cur or m not in ymn: continue
+  if json.dumps(oldp[k],sort_keys=True)!=json.dumps(newp[ymn[m]],sort_keys=True):
+   raise SystemExit(f'HISTORY LOST in l3_pool: past-month snapshot {m} mutated — aborting (backup: data/cd/sector_axes/backup_*)')
 
 def tdx_has_day(day):
  import struct
@@ -61,7 +127,9 @@ def main():
  prev_day=dts[-1] if dts else a.day
  for k,rel in ARTS.items():
   p=ROOT/rel
-  if p.exists(): old[k]={json.dumps(r,sort_keys=True) for r in rows_of(p)}
+  if p.exists():
+   if k=='l3_pool': old[k]=json.loads(gzip.decompress(p.read_bytes())).get('pools',{})
+   else: old[k]={json.dumps(r,sort_keys=True) for r in rows_of(p)}
  if 'A' not in skip:
   if not run('A',[PY,'src/r2/daily_price_update.py','--day',day]): raise SystemExit('A failed')
  if 'C' not in skip:
@@ -73,6 +141,10 @@ def main():
   for tag,script in BUILDERS:
    if not run(tag,[PY,script]): raise SystemExit(f'{tag} failed')
   for k,rel in ARTS.items():
+   if k=='l3_pool':
+    newp=json.loads(gzip.decompress((ROOT/rel).read_bytes())).get('pools',{})
+    check_l3_pool(old.get(k,{}),newp,a.day)
+    continue
    newr=rows_of(ROOT/rel)
    if k in KEYED:
     kf=KEYED[k]; lost={kf(json.loads(x)) for x in old[k]}-{kf(r) for r in newr}
@@ -82,6 +154,7 @@ def main():
     recent={a.day,prev_day}
     olds={x for x in old[k] if json.loads(x).get('date') not in recent}
     lost=olds-{json.dumps(r,sort_keys=True) for r in newr if r.get('date') not in recent}; kind='rows'
+    if lost: lost=rows_tolerance_pass(lost,newr,recent,MASKED_FIELDS.get(k,frozenset()))   # P2 2026-10-13: rebase micro-perturbation tolerance
    if lost: raise SystemExit(f'HISTORY LOST in {k}: {len(lost)} {kind} vanished — aborting (backup: data/cd/sector_axes/backup_*)')
  if 'E' not in skip:
   if not run('E',[PY,'src/r2/current_scan.py']): raise SystemExit('E failed')

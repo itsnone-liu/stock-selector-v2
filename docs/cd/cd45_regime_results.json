@@ -1,9 +1,9 @@
 {
- "generated": "2026-10-10T12:40:31",
+ "generated": "2026-10-13T09:00:00",
  "frozen_bands_dev": {
   "ret20d": [
-   -0.022005,
-   0.02171
+   -0.022008,
+   0.021713
   ],
   "breadth": [
    0.358952,
@@ -14,26 +14,26 @@
    1.051596
   ],
   "conc50": [
-   0.547184,
-   0.649398
+   0.547256,
+   0.649415
   ],
   "disp": [
-   0.02392,
-   0.027803
+   0.023921,
+   0.027809
   ]
  },
  "regime_counts": {
   "R_RISK_ON_NARROW": 336,
   "R_RISK_ON_BROAD": 426,
-  "R_RISK_OFF": 96,
+  "R_RISK_OFF": 97,
   "R_REBOUND_MIXED": 205,
   "R_DEPRESSED": 82
  },
  "regime_share": {
-  "R_RISK_ON_NARROW": 0.2934,
-  "R_RISK_ON_BROAD": 0.3721,
-  "R_RISK_OFF": 0.0838,
-  "R_REBOUND_MIXED": 0.179,
+  "R_RISK_ON_NARROW": 0.2932,
+  "R_RISK_ON_BROAD": 0.3717,
+  "R_RISK_OFF": 0.0846,
+  "R_REBOUND_MIXED": 0.1789,
   "R_DEPRESSED": 0.0716
  },
  "low_support_regimes": [],
@@ -51,9 +51,9 @@
    "max_days": 14
   },
   "R_RISK_OFF": {
-   "n_runs": 58,
+   "n_runs": 59,
    "median_days": 1,
-   "mean_days": 1.7,
+   "mean_days": 1.6,
    "max_days": 6
   },
   "R_REBOUND_MIXED": {
@@ -75,7 +75,7 @@
   "R_RISK_OFF->R_REBOUND_MIXED": 38,
   "R_DEPRESSED->R_REBOUND_MIXED": 37,
   "R_REBOUND_MIXED->R_DEPRESSED": 36,
-  "R_REBOUND_MIXED->R_RISK_OFF": 26,
+  "R_REBOUND_MIXED->R_RISK_OFF": 27,
   "R_DEPRESSED->R_RISK_OFF": 25,
   "R_RISK_OFF->R_DEPRESSED": 19,
   "R_REBOUND_MIXED->R_RISK_ON_BROAD": 13,
@@ -110,11 +110,11 @@
    "R_RISK_ON_BROAD": 0.564
   },
   "2026": {
-   "R_RISK_ON_BROAD": 0.328,
-   "R_RISK_ON_NARROW": 0.355,
-   "R_RISK_OFF": 0.06,
-   "R_DEPRESSED": 0.066,
-   "R_REBOUND_MIXED": 0.191
+   "R_RISK_ON_BROAD": 0.326,
+   "R_RISK_ON_NARROW": 0.353,
+   "R_RISK_OFF": 0.065,
+   "R_DEPRESSED": 0.065,
+   "R_REBOUND_MIXED": 0.19
   }
  },
  "funnel_by_regime": {
