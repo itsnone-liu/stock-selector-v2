@@ -1,11 +1,11 @@
 {
- "generated": "2026-10-13T09:02:49",
+ "generated": "2026-10-14T20:13:55",
  "summary": {
   "n_checkpoints": 65,
   "median_obs": 4814,
   "median_L": 1466,
   "median_M": 895,
-  "median_S": 843,
+  "median_S": 842,
   "median_U": 2056,
   "median_jac_U": 0.5606,
   "median_jac_L": null,
@@ -25,40 +25,40 @@
   "S_only": 197,
   "LM": 169,
   "LS": 79,
-  "MS": 182,
-  "LMS": 189
+  "MS": 187,
+  "LMS": 185
  },
  "continuity": {
-  "L_after_5d": 0.9315,
+  "L_after_5d": 0.9269,
   "L_after_20d": 0.866,
   "L_after_60d": 0.7439,
-  "M_after_5d": 0.8206,
+  "M_after_5d": 0.8182,
   "M_after_20d": 0.5488,
   "M_after_60d": 0.2344,
-  "S_after_5d": 0.7969,
+  "S_after_5d": 0.7925,
   "S_after_20d": 0.2673,
   "S_after_60d": 0.1465
  },
  "tenure": {
   "L": {
    "median_months": 3,
-   "n_runs": 15163,
-   "reentry_rate": 0.6733
+   "n_runs": 15167,
+   "reentry_rate": 0.6734
   },
   "M": {
    "median_months": 2,
-   "n_runs": 29039,
-   "reentry_rate": 0.8204
+   "n_runs": 29085,
+   "reentry_rate": 0.8207
   },
   "S": {
    "median_months": 1,
-   "n_runs": 42086,
-   "reentry_rate": 0.8743
+   "n_runs": 42145,
+   "reentry_rate": 0.8744
   },
   "U_list": {
    "median_months": 2,
-   "n_runs": 37855,
-   "reentry_rate": 0.8602
+   "n_runs": 37895,
+   "reentry_rate": 0.8603
   }
  },
  "regime_stratified": {
@@ -95,10 +95,10 @@
    "recall_L": 0.4735
   },
   "R_DEPRESSED": {
-   "L": 1867,
-   "M": 593,
-   "S": 850,
-   "U": 2432
+   "L": 1786,
+   "M": 624,
+   "S": 821,
+   "U": 2337
   }
  },
  "checkpoints": [
@@ -1429,15 +1429,15 @@
    "jac_S": null
   },
   {
-   "checkpoint": "2026-10-12",
-   "obs_pool": 5026,
+   "checkpoint": "2026-10-14",
+   "obs_pool": 5024,
    "regime_daily": "R_RISK_OFF",
    "regime_20d": "R_DEPRESSED",
-   "L": 1867,
-   "M": 593,
-   "S": 850,
-   "U": 2432,
-   "jaccard_U_vs_prev": 0.8478,
+   "L": 1786,
+   "M": 624,
+   "S": 821,
+   "U": 2337,
+   "jaccard_U_vs_prev": 0.7864,
    "recall": {},
    "jac_L": null,
    "jac_M": null,
