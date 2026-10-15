@@ -46,12 +46,24 @@ def m_sse_etf(ak):
     os.makedirs(out, exist_ok=True)
     for d in trade_dates('20120101', '20261015'):
         f = os.path.join(out, f'{d}.csv')
-        if os.path.exists(f):
+        if os.path.exists(f) or os.path.exists(f + '.EMPTY'):
             continue
         try:
             df = retry(lambda: ak.fund_etf_scale_sse(date=d))
+        except KeyError as ke:
+            # 空返回（官方无该日数据）=确定性结果: 落 .EMPTY 标记, 不重试
+            if 'None of' in str(ke):
+                open(f + '.EMPTY', 'w').close()
+                time.sleep(SLEEP)
+                continue
+            log(f"sse_etf {d} KEYERR {str(ke)[:60]}")
+            continue
         except Exception as e:
             log(f"sse_etf {d} FAIL {str(e)[:60]}")
+            time.sleep(SLEEP)
+            continue
+        if len(df) == 0:
+            open(f + '.EMPTY', 'w').close()
             time.sleep(SLEEP)
             continue
         df.to_csv(f, index=False)
@@ -81,10 +93,16 @@ def m_szse_etf(ak):
             continue
         try:
             df = retry(lambda: ak.fund_scale_daily_szse(start_date=s, end_date=e, symbol='ETF'))
+        except KeyError as ke:
+            if 'None of' in str(ke) or 'columns' in str(ke):
+                open(f + '.EMPTY', 'w').close(); time.sleep(SLEEP); continue
+            log(f"szse_etf {s} KEYERR {str(ke)[:60]}"); continue
         except Exception as ex:
             log(f"szse_etf {s} FAIL {str(ex)[:60]}")
             time.sleep(SLEEP)
             continue
+        if len(df) == 0:
+            open(f + '.EMPTY', 'w').close(); time.sleep(SLEEP); continue
         df.to_csv(f, index=False)
         time.sleep(SLEEP)
     log('szse_etf DONE')
@@ -99,10 +117,16 @@ def m_szse_margin(ak):
             continue
         try:
             df = retry(lambda: ak.stock_margin_szse(date=d))
+        except KeyError as ke:
+            if 'None of' in str(ke) or 'columns' in str(ke):
+                open(f + '.EMPTY', 'w').close(); time.sleep(SLEEP); continue
+            log(f"szse_margin {d} KEYERR {str(ke)[:60]}"); continue
         except Exception as e:
             log(f"szse_margin {d} FAIL {str(e)[:60]}")
             time.sleep(SLEEP)
             continue
+        if len(df) == 0:
+            open(f + '.EMPTY', 'w').close(); time.sleep(SLEEP); continue
         df.to_csv(f, index=False)
         time.sleep(SLEEP)
     log('szse_margin DONE')
