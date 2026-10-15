@@ -1,0 +1,77 @@
+{
+ "_meta": {
+  "probe": "release_time",
+  "T": "20261015",
+  "T_minus_1": "20261014",
+  "label": "evening_replay_check",
+  "queried_at": "2026-10-15T23:38:45"
+ },
+ "sse_etf_T": {
+  "ok": true,
+  "rows": 922,
+  "hash16": "4d4ea694f854cc69",
+  "total_shares": 2096657495500.0
+ },
+ "sse_etf_Tm1": {
+  "ok": true,
+  "rows": 922,
+  "hash16": "2e76dac726797f37",
+  "total_shares": 2080562015500.0
+ },
+ "sse_margin_T": {
+  "ok": false,
+  "err": "ValueError: Length mismatch: Expected axis has 0 elements, new values have 13 elements"
+ },
+ "sse_margin_Tm1": {
+  "ok": true,
+  "rows": 1,
+  "hash16": "c4eef95bc72ad8a5",
+  "zye": "1280077130900"
+ },
+ "szse_margin_T": {
+  "ok": false,
+  "err": "ValueError: Length mismatch: Expected axis has 0 elements, new values have 6 elements"
+ },
+ "szse_margin_Tm1": {
+  "ok": true,
+  "rows": 1,
+  "hash16": "6f8ad9ea58650ea9",
+  "rzye": "12174.08"
+ },
+ "szse_etf_T": {
+  "ok": true,
+  "rows": 756,
+  "hash16": "9faec3542caae7ed"
+ },
+ "legu_now": {
+  "ok": true,
+  "items": {
+   "上涨": "399.0",
+   "涨停": "36.0",
+   "真实涨停": "33.0",
+   "st st*涨停": "0.0",
+   "下跌": "4790.0",
+   "跌停": "28.0",
+   "真实跌停": "24.0",
+   "st st*跌停": "0.0",
+   "平盘": "26.0",
+   "停牌": "11.0",
+   "活跃度": "7.63%",
+   "统计日期": "2026-10-15 15:00:00"
+  }
+ },
+ "tdx880": {
+  "880005": {
+   "ok": true,
+   "date": "2026-10-15",
+   "close": 430.0,
+   "amount": 1645719584768.0
+  },
+  "880006": {
+   "ok": true,
+   "date": "2026-10-15",
+   "close": 36.0,
+   "amount": 1645719584768.0
+  }
+ }
+}
