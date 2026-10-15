@@ -42,17 +42,25 @@ def tdx_closes(c):
  _tdx_cache[c]=m
  return m
 
-def fetch(sess,full,last,day):
- """Return {date: (raw_row, qfq_row)} for one small window. end is exclusive (v3 convention)."""
+def fetch(sess,full,last,day,back=7):
+ """Return {date: (raw_row, qfq_row)} for one small window. end is exclusive (v3 convention).
+
+ back: widen window start N days before `last`. Tencent's fqkline endpoint is cached
+ per-param (TAPISIX); the shard keyed by start==last can still serve yesterday's qfq
+ while a slightly wider window already returns the current day (observed 2026-10-14:
+ start==last hit a stale shard, start=last-3d was fresh). Widening is otherwise a
+ no-op -- update_stock only consumes rows > last.
+ """
  import datetime as dt
  end=(dt.date.fromisoformat(day)+dt.timedelta(days=1)).isoformat()
+ start=(dt.date.fromisoformat(last)-dt.timedelta(days=back)).isoformat()
  out={}
  for fq in ('','qfq'):
   field='qfqday' if fq else 'day'
   r=None
   for attempt in range(3):
    try:
-    resp=sess.get(URL,params={'param':f'{full},day,{last},{end},640,{fq}'},timeout=12,headers=UA)
+    resp=sess.get(URL,params={'param':f'{full},day,{start},{end},640,{fq}'},timeout=12,headers=UA)
     j=resp.json()['data'][full]
     r=j.get(field) or j.get('day')
     break
@@ -76,6 +84,10 @@ def update_stock(sess,code,day,strict_tdx=True):
  seg=fetch(sess,tx_full(code),last,day)
  if seg is None: return ('fetch_fail',0)
  raw,qm=seg['_r'],seg['_q']
+ if last not in raw or last not in qm:
+  seg=fetch(sess,tx_full(code),last,day,back=0)  # widened window missed: retry original
+  if seg is None: return ('fetch_fail',0)
+  raw,qm=seg['_r'],seg['_q']
  if last not in raw or last not in qm: return ('overlap_missing',0)
  if raw[last][:6]!=d['unadj'][-1][:6]: return ('overlap_raw_mismatch',0)
  if qm[last][:6]!=d['qfq'][-1][:6]: return ('overlap_qfq_mismatch',0)

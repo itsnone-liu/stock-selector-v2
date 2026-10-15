@@ -1,5 +1,5 @@
 {
- "generated": "2026-10-14T20:13:55",
+ "generated": "2026-10-15T21:36:35",
  "summary": {
   "n_checkpoints": 65,
   "median_obs": 4814,
@@ -25,14 +25,14 @@
   "S_only": 197,
   "LM": 169,
   "LS": 79,
-  "MS": 187,
-  "LMS": 185
+  "MS": 182,
+  "LMS": 182
  },
  "continuity": {
   "L_after_5d": 0.9269,
   "L_after_20d": 0.866,
   "L_after_60d": 0.7439,
-  "M_after_5d": 0.8182,
+  "M_after_5d": 0.8173,
   "M_after_20d": 0.5488,
   "M_after_60d": 0.2344,
   "S_after_5d": 0.7925,
@@ -42,22 +42,22 @@
  "tenure": {
   "L": {
    "median_months": 3,
-   "n_runs": 15167,
-   "reentry_rate": 0.6734
+   "n_runs": 15135,
+   "reentry_rate": 0.6727
   },
   "M": {
    "median_months": 2,
-   "n_runs": 29085,
-   "reentry_rate": 0.8207
+   "n_runs": 29103,
+   "reentry_rate": 0.8208
   },
   "S": {
    "median_months": 1,
-   "n_runs": 42145,
-   "reentry_rate": 0.8744
+   "n_runs": 42165,
+   "reentry_rate": 0.8745
   },
   "U_list": {
    "median_months": 2,
-   "n_runs": 37895,
+   "n_runs": 37894,
    "reentry_rate": 0.8603
   }
  },
@@ -95,10 +95,10 @@
    "recall_L": 0.4735
   },
   "R_DEPRESSED": {
-   "L": 1786,
-   "M": 624,
-   "S": 821,
-   "U": 2337
+   "L": 1540,
+   "M": 593,
+   "S": 770,
+   "U": 2125
   }
  },
  "checkpoints": [
@@ -1373,11 +1373,11 @@
    "U": 2326,
    "jaccard_U_vs_prev": 0.6571,
    "recall": {
-    "L": 0.2631,
-    "M": 0.0774,
-    "S": 0.06,
-    "U": 0.2824,
-    "obs": 0.9458
+    "L": 0.2659,
+    "M": 0.0771,
+    "S": 0.0617,
+    "U": 0.2852,
+    "obs": 0.9461
    },
    "jac_L": null,
    "jac_M": null,
@@ -1429,15 +1429,15 @@
    "jac_S": null
   },
   {
-   "checkpoint": "2026-10-14",
-   "obs_pool": 5024,
+   "checkpoint": "2026-10-15",
+   "obs_pool": 5013,
    "regime_daily": "R_RISK_OFF",
    "regime_20d": "R_DEPRESSED",
-   "L": 1786,
-   "M": 624,
-   "S": 821,
-   "U": 2337,
-   "jaccard_U_vs_prev": 0.7864,
+   "L": 1540,
+   "M": 593,
+   "S": 770,
+   "U": 2125,
+   "jaccard_U_vs_prev": 0.71,
    "recall": {},
    "jac_L": null,
    "jac_M": null,

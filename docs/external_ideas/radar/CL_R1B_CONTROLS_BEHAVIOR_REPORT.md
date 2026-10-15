@@ -1,63 +1,71 @@
-# CL-R1-B — 控制与行为结果
+# CL-R1-B2 控制与行为结果（closure pass）
 
-## 当前裁决
+- valid joined observations: 2327
+- market-cap control: PIT `log(close * outstanding_share)` from `market_ext`; no imputation
+- behavior outcome: PIT-safe fixed breakout difficulty, not a trading return test
 
-本轮是首轮机制审计，不是最终通过：
+| model/metric | n | raw rho | controlled partial rank |
+|---|---:|---:|---:|
+| M0|supply_above_2pct | 2327 | -0.191882 | -0.056050163452646934 |
+| M0|supply_above_5pct | 2327 | -0.175337 | -0.07778152697235234 |
+| M0|supply_above_10pct | 2327 | -0.161753 | -0.0933813310828033 |
+| M0|overhead_total | 2327 | 0.010549 | -0.051335524556691575 |
+| M1|supply_above_2pct | 2327 | -0.137153 | -0.044862716846321794 |
+| M1|supply_above_5pct | 2327 | -0.118561 | -0.06890671505337732 |
+| M1|supply_above_10pct | 2327 | -0.102599 | -0.08443532791479366 |
+| M1|overhead_total | 2327 | -0.000304 | -0.07379498749533339 |
+| M2|supply_above_2pct | 2327 | -0.238660 | -0.03231453304447048 |
+| M2|supply_above_5pct | 2327 | -0.256341 | -0.09038025147552087 |
+| M2|supply_above_10pct | 2327 | -0.250953 | -0.10223531150939821 |
+| M2|overhead_total | 2327 | -0.064268 | -0.07447701364144098 |
+| M3|supply_above_2pct | 2327 | -0.255654 | 0.03764964928334086 |
+| M3|supply_above_5pct | 2327 | -0.266151 | -0.03242429788623454 |
+| M3|supply_above_10pct | 2327 | -0.281960 | -0.07193703246113346 |
+| M3|overhead_total | 2327 | -0.083296 | -0.05783452924486113 |
 
-- **G1 Component Attribution：部分完成**。M1→M2 的区间分配变化带来比 M0→M1 更强的 raw 近端供应—λ 关联，但当前 B 轴与 K 轴仍有网格实现差异，不能宣称完全归因。
-- **G2 Confound Control：未通过/待补充**。加入 log ADV20、当日换手、20 日波动、价格水平、log price、20 日收益后，关系明显收缩；市值与市场 regime 还没有可用控制字段，不能称独立机制成立。
-- **G3 Distance Structure：未完成**。目前仅有固定 +2/+5/+10% 三点，尚未生成预注册的 1/2/3/5/7.5/10/15/20% 完整距离曲线。
-- **G4 Behavioral Consequence：初步信号**。固定 PIT breakout hit 结果与 +5% local supply 为负相关，但仍是描述性、未聚类、未完成全部控制。
+## Breakout outcome
 
-**阶段决定：不进入 LocalSupplyState 设计，不修改生产，不采用 M3；R1-B 保留为待补充研究，不升级为支持结论。**
+| model/outcome | n | rho(local +5%, hit) |
+|---|---:|---:|
+| M0|break_5_20_hit | 2327 | -0.106569 |
+| M0|break_5_40_hit | 2327 | -0.088051 |
+| M0|break_10_20_hit | 2327 | -0.113000 |
+| M0|break_10_40_hit | 2327 | -0.107565 |
+| M0|break_5_20_amt | 1046 | -0.003358 |
+| M0|break_5_20_turn | 1046 | -0.119673 |
+| M0|break_5_20_time | 1046 | 0.120123 |
+| M0|break_5_40_amt | 1303 | 0.018184 |
+| M0|break_5_40_turn | 1303 | -0.109058 |
+| M0|break_5_40_time | 1303 | 0.135749 |
+| M1|break_5_20_amt | 1046 | 0.034965 |
+| M1|break_5_20_turn | 1046 | -0.017819 |
+| M1|break_5_20_time | 1046 | 0.118792 |
+| M1|break_5_40_amt | 1303 | 0.051402 |
+| M1|break_5_40_turn | 1303 | -0.007452 |
+| M1|break_5_40_time | 1303 | 0.128185 |
+| M2|break_5_20_amt | 1046 | 0.083517 |
+| M2|break_5_20_turn | 1046 | 0.074469 |
+| M2|break_5_20_time | 1046 | 0.159973 |
+| M2|break_5_40_amt | 1303 | 0.077305 |
+| M2|break_5_40_turn | 1303 | 0.052178 |
+| M2|break_5_40_time | 1303 | 0.135444 |
+| M3|break_5_20_amt | 1046 | 0.098615 |
+| M3|break_5_20_turn | 1046 | 0.096790 |
+| M3|break_5_20_time | 1046 | 0.130062 |
+| M3|break_5_40_amt | 1303 | 0.095436 |
+| M3|break_5_40_turn | 1303 | 0.076950 |
+| M3|break_5_40_time | 1303 | 0.097879 |
+| M1|break_5_20_hit | 2327 | -0.089398 |
+| M1|break_5_40_hit | 2327 | -0.071208 |
+| M1|break_10_20_hit | 2327 | -0.100055 |
+| M1|break_10_40_hit | 2327 | -0.083692 |
+| M2|break_5_20_hit | 2327 | -0.129685 |
+| M2|break_5_40_hit | 2327 | -0.137214 |
+| M2|break_10_20_hit | 2327 | -0.127371 |
+| M2|break_10_40_hit | 2327 | -0.136921 |
+| M3|break_5_20_hit | 2327 | -0.114691 |
+| M3|break_5_40_hit | 2327 | -0.133823 |
+| M3|break_10_20_hit | 2327 | -0.111148 |
+| M3|break_10_40_hit | 2327 | -0.132724 |
 
-## 数据和方法
-
-- 84 股冻结样本、2,377 个 episode-local PIT snapshots；2,327 个有有效 B1 `lambda_norm`。
-- 控制字段：`log ADV20`、当日 turnover、20 日收益波动、收盘价、log 收盘价、20 日收益。
-- 市值控制：当前 R1 本地资产没有可用 PIT market-cap 字段，未伪造、未插补；这是明确数据缺口。
-- 行为结果：从 T 起固定 5%/10% 目标、20/40 交易日窗口的首次收盘突破命中；未来信息只作为 outcome，不进入 T 的状态变量。
-
-## 控制后的 LocalSupply—lambda 关系
-
-| 模型 | 指标 | raw Spearman | 控制后 partial rank |
-|---|---|---:|---:|
-| M0 | +2% | −0.192 | −0.053 |
-| M0 | +5% | −0.175 | −0.075 |
-| M0 | +10% | −0.162 | −0.090 |
-| M1 | +2% | −0.137 | −0.044 |
-| M1 | +5% | −0.119 | −0.067 |
-| M1 | +10% | −0.103 | −0.083 |
-| M2 | +2% | −0.239 | −0.032 |
-| M2 | +5% | −0.256 | −0.090 |
-| M2 | +10% | −0.251 | −0.100 |
-| M3 | +2% | −0.256 | +0.039 |
-| M3 | +5% | −0.266 | −0.032 |
-| M3 | +10% | −0.282 | −0.070 |
-
-原始负相关在控制后明显减弱。M3 的 +2% 变成微弱正值，+5% 仅剩 −0.032。当前更接近“供应代理和流动性/价格状态共同变化”，而不是已经证明独立的筹码机制。
-
-## Breakout difficulty 初步结果
-
-+5% local supply 与未来突破命中率的 Spearman：
-
-| 模型 | 5%@20d | 5%@40d | 10%@20d | 10%@40d |
-|---|---:|---:|---:|---:|
-| M0 | −0.107 | −0.088 | −0.113 | −0.108 |
-| M1 | −0.089 | −0.071 | −0.100 | −0.084 |
-| M2 | −0.130 | −0.137 | −0.127 | −0.137 |
-| M3 | −0.115 | −0.134 | −0.111 | −0.133 |
-
-方向符合“近端上方供应越多，突破越难”，但尚不能通过 G4：没有 cluster bootstrap、完整 market regime、市值控制，也没有把 censored/上市不足按最终协议拆开报告。
-
-## 下一步限制
-
-只有在补齐以下项目后，才允许重新评估 G2/G3/G4：
-
-1. PIT market-cap 或可靠规模代理；
-2. 84 股票/episode cluster bootstrap；
-3. 完整 δ 距离曲线；
-4. clean factorial A0–A5 与 50/80/120 bins；
-5. breakout censoring、累计成交额/换手到目标、失败后路径的完整报告。
-
-本报告不产生交易信号，不证明真实持仓成本，不识别主力或任何参与者身份。
+Market-regime control and full distance curve remain incomplete. Stock-cluster bootstrap is recorded in `r1b_controls_behavior.json`; results are mechanism associations, not causal or investment conclusions. Closure report: `CL_R1B2_INDEPENDENT_MECHANISM_CLOSURE.md`.

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """CL-R1-B controls and behavioral outcome audit; no trading backtest."""
-import csv,gzip,json,math,statistics
+import csv,gzip,json,math,statistics,random
 from collections import defaultdict
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
@@ -49,6 +49,7 @@ def main():
    rec=json.load(gzip.open(D/f'{six}.json.gz','rt')); ext={x['date']:x for x in json.load(open(EXT/f'{six}.json'))['rows']}; cache[code]=(rec,ext)
   rec,ext=cache[code]; ds=rec['dates']; i=ds.index(r['date']); q=rec['qfq']; ur=rec['unadj'];
   close=float(q[i][2]); prev=float(q[i-1][2]) if i else 0; rets=[]
+  shares=float(ext.get(r['date'],{}).get('outstanding_share') or 0); mcap=close*shares if shares>0 else 0
   for j in range(max(1,i-19),i+1):
    p=float(q[j-1][2]);c=float(q[j][2]);
    if p>0:rets.append(c/p-1)
@@ -66,14 +67,14 @@ def main():
      cum_amt+=float(ext.get(ds[j],{}).get('amount') or 0);cum_turn+=float(ext.get(ds[j],{}).get('turnover_rate') or 0)
      if float(q[j][2])>=target:hit=j-i;break
     fut += [(f'break_{int(x*100)}_{H}_hit',1 if hit is not None else 0),(f'break_{int(x*100)}_{H}_time',hit if hit is not None else None),(f'break_{int(x*100)}_{H}_amt',cum_amt if hit is not None else None),(f'break_{int(x*100)}_{H}_turn',cum_turn if hit is not None else None)]
-  d=dict(r);d['lambda_norm']=float(z['lambda_norm']);d['controls']=[math.log(max(statistics.fmean(adv),1.0)),tr,statistics.pstdev(rets) if len(rets)>1 else 0,close,math.log(max(close,1e-6)),sum(rets)];
+  d=dict(r);d['lambda_norm']=float(z['lambda_norm']);d['controls']=[math.log(max(statistics.fmean(adv),1.0)),tr,statistics.pstdev(rets) if len(rets)>1 else 0,close,math.log(max(close,1e-6)),sum(rets),math.log(max(mcap,1.0))];
   for k,v in fut:d[k]=v
   for k,v in list(d.items()):
    if k not in ('code','episode_id','date','controls'):
     try:d[k]=float(v)
     except:pass
   rows.append(d)
- out={'n':len(rows),'market_cap_control':'unavailable in local R1 assets; not imputed','controls':['log_ADV20','turnover_T','vol20','close','log_close','ret20'],'results':{}}
+ out={'n':len(rows),'market_cap_control':'log(close * outstanding_share), PIT available in market_ext','controls':['log_ADV20','turnover_T','vol20','close','log_close','ret20','log_market_cap'],'results':{}}
  for m in range(4):
   for key in ('supply_above_2pct','supply_above_5pct','supply_above_10pct','overhead_total'):
    rr=[r for r in rows if r.get(f'M{m}_{key}') is not None];x=[r[f'M{m}_{key}'] for r in rr];y=[r['lambda_norm'] for r in rr];
@@ -82,6 +83,28 @@ def main():
  for m in range(4):
   for target in ('break_5_20_hit','break_5_40_hit','break_10_20_hit','break_10_40_hit'):
    rr=[r for r in rows if r.get(target) is not None];x=[r[f'M{m}_supply_above_5pct'] for r in rr];y=[r[target] for r in rr];out['results'][f'M{m}|{target}']={'n':len(rr),'rho':corr(x,y)}
+  # Stock-cluster bootstrap for the primary +5% lambda association.
+  random.seed(20261014)
+  by=defaultdict(list)
+  for r in rows: by[r['code']].append(r)
+  boot={}
+  codes=list(by)
+  for m in range(4):
+   for key in ('supply_above_2pct','supply_above_5pct','supply_above_10pct'):
+    estimates=[]
+    for _ in range(1000):
+     sample=[codes[random.randrange(len(codes))] for _ in codes]
+     xx=[];yy=[]
+     for c in sample:
+      rs=by[c];xx.append(statistics.fmean(r[f'M{m}_{key}'] for r in rs));yy.append(statistics.fmean(r['lambda_norm'] for r in rs))
+     estimates.append(corr(xx,yy))
+    boot[f'M{m}|{key}']={'n_clusters':len(codes),'resamples':1000,'rho_median':statistics.median(estimates),'rho_p05':sorted(estimates)[49],'rho_p95':sorted(estimates)[949]}
+  out['stock_cluster_bootstrap']=boot
+  # Capital requirement among successful paths: cumulative amount/turnover and days to target.
+  for m in range(4):
+   for target in ('break_5_20_amt','break_5_20_turn','break_5_20_time','break_5_40_amt','break_5_40_turn','break_5_40_time'):
+    rr=[r for r in rows if r.get(target) not in (None,'')]
+    out['results'][f'M{m}|{target}']={'n':len(rr),'rho':corr([r[f'M{m}_supply_above_5pct'] for r in rr],[r[target] for r in rr])}
  (OUT).parent.mkdir(parents=True,exist_ok=True);OUT.write_text(json.dumps(out,ensure_ascii=False,indent=2))
  lines=['# CL-R1-B 控制与行为结果','',f"- valid joined observations: {len(rows)}",'- market-cap control: unavailable; no imputation','- behavior outcome: PIT-safe fixed breakout difficulty, not a trading return test','', '| model/metric | n | raw rho | controlled partial rank |','|---|---:|---:|---:|']
  for k,v in out['results'].items():
