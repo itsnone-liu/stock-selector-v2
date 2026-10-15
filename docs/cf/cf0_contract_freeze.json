@@ -1,0 +1,114 @@
+{
+  "program": "CAPITAL FLOW REGIME ENGINE (CF)",
+  "contract_id": "cf0-contract-freeze-v1",
+  "authority": "user GO ruling 2026-10-15 ('这是上游架构。立项。') on source doc docs/cf/source/Capital_Flow_Regime_Engine_v1.0.md; partially supersedes 2026-10-15 morning R6 boundary ruling (R6 pre-research assets fold into CF per OPEN-3)",
+  "position": "UPSTREAM architecture of existing stock-selection system: CF Engine -> Market Risk State -> Sector Flow -> Stock Capital Structure -> Stock Selection -> Entry/Position/Exit",
+  "core_objective": "不预测价格，预测资金约束：未来1-5日谁可能必须卖 / 1-20日谁可能持续买 / 哪些资金接近风险约束 / 卖压衰减还是增强。禁止把目标定义为预测明天指数涨跌。",
+  "v1_acceptance": "七问稳定回答（Q1 最大卖方 / Q2 卖压方向 / Q3 最大买方 / Q4 买盘主动进攻还是被动托底 / Q5 两融加杠杆还是去杠杆 / Q6 Regime 归类 / Q7 仓位许可）——不要求预测指数涨跌",
+  "cf0_scope_rule": {
+    "allowed": [
+      "capital classification freeze",
+      "state SEMANTICS freeze (no thresholds, no observations)",
+      "unified schema freeze",
+      "output interface freeze",
+      "decision set freeze",
+      "data sensor census inheritance from R6-0.5"
+    ],
+    "forbidden_before_cf4": [
+      "assigning observations to any state on historical data",
+      "building market-regime historical panels",
+      "observing regime-outcome relations",
+      "tuning state thresholds or aggregation weights",
+      "proving any market conclusion"
+    ]
+  },
+  "layers": {
+    "L1": {"name": "政策稳定资本", "actors": ["中央汇金及类似政策稳定资金", "承担市场稳定功能的国有长期资金", "特定阶段经宽基ETF介入的政策性资本"], "objective": "防止系统性风险→稳定指数→恢复流动性→改善预期", "time_horizon": "日→月", "sensors": "D1"},
+    "L2A": {"name": "险资/养老金/超长期配置", "objective": "长期收益+资产负债匹配+低波动+长期安全性", "constraints": ["偿付能力", "权益仓位上限", "负债久期", "年度考核", "风险预算", "流动性需求"], "sensors": "D2"},
+    "L2B": {"name": "银行理财/固收+/低回撤", "objective": "低波动+稳定净值+绝对收益", "constraints": ["产品回撤", "赎回压力", "VaR/波动率", "权益风险预算", "客户风险偏好"], "note": "下跌阶段最重要的潜在被迫卖方；v1 最重要前瞻压力模块", "sensors": "D2(代理变量)"},
+    "L2C": {"name": "主动公募", "objective": "相对收益+排名+基准+规模增长", "constraints": ["基金申赎", "持仓集中度", "基准偏离", "年度排名", "流动性", "重仓股容量"], "sensors": "D2"},
+    "L2D": {"name": "私募/绝对收益机构", "note": "禁单一状态机：至少区分长周期主观/趋势CTA量化/市场中性/高频高换手/事件驱动，按策略类型分别建模", "sensors": "D2/D4"},
+    "L2E": {"name": "外资", "note": "必须区分长期配置资本与交易型资本", "drivers": ["中国资产风险溢价", "汇率", "全球利率", "MSCI/指数权重", "全球风险偏好", "海内外收益率差", "行业相对估值"], "sensors": "D3"},
+    "L3": {"name": "个股主动资本", "engineering_definition": "能够在有限股票上形成集中买卖力量并显著改变边际定价的主动资金（游资/活跃私募/产业资本/大股东/大户/部分量化/事件驱动）——不用'庄家'作工程标签", "lifecycle_note": "CF 不另立生命周期状态机；CF-6 前必须裁决与 CD-0 合同6 lifecycle 八态的关系（OPEN-2），在此之前 L3 只有定义无状态集", "sensors": "D4"},
+    "L4": {"name": "情绪与跟随资本", "actors": ["散户", "短线跟随资金", "热点追涨资金", "题材扩散资金"], "mechanism": "价格↑→注意力↑→传播→资金进入→成交放大→继续上涨的正反馈（下跌反向）", "sensors": "D5"},
+    "M": {"name": "杠杆场（两融）", "position": "不属于任何固定投资者类别；贯穿 L2-L4 的风险放大器+强制交易机制，单独建模", "sensors": "D6"}
+  },
+  "state_sets": {
+    "L1": ["STANDBY", "WATCH", "STABILIZATION_READY", "STABILIZATION_ACTIVE", "HOLD", "NORMALIZE"],
+    "L1_realtime_output": "L1-like stabilization activity = LOW / MEDIUM / HIGH（身份确认与行为识别分离；季度/半年持有人数据仅用于事后身份验证）",
+    "L2A": ["UNDERWEIGHT", "NEUTRAL", "ACCUMULATING", "OVERWEIGHT", "RISK_PRESSURE", "DE-RISKING"],
+    "L2B": ["RISK_ON", "OVERWEIGHT", "NAV_PRESSURE", "RISK_BUDGET_PRESSURE", "FORCED_SELLING", "DELEVERAGED"],
+    "L2C": ["INFLOW", "ACCUMULATING", "CROWDED", "NEUTRAL", "REDEMPTION_PRESSURE", "DE-RISKING"],
+    "L2D": "per-strategy，CF-0 不冻结（无单一状态机）",
+    "L2E": "per-type（配置型/交易型分开），CF-0 不冻结具体状态集",
+    "L4": ["APATHY", "RECOVERY", "FOMO", "EUPHORIA", "PANIC", "CAPITULATION"],
+    "M_basis": "价格方向×融资余额方向四象限（↑↑杠杆追涨/↑↓去杠杆上涨/↓↑融资抄底/↓↓主动被动去杠杆/急跌急降=强制去化）",
+    "M_derived": ["Financing Cost Band", "Financing Loss Pressure", "Deleveraging Velocity", "Forced-Selling Risk"],
+    "market_regime": ["LIQUIDITY_EXPANSION", "STRUCTURAL_BULL", "SPECULATIVE_EXPANSION", "DISTRIBUTION", "DELEVERAGING", "FORCED_SELLING", "STABILIZATION", "CAPITAL_RECOVERY"],
+    "market_regime_composite_allowed": true,
+    "sector": ["OUTFLOW", "BASE_BUILDING", "ACCUMULATION", "INFLOW", "ACCELERATION", "CROWDED", "DISTRIBUTION"]
+  },
+  "state_semantics_rule": "CF-0 只冻结状态语义（文字定义），数值阈值在各自 Phase spec 中预注册并冻结；看过结果后修改状态语义禁止（继承 CD-0 纪律）。状态=资本行为模式解释，不断言 actor intention。",
+  "unified_schema_fields": ["id", "name", "objective_function", "constraints", "time_horizon", "observables", "proxies", "current_state", "confidence", "buying_pressure", "selling_pressure", "forced_buy_probability", "forced_sell_probability", "state_duration", "state_velocity", "upstream_drivers", "downstream_impact", "evidence", "counter_evidence", "last_updated"],
+  "output_interface": {
+    "per_layer": ["current_state", "pressure", "velocity", "confidence"],
+    "market_level": ["Net Capital Pressure = Expected Buying Pressure − Expected Selling Pressure", "Pressure Velocity"],
+    "daily_report": "Capital Weather（每层状态+方向箭头+Market Regime+Net Capital Pressure）"
+  },
+  "decision_set": {
+    "market": ["RISK_OFF", "DEFENSIVE", "WATCH", "NEUTRAL", "PROBE", "RISK_ON", "AGGRESSIVE"],
+    "closed": true,
+    "sector_gate": "仅 NEUTRAL/PROBE/RISK_ON/AGGRESSIVE 允许进入正常板块筛选",
+    "sector_layer_questions": ["哪个板块正得到L2增配", "哪个板块正被L2减仓", "哪些板块只是L4题材炒作", "哪些板块存在L3主动资本集中"],
+    "stock_gate": "Market Allowed AND Sector Allowed 才执行个股模型；技术结构仅用于入场确认，不再独立产生交易判断"
+  },
+  "data_contracts": {
+    "D1_policy_sensors": ["宽基ETF成交额/份额/申赎", "大盘权重股异常承接", "尾盘成交结构", "指数跌幅修复", "ETF持有人变更", "汇金等公开披露"],
+    "D1_focus_etf": ["沪深300", "上证50", "中证500", "中证1000", "科创50", "创业板", "A500"],
+    "D2_institutional": {"险资": ["前十大股东", "险资持股披露", "保险资金运用余额", "权益配置比例", "机构调研", "大宗交易"], "公募": ["基金份额", "ETF份额", "主动基金申赎", "季度持仓", "重仓股", "行业暴露", "规模变化"], "固收+_proxies": ["理财产品净值", "含权债基/二级债基表现", "产品规模", "债券基金申赎", "权益市场同步卖压", "机构重仓方向", "公开机构观点"]},
+    "D3_foreign": ["北向/互联互通可见数据", "QFII持仓", "外资机构季度持股", "人民币汇率", "美债收益率", "全球风险资产", "MSCI/FTSE指数调整"],
+    "D4_stock_active": ["龙虎榜", "大宗交易", "股东人数", "前十大流通股东", "大股东增减持", "解禁", "机构调研", "成交量", "换手率", "VWAP", "筹码分布", "开盘/尾盘成交", "异常大单", "连续资金方向"],
+    "D5_sentiment": ["全市场成交额", "上涨/下跌家数", "涨停/跌停", "连板高度", "炸板率", "新开户", "融资买入", "搜索/社媒热度", "小微盘指数", "题材扩散速度"],
+    "D6_margin": ["融资余额", "融资买入", "融资偿还", "融券余额", "行业融资变化", "个股融资变化", "融资成本区", "价格相对融资成本位置"],
+    "pit_rule": "一切传感器满足 available_at <= decision_time（继承 CD-0 合同2）；宏观资金背景类值若为最新修订版必须显式标 REVISION_CONTAMINATED（继承 R6 FundingContext 边界，证据上限 E1 descriptive）；解禁类只能使用 decision_time 前已公告事件，历史'当时已知未来供给'重建已判 UNSUPPORTED-for-PIT 不重试；缺数据 fail-closed：输出 INSUFFICIENT_SUPPORT，禁止伪造状态",
+    "census_inheritance_2026_10_15": {
+      "ETF_份额": "SUPPORTED — SSE fund_etf_scale_sse 2012+ / SZSE fund_scale_daily_szse 2018+，官方双所历史份额，按日查询自然 PIT；遗留待核：发布时点（T晚vs次晨）、SSE 类型标签当前口径",
+      "两融": "SUPPORTED — SSE 官方日线 2018-01-02+，SZSE 单日制查询可自动化；断点表（标的扩容/融券新规）待合同化",
+      "宏观资金": "REVISION_CONTAMINATED / available_at 可逐期重建（~108期，费工）——降级 FundingContext 使用，E1 上限",
+      "解禁供给": "UNSUPPORTED-for-PIT（现有接口为回看终值含未来函数字段）"
+    },
+    "support_first": "每个资金层状态进入决策或验证前，必须先有冻结的传感器 support census（频率/覆盖/历史深度/空窗/时代集中/发布时滞）；支持不足 → 该层输出 INSUFFICIENT_SUPPORT，禁调阈值/合并状态/换代理抢救（继承 CD-0 合同3，总合同级）"
+  },
+  "research_principles": {
+    "P1": "禁止绝对身份确认：允许高概率行为识别，禁止无证据宣布某资金身份",
+    "P2": "禁止把所有机构混成'主力'：必须按目标函数+约束+期限分类",
+    "P3": "禁止把价格当原因：价格是资金行为结果",
+    "P4": "接受不确定性：允许70%置信度判断，而非'不知100%真相就不判断'",
+    "P5": "重点研究被迫行为：必须卖>可能卖，必须买>可能买（约束型行为最稳定）",
+    "P6": "状态优先于点预测：输出 FORCED_SELLING 优于输出'明天跌1.3%'"
+  },
+  "phase_plan": [
+    {"id": "CF-0", "scope": "合同冻结（本文档）：分类/状态语义/schema/接口/决策集；不做预测", "status": "DONE at this commit"},
+    {"id": "CF-1", "scope": "三类最可观测资金：L1+M+L4，产出 Capital Weather v0.1 每日报告", "gate": "传感器 support census 通过 + 用户 GO"},
+    {"id": "CF-2", "scope": "L2-B 固收+压力模型（最重要的机构卖压前瞻模块）", "gate": "CF-1 交付 + 代理变量 support census"},
+    {"id": "CF-3", "scope": "L2-A 险资 + L2-C 公募：长期配置状态+申赎压力+行业暴露变化"},
+    {"id": "CF-4", "scope": "Market Capital Regime 聚合（L1+L2+M+L4 → Regime + Net Capital Pressure + Velocity）", "gate": "各单层状态已验证可用；聚合规则预注册后才可构造历史 panel"},
+    {"id": "CF-5", "scope": "Sector Flow Engine：机构资金变化投影到行业，输出 Accumulation/Outflow/Crowding/Rotation"},
+    {"id": "CF-6", "scope": "L3 Stock Capital Engine：接入现有个股系统（须先裁决 OPEN-2 lifecycle 映射）"}
+  ],
+  "open_decisions": [
+    {"id": "OPEN-1", "question": "OOS-B（R5 机制验证主线）与 CF-1 的资源分配/先后关系——今晨裁决'OOS-B=唯一活跃机制验证主线'在 CF 立项后如何修订", "needed_by": "CF-1 GO 前"},
+    {"id": "OPEN-2", "question": "L3 生命周期与 CD-0 合同6 lifecycle 八态的关系（源文档§5.1八态与CD八态不同名不同义；一个概念一个合同，CF 不另立状态机）", "needed_by": "CF-6 前（不阻塞 CF-1~CF-5）"},
+    {"id": "OPEN-3", "question": "R6 pre-research 剩余动作（ETF 发布时点实测定案等）是否作为 CF-1 的 census 工作并入执行", "needed_by": "CF-1 GO 前"},
+    {"id": "OPEN-4", "question": "CF 与 CD 的接口冻结：七档市场决策↔CD'市场风险预算'决策、板块七态↔CD'板块优先级'决策的映射表", "needed_by": "CF-5 交付前"}
+  ],
+  "relation_to_existing": {
+    "R2_CapitalChip": "CF 为上游市场级引擎；R2 的 Latent Capital State Inference 属个股层，与 CF-L3 衔接（受 OPEN-2 约束）",
+    "CD_Program": "CF 输出（Market Decision/Sector State）作为 CD 合同1 六决策中'市场风险预算/板块优先级'的上游输入（OPEN-4 冻结映射）",
+    "R6_PreResearch": "Census 结论与 PIT 合同直接继承进 CF data_contracts；R6 的 Evidence Atlas 结论（'外部文献支持组成机制，不支持市场级聚合状态模型'）同样约束 CF-4：Market Regime 不得声称已有文献验证，证据上限默认 E1",
+    "OOS_B": "主线地位待 OPEN-1 裁决",
+    "Shadow": "不受影响，继续独立运行"
+  },
+  "engineering_constraints": "继承项目硬约束：峰值内存≤2.5G（2.2G预警）、单进程、单中间文件≤2G、每阶段全量最多跑一次；CF 数据为市场级日频，量级远小于个股明细",
+  "change_control": "本合同任何字段修改须用户裁决；修改后 bump 版本 cf0-contract-freeze-v2 并记录变更；看过 CF-1~CF-6 结果后回改 CF-0 冻结项禁止"
+}
