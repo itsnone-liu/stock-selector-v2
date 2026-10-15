@@ -1,7 +1,9 @@
 # Capital Flow Regime Engine — CF-0 Contract Freeze
 
-*Contract:* `cf0_contract_freeze.json` · **sha256 `b143302ed39fa81bd600cc81cab9fe83295c65085b83d69483aece90e74e89aa`** · 源方案 `source/Capital_Flow_Regime_Engine_v1.0.md`（用户 2026-10-15 飞书下发）
-*Status:* **CAPITAL FLOW REGIME ENGINE ACTIVE · CF-0 FROZEN（任何观测赋值之前）**
+*Contract:* `cf0_contract_freeze.json` · **v2 sha256 `d3322754ab1b797508ae5521962613ef0e9103305bf6bfb3125e37412f3c7207`**（v1 `b143302e…e89aa`）· 源方案 `source/Capital_Flow_Regime_Engine_v1.0.md`（用户 2026-10-15 飞书下发）
+*Status:* **CAPITAL FLOW REGIME ENGINE ACTIVE · CF-0 FROZEN · CF-1 GO（2026-10-15 裁决：P1 preemptible，OOS-B 保持 P0 唯一机制主线）**
+
+> **v2 修订（2026-10-15 用户 CF-1 GO 裁决）**：OPEN-1/OPEN-3 CLOSED；CF-1 拆为 CF-1A（Source/PIT Closure，前置硬门）→ CF-1B（L1/M+L4 原子引擎）→ CF-1C（Capital Weather v0.1，禁聚合）；八道 Gate G1-G8 冻结；L1 v1 状态集修订为五态（NORMAL/WATCH/STABILIZATION_READY/STABILIZATION_ACTIVE/NORMALIZING）、M v1 五态+三派生量（暂缓爆仓概率）；backfill 用途白名单/黑名单冻结。全文见 `CF1_GO_RULING_20261015.md`。
 
 **立项裁决**：用户 2026-10-15 ——「这是上游架构。立项。」CF Engine 位于现有选股系统上游：
 
