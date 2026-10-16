@@ -36,8 +36,21 @@ def gaps(dates):
     return out
 
 
-def stat_module(name, csvs, empties):
-    d_csv = d_range(csvs, '.csv')
+def stat_module(name, csvs, empties, date_col=None):
+    """date_col 给定时读文件内容取真实日期(区间文件用); 否则按文件名首日。"""
+    if date_col:
+        import csv as _csv
+        dates = set()
+        for f in csvs:
+            with open(f) as fh:
+                r = _csv.DictReader(fh)
+                for row in r:
+                    v = str(row.get(date_col, '')).replace('-', '')[:8]
+                    if len(v) == 8 and v.isdigit():
+                        dates.add(v)
+        d_csv = sorted(dates)
+    else:
+        d_csv = d_range(csvs, '.csv')
     d_empty = d_range(empties, '.EMPTY')
     res = {
         'data_days': len(d_csv), 'empty_days': len(d_empty),
@@ -66,13 +79,24 @@ def main():
         if not os.path.isdir(p):
             report['modules'][key] = {'missing': True}
             continue
-        report['modules'][key] = stat_module(key, glob.glob(p + '/*.csv'), glob.glob(p + '/*.EMPTY'))
-    # sse_margin 单文件
-    p = os.path.join(RAW, 'sse_margin', 'summary_20180102_20261015.csv')
-    if os.path.exists(p):
-        with open(p) as f:
-            lines = f.readlines()
-        report['modules']['sse_margin'] = {'rows': len(lines) - 1}
+        # szse_etf 区间文件: 按内容列'日期'统计; szse_margin 单日文件按文件名
+        col = '日期' if key == 'szse_etf_scale' else None
+        report['modules'][key] = stat_module(key, glob.glob(p + '/*.csv'), glob.glob(p + '/*.EMPTY'), date_col=col)
+    # sse_margin 多文件合并统计
+    p = os.path.join(RAW, 'sse_margin')
+    mglob = glob.glob(p + '/summary_*.csv')
+    if mglob:
+        import csv as _csv
+        dates = set()
+        for f in mglob:
+            for row in _csv.DictReader(open(f)):
+                d = str(row.get('信用交易日期', ''))
+                if d:
+                    dates.add(d)
+        ds = sorted(dates)
+        report['modules']['sse_margin'] = {'rows': len(ds), 'first': ds[0] if ds else None,
+                                           'last': ds[-1] if ds else None,
+                                           'note': 'merged multi-segment (单次接口上限2000行, 分段拉取)'}
     else:
         report['modules']['sse_margin'] = {'missing': True}
 
