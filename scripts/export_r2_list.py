@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""出 R2 正式选股名单 md + 伤口交集审计（2026-10-14）。"""
+"""出 R2 正式选股名单 md + 伤口交集审计。用法: export_r2_list.py <YYYY-MM-DD>"""
 import json, re, struct, time, urllib.request
 from pathlib import Path
 
@@ -40,7 +40,7 @@ for r in act:
     tc = tdx_close(r['stock'])
     if tc and tc[0] == DAY.replace('-', '') and abs(tc[1] - r['px']) > 0.011:
         stale.append((r['stock'], r['px'], tc[1]))
-print(f'[审计] 行动名单 px 与 TDX 10-14 收盘不符: {len(stale)} 只 {stale[:8]}')
+print(f'[审计] 行动名单 px 与 TDX {DAY} 收盘不符: {len(stale)} 只 {stale[:8]}')
 
 # ---- 3. 批量补名称 ----
 def mkt(c):
@@ -68,11 +68,27 @@ for r in act:
 
 n_qfq = sum(1 for v in wound.values() if v == 'overlap_qfq_mismatch')
 n_tdx = sum(1 for v in wound.values() if v == 'tdx_mismatch')
+tdx_codes = sorted(c for c, v in wound.items() if v == 'tdx_mismatch')
+qfq_codes = sorted(c for c, v in wound.items() if v == 'overlap_qfq_mismatch')
+in_act = {r['stock'] for r in act}
+
+def _brief(codes, k=3):
+    if not codes:
+        return '无'
+    return '/'.join(codes[:k]) + ('…' if len(codes) > k else '')
+
+def _scope(codes, in_list_extra=''):
+    hit = [c for c in codes if c in in_act]
+    return f'名单内 {_brief(hit)}{in_list_extra}' if hit else '均非名单内'
+
+tdx_txt = (f'tdx_bar_not_fetched {n_tdx} 只（{_brief(tdx_codes)}，{_scope(tdx_codes)}）'
+           if n_tdx else 'tdx_bar_not_fetched 0 只')
+qfq_txt = (f'另有 {n_qfq} 只除权股 qfq 重定基停在 {DAY} 前一日（{_scope(qfq_codes, "，见下带伤票")}）'
+           if n_qfq else '无除权 qfq 错位')
 head = (f"# {DAY} 盘后选股名单·正式版（sealed {shadow['sealed_sha256']}）\n\n"
         f"环境 {shadow['regime_grp']}（R_DEPRESSED），推荐仓位已含 0.5 乘数；⭐=q5 拥挤档（距5%分位成本带≤3%）；"
         f"数据基准={DAY} 收盘价；⚠️=ST/退市风险股；共 {len(act)} 只\n\n"
-        f"数据口径：A 步扩窗修复后重跑，tdx_bar_not_fetched 仅 {n_tdx} 只（000007/000411，非名单内）；"
-        f"另有 {n_qfq} 只除权股 qfq 重定基停在昨日（非名单内，见下）\n")
+        f"数据口径：A 步扩窗修复后重跑，{tdx_txt}；{qfq_txt}\n")
 
 lines = [head]
 for g in GRP_ORDER:

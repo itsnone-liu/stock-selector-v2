@@ -4,7 +4,7 @@ A=P3 raw | B=P3 x B50(0.75 if breadth50<0.50) | C=B x Q5_REDUCE(0.75 if DTC in t
 Q5 口径继承 EI-2A PIT 横截面法：当日可见可行动池(CONFIRM/RISK_HOLD/BUILD, p3_raw>0)按 DTC 排序前 20%；禁止事后校准绝对阈值。
 BROKEN/EXIT → 0 最高优先。每晚封存，不可重算。用法（每晚 F 之后）：shadow_portfolio.py --day YYYY-MM-DD"""
 from __future__ import annotations
-import argparse,hashlib,json,gzip
+import argparse,hashlib,json,gzip,os
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[2]; SCANS=ROOT/'data/r2/scans'; OUT=ROOT/'data/r2/shadow'
 def p3_target(tier,hl,reg,support_state):
@@ -61,7 +61,11 @@ def main():
  body=json.dumps(payload,sort_keys=True,ensure_ascii=False)
  payload['sealed_sha256']=hashlib.sha256(body.encode()).hexdigest()[:16]
  OUTD=Path(a.out) if a.out else OUT; OUTD.mkdir(parents=True,exist_ok=True)
- (OUTD/f'shadow_{a.day}.json').write_text(json.dumps(payload,ensure_ascii=False,indent=1))
+ # 原子落盘：先写 .tmp 再 os.replace。封存文件"不可重算"，不能被中途 kill/磁盘满
+ # 截断成半截 JSON（下游 export_r2_list/export_190_md/fetch_names 直读该文件）。
+ _tmp=OUTD/f'.shadow_{a.day}.json.tmp'
+ _tmp.write_text(json.dumps(payload,ensure_ascii=False,indent=1))
+ os.replace(_tmp,OUTD/f'shadow_{a.day}.json')
  if not a.out:
   with open(OUT/'breadth_history.jsonl','a') as f:
    f.write(json.dumps({'day':a.day,'breadth50':B50,'gate':'ON' if B50M<1 else 'OFF'})+'\n')

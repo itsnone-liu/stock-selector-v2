@@ -1,33 +1,33 @@
 {
- "n_episodes": 30168,
+ "n_episodes": 30179,
  "terminal": {
-  "INACTIVE_TERMINATION": 25524,
-  "CENSORED": 3748,
+  "INACTIVE_TERMINATION": 25531,
+  "CENSORED": 3752,
   "STRUCTURAL_FAILURE": 896
  },
  "origin": {
-  "M": 5688,
-  "S": 20434,
-  "L": 4046
+  "M": 5689,
+  "S": 20443,
+  "L": 4047
  },
  "source_sequence_top": {
-  "S": 7522,
-  "S->M": 7022,
+  "S": 7524,
+  "S->M": 7027,
   "S->M->L": 3897,
-  "M": 2103,
-  "L->S->M": 2082,
-  "M->S": 1840,
-  "S->L->M": 1711,
+  "M": 2101,
+  "L->S->M": 2084,
+  "M->S": 1843,
+  "S->L->M": 1715,
   "M->S->L": 1252,
   "L": 901,
-  "L->S": 423,
+  "L->S": 422,
   "L->M->S": 411,
   "M->L->S": 351
  },
- "median_calendar_duration_days": 139.0,
+ "median_calendar_duration_days": 139,
  "source_true_days_total": {
-  "M": 1274490,
-  "S": 1290798,
-  "L": 1789997
+  "M": 1275081,
+  "S": 1291540,
+  "L": 1791523
  }
 }
