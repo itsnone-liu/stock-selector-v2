@@ -44,3 +44,5 @@ def test_market_mapping():
     assert market_of("510300") == 1
     assert market_of("000001") == 0
     assert market_of("300750") == 0
+    with pytest.raises(ValueError, match="BJ market"):
+        market_of("920001")

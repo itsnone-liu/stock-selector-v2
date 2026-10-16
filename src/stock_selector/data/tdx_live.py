@@ -37,6 +37,8 @@ class TdxBar:
 
 def market_of(code: str) -> int:
     code = str(code).zfill(6)
+    if code.startswith(("4", "8", "920")):
+        raise ValueError("TDX 7709 BJ market is unsupported")
     return 1 if code.startswith(("5", "6", "9")) else 0
 
 
