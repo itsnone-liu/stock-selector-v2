@@ -37,3 +37,11 @@
 - TradingWorkbench：Apache-2.0，代码模式可直接借鉴（注明出处）；数据=东财第三方个基口径（对账用，非主源）。
 - 其余三库无 License：思想借鉴自行实现。
 - SZSE 修订窗口官方原文：进 CF-1A 闭合报告（available_at 定案依据）。
+
+## 增补（完整版报告细节，2026-10-16）
+
+1. **SSE 存在第二份额接口面**（TradingWorkbench 用）：`COMMON_JJZWZ_JJLB_JJXQ_JJGM_CKLSGM_L`（FUND_CODE 按代码查**历史**，SCALE 单位**亿元**，64 页 backfill）——与 CF 主用 `COMMON_SSE_ZQPZ_ETFZL_XXPL_ETFGM_SEARCH_L`（按日全市场，万份）互补；单代码长历史回填的候选通道。
+2. **深市个基日频限制证据**：159995（深市）份额**无日频官方源**，TradingWorkbench 只落东财 f84 快照（capability 显式拆 SHANGHAI_DERIVED_SHARE_SYMBOLS vs SNAPSHOT_SHARE_SYMBOLS，API 硬拒深市派生份额查询）——SZSE 官方日频=全市场批量口径，无单代码历史接口（与 A 库 txtDm 单代码 JSON 面并存，但后者 6 个月窗）。
+3. **名称列非 PIT 陷阱**（ETF_Database）：`update_existing_names()` 把历史行 sec_name 全量刷成当前名；szse-etf-share 的名称列同样是 as-of-crawl 快照——**外部库的名称列一律不可当 PIT 基金名**（CF 的族过滤用当日快照重建正是为此）。
+4. TradingWorkbench 成分股篮子模式：最新披露前十大持仓+披露日+coverage<80% 置 null（quality=current_top_10_approximation）——"拿快照回算历史存在成分变更与存活偏差"的显式处理。
+5. 两融双独立上游格局确认：A-Shares-data（交易所官方 via akshare queryMargin.do）↔ TradingWorkbench（东财 datacenter RPTA_WEB_RZRQ_GGMX）；两库各自踩过并修复**同一坑**（水位超前于数据）——回填工程共性教训的第二份独立证据。
