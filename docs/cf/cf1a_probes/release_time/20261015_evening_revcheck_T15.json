@@ -1,0 +1,81 @@
+{
+ "_meta": {
+  "probe": "release_time",
+  "T": "20261015",
+  "T_minus_1": "20261014",
+  "label": "evening_revcheck_T15",
+  "queried_at": "2026-10-16T20:05:09"
+ },
+ "sse_etf_T": {
+  "ok": true,
+  "rows": 922,
+  "hash16": "4d4ea694f854cc69",
+  "total_shares": 2096657495500.0
+ },
+ "sse_etf_Tm1": {
+  "ok": true,
+  "rows": 922,
+  "hash16": "2e76dac726797f37",
+  "total_shares": 2080562015500.0
+ },
+ "sse_margin_T": {
+  "ok": true,
+  "rows": 1,
+  "hash16": "7dc901674995dd99",
+  "zye": "1265486521459"
+ },
+ "sse_margin_Tm1": {
+  "ok": true,
+  "rows": 1,
+  "hash16": "c4eef95bc72ad8a5",
+  "zye": "1280077130900"
+ },
+ "szse_margin_T": {
+  "ok": true,
+  "rows": 1,
+  "hash16": "dd750cb674d24473",
+  "rzye": "12006.74"
+ },
+ "szse_margin_Tm1": {
+  "ok": true,
+  "rows": 1,
+  "hash16": "6f8ad9ea58650ea9",
+  "rzye": "12174.08"
+ },
+ "szse_etf_T": {
+  "ok": true,
+  "rows": 758,
+  "hash16": "3a3a41026f0c1196"
+ },
+ "legu_now": {
+  "ok": true,
+  "items": {
+   "上涨": "3061.0",
+   "涨停": "61.0",
+   "真实涨停": "55.0",
+   "st st*涨停": "0.0",
+   "下跌": "2023.0",
+   "跌停": "11.0",
+   "真实跌停": "10.0",
+   "st st*跌停": "1.0",
+   "平盘": "132.0",
+   "停牌": "10.0",
+   "活跃度": "58.57%",
+   "统计日期": "2026-10-16 15:00:00"
+  }
+ },
+ "tdx880": {
+  "880005": {
+   "ok": true,
+   "date": "2026-10-16",
+   "close": 3301.0,
+   "amount": 1569066057728.0
+  },
+  "880006": {
+   "ok": true,
+   "date": "2026-10-16",
+   "close": 61.0,
+   "amount": 1569066057728.0
+  }
+ }
+}

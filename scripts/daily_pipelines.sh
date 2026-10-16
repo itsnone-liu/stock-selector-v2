@@ -1,8 +1,9 @@
 #!/bin/bash
 # Daily pipelines for Hermes (run after 19:30 CST on trading days).
 # A: R5 OOS-B shadow increment (TDX 052d 5m/daily -> shadow_daily append, fail-closed per stock)
-# B: R6 EquityFlow official collection (SSE/SZSE ETF shares + margin; dedup-safe, rerun-friendly)
-# Exit code: 0 = ok (skips tolerated); 2 = A fatal; 3 = B fatal.
+# B: R6/CF official collection (SSE/SZSE ETF shares + margin; dedup-safe, rerun-friendly)
+# C: CF-1 L1/M/L4 atom replay + side-by-side Capital Weather (independent/fail-closed)
+# Exit code: 0 = ok (skips tolerated); 2 = A fatal; 3 = B fatal; 4 = C fatal.
 cd /root/project/workspace/stock-selector-v2
 LOG=logs/daily_pipelines.log
 mkdir -p logs
@@ -26,7 +27,10 @@ if [ $RC_B -ne 0 ]; then  # SZSE endpoints intermittently flaky; one retry (dedu
   PYTHONPATH=/tmp/aksy "$PYTHON" scripts/cl_r6_equityflow_daily.py >> $LOG 2>&1
   RC_B=$?
 fi
-echo "=== $(date -Iseconds) end RC_A=$RC_A RC_B=$RC_B ===" >> $LOG
+PYTHONPATH=src .venv/bin/python scripts/cf/run_atoms.py >> $LOG 2>&1
+RC_C=$?
+echo "=== $(date -Iseconds) end RC_A=$RC_A RC_B=$RC_B RC_C=$RC_C ===" >> $LOG
 [ $RC_A -ne 0 ] && exit 2
 [ $RC_B -ne 0 ] && exit 3
+[ $RC_C -ne 0 ] && exit 4
 exit 0

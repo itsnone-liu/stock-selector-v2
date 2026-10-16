@@ -71,13 +71,22 @@ def m_sse_etf(ak):
 
 
 def m_sse_margin(ak):
+    """Fetch in calendar-year segments; the SSE endpoint silently caps long ranges."""
     out = os.path.join(RAW, 'sse_margin')
     os.makedirs(out, exist_ok=True)
-    f = os.path.join(out, 'summary_20180102_20261015.csv')
-    if not os.path.exists(f):
-        df = retry(lambda: ak.stock_margin_sse(start_date='20180102', end_date='20261015'))
-        df.to_csv(f, index=False)
-    log(f'sse_margin DONE rows={len(open(f).readlines()) if os.path.exists(f) else 0}')
+    today = min(datetime.date.today(), datetime.date(2026, 10, 16))
+    for year in range(2018, today.year + 1):
+        start = f'{year}0101'; end = min(f'{year}1231', today.strftime('%Y%m%d'))
+        f = os.path.join(out, f'summary_{start}_{end}.csv')
+        if os.path.exists(f) or os.path.exists(f + '.EMPTY'):
+            continue
+        df = fetch(lambda s=start, e=end: ak.stock_margin_sse(start_date=s, end_date=e))
+        if df is None or len(df) == 0:
+            open(f + '.EMPTY', 'w').close()
+        else:
+            df.to_csv(f, index=False)
+        time.sleep(SLEEP)
+    log('sse_margin segmented DONE')
 
 
 def m_szse_etf(ak):
@@ -124,7 +133,11 @@ def main():
     todo = list(mods) if args.module == 'all' else [args.module]
     for m in todo:
         log(f'=== module {m} start ===')
-        mods[m](ak)
+        try:
+            mods[m](ak)
+        except Exception as e:
+            # 模块级隔离: 一个源挂了不让其余三个陪葬(断点续跑靠 .csv/.EMPTY 标记)
+            log(f'!!! module {m} FAILED: {repr(e)[:200]} — continue next module')
     log('ALL DONE')
 
 

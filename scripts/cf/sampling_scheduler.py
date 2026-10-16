@@ -12,10 +12,31 @@ Usage: nohup python3 scripts/cf/sampling_scheduler.py > /tmp/cf_sampler.log 2>&1
 import datetime as dt
 import os
 import subprocess
+import sys
 import time
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 ENV = dict(os.environ, PYTHONPATH='/tmp/aksy')
+# 解释器钉死：/tmp/aksy 的 vendored 依赖只编译了 cpython-310，PATH 里的 python3 是
+# Hermes venv(3.11) -> import numpy 必崩。与 daily_pipelines.sh 同一铁律，禁止改回裸 python3。
+PY = '/usr/bin/python3'
+
+
+def _python_ok():
+    try:
+        r = subprocess.run([PY, '-c',
+                            'import sys; raise SystemExit(0 if sys.version_info[:2]==(3,10) else 1)'],
+                           capture_output=True, text=True, timeout=60)
+    except Exception as e:
+        log(f"interpreter check failed to run: {e}")
+        return False
+    v = subprocess.run([PY, '-c', 'import sys;print(".".join(map(str,sys.version_info[:3])))'],
+                       capture_output=True, text=True).stdout.strip()
+    log(f"interpreter {PY} = python {v}")
+    if r.returncode != 0:
+        log(f"FATAL: {PY} 不是 3.10，vendored /tmp/aksy 需要 cpython-310")
+        return False
+    return True
 
 SCHEDULE = [
     ('2026-10-16 08:30', [('20261016', 'morning_0830')]),
@@ -31,7 +52,7 @@ def log(msg):
 
 
 def run_probe(trade_date, label):
-    cmd = ['python3', os.path.join(ROOT, 'scripts', 'cf', 'release_time_probe.py'),
+    cmd = [PY, os.path.join(ROOT, 'scripts', 'cf', 'release_time_probe.py'),
            '--trade-date', trade_date, '--label', label]
     log(f"probe start T={trade_date} label={label}")
     try:
@@ -43,6 +64,8 @@ def run_probe(trade_date, label):
 
 
 def main():
+    if not _python_ok():
+        sys.exit(2)
     log('scheduler up; plan=' + '; '.join(t for t, _ in SCHEDULE))
     for when, probes in SCHEDULE:
         target = dt.datetime.strptime(when, '%Y-%m-%d %H:%M')

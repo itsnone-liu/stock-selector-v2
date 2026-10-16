@@ -1,0 +1,75 @@
+{
+ "_meta": {
+  "probe": "release_time",
+  "T": "20261016",
+  "T_minus_1": "20261015",
+  "label": "post_1530",
+  "queried_at": "2026-10-16T15:30:03"
+ },
+ "sse_etf_T": {
+  "ok": false,
+  "err": "KeyError: \"None of [Index(['序号', '基金代码', '基金简称', 'ETF类型', '统计日期', '基金份额'], dtype='object')"
+ },
+ "sse_etf_Tm1": {
+  "ok": true,
+  "rows": 922,
+  "hash16": "4d4ea694f854cc69",
+  "total_shares": 2096657495500.0
+ },
+ "sse_margin_T": {
+  "ok": false,
+  "err": "ValueError: Length mismatch: Expected axis has 0 elements, new values have 13 elements"
+ },
+ "sse_margin_Tm1": {
+  "ok": true,
+  "rows": 1,
+  "hash16": "7dc901674995dd99",
+  "zye": "1265486521459"
+ },
+ "szse_margin_T": {
+  "ok": false,
+  "err": "ConnectionError: ('Connection aborted.', ConnectionResetError(104, 'Connection reset by peer'))"
+ },
+ "szse_margin_Tm1": {
+  "ok": true,
+  "rows": 1,
+  "hash16": "dd750cb674d24473",
+  "rzye": "12006.74"
+ },
+ "szse_etf_T": {
+  "ok": true,
+  "rows": 0,
+  "hash16": "44136fa355b3678a"
+ },
+ "legu_now": {
+  "ok": true,
+  "items": {
+   "上涨": "3061.0",
+   "涨停": "61.0",
+   "真实涨停": "55.0",
+   "st st*涨停": "0.0",
+   "下跌": "2023.0",
+   "跌停": "11.0",
+   "真实跌停": "10.0",
+   "st st*跌停": "1.0",
+   "平盘": "132.0",
+   "停牌": "10.0",
+   "活跃度": "58.57%",
+   "统计日期": "2026-10-16 15:00:00"
+  }
+ },
+ "tdx880": {
+  "880005": {
+   "ok": true,
+   "date": "2026-10-15",
+   "close": 430.0,
+   "amount": 1645719584768.0
+  },
+  "880006": {
+   "ok": true,
+   "date": "2026-10-15",
+   "close": 36.0,
+   "amount": 1645719584768.0
+  }
+ }
+}

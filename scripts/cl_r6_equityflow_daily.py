@@ -46,7 +46,7 @@ def main(target=None):
             date=str(r['日期']); code=str(r['基金代码']); key=date+'|'+code
             if key not in have:
                 recs.append({'date':date,'fetch_date':dt.date.today().isoformat(),'source':'SZSE official',
-                             'code':code,'shares':float(r['基金份额'])})
+                             'code':code,'name':str(r.get('基金简称','')),'shares':float(r['基金份额'])})
         n+=append('etf_szse',recs);log.append(f'etf_szse={len(recs)}')
     except Exception as e:log.append(f'etf_szse=FAIL {repr(e)[:80]}')
     # 3) SSE margin (range, daily rows)
@@ -71,5 +71,11 @@ def main(target=None):
         else:log.append('margin_szse=skip(dup)')
     except Exception as e:log.append(f'margin_szse=FAIL {repr(e)[:80]}')
     print('R6_EQUITYFLOW',today,' '.join(log))
-    if all('=FAIL' in x for x in log):sys.exit(1)
+    # Any required stream failing must fail the pipeline: the old `all('=FAIL' in x ...)`
+    # only tripped when ALL FOUR streams failed, so 3/4 failing still exited 0 and
+    # daily_pipelines.sh recorded RC_B=0 (silent data hole).
+    fails=[x for x in log if '=FAIL' in x]
+    if fails:
+        print('R6_EQUITYFLOW_FAILED',' '.join(fails),file=sys.stderr)
+        sys.exit(1)
 if __name__=='__main__':main(sys.argv[1] if len(sys.argv)>1 else None)
