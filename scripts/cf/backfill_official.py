@@ -36,9 +36,10 @@ def fetch(fn):
     """KeyError('None of ...')=官方空数据直通返回 None; 其他异常才 retry。"""
     try:
         return fn()
-    except KeyError as ke:
-        if 'None of' in str(ke) or 'columns' in str(ke):
-            return None
+    except (KeyError, ValueError) as ke:
+        s = str(ke)
+        if 'None of' in s or 'columns' in s or 'Length mismatch' in s:
+            return None  # 空表特征(KeyError/ValueError 两类)都直通
         raise
     except Exception:
         return retry(fn)
