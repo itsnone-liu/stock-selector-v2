@@ -6,6 +6,7 @@ from typing import Iterable
 
 import requests
 
+from stock_selector.data.tdx_live import TdxLiveClient
 from stock_selector.models import Quote
 
 LOG = logging.getLogger(__name__)
@@ -30,6 +31,55 @@ def _quote_timestamp(fields: list[str]) -> datetime | None:
         except ValueError:
             continue
     return None
+
+
+class TdxQuoteProvider:
+    """Minute-resolution realtime quotes from TDX 7709.
+
+    This matches the selector's actual contract (current price/open/previous
+    close/cumulative volume and amount).  Unsupported BJ codes and missing
+    minute sessions fail closed; no HTTP fallback is hidden inside the source.
+    """
+
+    source_id = "tdx_052d_1m_v1"
+
+    def __init__(self, host: str | None = None, max_workers: int = 4):
+        self.host = host
+        self.max_workers = max_workers
+
+    def _one(self, code: str, at: datetime) -> Quote:
+        if code.startswith(("4", "8", "920")):
+            raise ValueError("unsupported_bj_market")
+        day = at.strftime("%Y%m%d")
+        with TdxLiveClient(host=self.host) as client:
+            minute = client.fetch(code, "1m", 0, 800)
+            daily = client.fetch(code, "daily", 0, 10)
+        today = [bar for bar in minute if bar.time_key.startswith(day) and
+                 datetime.strptime(bar.time_key, "%Y%m%d%H%M") <= at]
+        previous = [bar for bar in daily if bar.time_key < day]
+        if not today or not previous:
+            raise ValueError("missing_tdx_session")
+        last = today[-1]
+        return Quote(code=code, price=last.close, open=today[0].open,
+                     previous_close=previous[-1].close,
+                     volume=float(sum(bar.volume for bar in today)),
+                     amount=float(sum(bar.amount for bar in today)),
+                     timestamp=datetime.strptime(last.time_key, "%Y%m%d%H%M"))
+
+    def fetch(self, codes: Iterable[str], at: datetime | None = None) -> tuple[dict[str, Quote], dict[str, str]]:
+        from concurrent.futures import ThreadPoolExecutor, as_completed
+        at = at or datetime.now()
+        normalized = [str(code).zfill(6) for code in codes]
+        quotes, errors = {}, {}
+        with ThreadPoolExecutor(max_workers=self.max_workers) as pool:
+            futures = {pool.submit(self._one, code, at): code for code in normalized}
+            for future in as_completed(futures):
+                code = futures[future]
+                try:
+                    quotes[code] = future.result()
+                except Exception as exc:
+                    errors[code] = f"tdx_failed:{type(exc).__name__}:{exc}"
+        return quotes, errors
 
 
 class TencentQuoteProvider:

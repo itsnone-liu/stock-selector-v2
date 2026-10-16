@@ -132,6 +132,7 @@ def main(argv: list[str] | None = None) -> int:
         import json as _json
 
         from stock_selector.decision.replay import DecisionService
+        from stock_selector.decision.minutes import TdxLiveMinuteProvider
         from stock_selector.data.tdx_index import index_daily
 
         asof = _parse_asof(args.asof) or datetime.now()
@@ -142,6 +143,7 @@ def main(argv: list[str] | None = None) -> int:
             index_loader=lambda: index_daily(
                 config["paths"]["tdx_dir"], index_cfg.get("market", "sh"), str(index_cfg.get("code", "000001"))
             ),
+            minute_provider=TdxLiveMinuteProvider(),
         )
         context_payload = None
         context_source_note = "unknown"
@@ -160,6 +162,7 @@ def main(argv: list[str] | None = None) -> int:
         return 0
     if args.command == "replay":
         from stock_selector.decision.replay import PITReplay, DecisionService
+        from stock_selector.decision.minutes import TdxLiveMinuteProvider
         from stock_selector.data.tdx_index import index_daily
 
         index_cfg = config.get("decision", {}).get("index", {})
@@ -172,6 +175,7 @@ def main(argv: list[str] | None = None) -> int:
             index_loader=lambda: index_daily(
                 config["paths"]["tdx_dir"], index_cfg.get("market", "sh"), str(index_cfg.get("code", "000001"))
             ),
+            minute_provider=TdxLiveMinuteProvider(),
         )
         codes = [c.strip().zfill(6) for c in args.codes.split(",") if c.strip()]
         checkpoints = [t.strip() for t in args.checkpoints.split(",") if t.strip()]

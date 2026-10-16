@@ -9,13 +9,17 @@
 
 from __future__ import annotations
 
+import logging
 import struct
 from datetime import date, datetime
 from pathlib import Path
 
 import pandas as pd
 
+from stock_selector.data.tdx_live import TdxLiveClient
+
 MINUTES_PER_SESSION = 240
+LOG = logging.getLogger(__name__)
 
 
 def _decode_date(word: int) -> tuple[int, int, int]:
@@ -62,6 +66,50 @@ class TdxMinuteReader:
         if not rows:
             return None
         return pd.DataFrame(rows, columns=["datetime", "open", "high", "low", "close", "volume", "amount"]).set_index("datetime")
+
+
+class TdxLiveMinuteProvider:
+    """TDX 7709 1m provider for current and recent sessions.
+
+    The server retains only a recent window.  Missing or out-of-retention dates
+    fail closed by returning ``None``; no synthetic fallback is attempted.
+    """
+
+    source_id = "tdx_052d_1m_v1"
+
+    def __init__(self, host: str | None = None, max_bars: int = 12_000):
+        self.host = host
+        self.max_bars = max_bars
+        self._cache: dict[tuple[str, date], pd.DataFrame | None] = {}
+
+    def minute_frame(self, code: str, day: date) -> pd.DataFrame | None:
+        key = (str(code).split(".")[-1].zfill(6), day)
+        if key in self._cache:
+            return self._cache[key]
+        day_key = day.strftime("%Y%m%d")
+        try:
+            with TdxLiveClient(host=self.host) as client:
+                bars = client.fetch_range(key[0], "1m", max_bars=self.max_bars, since=day_key)
+        except (OSError, ConnectionError, RuntimeError) as exc:
+            LOG.warning("TDX live minute unavailable for %s %s: %s", key[0], day, exc)
+            self._cache[key] = None
+            return None
+        selected = [bar for bar in bars if bar.time_key.startswith(day_key)]
+        if not selected:
+            self._cache[key] = None
+            return None
+        rows = []
+        for bar in selected:
+            ts = pd.Timestamp(datetime.strptime(bar.time_key, "%Y%m%d%H%M"))
+            rows.append((ts, bar.open, bar.high, bar.low, bar.close,
+                         float(bar.volume), bar.amount))
+        frame = pd.DataFrame(
+            rows, columns=["datetime", "open", "high", "low", "close", "volume", "amount"]
+        ).set_index("datetime")
+        frame.attrs["source_id"] = self.source_id
+        frame.attrs["coverage"] = "recent_only"
+        self._cache[key] = frame
+        return frame
 
 
 class SyntheticMinuteProvider:

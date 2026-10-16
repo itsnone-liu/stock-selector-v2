@@ -16,6 +16,9 @@ state/*
 # chain, secrets, ingest pools, market-data caches). The one tracked file
 # data/t4/sector_map/csrc_industry_snapshot.json stays tracked.
 data/
+# Source package directory named data is code, not runtime market data.
+!src/stock_selector/data/
+!src/stock_selector/data/**
 
 # Batch-H reviewer pre-spawn DSH captures (session-local, pinned by evidence records)
 captures/

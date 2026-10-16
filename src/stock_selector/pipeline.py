@@ -8,7 +8,7 @@ from typing import Iterable
 import pandas as pd
 
 from stock_selector.config import resolve_project_path
-from stock_selector.data.realtime import TencentQuoteProvider
+from stock_selector.data.realtime import TdxQuoteProvider
 from stock_selector.data.tdx import TdxStore, load_name_map
 from stock_selector.freshness import check_daily_freshness, check_quote_freshness
 from stock_selector.models import Decision, DiagnosticCounter, Quote, RuleResult
@@ -134,10 +134,9 @@ class SelectorPipeline:
 
     def run_realtime(self, pool: pd.DataFrame, asof: datetime | None = None) -> dict[str, Path]:
         at = asof or datetime.now()
-        provider = TencentQuoteProvider(
-            int(self.config["realtime"].get("timeout_seconds", 15)),
-            int(self.config["realtime"].get("batch_size", 50)),
-            100.0 if self.config["realtime"].get("tencent_volume_unit", "hand") == "hand" else 1.0,
+        provider = TdxQuoteProvider(
+            self.config["realtime"].get("tdx_host"),
+            int(self.config["realtime"].get("tdx_workers", 4)),
         )
         quotes, quote_errors = provider.fetch(pool["代码"].tolist(), at)
         references = self.volume_snapshots.references(pool["代码"].tolist(), at)
@@ -153,9 +152,9 @@ class SelectorPipeline:
         quotes: dict[str, Quote] = {}
         errors: dict[str, str] = {}
         if realtime:
-            provider = TencentQuoteProvider(
-                int(self.config["realtime"].get("timeout_seconds", 15)),
-                int(self.config["realtime"].get("batch_size", 50)),
+            provider = TdxQuoteProvider(
+                self.config["realtime"].get("tdx_host"),
+                int(self.config["realtime"].get("tdx_workers", 4)),
             )
             quotes, errors = provider.fetch(pool["代码"].tolist(), at)
             references = self.volume_snapshots.references(pool["代码"].tolist(), at)
@@ -241,9 +240,9 @@ class SelectorPipeline:
         errors: dict[str, str] = {}
         references: dict[str, float] = {}
         if realtime:
-            provider = TencentQuoteProvider(
-                int(self.config["realtime"].get("timeout_seconds", 15)),
-                int(self.config["realtime"].get("batch_size", 50)),
+            provider = TdxQuoteProvider(
+                self.config["realtime"].get("tdx_host"),
+                int(self.config["realtime"].get("tdx_workers", 4)),
             )
             quotes, errors = provider.fetch(active["代码"].tolist(), at)
             references = self.volume_snapshots.references(active["代码"].tolist(), at)

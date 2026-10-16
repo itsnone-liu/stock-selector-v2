@@ -10,7 +10,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from stock_selector.decision.minutes import SyntheticMinuteProvider, TdxMinuteReader, _decode_date
+from stock_selector.decision.minutes import SyntheticMinuteProvider, TdxLiveMinuteProvider, TdxMinuteReader, _decode_date
 from stock_selector.decision.replay import DecisionService, PITReplay, quote_from_minutes, truncate_daily
 from tests.test_decision_core import make_daily, week_frame
 
@@ -139,6 +139,34 @@ class TestReplayDeterminism:
         assert advice["evidence"]["weekly_momentum"]["state"]
         assert "momentum_velocity" in advice["evidence"]["weekly_momentum"]["metrics"] or \
             advice["evidence"]["weekly_momentum"]["metrics"]
+
+
+class TestTdxLiveMinuteProvider:
+    def test_current_day_frame_and_provenance(self, monkeypatch):
+        from stock_selector.data.tdx_live import TdxBar
+
+        class FakeClient:
+            def __init__(self, host=None): pass
+            def __enter__(self): return self
+            def __exit__(self, *_): pass
+            def fetch_range(self, code, period, max_bars, since):
+                return [TdxBar("202609160931", 10, 10.1, 9.9, 10.05, 1000, 100)]
+
+        monkeypatch.setattr("stock_selector.decision.minutes.TdxLiveClient", FakeClient)
+        frame = TdxLiveMinuteProvider().minute_frame("600000", date(2026, 9, 16))
+        assert frame is not None
+        assert list(frame.columns) == ["open", "high", "low", "close", "volume", "amount"]
+        assert frame.attrs["source_id"] == "tdx_052d_1m_v1"
+        assert frame.iloc[0]["volume"] == 100
+
+    def test_missing_date_fails_closed(self, monkeypatch):
+        class FakeClient:
+            def __init__(self, host=None): pass
+            def __enter__(self): return self
+            def __exit__(self, *_): pass
+            def fetch_range(self, code, period, max_bars, since): return []
+        monkeypatch.setattr("stock_selector.decision.minutes.TdxLiveClient", FakeClient)
+        assert TdxLiveMinuteProvider().minute_frame("600000", date(2020, 1, 1)) is None
 
 
 class TestTdxMinuteReader:
