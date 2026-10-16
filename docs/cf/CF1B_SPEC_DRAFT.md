@@ -23,6 +23,8 @@
 
 **判据方向（阈值 [TBD-post-CF1A]）**：STABILIZATION_ACTIVE ← 宽基份额异常净增 × 成交异常放量 ×（当日或前日指数跌幅超过 [TBD]）；NORMALIZING ← ACTIVE 后份额增速回落 + 指数修复。反证向量：份额增长但成交萎缩、净增集中于非宽基/行业 ETF。
 
+**数据质量前置（CF-HX/Resonance 审计引入，L1 强制）**：族聚合份额变化必须先过**折算中和**——份额拆分/合并会产生假天量净申赎（515880 案例 +333.13 亿份假申购）。判据=复权因子(bfq/qfq 双口径收盘比)按 k 跳变 ≈ 份额按 k 跳变 → 写回折算后真实净申赎 + `share_adjust=k` 标记 + 尾随 10 日窗口按折算后基准重算。禁用幅度阈值判折算（真申购也会超幅度，512100 案例 +132.8%）。复权因子来源=[TBD-post-CF1A]（双口径 K 线比值 vs 官方因子接口）。
+
 ## 2. M — Margin Atom Engine（五态 + 三派生量）
 
 状态集：LEVERAGE_BUILDING / NEUTRAL / DELEVERAGING / DELEVERAGING_ACCELERATING / DELEVERAGED。
