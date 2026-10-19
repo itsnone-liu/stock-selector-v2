@@ -42,13 +42,23 @@ bash scripts/daily_pipelines.sh
 
 SZSE 接口存在偶发 ConnectionReset；入口对 B 自动重试一次，采集器本身也可重复运行去重。
 
-**B 线已知失败模式——发布时间竞态（2026-10-16/19 核实）**：`etf_sse`/`margin_szse` 是按日查询且只查"今天"；若 ~22:05 时交易所尚未发布当日数据，接口回空表，akshare 抛 `KeyError("None of [Index(['序号',…]]")` 或 `Length mismatch: Expected axis has 0 elements`——**签名与"源页面改版"完全相同**。鉴别方法：用已发布日期现场探测（如 `fund_etf_scale_sse(date=前一日)`），能查到即非改版。10-16 晚即属此竞态（10-19 中午探测 20261016 正常返回 924 行）。**按日流不会自愈**（夜里只查当天），补洞命令（dedup-safe）：
+**B 线已知失败模式——发布时间竞态（2026-10-16 诊断，10-19 根治）**：`etf_sse`/`margin_szse` 按日查询；若跑时（~22:05）交易所尚未发布当日数据，接口回空表，akshare 抛 `KeyError("None of [Index(['序号',…]]")` 或 `Length mismatch: Expected axis has 0 elements`——**签名与"源页面改版"完全相同**。鉴别方法：用已发布日期现场探测（如 `fund_etf_scale_sse(date=前一日)`），能查到即非改版。10-16 晚即属此竞态。
+
+2026-10-19 起采集器已根治：按日流自动回补窗口内（≤10 个自然日）所有缺失的**确认交易日**（交易日历取自 SSE margin 区间流的官方日期；margin 获取失败时退化为周一~周五启发式）。日志语义：
+
+- `etf_sse=924`：本轮写入行数；
+- `pending=(YYYYMMDD)`：当日数据未发布（竞态），**不算失败**，次晚自动回补；
+- `empty=(YYYYMMDD)`：确认交易日返回零行（按日接口仅保留近期若干交易日），不影响退出码；
+- `FAIL empty(published trade day YYYYMMDD)`：已发布交易日空响应 → 源侧问题（页面改版/解析坏），当晚即 FAIL 报警；
+- 传输类异常（ConnectionError 等）→ FAIL，入口层整脚本重试一次（dedup-safe）。
+
+人工补洞兜底（超出 10 天窗口的旧洞，dedup-safe）：
 
 ```bash
 PYTHONPATH=/tmp/aksy /usr/bin/python3 scripts/cl_r6_equityflow_daily.py YYYYMMDD
 ```
 
-`margin_sse`/`etf_szse` 为区间查询，跳过的日期会在后续运行自动补齐，无需人工。
+`margin_sse`/`etf_szse` 为区间查询，缺失日期在后续运行中自动补齐，无需人工。2026-10-19 已把四流补齐至 10-08 起（含 10-16 竞态洞与流诞生前的 10-08~10-13 存量洞）。
 
 ### C — CF atoms 重放 + Capital Weather（2026-10-16 加入）
 
