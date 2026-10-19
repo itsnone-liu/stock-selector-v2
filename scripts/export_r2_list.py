@@ -28,7 +28,7 @@ print(f'[审计] 行动名单 {len(act)} 只，带伤 {len(inter)} 只: '
 # ---- 2. px 新鲜度审计（vs TDX 当日收盘）----
 def tdx_close(code):
     mkt = 'sh' if code.startswith(('6', '9')) else ('bj' if code.startswith(('4', '8')) else 'sz')
-    p = TDX / mkt / 'lday' / f'{code}.day'
+    p = TDX / mkt / 'lday' / f'{mkt}{code}.day'
     if not p.exists():
         return None
     b = p.read_bytes()[-32:]
