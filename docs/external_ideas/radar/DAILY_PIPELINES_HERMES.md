@@ -1,6 +1,8 @@
 # Hermes 日更管线交接
 
-状态：**已部署脚本，等待 Hermes 接管定时执行**（2026-10-15）。
+状态：**已部署脚本，Hermes cron 接管定时执行**（2026-10-15 起跑；2026-10-19 起调度改为 **22:05 CST**，job `cl-daily-pipelines-2205`）。
+
+调度说明（2026-10-19 核实 Hermes cron 语义后修订）：cron 为单车道（tick 文件锁 + 同步执行），19:30 的 R2 日链会占线 ~2h；**迟到不足一个周期的作业会在锁释放后的首个 tick 补跑**（at-most-once 设计），所以 CL 即使被 R2 顶住也只会延迟、不会丢。挪到 22:05 是为了让常规夜晚不再依赖补跑（周五实测 R2 会话最晚 21:54 结束，留 10 分钟余量）。
 
 ## 唯一入口
 
@@ -11,7 +13,9 @@ bash scripts/daily_pipelines.sh
 
 建议：A 股交易日 **19:30 CST 之后**执行；非交易日可运行，脚本会跳过重复/不完整数据。Hermes 应保留 stdout/stderr 与 `logs/daily_pipelines.log`。
 
-## 两条管线
+## 三条管线
+
+退出码：`0`=正常（含容忍跳过）；`2`=A 线致命；`3`=B 线致命；`4`=C 线致命。
 
 ### A — R5 OOS-B shadow 增量
 
@@ -37,6 +41,22 @@ bash scripts/daily_pipelines.sh
 输出：`data/cl_radar/r6_equityflow/` 下四个 append-only `jsonl.gz` 流。重复运行安全；不构造 panel、不连接 outcome、不运行 G1–G3、不形成 regime。
 
 SZSE 接口存在偶发 ConnectionReset；入口对 B 自动重试一次，采集器本身也可重复运行去重。
+
+**B 线已知失败模式——发布时间竞态（2026-10-16/19 核实）**：`etf_sse`/`margin_szse` 是按日查询且只查"今天"；若 ~22:05 时交易所尚未发布当日数据，接口回空表，akshare 抛 `KeyError("None of [Index(['序号',…]]")` 或 `Length mismatch: Expected axis has 0 elements`——**签名与"源页面改版"完全相同**。鉴别方法：用已发布日期现场探测（如 `fund_etf_scale_sse(date=前一日)`），能查到即非改版。10-16 晚即属此竞态（10-19 中午探测 20261016 正常返回 924 行）。**按日流不会自愈**（夜里只查当天），补洞命令（dedup-safe）：
+
+```bash
+PYTHONPATH=/tmp/aksy /usr/bin/python3 scripts/cl_r6_equityflow_daily.py YYYYMMDD
+```
+
+`margin_sse`/`etf_szse` 为区间查询，跳过的日期会在后续运行自动补齐，无需人工。
+
+### C — CF atoms 重放 + Capital Weather（2026-10-16 加入）
+
+`scripts/cf/run_atoms.py`（入口为 `PYTHONPATH=src .venv/bin/python`）
+
+- CF-1 L1/M/L4 原子重放 + 并排 Capital Weather，独立、fail-closed；
+- 输出 `data/cf/derived/capital_weather/latest.json`（L1/M/L4 各带 asof）；
+- 退出码 `4` = C 线致命；报告时需核对 L1/M/L4 的 asof 是否停滞（落后 ≥2 个交易日要警告）。
 
 ## 验证记录
 
