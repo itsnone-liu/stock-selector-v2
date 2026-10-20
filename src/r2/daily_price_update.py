@@ -16,8 +16,9 @@ ROOT=Path(__file__).resolve().parents[2]
 DAILY=ROOT/'data/cd/daily_fullmarket'; TDX=Path('/root/tdx_data/vipdoc')
 OUTD=ROOT/'data/r2/daily_update'
 # 主域 proxy.finance.qq.com 会把本机 IP 拉进 WAF 封禁（501 跳转页，惩罚升级型）；
-# 备用域 web.ifzq.gtimg.cn 全晚正常且响应逐字节兼容（2026-10-19 封禁事件定案，老刘批准切换）。
-URL='https://web.ifzq.gtimg.cn/appstock/app/fqkline/get'
+# 备用域 web.ifzq.gtimg.cn 响应逐字节兼容但同样会封（2026-10-20 实测，两域惩罚独立计时）。
+# 默认备用域；可用环境变量 TDX_KLINE_URL 临时切主域（如 A 步 cron 探测后选择）。
+URL=os.getenv('TDX_KLINE_URL','https://web.ifzq.gtimg.cn/appstock/app/fqkline/get')
 UA={'User-Agent':'Mozilla/5.0 (X11; Linux x86_64)'}
 try:
  import requests
