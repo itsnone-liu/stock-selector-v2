@@ -13,12 +13,16 @@ Usage: .venv/bin/python src/r2/daily_update.py --day 2026-10-08 [--skip A,C,E,F]
 Exit code !=0 on any failure; manifest at data/r2/daily_update/update_<day>.json
 """
 from __future__ import annotations
-import argparse,fcntl,gzip,json,math,shutil,subprocess,sys,time
+import argparse,fcntl,gzip,json,math,os,shutil,subprocess,sys,time
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[2]
 DATA=ROOT/'data'; OUTD=ROOT/'data/r2/daily_update'
 PY=str(ROOT/'.venv/bin/python')
 BUILDERS=[('C1','scripts/cd1b_four_axis_engine.py'),('C2','scripts/cd45_market_regime.py'),
+          # 2026-10-21: cd2a 原本没挂任何调度 → bands 自 10-04 起冻结在节前 09-30，
+          # 导致 C3(l2_state_table) 每日「OK 3s」却只写到 09-30（典型静默不完整）。
+          # 它读 C1 的 l2_four_axes、产 C3 的 l2_axis_bands，实测 4.8s 且确定性自检 PASS，故并入日更链。
+          ('C1A','scripts/cd2a_census_and_bands.py'),
           ('C3','scripts/cd2bc_state_engine.py'),('C4','scripts/cd4v2_multi_source.py'),
           ('C5','scripts/cd5a_episodes.py')]
 ARTS={'l2_four_axes':'data/cd/sector_axes/l2_four_axes.json.gz','l1_market_axes':'data/cd/sector_axes/l1_market_axes.json.gz',
@@ -40,6 +44,45 @@ def rows_of(p):
 MASKED_FIELDS={'l1_market_axes':frozenset({'b_conc','b_disp','b_part'})}
 # ^ thresholded band READOUTS (conc50/disp quantised): rebase micro-perturbation may legitimately flip a band
  # at the threshold edge. True states (status/n) and all other artifacts stay strict.
+
+# 2026-10-21 user ruling 「不要冻结」+「阈值随慢频更新重推」: cd2a CARRYs thresholds on the daily chain
+# (step C1A) and only re-derives them when a slow-frequency data update event is announced, so a carried
+# band table is stable in normal operation. A refit day may still legitimately relabel historical rows in
+# l2_state_table (base/mods). Tolerate up to a bound and report WARN — but losing the row IDENTITY
+# (l2,date,n) still aborts, so a truncated/rebuilt-from-wrong-input catastrophe cannot pass silently.
+# A slow-data refit can honestly exceed the default bound: raise it for that single run, explicitly, via
+#   R2_L2_RELABEL_BUDGET=<n>   (logged loudly; the identity-loss check is never affected)
+LABEL_DRIFT_MAX_FRAC=0.002; LABEL_DRIFT_MAX_ABS=500
+LABEL_DRIFT_BUDGET_ENV='R2_L2_RELABEL_BUDGET'
+def check_l2_state(old,newr,recent,day):
+ newix={}
+ for r in newr:
+  if r.get('date') in recent: continue
+  newix[(r.get('l2'),r.get('date'))]=(r.get('n'),r.get('base'),json.dumps(r.get('mods'),sort_keys=True))
+ compared=drift=missing=0; bydate={}
+ for x in old:
+  ro=json.loads(x)
+  if ro.get('date') in recent: continue
+  compared+=1
+  cur=newix.get((ro.get('l2'),ro.get('date')))
+  if cur is None or cur[0]!=ro.get('n'): missing+=1; continue
+  if cur[1]!=ro.get('base') or cur[2]!=json.dumps(ro.get('mods'),sort_keys=True):
+   drift+=1; bydate[ro.get('date')]=bydate.get(ro.get('date'),0)+1
+ if missing:
+  raise SystemExit(f'HISTORY LOST in l2_state_table: {missing}/{compared} rows lost (identity l2/date/n gone) — aborting (backup: data/cd/sector_axes/backup_*)')
+ bound=max(LABEL_DRIFT_MAX_ABS,LABEL_DRIFT_MAX_FRAC*compared)
+ _ovr=os.environ.get(LABEL_DRIFT_BUDGET_ENV)
+ if _ovr:
+  try: _ovrn=int(_ovr)
+  except ValueError: _ovrn=0
+  if _ovrn>bound:
+   print(f'NOTE l2_state_table relabel budget OVERRIDDEN {bound:.0f} -> {_ovrn} via {LABEL_DRIFT_BUDGET_ENV} (slow-data refit window)',flush=True)
+   bound=float(_ovrn)
+ if drift>bound:
+  raise SystemExit(f'HISTORY LOST in l2_state_table: {drift}/{compared} rows relabelled (bound {bound:.0f}) — aborting (backup: data/cd/sector_axes/backup_*)')
+ if drift:
+  top=sorted(bydate.items(),key=lambda kv:-kv[1])[:5]
+  print(f'WARN l2_state_table 标签迁移(阈值重推/carry漂移) tolerated: {drift}/{compared} rows, top dates {top}',flush=True)
 
 def fingerprint(x,mask=frozenset()):
  # structure + non-numeric + INTEGER counts stay strict; floats are masked (tolerated separately)
@@ -154,6 +197,9 @@ def main():
     check_l3_pool(old.get(k,{}),newp,a.day)
     continue
    newr=rows_of(ROOT/rel)
+   if k=='l2_state_table':
+    check_l2_state(old.get(k,set()),newr,{a.day,prev_day},a.day)   # 2026-10-21: 标签迁移容忍(有界+WARN)，身份丢失仍中断
+    continue
    if k in KEYED:
     kf=KEYED[k]; lost={kf(json.loads(x)) for x in old[k]}-{kf(r) for r in newr}
     kind='keys'

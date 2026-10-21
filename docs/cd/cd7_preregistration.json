@@ -1,6 +1,6 @@
 {
  "phase": "CD-7 — Entry-Zone & Participation Timing",
- "authority": "user GO ruling 2026-10-04 (CD6_ROUND1_FREEZE.json inheritance: L1 frozen carry-forward; negated list enforced; NARROWING context-flag only)",
+ "authority": "user GO ruling 2026-10-04 (L1 frozen carry-forward from CD-6 layer B logic; negated list enforced; NARROWING context-flag only)",
  "preregistration_id": "cd7-prereg-v1",
  "position_axis_frozen": {
   "provenance": "model_derived cost proxy (CD-5C) — NEVER 主力成本",

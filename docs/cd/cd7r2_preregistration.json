@@ -1,6 +1,6 @@
 {
  "phase": "CD-7R2 — Secondary Entry / Re-entry Architecture",
- "authority": "user GO ruling 2026-10-04; CD7_ROUND1_FREEZE.json inheritance",
+ "authority": "user GO ruling 2026-10-04 (L1 frozen carry-forward inherited from CD-6 layer B logic)",
  "preregistration_id": "cd7r2-prereg-v1",
  "secondary_zone_frozen": {
   "provenance": "model_derived cost band (CD-5C); all as-of-T trailing; never 主力成本",

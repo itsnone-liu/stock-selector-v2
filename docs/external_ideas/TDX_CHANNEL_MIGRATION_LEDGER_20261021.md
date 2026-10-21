@@ -217,3 +217,44 @@ check1 改容差比较（价严格/量±1）；check2（vs 本机 TDX 镜像）�
 | ⏳ | 盘中可用性（10:01 是否已有当日未完成窗口） | **待明早 10:01 现场验证** —— 决定 EI-5P window 阶段能否一步切完 |
 
 > 今日（10-21）窗口数据仍追不回（收盘后才打通），但**从明早起分时不再依赖腾讯**。
+
+---
+
+## 9. 日更链数据完整性治理（2026-10-21 老刘授权「除慢频/两融外全切 TDX，做完整解决，确保以后每天数据不再拥堵/禁用/不完整」）
+
+### 9.1 A 步「假 OK」根因（已修）
+- 症状：`step_A.log` 5430/5430 全是 `tdx_err:ModuleNotFoundError:No module named 'r2'`，但编排器只看退出码 → 报 `[A] OK 22s`，全链继续跑"空数据"。
+- 修：`src/r2/daily_price_update.py` 补 `sys.path` 引导 + `--max-fail-ratio` 失败闸门（hard_fail > 2% 即 FAIL）。
+- 验收（全量复跑）：**current 5222 + tdx_no_daily 208（停牌/退市，良性）+ hard_fail 0 = 5430，78s，manifest ok=true**。
+
+### 9.2 科创板 5 只永久卡死根因（已修）——**协议量是 float32**
+- 卡死票：688126 / 688223 / 688469 / 688538 / 688825（末根 bar 停在 10-19，`overlap_raw_mismatch`）。
+- 真因：TDX **协议线上成交量本身是 float32 编码**（`pytdx get_volume()` 按指数+尾数重组），量 > 2²⁴ 尾数即失真（实测 688126 42138086→42138088、688825 432227162→432227168，±2~8）；而库内存量是精确 `uint32`（`.day` 文件口径）。于是「股」口径下**校准 ±1 与接缝校验 ±1 双双失效** → 落 `volguess` 退成「手」→ 接缝不匹配 → 该票永久不写（fail-closed 保护生效，未污染历史）。
+- 修：①单位校准与 `_rowmatch` 的「股」口径容差改为 **`2*max(|x|,|y|)*2^-24 + 1/2`**（float32 精度感知）；②`.day` 解析 struct 修正 `<IIIIIfIf` → **`<IIIIIfII`**（vol=uint32 精确；同一错误还遗留在 `daily_report.py` / `exdiv_refetch.py` / `run_retcalc_v1.py`，待清）。
+- 验收：5 只全部 `updated extra=2`（补回 10-20、10-21），单位与日期核对无误。
+
+### 9.3 `cd2a_census_and_bands` 漏挂调度（真缺口，已修）
+- 症状：`l2_axis_bands.json.gz` mtime 冻结 **2026-10-04**，而 C3 的日期范围 100% 来自它 → `l2_state_table`（每日×83 板块表）静默停在 **2026-09-30**，缺 10-09~10-21 三个交易日；C3 每天照样 `OK 3s`。
+- 修：把 `('C1A','scripts/cd2a_census_and_bands.py')` 挂进 `daily_update.py` 的 `BUILDERS`（C1 之后、C3 之前；耗时 4.8s，自带 `determinism recompute: PASS`），并手动回补 bands 至 10-21（今日 83 行）。
+
+### 9.4 「每天静默被杀」真凶（已修）——cron 会话前台超时
+- 证据链：`step_C1.log` mtime **19:34:39**（编排器是子进程**结束后**才写该日志），C1 从启动到被杀 ≈158s < 单独跑所需 225s ⇒ 死在 build() 中段；无 OOM（dmesg 全天无）、无 cgroup 限制、无 traceback ⇒ 排除代码缺陷，是**被信号带走**。
+- 结论：19:30 cron 的 agent 在**前台**等链路（其 terminal 调用默认 **180s** 上限），超时即 SIGKILL 整条管线；这与「无 stderr 的静默死」特征完全一致。
+- 修：19:30 job prompt 改为 **`systemd-run --unit=r2daily-<day>` 脱离会话 + 单调用内轮询 + 自检闸门**（前台绝不等链路）。
+
+### 9.5 编排器加固（已修）
+- `src/r2/daily_update.py`：①**flock 单实例锁**（`/tmp/r2_daily_update.lock`，并发直接拒跑）；②`run()` 记录 **rc/信号**（`rc=-9` 这类线索以后一眼可见，不再"静默"）。
+- `src/r2/daily_price_update.py`：A 步自身**flock 锁**（`/tmp/r2_daily_price_update.lock`），杜绝「两个 A 步并发抢写同一批 json.gz」（曾致 3800/5430 中途 FAIL）；新增 `--codes` 支持定向修复。
+
+### 9.6 新增每日确定性自检闸门（已上线）
+- `scripts/r2_daily_integrity.py --day <day>`：A manifest（ok/hard_fail/fails/tdx_mismatch + current+benign==n_codes）→ 逐票覆盖（末根 bar 日期）→ C 链 5 产物最新日期 → E/F 产物 → step_*.log（Traceback / `[X] FAIL` / `rc=-`）→ TDX 镜像同步状态。退出码 0=PASS / 1=FAIL，产物 `data/r2/daily_update/integrity_<day>.json`。
+- 首跑即抓到 9.3 的 3 周断档；覆盖比对 **5222/5222 精确吻合**。注意：**不要**裸扫 `FAIL` 字样（C5 的 `STRUCTURAL_FAILURE` 是正常分类标签）；`l4_episodes` 的日期字段是 `end` 不是 `date`。
+
+### 9.7 今日最终验收
+- `daily_update.py --day 2026-10-21` **全链 EXIT=0**：A（78s，hard_fail 0）→ C1 218s → C1A → C2 83s → C3 → C4 169s → C5 252s → E 191s → F 9s，`DAILY UPDATE COMPLETE`。
+
+### 9.8 仍待办（下一批）
+- 全仓库非 TDX 数据源清单分类（实时/分时/日线/慢频/两融）→ 除慢频/两融外逐一迁 TDX（intraday_scan / p3rank / export 系列 / CF 采集）。
+- 板块/行业涨跌改「自有 44 板块成分股 + TDX 本地日线等权指数」（方案已定案）。
+- EI-5P 分时切 TDX `op4045`（游标寻头 + 批量）落地，消 501 限流。
+- 遗留 `<IIIIIfIf` 解析错误清理（daily_report / exdiv_refetch / run_retcalc_v1）。

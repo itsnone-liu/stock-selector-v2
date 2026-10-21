@@ -1,45 +1,51 @@
 {
- "frozen_at": "2026-10-04T18:21:33",
- "source_sha_rows": "0f747662efa35818\u2026",
+ "refit_at": "2026-10-21T22:11:48",
+ "refit_trigger": "carry-mode-enrolment 2026-10-21 (C1A joins daily chain -> carry by default)",
+ "carried_at": null,
+ "carry_count": 0,
+ "refit_cadence": "slow-frequency data update event (manual, user-triggered)",
+ "fit_basis_sha": "ddfb0944812b331c93a0118eea734581223cb886d167fc4f36f69eaa5acedd1e",
+ "fit_basis_sha_now": "ddfb0944812b331c93a0118eea734581223cb886d167fc4f36f69eaa5acedd1e",
+ "fit_basis_changed_since_refit": false,
  "dev_window_end": "2023-12-31",
  "thresholds": {
   "rp": {
    "variable": "rel_eq_mkt",
    "n_dev_nonnull": 50735,
    "pooled_q33_q67": [
-    -0.00466405,
-    0.00319164
+    -0.0046655,
+    0.00319251
    ],
    "stratum_q33_q67": {
     "SMALL": [
-     -0.00587963,
-     0.00391989
+     -0.00587985,
+     0.00392031
     ],
     "MID": [
-     -0.00525795,
-     0.00369273
+     -0.00525856,
+     0.00369278
     ],
     "LARGE": [
-     -0.00369702,
-     0.00248457
+     -0.00369777,
+     0.0024833
     ]
    },
    "stratum_midband_drift_abs": {
-    "SMALL": 0.0609,
+    "SMALL": 0.0608,
     "MID": 0.0387,
     "LARGE": 0.0814
    },
    "annual_pooled_q33_q67": {
     "2021": [
-     -0.004986,
+     -0.004991,
      0.003088
     ],
     "2022": [
-     -0.00497,
-     0.003789
+     -0.004971,
+     0.003791
     ],
     "2023": [
-     -0.004138,
+     -0.004139,
      0.002846
     ]
    },
@@ -142,12 +148,12 @@
      1.0
     ],
     "MID": [
-     0.86553267,
+     0.86555133,
      0.98758867
     ],
     "LARGE": [
-     0.656054,
-     0.841808
+     0.656036,
+     0.841741
     ]
    },
    "stratum_midband_drift_abs": {
@@ -157,15 +163,15 @@
    },
    "annual_pooled_q33_q67": {
     "2021": [
-     0.822344,
+     0.822339,
      0.986781
     ],
     "2022": [
-     0.796736,
+     0.796729,
      0.983262
     ],
     "2023": [
-     0.820791,
+     0.820773,
      0.986411
     ]
    },
@@ -175,8 +181,8 @@
    "variable": "top5_mean_ret - rest_mean_ret",
    "n_dev_nonnull": 49560,
    "pooled_q33_q67": [
-    -0.00388073,
-    0.00913663
+    -0.00388019,
+    0.00914118
    ],
    "stratum_q33_q67": {
     "SMALL": [
@@ -185,47 +191,115 @@
     ],
     "MID": [
      -0.00372817,
-     0.00900196
+     0.00900053
     ],
     "LARGE": [
-     -0.00396469,
-     0.01149298
+     -0.00396899,
+     0.01149759
     ]
    },
    "stratum_midband_drift_abs": {
     "SMALL": 0.0633,
     "MID": 0.006,
-    "LARGE": 0.0477
+    "LARGE": 0.0478
    },
    "annual_pooled_q33_q67": {
     "2021": [
-     -0.004437,
+     -0.004436,
      0.011154
     ],
     "2022": [
      -0.003896,
-     0.00956
+     0.009562
     ],
     "2023": [
      -0.003485,
-     0.007233
+     0.007232
     ]
    },
    "adopted": "POOLED"
   }
  },
- "band_table_sha256": "c17903b2cac57f142fe9d9ac6b02d4312856a06c1ad1cf852d3b0b3d464806a1",
- "n_rows": 115619,
- "null_counts": {
-  "rp": 17606,
-  "part": 17606,
-  "breadth": 17606,
-  "conc": 21587,
-  "disp": 20118
+ "stratum_map": {
+  "A01": "SMALL",
+  "A03": "MID",
+  "A04": "SMALL",
+  "A05": "SMALL",
+  "B06": "MID",
+  "B07": "SMALL",
+  "B09": "MID",
+  "B11": "SMALL",
+  "C13": "LARGE",
+  "C14": "LARGE",
+  "C15": "MID",
+  "C17": "MID",
+  "C18": "MID",
+  "C19": "SMALL",
+  "C20": "SMALL",
+  "C21": "MID",
+  "C22": "MID",
+  "C23": "SMALL",
+  "C24": "MID",
+  "C25": "MID",
+  "C26": "LARGE",
+  "C27": "LARGE",
+  "C28": "MID",
+  "C29": "LARGE",
+  "C30": "LARGE",
+  "C31": "MID",
+  "C32": "LARGE",
+  "C33": "LARGE",
+  "C34": "LARGE",
+  "C35": "LARGE",
+  "C36": "LARGE",
+  "C37": "LARGE",
+  "C38": "LARGE",
+  "C39": "LARGE",
+  "C40": "LARGE",
+  "C41": "SMALL",
+  "C42": "MID",
+  "D44": "LARGE",
+  "D45": "MID",
+  "D46": "MID",
+  "E48": "LARGE",
+  "E50": "MID",
+  "F51": "LARGE",
+  "F52": "LARGE",
+  "G53": "SMALL",
+  "G54": "MID",
+  "G55": "MID",
+  "G56": "SMALL",
+  "G58": "SMALL",
+  "G59": "SMALL",
+  "I63": "MID",
+  "I64": "LARGE",
+  "I65": "LARGE",
+  "J66": "MID",
+  "J67": "LARGE",
+  "J68": "SMALL",
+  "J69": "SMALL",
+  "K70": "LARGE",
+  "L72": "LARGE",
+  "M73": "MID",
+  "M74": "LARGE",
+  "N77": "LARGE",
+  "N78": "MID",
+  "P83": "SMALL",
+  "Q84": "MID",
+  "R86": "MID",
+  "R87": "MID",
+  "S91": "SMALL",
+  "B08": "SMALL",
+  "H61": "SMALL",
+  "E49": "SMALL"
  },
- "erratum": {
-  "id": "ERRATUM-CD2A-1",
-  "issue": "part axis emitted LOW/MID/HIGH labels; preregistration mandates FALLING/FLAT/EXPANDING (directional semantics)",
-  "fix": "in-place label rewrite of the part field only; thresholds, quantiles, all other axes unchanged; recomputed sha recorded"
+ "band_table_sha256": "b7e9d4cc8b158c6b2c960721f2214a64404836c2d40aeaa29f03eee50a79dd32",
+ "n_rows": 116449,
+ "null_counts": {
+  "rp": 17726,
+  "part": 17726,
+  "breadth": 17726,
+  "conc": 21741,
+  "disp": 20258
  }
 }

@@ -59,6 +59,30 @@ cd /root/project/workspace/stock-selector-v2 && \
 | 新股纳入 | 每月与 holders 同天 | 从 TDX 文件数对齐宇宙，新股满 520 日才进成本带池 |
 | market_ext（amount/turnover） | 每周 | `src/capital_data/market_daily_ext.py` 增量（研究面板用，非关键路径） |
 
+### 5.1 CD-2A 阈值重推挂钩（user ruling 2026-10-21 第2条）
+
+**阈值只随慢频更新事件重推，不按天。**
+
+- **日常链**（步骤 **C1A** = `scripts/cd2a_census_and_bands.py`，无参数）= **carry**：只重建 band 表，
+  沿用 `docs/cd/cd2a_thresholds.json` 中的 `thresholds` + `stratum_map`，**不重推**。
+  输出行 `MODE=carry thresholds + stratum_map carried ...`。
+- **重推**（`--refit`）：从 dev 窗口（2021-01..2023-12）重算分位阈值。**只在慢频数据更新后跑。**
+- 两种模式都往 `docs/cd/cd2a_threshold_history.jsonl` 追一行，带 `mode=refit|carry`、`fit_basis_sha`、
+  `fit_basis_changed_since_refit`、`changed_rows` —— 所以「该重推而没推」和 carry 期间的标签漂移都不会静默。
+
+**操作（老刘手动更新慢频 → 通知 → 助手执行）：**
+
+```bash
+# 生产上必须脱离会话（前台 >180s 会被 SIGKILL）：
+systemd-run --unit=h-refit-$(date +%s) --collect \
+  bash /root/project/workspace/stock-selector-v2/scripts/h_refit_thresholds.sh "holders 2026-11-01"
+# 慢频不影响轴输入（如 e5 context 层）时可省时： SKIP=A,C1,C2，只重推不重跑链： --no-chain
+```
+
+**唯一可能的坑**：重推日历史标签合法大迁移可能超过 guard 默认上界 `max(500, 0.2%)` → 链硬断。
+此时用显式预算重跑（会打印 NOTE 留痕）：`R2_L2_RELABEL_BUDGET=3000 ...`。
+该预算**只能抬高、不能削弱**（填小数/非法值自动回落默认），且**身份丢失（l2/date/n 消失）永远硬断**，不受预算影响。
+
 ## 6. 资源与纪律
 
 - 单进程、流式逐股，峰值内存 ≤2.5G；禁再生成单体大表。

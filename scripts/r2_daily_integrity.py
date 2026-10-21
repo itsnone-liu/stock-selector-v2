@@ -18,7 +18,7 @@ WARN 项（提示不拦）:
  W1 TDX 镜像 .tdx_daily_sync_state.json 的 trade_date < day
  W2 产物 mtime 早于当日 15:00（可能跑的是旧产物）
 """
-import argparse, gzip, json, os, sys, time
+import argparse, gzip, json, os, re, sys, time
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
 
@@ -34,7 +34,7 @@ ARTS = {  # C 链产物 -> rows 键
     'l4_episodes': ('data/cd/l4_episodes.json.gz', 'episodes'),
     'l3_pool': ('data/cd/l3_candidate_pool_v2.json.gz', 'pools'),
 }
-STEPS = ['A', 'C1', 'C2', 'C3', 'C4', 'C5', 'E', 'F']
+STEPS = ['A', 'C1', 'C1A', 'C2', 'C3', 'C4', 'C5', 'E', 'F']
 
 
 def newest_date(path, key):
@@ -56,6 +56,9 @@ def newest_date(path, key):
         return None, '无行'
     ds = [r.get('date') or r.get('day') for r in rows if isinstance(r, dict)]
     ds = [d for d in ds if d]
+    if not ds:      # l4_episodes 等用 start/end 区间表示；取 end 为最新
+        ds = [r.get('end') or r.get('start') for r in rows if isinstance(r, dict)]
+        ds = [d for d in ds if d]
     return (max(ds) if ds else None), None
 
 
@@ -144,8 +147,10 @@ def main():
         t = p.read_text(errors='replace')
         if 'Traceback' in t:
             block.append(f'L: step_{s}.log 有 Traceback: {t.strip().splitlines()[-1][:160]}')
-        elif 'FAIL' in t and not any(k in t for k in ('"ok": true', 'OK')):
-            warn.append(f'W3: step_{s}.log 含 FAIL 字样')
+        elif re.search(r'^\[[A-Z0-9]+\]\s+FAIL\b', t, re.M) or 'rc=-' in t:
+            # 只在「编排器式 FAIL 行」或负退出码(信号杀,如 rc=-9/-11)时报；
+            # 不扫描裸 'FAIL' 字样 —— C5 的 STRUCTURAL_FAILURE 是正常分类标签（2026-10-21）
+            block.append(f'L: step_{s}.log 报 FAIL 或被信号杀(stderr 为空时只剩这行线索)')
 
     # W1: TDX 镜像同步状态
     st = Path('/root/tdx_data/vipdoc/.tdx_daily_sync_state.json')
