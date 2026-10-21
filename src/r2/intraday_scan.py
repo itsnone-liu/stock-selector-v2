@@ -16,25 +16,16 @@ from pathlib import Path
 ROOT=Path(__file__).resolve().parents[2]; SCANS=ROOT/'data/r2/scans'
 OUTD=ROOT/'data/r2/daily_update'
 
+import sys as _sys; _sys.path.insert(0,str(ROOT/'src'))
+from r2.tdx_quotes import quotes as _tdx_quotes, index_pct as _tdx_index_pct
+
 def quotes(codes):
- out={}
- for i in range(0,len(codes),60):
-  batch=codes[i:i+60]
-  pre=','.join(('sh' if c[0]=='6' else ('bj' if c[0] in '48' else 'sz'))+c for c in batch)
-  r=urllib.request.Request('http://qt.gtimg.cn/q='+pre,headers={'User-Agent':'Mozilla/5.0'})
-  s=urllib.request.urlopen(r,timeout=15).read().decode('gbk')
-  for line in s.split(';'):
-   if '~' not in line: continue
-   f=line.split('~')
-   out[f[2]]={'name':f[1],'price':float(f[3]),'pct':float(f[32]) if f[32] else 0.0,
-              'high':float(f[33]) if f[33] else 0.0,'low':float(f[34]) if f[34] else 0.0}
-  time.sleep(0.4)
- return out
+ '''实时批量快照。2026-10-21 定案：退役腾讯 qt.gtimg.cn → TDX 通道（字段同名同义）。'''
+ return _tdx_quotes(codes)
 
 def idx_pct():
- r=urllib.request.Request('http://qt.gtimg.cn/q=sh000001',headers={'User-Agent':'Mozilla/5.0'})
- f=urllib.request.urlopen(r,timeout=15).read().decode('gbk').split('~')
- return float(f[32]) if len(f)>32 and f[32] else 0.0
+ '''上证综指实时涨幅%（TDX）。'''
+ return _tdx_index_pct('sh000001')
 
 def main():
  ap=argparse.ArgumentParser(); ap.add_argument('--pool',default='candidates')

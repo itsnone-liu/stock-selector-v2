@@ -27,19 +27,13 @@ sel.sort(key=lambda c: (
 def market(code):
     return 'sh' if code.startswith(('6', '9')) else ('bj' if code[0] in '48' else 'sz')
 
-names = {}
+import sys as _sys                        # noqa: E402
+_sys.path.insert(0, str(ROOT / 'src'))
+from r2.tdx_quotes import quotes as _tdx_quotes   # noqa: E402
+
 codes = [c['stock'] for c in sel]
-for i in range(0, len(codes), 60):
-    batch = codes[i:i+60]
-    q = ','.join(f'{market(c)}{c}' for c in batch)
-    url = f'https://qt.gtimg.cn/q={q}'
-    req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
-    data = urllib.request.urlopen(req, timeout=15).read().decode('gbk', errors='ignore')
-    for m in re.finditer(r'v_(\w+)="([^"]*)"', data):
-        f = m.group(2).split('~')
-        if len(f) > 1:
-            names[m.group(1)[2:]] = f[1]
-    time.sleep(0.3)
+_q = _tdx_quotes(codes)                    # 2026-10-21 起 TDX 通道
+names = {c: _q.get(c, {}).get('name', '') for c in codes}
 
 lines = [
     f"# 190影子池内 IN_SUPPORT 置信0.9（{day}，共{len(sel)}只）",

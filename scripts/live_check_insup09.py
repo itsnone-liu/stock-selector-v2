@@ -14,21 +14,12 @@ meta = {r['stock']: r for r in shadow['rows']}
 def market(code):
     return 'sh' if code.startswith(('6', '9')) else ('bj' if code[0] in '48' else 'sz')
 
-q = {}
+import sys as _sys                        # noqa: E402
+_sys.path.insert(0, str(ROOT / 'src'))
+from r2.tdx_quotes import quotes as _tdx_quotes   # noqa: E402
+
 codes = [c['stock'] for c in sel]
-for i in range(0, len(codes), 60):
-    batch = codes[i:i+60]
-    url = 'http://qt.gtimg.cn/q=' + ','.join(f'{market(c)}{c}' for c in batch)
-    req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
-    s = urllib.request.urlopen(req, timeout=15).read().decode('gbk', errors='ignore')
-    for line in s.split(';'):
-        if '~' not in line: continue
-        f = line.split('~')
-        try:
-            q[f[2]] = {'name': f[1], 'price': float(f[3]), 'pct': float(f[32]) if f[32] else 0.0}
-        except (ValueError, IndexError):
-            pass
-    time.sleep(0.4)
+q = _tdx_quotes(codes)                     # 2026-10-21 起 TDX 通道，退役腾讯
 
 rows = []
 for c in sel:

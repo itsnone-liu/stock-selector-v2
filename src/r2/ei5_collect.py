@@ -28,11 +28,14 @@ import struct
 import subprocess
 import sys
 import time
+import urllib.error
 import urllib.request
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
+if str(ROOT / 'src') not in sys.path:                     # r2.* 导入引导（cron 环境无 PYTHONPATH）
+    sys.path.insert(0, str(ROOT / 'src'))
 SCANS = ROOT / 'data/r2/scans'
 TDX = Path('/root/tdx_data/vipdoc')
 EI5 = ROOT / 'data/r2/ei5'
@@ -118,36 +121,38 @@ def load_cohort(base_day: str) -> tuple[list[dict], dict]:
 
 # ---------------------------------------------------------------- sources
 def quotes(codes: list[str], sleep: float = 0.4) -> dict:
-    """Batch qt.gtimg snapshot (60 per request). Used for auction + backfill prev_close."""
-    out: dict[str, dict] = {}
-    for i in range(0, len(codes), 60):
-        batch = codes[i:i + 60]
-        pre = ','.join(qcode(c) for c in batch)
-        try:
-            s = _get('http://qt.gtimg.cn/q=' + pre, gbk=True)
-        except Exception:                                  # noqa: BLE001
-            continue
-        for line in s.split(';'):
-            if '~' not in line:
-                continue
-            f = line.split('~')
-            if len(f) < 40:
-                continue
-            def fl(k):
-                try:
-                    return float(f[k]) if f[k] not in ('', '-') else 0.0
-                except ValueError:
-                    return 0.0
-            out[f[2]] = {'name': f[1], 'last': fl(3), 'prev_close': fl(4), 'open': fl(5),
-                         'vol': fl(6), 'amount_wan': fl(37), 'pct': fl(32),
-                         'high': fl(33), 'low': fl(34), 'ts': f[30] if len(f) > 30 else ''}
-        time.sleep(sleep)
-    return out
+    """批量实时快照 —— 2026-10-21 起走 TDX 通道（退役腾讯 qt.gtimg.cn）。
+
+    字段名与旧腾讯解析**同名同义**（last/prev_close/open/vol/amount_wan/pct/high/low/ts），
+    调用方零改动。TDX 侧 vol 单位=手、amount 单位=元（故 /1e4 得万元），与旧 f[6]/f[37] 一致。
+    """
+    from r2.tdx_quotes import quotes as _tdx_quotes
+    raw = _tdx_quotes(codes)
+    return {c6: {'name': r['name'], 'last': r['price'], 'prev_close': r['last_close'],
+                 'open': r['open'], 'vol': r['vol'],
+                 'amount_wan': (r['amount'] or 0.0) / 1e4,
+                 'pct': r['pct'], 'high': r['high'], 'low': r['low'], 'ts': r['ts']}
+            for c6, r in raw.items()}
 
 
 def fetch_minute(code: str) -> tuple[str, list]:
-    """Return (yyyymmdd, bars) where bars = [[HHMM, price, cumvol_hand, cumamt_yuan], ...]."""
-    s = _get(f'https://web.ifzq.gtimg.cn/appstock/app/minute/query?code={qcode(code)}')
+    """Return (yyyymmdd, bars) where bars = [[HHMM, price, cumvol_hand, cumamt_yuan], ...].
+
+    2026-10-21：401/501 是突发限流（非端点失效），命中后退避重试一次；
+    最终失败由 main 走平均值替代，不留空行。
+    """
+    url = f'https://web.ifzq.gtimg.cn/appstock/app/minute/query?code={qcode(code)}'
+    # 2026-10-21 实测：突发限流返回 501（当天 179 次成功后全灭，7h 后自动恢复）。
+    # 命中 403/429/501 → 退避 5s 重试一次；仍失败才抛错，由 main 走平均值替代。
+    for att in range(2):
+        try:
+            s = _get(url, timeout=8, retries=0)
+            break
+        except urllib.error.HTTPError as e:
+            if att == 0 and e.code in (403, 429, 501):
+                time.sleep(5)
+                continue
+            raise
     j = json.loads(s)
     node = j.get('data', {}).get(qcode(code), {})
     if not node or node.get('data') is None:
@@ -314,6 +319,95 @@ def compute_features(day, base_day, row, q, bars, base20, stage) -> dict:
     fx['peak_dn_vol_ratio'] = (post / pre) if pre else None
     if len(win) < 25:
         fx['partial'] = True
+    return fx
+
+
+# ---------------------------------------------------------------- impute
+# 2026-10-21 老刘口径：分时源断掉时**不留空行**，直接用平均值替代。
+# 不做百分百精确科研复现，只保面板连续/趋势可用；imputed 标记 + 原始错误留存备查。
+IMPUTE_FIELDS = ['win_vol', 'win_amt', 'close_1000', 'disp', 'up_amt', 'dn_amt',
+                 'range_cproxy', 'retrace_from_peak', 'time_to_peak_frac',
+                 'win_amt_ratio', 'win_vol_ratio', 'PE1', 'PE2', 'PE3',
+                 'tail_vol_ratio', 'peak_dn_vol_ratio']
+
+
+def _num(v):
+    """数值化：None/NaN/非数 → None。"""
+    if v is None:
+        return None
+    try:
+        f = float(v)
+    except (TypeError, ValueError):
+        return None
+    return None if math.isnan(f) else f
+
+
+def load_hist_means(day: str, lookback: int = 10) -> dict:
+    """该票历史窗口特征的平均值 —— {code: {field: mean, 'n_days': k}}（跳过已 imputed 行）。"""
+    import pandas as pd
+    d = EI5 / 'features'
+    files = sorted(p for p in d.glob('day=*.parquet')
+                   if p.stem.split('=', 1)[1] < day)[-lookback:]
+    acc: dict = {}
+    for p in files:
+        try:
+            df = pd.read_parquet(p)
+        except Exception:                                  # noqa: BLE001
+            continue
+        for rec in df.to_dict('records'):
+            if rec.get('imputed'):
+                continue
+            c = rec.get('code')
+            if not c:
+                continue
+            for f in IMPUTE_FIELDS:
+                v = _num(rec.get(f))
+                if v is not None:
+                    acc.setdefault(c, {}).setdefault(f, []).append(v)
+    out: dict = {}
+    for c, fs in acc.items():
+        if not fs:
+            continue
+        out[c] = {f: sum(vs) / len(vs) for f, vs in fs.items() if vs}
+        out[c]['n_days'] = max(len(vs) for vs in fs.values())
+    return out
+
+
+def xsect_means(rows: list) -> dict:
+    """当日截面平均值（保底：该票无历史时用它）。"""
+    out: dict = {}
+    for f in IMPUTE_FIELDS:
+        vs = [v for v in (_num(r.get(f)) for r in rows) if v is not None]
+        if vs:
+            out[f] = sum(vs) / len(vs)
+    out['n_days'] = 0
+    return out
+
+
+def apply_impute(fx: dict, hist: dict, xs: dict) -> dict:
+    """把平均值灌进缺口字段，标 impute_src；原 n_bars/src_date 作为事实保留。"""
+    src = ''
+    if hist:
+        for f, v in hist.items():
+            if f != 'n_days' and fx.get(f) is None:
+                fx[f] = v
+        src = 'hist_mean'
+        fx['impute_days'] = hist.get('n_days', 0)
+    if not src and xs:
+        for f, v in xs.items():
+            if f != 'n_days' and fx.get(f) is None:
+                fx[f] = v
+        src = 'xsect_mean'
+        fx['impute_days'] = 0
+    fx['impute_src'] = src or 'none'
+    # 用替代后的比值重算 PE 系列（口径一致：disp / ratio）
+    if fx.get('impute_src') != 'none':
+        if fx.get('PE1') is None and _num(fx.get('disp')) is not None and _num(fx.get('win_amt_ratio')):
+            fx['PE1'] = fx['disp'] / fx['win_amt_ratio']
+        if fx.get('PE2') is None and _num(fx.get('disp')) is not None and _num(fx.get('win_vol_ratio')):
+            fx['PE2'] = fx['disp'] / fx['win_vol_ratio']
+        if fx.get('PE3') is None and _num(fx.get('up_amt')) and _num(fx.get('dn_amt')) is not None:
+            fx['PE3'] = fx['dn_amt'] / fx['up_amt']
     return fx
 
 
@@ -569,14 +663,27 @@ def check_time_window(stage: str) -> tuple[bool, str]:
 
 
 def check_trading_day(day: str) -> tuple[bool, str]:
-    """True if sh000001 quote timestamp date == day (i.e. auction already happened today)."""
+    """交易日闸门（2026-10-21 起 TDX 口径，退役腾讯 sh000001 时间戳）。
+
+    旧口径依靠腾讯 quote 时间戳 f[30] 的 YYYYMMDD 前缀；TDX servertime 只有 HH:MM:SS.sss 无日期，
+    故改用**数据新鲜度**判定：若实时快照与 day 之前最后一根日线 bar 的 (close, amount) 完全相同，
+    说明快照是隔夜冻结（非交易日或尚未开盘）；否则当日已有成交 → 是交易日且行情在跑。
+    用 sh600519（茅台，竞价必成交）而非指数：实测 Session.daily 对指数解析异常。
+    """
     try:
-        s = _get('http://qt.gtimg.cn/q=sh000001', gbk=True)
-        f = s.split('~')
-        ts = f[30] if len(f) > 30 else ''
-        return ts[:8] == day.replace('-', ''), ts
+        from r2.tdx_quotes import quotes as _tdx_quotes
+        from r2.tdx_client import with_session
+        q = (_tdx_quotes(['sh600519'], with_name=False).get('600519') or {})
+        bars = with_session(lambda s: s.daily(1, '600519', count=6))
+        prior = [b for b in bars if b['date'] < day]
+        prev = prior[-1] if prior else bars[-1]
+        frozen = (abs(float(q.get('price') or 0.0) - prev['close']) < 1e-6
+                  and abs(float(q.get('amount') or 0.0) - prev['amount']) < 1.0)
+        detail = (f"tdx:{q.get('ts', '')} px={q.get('price')}/{prev['close']}"
+                  f" amt={q.get('amount')}/{prev['amount']} prev_bar={prev['date']}")
+        return (not frozen), detail
     except Exception as e:                                 # noqa: BLE001
-        return False, f'quote_err:{type(e).__name__}'
+        return False, f'tdx_err:{type(e).__name__}'
 
 
 def main() -> None:
@@ -587,6 +694,10 @@ def main() -> None:
     ap.add_argument('--base', default=None, help='T-1 scan day (default: latest snapshot before --day)')
     ap.add_argument('--limit', type=int, default=0)
     ap.add_argument('--sleep', type=float, default=0.1)
+    ap.add_argument('--no-minute', action='store_true',
+                    help='不打分时端点，直接走平均值替代（限流期间的离线补数）')
+    ap.add_argument('--skip-live', action='store_true',
+                    help='已有真分时行(n_bars>0 且非 imputed)的票直接跳过，不重取')
     ap.add_argument('--ignore-guard', action='store_true', help='skip trading-day gate')
     a = ap.parse_args()
 
@@ -623,22 +734,57 @@ def main() -> None:
 
     q = quotes(codes, sleep=0.4)
     rows_f, man, fails, ok = [], [], [], 0
+    imp: list = []                       # 分时断源 → 走平均值替代，不留空行
+    kept = 0                             # 当日真数据已在盘 → 保留不覆盖
     raw_items: list[tuple[str, dict]] = []
+    fx_prev: dict = {}                   # 当日已有行（upsert 前快照，防替代值盖真值）
+    fx_path0 = EI5 / 'features' / f'day={a.day}.parquet'
+    if fx_path0.exists():
+        try:
+            import pandas as pd
+            fx_prev = pd.read_parquet(fx_path0).set_index('code').to_dict('index')
+        except Exception:                                # noqa: BLE001
+            fx_prev = {}
 
     for n, row in enumerate(cohort, 1):
         code = row['code']
+        if a.skip_live and a.stage in ('window', 'backfill'):
+            pv0 = fx_prev.get(code) or {}
+            if _num(pv0.get('n_bars')) and not pv0.get('imputed'):
+                kept += 1
+                ok += 1
+                continue
         try:
             bars, src_date = [], ''
+            win_err = ''
             if a.stage in ('window', 'backfill'):
-                src_date, allbars = fetch_minute(code)
-                if src_date != a.day.replace('-', ''):
-                    raise ValueError(f'stale_date:{src_date}')
-                bars = [b for b in allbars if b[0] <= WIN_END]
-                time.sleep(a.sleep)
+                if a.no_minute:
+                    win_err = 'skipped:--no-minute'
+                else:
+                    try:
+                        src_date, allbars = fetch_minute(code)
+                        if src_date != a.day.replace('-', ''):
+                            raise ValueError(f'stale_date:{src_date}')
+                        bars = [b for b in allbars if b[0] <= WIN_END]
+                    except Exception as e:                 # noqa: BLE001
+                        win_err = f'{type(e).__name__}:{e}'[:120]
+                        bars, src_date = [], ''
+                    time.sleep(a.sleep)
             base20 = tdx_daily(code, a.day)
             fx = compute_features(a.day, base_day, row, q.get(code), bars, base20, a.stage)
+            if win_err:
+                pv = fx_prev.get(code) or {}
+                if _num(pv.get('n_bars')) and not pv.get('imputed'):
+                    kept += 1      # 今日已采到真分时 → 保留，不拿替代值覆盖
+                    ok += 1
+                    continue
+                fx['imputed'] = 1
+                fx['impute_err'] = win_err
+                imp.append(fx)
+                ok += 1
+                continue
             payload = {'schema': SCHEMA_RAW, 'code': code, 'day': a.day, 'base_day': base_day,
-                       'stage': a.stage, 'source': 'tencent:ifzq.minute+qt.gtimg',
+                       'stage': a.stage, 'source': 'tdx:snapshot+ifzq.minute',
                        'fetched_at': now_cst(), 'git_sha': git_sha(),
                        'quote': q.get(code), 'bars': bars}
             raw_items.append((code, payload))
@@ -650,27 +796,56 @@ def main() -> None:
                         'ok': False, 'err': f'{type(e).__name__}:{e}'[:160],
                         'fetched_at': now_cst(), 'git_sha': git_sha()})
         if n % 100 == 0:
-            print(f'  ...{n}/{len(codes)} ok={ok} fail={len(fails)} '
+            print(f'  ...{n}/{len(codes)} ok={ok} fail={len(fails)} imp={len(imp)} '
                   f'{time.time()-t0:.0f}s', flush=True)
+
+    # 平均值替代：先该票历史均值，无历史用当日截面均值
+    if imp:
+        hist = load_hist_means(a.day)
+        xs = xsect_means(rows_f)
+        n_hist = n_xs = n_none = 0
+        for fx in imp:
+            apply_impute(fx, hist.get(fx['code']) or {}, xs)
+            s = fx.get('impute_src')
+            n_hist += s == 'hist_mean'
+            n_xs += s == 'xsect_mean'
+            n_none += s == 'none'
+            rows_f.append(fx)
+        print(f'[impute] hist_mean={n_hist} xsect_mean={n_xs} none={n_none}', flush=True)
 
     raw_path, raw_bytes = '', 0
     if raw_items:
         p, hashes = write_raw_day(a.day, a.stage, raw_items)
         raw_path, raw_bytes = str(p.relative_to(ROOT)), p.stat().st_size
         for fx in rows_f:
+            if fx.get('imputed'):
+                continue
             man.append({'day': a.day, 'code': fx['code'], 'stage': a.stage, 'base_day': base_day,
                         'raw_path': raw_path, 'raw_sha256': hashes.get(fx['code'], ''),
                         'n_bars': fx.get('n_bars'), 'src_date': fx.get('src_date', ''),
-                        'source': 'tencent:ifzq.minute+qt.gtimg', 'fetched_at': fx['fetched_at'],
+                        'source': 'tdx:snapshot+ifzq.minute', 'fetched_at': fx['fetched_at'],
                         'git_sha': git_sha(), 'ok': True})
+    for fx in rows_f:                       # 平均值替代行：无 raw，标记来源与原始错误
+        if not fx.get('imputed'):
+            continue
+        man.append({'day': a.day, 'code': fx['code'], 'stage': a.stage, 'base_day': base_day,
+                    'raw_path': '', 'raw_sha256': '', 'n_bars': fx.get('n_bars'),
+                    'src_date': fx.get('src_date', ''),
+                    'source': f'imputed:{fx.get("impute_src")}',
+                    'impute_err': fx.get('impute_err', ''), 'impute_days': fx.get('impute_days'),
+                    'fetched_at': fx['fetched_at'], 'git_sha': git_sha(), 'ok': True})
     if rows_f:
         upsert_parquet(EI5 / 'features' / f'day={a.day}.parquet', rows_f)
     append_manifest(EI5 / 'manifest.jsonl', man)
 
     cov = {'day': a.day, 'base_day': base_day, 'stage': a.stage, 'cohort': len(codes),
            'ok': ok, 'fail': len(fails), 'coverage': round(ok / max(len(codes), 1), 4),
-           'fail_reasons': {}, 'raw_file': raw_path, 'raw_bytes': raw_bytes,
-           'elapsed_s': round(time.time() - t0, 1), 'git_sha': git_sha(), 'run_at': now_cst()}
+           'imputed': len(imp), 'kept_live': kept, 'impute_src': {}, 'fail_reasons': {}, 'raw_file': raw_path,
+           'raw_bytes': raw_bytes, 'elapsed_s': round(time.time() - t0, 1),
+           'git_sha': git_sha(), 'run_at': now_cst()}
+    for f in imp:
+        k = f.get('impute_src', 'none')
+        cov['impute_src'][k] = cov['impute_src'].get(k, 0) + 1
     for f in fails:
         k = f['err'].split(':')[0]
         cov['fail_reasons'][k] = cov['fail_reasons'].get(k, 0) + 1

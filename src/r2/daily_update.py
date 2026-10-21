@@ -13,7 +13,7 @@ Usage: .venv/bin/python src/r2/daily_update.py --day 2026-10-08 [--skip A,C,E,F]
 Exit code !=0 on any failure; manifest at data/r2/daily_update/update_<day>.json
 """
 from __future__ import annotations
-import argparse,gzip,json,math,shutil,subprocess,sys,time
+import argparse,fcntl,gzip,json,math,shutil,subprocess,sys,time
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[2]
 DATA=ROOT/'data'; OUTD=ROOT/'data/r2/daily_update'
@@ -108,9 +108,12 @@ def tdx_has_day(day):
 def run(step,cmd):
  t0=time.time()
  r=subprocess.run(cmd,cwd=ROOT,capture_output=True,text=True)
- ok=r.returncode==0
- print(f'[{step}] {"OK" if ok else "FAIL"} {time.time()-t0:.0f}s',flush=True)
- (OUTD/f'step_{step}.log').write_text(r.stdout[-20000:]+r.stderr[-8000:])
+ el=time.time()-t0; ok=r.returncode==0
+ # 2026-10-21: 退出码/信号必须留痕 — 进程被 SIGKILL/段错误带走时 stderr 为空，
+ # 只看 OK/FAIL 会误判成「静默退 1」（本次 5 只科创票事故的排障盲区）
+ sig=f' signal={-r.returncode}' if r.returncode<0 else ''
+ print(f'[{step}] {"OK" if ok else "FAIL"} {el:.0f}s rc={r.returncode}{sig}',flush=True)
+ (OUTD/f'step_{step}.log').write_text(f'# cmd={" ".join(cmd)}\n# rc={r.returncode}{sig} elapsed={el:.0f}s\n'+r.stdout[-20000:]+r.stderr[-8000:])
  return ok
 
 def main():
@@ -118,6 +121,11 @@ def main():
  ap.add_argument('--skip',default='',help='comma list of A,C,E,F')
  a=ap.parse_args(); skip=set(a.skip.split(','))
  OUTD.mkdir(parents=True,exist_ok=True)
+ # 2026-10-21: 单实例锁 — 防两个 daily_update/daily_price_update 并发抢写同一批 json.gz
+ # （并发曾导致 A 步 ~3800/5430 中途 FAIL、C1 被连带杀；也被老刘称为「拥堵」）
+ lk=open('/tmp/r2_daily_update.lock','w')
+ try: fcntl.flock(lk,fcntl.LOCK_EX|fcntl.LOCK_NB)
+ except OSError: raise SystemExit('另一个 daily_update 正在运行（锁 /tmp/r2_daily_update.lock）——拒绝并发，避免抢写')
  day=a.day
  if not tdx_has_day(day): raise SystemExit(f'TDX mirror has no bars for {day} — sync not done?')
  # snapshot axes for subset-equality check

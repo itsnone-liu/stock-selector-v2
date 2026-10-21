@@ -43,20 +43,13 @@ for r in act:
 print(f'[审计] 行动名单 px 与 TDX {DAY} 收盘不符: {len(stale)} 只 {stale[:8]}')
 
 # ---- 3. 批量补名称 ----
-def mkt(c):
-    return 'sh' if c.startswith(('6', '9')) else ('bj' if c.startswith(('4', '8')) else 'sz')
+import sys as _sys                        # noqa: E402
+_sys.path.insert(0, str(ROOT / 'src'))
+from r2.tdx_quotes import quotes as _tdx_quotes   # noqa: E402
 
 codes = [r['stock'] for r in act]
-names = {}
-for i in range(0, len(codes), 60):
-    q = ','.join(f'{mkt(c)}{c}' for c in codes[i:i+60])
-    req = urllib.request.Request(f'https://qt.gtimg.cn/q={q}', headers={'User-Agent': 'Mozilla/5.0'})
-    data = urllib.request.urlopen(req, timeout=15).read().decode('gbk', errors='ignore')
-    for m in re.finditer(r'v_(\w+)="([^"]*)"', data):
-        f = m.group(2).split('~')
-        if len(f) > 1:
-            names[m.group(1)[2:]] = f[1]
-    time.sleep(0.25)
+_q = _tdx_quotes(codes)                    # 2026-10-21 起 TDX 通道（名称随快照一并返回）
+names = {c: _q.get(c, {}).get('name', '') for c in codes}
 miss = [c for c in codes if c not in names or not names[c]]
 print(f'[名称] {len(names)}/{len(codes)}，缺失: {miss[:10]}')
 

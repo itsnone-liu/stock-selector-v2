@@ -1,5 +1,5 @@
 {
- "generated": "2026-10-19T21:39:14",
+ "generated": "2026-10-21T20:41:52",
  "summary": {
   "n_checkpoints": 65,
   "median_obs": 4814,
@@ -42,22 +42,22 @@
  "tenure": {
   "L": {
    "median_months": 3,
-   "n_runs": 15142,
-   "reentry_rate": 0.6728
+   "n_runs": 15135,
+   "reentry_rate": 0.6727
   },
   "M": {
    "median_months": 2,
-   "n_runs": 29155,
-   "reentry_rate": 0.8212
+   "n_runs": 29197,
+   "reentry_rate": 0.8214
   },
   "S": {
    "median_months": 1,
-   "n_runs": 42200,
-   "reentry_rate": 0.8746
+   "n_runs": 42236,
+   "reentry_rate": 0.8747
   },
   "U_list": {
    "median_months": 2,
-   "n_runs": 37924,
+   "n_runs": 37940,
    "reentry_rate": 0.8604
   }
  },
@@ -79,10 +79,10 @@
    "recall_L": 0.1611
   },
   "R_REBOUND_MIXED": {
-   "L": 1015,
-   "M": 567,
-   "S": 544,
-   "U": 1471,
+   "L": 1055,
+   "M": 616,
+   "S": 732,
+   "U": 1755,
    "recall_U": 0.3432,
    "recall_L": 0.2899
   },
@@ -93,12 +93,6 @@
    "U": 2745,
    "recall_U": 0.632,
    "recall_L": 0.4735
-  },
-  "R_DEPRESSED": {
-   "L": 1509,
-   "M": 625,
-   "S": 747,
-   "U": 2085
   }
  },
  "checkpoints": [
@@ -1429,15 +1423,15 @@
    "jac_S": null
   },
   {
-   "checkpoint": "2026-10-19",
-   "obs_pool": 5018,
+   "checkpoint": "2026-10-21",
+   "obs_pool": 5021,
    "regime_daily": "R_DEPRESSED",
-   "regime_20d": "R_DEPRESSED",
-   "L": 1509,
+   "regime_20d": "R_REBOUND_MIXED",
+   "L": 1537,
    "M": 625,
-   "S": 747,
-   "U": 2085,
-   "jaccard_U_vs_prev": 0.6772,
+   "S": 746,
+   "U": 2104,
+   "jaccard_U_vs_prev": 0.6744,
    "recall": {},
    "jac_L": null,
    "jac_M": null,

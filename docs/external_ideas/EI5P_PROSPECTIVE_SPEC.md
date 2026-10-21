@@ -220,3 +220,23 @@ cd /root/project/workspace/stock-selector-v2
 测试用的合成 `raw/2026-10-09_window.jsonl.zst` 与 `consistency/2026-10-09.json` 已删除，`data/r2/ei5/` 保持只有真实产物。
 
 **标签不得前视**：`--stage labels` 只用 `day` 之后的 TDX 日线；T 日的 r20 在 T+20 个交易日后才落地，未足期写 NaN。cron 每日 19:00 对最近 26 个自然日滚动补标签。
+---
+
+## 2026-10-21 分时源限流事故 + 平均值替代兜底（老刘口径）
+
+**现象**：10:01 window cron 前 179 票正常，之后连续 896 票 `HTTPError: HTTP Error 501: Not Implemented`，coverage 0.166，单次跑 4092s（重试退避拖长）。当天 18:45 复查同一端点（含 501 的票，如 `603828/000001/600519`）→ `src_date=20261021 n_bars=267`，**端点未死**。结论：**按 IP 的突发限流**，阈值约 180 次/窗口（0.1s 间隔），一段时间后自动解除。
+
+**处置（三层）**：
+1. **降频**：`scripts/ei5_cron.sh` window 分支加 `--sleep 0.4`（≈1.2s/票，1074 票约 22 min，实测 0 失败）。
+2. **退避重试**：`fetch_minute()` 命中 403/429/501 → `sleep 5` 重试一次；仍失败才抛错。
+3. **兜底：平均值替代（不留空行）**——老刘 2026-10-21 原话：「不行，就拉平均值替代」「我不是做百分百精确的科学实验」。分时取不到时写 `imputed=1` 行：
+   - 优先**该票历史窗口特征均值**（`load_hist_means`，最近 10 个特征日，跳过已 imputed 行）→ `impute_src='hist_mean'`；
+   - 无历史 → **当日截面均值**（`xsect_means`）→ `impute_src='xsect_mean'`；
+   - 都没有 → `impute_src='none'`（保留 `n_bars=0` 事实）。
+   - 被替代字段仅 16 个分时派生列（`win_vol/win_amt/close_1000/disp/up_amt/dn_amt/range_cproxy/retrace_from_peak/time_to_peak_frac/win_amt_ratio/win_vol_ratio/PE1/PE2/PE3/tail_vol_ratio/peak_dn_vol_ratio`）；竞价与 20 日均量（TDX 快照 + 本地日线）照常为真值。
+   - `manifest.jsonl` 记 `source=imputed:hist_mean` + `impute_err`（原始 HTTP 错误）+ `impute_days`；coverage 记 `imputed`/`kept_live`。
+4. **防覆盖**：当日已有 `n_bars>0` 的真数据行 → 保留不覆盖（`kept_live`），避免重跑/兜底把真值洗成均值。
+
+**附带修复**：`src/r2/ei5_collect.py` 缺 `sys.path` 引导，cron 无 `PYTHONPATH` → TDX 迁移后 `import r2.tdx_quotes` 会 ModuleNotFoundError（下一个交易日 10:01 必崩）。已按 intraday_scan.py 同款补 `sys.path.insert(0, ROOT/'src')`。
+
+**答"缺一天会死吗"**：不会。特征按 `(day, code)` 逐日独立 upsert，标签走 TDX 日线，无"必须连续交易日"依赖；缺日=该日少样本，下游统计与选票不崩。

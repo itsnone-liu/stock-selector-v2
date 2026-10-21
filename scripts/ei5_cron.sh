@@ -14,7 +14,8 @@ case "$STAGE" in
   auction) echo "[$(date '+%F %T')] stage=auction day=$TODAY" >> "$LOG"
            "$PY" src/r2/ei5_collect.py --stage auction --day "$TODAY" >> "$LOG" 2>&1 ;;
   window)  echo "[$(date '+%F %T')] stage=window day=$TODAY" >> "$LOG"
-           "$PY" src/r2/ei5_collect.py --stage window --day "$TODAY" >> "$LOG" 2>&1 ;;
+           # --sleep 0.4：腾讯分时端点突发限流阈值约 180 次/窗口，10-21 实测 0.1s 间隔打到 179 次后全灭 501
+           "$PY" src/r2/ei5_collect.py --stage window --day "$TODAY" --sleep 0.4 >> "$LOG" 2>&1 ;;
   labels)  echo "[$(date '+%F %T')] stage=split_events refresh (after R2 A)" >> "$LOG"
            "$PY" scripts/ei5_split_events.py --day "$TODAY" >> "$LOG" 2>&1
            echo "[$(date '+%F %T')] stage=labels sweep" >> "$LOG"

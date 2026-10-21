@@ -28,27 +28,13 @@ cards = [c for c in snap['cards'] if c['stock'] in sids]
 def market(code):
     return 'sh' if code.startswith(('6', '9')) else ('bj' if code[0] in '48' else 'sz')
 
-codes = [c['stock'] for c in cards]
-q = {}
-for i in range(0, len(codes), 60):
-    batch = codes[i:i+60]
-    url = 'http://qt.gtimg.cn/q=' + ','.join(f'{market(c)}{c}' for c in batch)
-    req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
-    s = urllib.request.urlopen(req, timeout=15).read().decode('gbk', errors='ignore')
-    for line in s.split(';'):
-        if '~' not in line:
-            continue
-        f = line.split('~')
-        try:
-            q[f[2]] = {'name': f[1], 'price': float(f[3]), 'pct': float(f[32]) if f[32] else 0.0}
-        except (ValueError, IndexError):
-            pass
-    time.sleep(0.4)
+import sys as _sys
+_sys.path.insert(0, str(ROOT / 'src'))
+from r2.tdx_quotes import quotes as _tdx_quotes, index_pct as _tdx_index_pct
 
-# 大盘
-req = urllib.request.Request('http://qt.gtimg.cn/q=sh000001', headers={'User-Agent': 'Mozilla/5.0'})
-f = urllib.request.urlopen(req, timeout=15).read().decode('gbk').split('~')
-mkt_pct = float(f[32]) if len(f) > 32 and f[32] else 0.0
+codes = [c['stock'] for c in cards]
+q = _tdx_quotes(codes)          # 2026-10-21 起 TDX 通道，退役腾讯 qt.gtimg.cn
+mkt_pct = _tdx_index_pct()      # 上证综指
 
 # ---- 逐股判定 ----
 rows = []
