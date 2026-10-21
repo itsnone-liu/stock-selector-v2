@@ -53,11 +53,38 @@ cd /root/project/workspace/stock-selector-v2 && \
 
 | 项 | 频率 | 方式 |
 |---|---|---|
-| e5（两融/龙虎榜/大宗） | 每周一 | 用户机器增量包 → `src/capital_data/e5_build_db.py --append`（context 层，滞后无害） |
+| e5（两融/龙虎榜/大宗） | 每周一 | 老刘上传 GitHub 私有仓库 `itsnone-liu/stock-data` → 助手 `bash scripts/h_slowdata_pull.sh`（见 §5.0） |
 | 股东户数 holders | 每月 1 号 | `src/capital_data/ownership_margin.py`（4/8/10 月披露高峰必跑） |
 | 机构 top10 | 每季度末 | `src/capital_data/institution_classify.py` |
 | 新股纳入 | 每月与 holders 同天 | 从 TDX 文件数对齐宇宙，新股满 520 日才进成本带池 |
 | market_ext（amount/turnover） | 每周 | `src/capital_data/market_daily_ext.py` 增量（研究面板用，非关键路径） |
+
+### 5.0 e5 原始数据抓取（GitHub 私有仓库 stock-data）
+
+**来源**：`https://github.com/itsnone-liu/stock-data`（私有，HTTPS token 在 `/root/.git-credentials`，`credential.helper=store`）。
+仓库内容 = e5 三类原始数据，按年 tar.gz：`margin/{sse,szse}`（两融）、`block/{sse,szse_detail}`（大宗）、
+`lhb_raw`（龙虎榜）+ `csv/`（席位/日度 CSV，供人工用，代码零消费）+ `MANIFEST.json`（每条归档的 sha256/日期跨度）。
+本机落点 = `data/r2/e5/`（与仓库目录**逐一镜像**；2026-10-08 起逐字节一致）。仓库自带 `DATASET_META.json`（行数/日期跨度/n_days）。
+
+**标准流程（老刘上传完 → 通知 → 助手一命令走完）：**
+
+```bash
+cd /root/project/workspace/stock-selector-v2
+# 生产上脱离会话跑（前台 >180s 会被 SIGKILL；systemd-run 里 HOME 会丢, 脚本内已自带兜底）：
+systemd-run --unit=h-slowdata-$(date +%s) --collect \
+  bash /root/project/workspace/stock-selector-v2/scripts/h_slowdata_pull.sh --refit "e5 2026-10-25"
+```
+
+`h_slowdata_pull.sh` 做四件事：① 常驻浅克隆 `/root/slowdata/stock-data` 增量 `fetch+reset`；
+② **MANIFEST sha256 完整性闸门**（归档 36 项硬门、CSV 3 项软告警，闸门无结论=硬失败）；
+③ `rsync -a`（不加 `--delete`）同步进 `data/r2/e5/`；④ 重建 e5.db（`e5_build_db.py` + `e5_lhb_build.py`）+ **幂等绊线**（行数涨超 1.4× 即 FAIL）。
+开关：`--check`（只看不落盘）/`--no-build`/`--force`（归档没变也强重建）/`--refit "<事件>"`（接 §5.1 重推）。
+全程约 2.5 分钟（e5.db 283M，margin 4.58M 行 / block 198,598 / lhb 84,170，跨度 20210104→20260930）。
+
+**坑（2026-10-21 实测）：**
+- `e5_build_db.py` 原先是 `INSERT OR REPLACE` 但**表上无唯一键** → 重跑一次 margin/block 行数**翻倍**（下游 `build_panel`/`episode_gate`/`breakdown_aftermath` 的 rzye/大宗聚合被污染）。已修为**每次清空重建**（block 一天多笔是合法形态，故不加唯一约束，同 `e5_lhb_build.py` 的 DROP 语义）。
+- 仓库 `MANIFEST.json` 的 **csv 段 sha256 与实体不符**（上游打包顺序问题，实测差异 = 行数+1 字节，即 CRLF→LF）。归档段正常。**上游待修**：重生成 MANIFEST 时要含最终版 CSV。
+- `data/r2/e5/csv/*` 目前**代码零消费**（grep 全仓无命中）；LHB 席位/日度 CSV 只覆盖 76 个交易日，比 `lhb_raw`（84,170 行）窄，别当全量用。
 
 ### 5.1 CD-2A 阈值重推挂钩（user ruling 2026-10-21 第2条）
 

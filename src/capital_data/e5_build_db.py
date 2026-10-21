@@ -1,6 +1,11 @@
 #!/usr/bin/env python3
 """E5 ingestion: stock-data repo tarballs -> sqlite e5.db (margin/block per stock-day).
 Streaming, memory-light. LHB already CSV (used directly later).
+
+FULL REBUILD: 每次运行都清空 margin/block 再从全部 tar.gz 重建, 所以重复运行是幂等的。
+(2026-10-21 修复: 原先只建普通索引、无唯一键, INSERT OR REPLACE 退化为纯追加 ——
+ 重跑一次行数就翻倍, 会把下游 build_panel/episode_gate 的聚合口径污染。block 一天
+ 多笔是合法形态, 故用"清空重建"而不是给 (code,date) 加唯一约束。)
 """
 from __future__ import annotations
 import json,sqlite3,tarfile,time
@@ -14,6 +19,8 @@ def num(x):
  except Exception: return None
 def margin(con):
  con.execute('CREATE TABLE IF NOT EXISTS margin(code TEXT,date TEXT,rzye REAL,rzbuy REAL)')
+ con.execute('DELETE FROM margin')   # full rebuild (幂等: 见文件头说明)
+ con.commit()
  for mkt,pat,unit in (('sse','margin/sse/sse_*.tar.gz',1.0),('szse','margin/szse/szse_*.tar.gz',1e8)):
   for tb in sorted((E/pat).parent.glob(tb_pat:=pat.split('/')[-1])):
    t0=time.time(); n=0
@@ -44,6 +51,8 @@ def margin(con):
    print(mkt,tb.name,n,'rows',round(time.time()-t0,1),'s',flush=True)
 def block(con):
  con.execute('CREATE TABLE IF NOT EXISTS block(code TEXT,date TEXT,amount REAL,price REAL,qty REAL)')
+ con.execute('DELETE FROM block')    # full rebuild (幂等: 见文件头说明)
+ con.commit()
  for pat in ('block/sse/sse_*.tar.gz','block/szse_detail/szse_detail_*.tar.gz'):
   for tb in sorted((E/pat).parent.glob(pat.split('/')[-1])):
    t0=time.time(); n=0
