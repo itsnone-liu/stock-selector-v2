@@ -58,9 +58,34 @@ def _exact(s, n):
     while len(b) < n:
         chunk = s.recv(n - len(b))
         if not chunk:
-            raise ConnectionError('truncated response')
+            raise ConnectionError('truncated response: got %d of %d bytes' % (len(b), n))
         b.extend(chunk)
     return bytes(b)
+
+
+def _unwrap_frame(body, packed, raw):
+    """帧载荷长度闸门（差异清单 A-2）。
+
+    R4/R5 逐字节对拍（2026-10-22）：五个成功时点均满足
+    comp_len == len(response) - 16 且 raw_len == len(clear)。
+    09:27:55 客户端侧 'truncated response' 正是缺此闸门的表现，故两半都强制校验，
+    不再依赖“解出来长度对得上”的弱推断。
+    """
+    if packed == raw:
+        clear = body
+    else:
+        d = zlib.decompressobj()
+        try:
+            clear = d.decompress(body) + d.flush()
+        except zlib.error as exc:
+            raise ValueError('zlib decode failed: %s' % exc)
+        if d.unconsumed_tail:
+            raise ValueError('compressed stream unconsumed tail: %d bytes' % len(d.unconsumed_tail))
+        if d.unused_data:
+            raise ValueError('compressed stream trailing bytes: %d bytes' % len(d.unused_data))
+    if len(clear) != raw:
+        raise ValueError('response size mismatch: header raw_len=%d clear=%d' % (raw, len(clear)))
+    return clear
 
 
 def _recv(s):
@@ -69,11 +94,25 @@ def _recv(s):
         raise ValueError('unexpected header')
     packed, raw = struct.unpack_from('<HH', h, 12)
     body = _exact(s, packed)
-    if packed != raw:
-        body = zlib.decompress(body)
-    if len(body) != raw:
-        raise ValueError('response size mismatch')
-    return h, body
+    if len(body) != packed:
+        raise ValueError('compressed length mismatch: header packed=%d body=%d' % (packed, len(body)))
+    return h, _unwrap_frame(body, packed, raw)
+
+
+def check_quote_count(body, rows):
+    """记录数完整性闸门（差异清单 D8 / C-3）。
+
+    quotes 记录**非定长**（实测 64–79 字节，价格字段变宽编码），因此不能靠
+    len(body)/stride 推条数，只能用响应头声明的记录数 body[2:4] 作基准。
+    解析条数少于声明数 == 解析器/传输损坏 → fail closed；
+    多于声明数不抛错（服务器异常，多余键已在调用方由白名单落入 unexpected）。
+    """
+    if not isinstance(body, (bytes, bytearray)) or len(body) < 4:
+        return None
+    declared = struct.unpack_from('<H', body, 2)[0]
+    if len(rows) < declared:
+        raise ValueError('quote record count shortfall: declared %d parsed %d' % (declared, len(rows)))
+    return declared
 
 
 def parse_capital_batch(body, stocks):
@@ -130,6 +169,7 @@ class Session:
             raise ValueError('response opcode mismatch')
         if h[5] != cmd.send_pkg[1]:
             raise ValueError('response sequence mismatch')
+        self.last_body = b
         return cmd.parseResponse(b)
 
     def quotes(self, stocks):
@@ -141,10 +181,16 @@ class Session:
             cmd = GetSecurityQuotesCmd(self.sock)
             cmd.setParams(chunk)
             rows = self.call(cmd) or []
+            body = getattr(self, 'last_body', None)
+            if isinstance(body, bytes):
+                check_quote_count(body, rows)
             expected = set(chunk)
             seen = set()
             for r in rows:
                 key = (r['market'], r['code'])
+                # 白名单口径（差异清单 D8）：服务器少给几条就用占位行（如 600839）
+                # 凑数，出现次数与 missing 条数 1:1。请求集之外的键一律当噪声，
+                # 绝不能当数据用。
                 if key not in expected:
                     unexpected.append(key)
                     continue

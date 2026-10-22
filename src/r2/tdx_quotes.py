@@ -18,11 +18,20 @@
     - 北交所(market=2)：主站覆盖不全（实测 920819 有、430047/830799 缺）→
       请求会进 missing，**不静默、不伪造**；工程侧按 missing 显式告警处理。
 
+停牌/无行情判定口径（2026-10-22 客户端 vs CLI 逐字节对拍 C-1/C-2 定案）:
+    - **否定** `price==0 && vol==0` 判停牌：盘前 09:10 全市场请求 5598 只、返回 5576 只，
+      5576/5576 全部 price=0,vol=0,servertime=8:35:00.000 —— 价格 0 只说明还没撮合。
+    - **真信号 = missing**（服务器不给该记录）。C-2 实测 22 只 = 停牌/无行情，
+      与本机 .day 最后交易日佐证一致。
+    - 少给记录时服务器用**占位行**凑数（C-3：18 个分块里 unexpected 恒为 600839，
+      出现次数与 missing 条数严格 1:1）→ 请求集之外的键一律噪声，绝不入榜。
+
 纪律：语义异常 fail-closed；缺失进 missing 而不猜；不伪造 name/交易状态。
 """
 from __future__ import annotations
 
 import json
+import math
 import sys
 import time
 from pathlib import Path
@@ -115,7 +124,8 @@ def quotes(codes, *, with_name: bool = True, batch: int = 80) -> dict:
     """TDX 批量实时快照 → {code6: {name, price, pct, high, low, last_close, turnover_pct, vol, amount}}。
 
     与旧腾讯 quotes() 同签名同返回结构（仅字段更多），未取到的代码**不出现**在返回里，
-    调用方原有的 missing 检测逻辑（`c not in q or q[c]['price']<=0`）可直接接住。
+    停牌/无行情判定请用 `last_missing()`（服务器不返回记录 = missing = 停牌/无行情）；
+    **不要**再用 `price<=0` 判停牌——盘前有记录但 price=0（C-1 已否证）。
     """
     norm = _split(codes)
     if not norm:
@@ -174,6 +184,64 @@ def name_of(code: str) -> str:
 def last_missing() -> list[str]:
     """最近一次 quotes() 未取到的代码（北交所覆盖不全等，供告警用）。"""
     return list(_LAST_MISSING)
+
+
+def lookup(mapping: dict, code):
+    """从 quotes()/split_quotes() 的返回里取一只（'600125' / 'sh600125' 均可）。"""
+    s = str(code).strip().lower()
+    if s[:2] in ('sh', 'sz', 'bj'):
+        return mapping.get(s[2:]) or mapping.get(s)
+    return mapping.get(s) or mapping.get('sh' + s) or mapping.get('sz' + s) or mapping.get('bj' + s)
+
+
+def split_quotes(q: dict, codes, missing=None):
+    """给一批 quotes() 结果按**停牌/无行情口径**分桶 → (ok, missing, no_price)。
+
+    口径来源：2026-10-22 客户端 vs CLI 逐字节对拍 C-1/C-2/C-3 定案。
+
+    ok       {key: row} —— 有记录且 price>0，可入榜
+    missing  list       —— 服务器**不返回记录** = 停牌/无行情（fail-closed：不猜、不补）
+    no_price list       —— 有记录但 price<=0 = 盘前/竞价未撮合，**不是**停牌（单列）
+
+    反例（已证否）：盘前 09:10 全市场请求 5598 只、返回 5576 只，5576/5576 全部
+    price=0,vol=0,servertime=8:35:00.000 —— 所以 `price<=0` 不能当停牌信号。
+
+    price 非数值 / 非有限（NaN、Inf）一律 **抛 ValueError**（fail-closed）：这是传输或
+    解析损坏，既不能算「有价」也不能冒充「盘前未撮合」，更不能带着 NaN 进榜。
+
+    key 规则与 quotes() 输出一致（常规 6 位；同一 code6 跨所时用 'sh000001' 全码）。
+    missing 参数显式给出时以其为准（如跨批次聚合），否则按「请求集 − 有响应集」实算。
+    """
+    norm = _split(codes)
+    if not norm:
+        return {}, [], []
+    prefs_of: dict[str, set] = {}
+    for p, c6 in norm:
+        prefs_of.setdefault(c6, set()).add(p)
+    ok: dict[str, dict] = {}
+    no_price: list[str] = []
+    for p, c6 in norm:
+        k = _key_for(p, c6, prefs_of)
+        row = q.get(k)
+        if row is None:
+            continue
+        px = row.get('price') if isinstance(row, dict) else None
+        try:
+            px = float(px)
+        except (TypeError, ValueError):
+            raise ValueError('invalid price for %s: %r' % (k, px))
+        if not math.isfinite(px):
+            raise ValueError('non-finite price for %s: %r' % (k, px))
+        if px <= 0:
+            no_price.append(k)
+        else:
+            ok[k] = row
+    if missing is None:
+        got = set(ok) | set(no_price)
+        miss = [k for k in (_key_for(p, c6, prefs_of) for p, c6 in norm) if k not in got]
+    else:
+        miss = [str(m) for m in missing]
+    return ok, miss, no_price
 
 
 if __name__ == '__main__':

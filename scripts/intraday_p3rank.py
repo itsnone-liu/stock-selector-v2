@@ -30,18 +30,25 @@ def market(code):
 
 import sys as _sys
 _sys.path.insert(0, str(ROOT / 'src'))
-from r2.tdx_quotes import quotes as _tdx_quotes, index_pct as _tdx_index_pct
+from r2.tdx_quotes import (quotes as _tdx_quotes, index_pct as _tdx_index_pct,
+                           split_quotes as _tdx_split, lookup as _tdx_lookup)
 
 codes = [c['stock'] for c in cards]
 q = _tdx_quotes(codes)          # 2026-10-21 起 TDX 通道，退役腾讯 qt.gtimg.cn
 mkt_pct = _tdx_index_pct()      # 上证综指
 
+# ---- 停牌/无数据口径（2026-10-22 R4/R5 对拍 C-1/C-2/C-3 定案）----
+#   服务器不返回记录（missing）才是停牌/无行情信号；不能用 price<=0 判停牌——
+#   盘前 09:10 全市场请求 5598 只、返回 5576 只且全部 price=0/vol=0/servertime=8:35。
+#   有记录但 price<=0 = 盘前/竞价未撮合，单列 no_price，不混进 missing。
+_ok, missing, no_price = _tdx_split(q, codes)
+
 # ---- 逐股判定 ----
 rows = []
 reg = cards[0]['decision']['regime']
 for c in cards:
-    t = q.get(c['stock'])
-    if not t or t['price'] <= 0:
+    t = _tdx_lookup(_ok, c['stock'])
+    if not t:
         continue
     cs = c['capital_support']
     de = c['decision']
@@ -77,8 +84,7 @@ alert_rank = {'CROSS_TRIGGER': 0, 'NEAR_TRIGGER': 1, 'BAND_BREAKOUT': 2, 'RS_VS_
 rows.sort(key=lambda r: (-r['p3'], min([alert_rank.get(a, 9) for a in r['alerts']], default=9), r['exit_d']))
 
 # ---- 汇总 ----
-missing = [c for c in codes if c not in q or q[c]['price'] <= 0]
-print(f'快照基日: {DAY} | 池: {len(sids)} | 实时报价: {len(rows)} | 缺失: {len(missing)}')
+print(f'快照基日: {DAY} | 池: {len(sids)} | 实时报价: {len(rows)} | 缺失: {len(missing)} | 无价: {len(no_price)}')
 print(f'大盘(上证): {mkt_pct:+.2f}%')
 print()
 p3_dist = Counter(r['p3'] for r in rows)
@@ -96,7 +102,8 @@ for r in al:
 # 保存
 out = ROOT / f'data/r2/daily_update/intraday_p3rank_{time.strftime("%H%M")}.json'
 out.write_text(json.dumps({'base_day': DAY, 'mkt_pct': mkt_pct, 'n': len(rows), 'n_missing': len(missing),
-                           'missing': missing, 'rows': rows}, ensure_ascii=False, indent=1))
+                           'missing': missing, 'n_no_price': len(no_price), 'no_price': no_price,
+                           'rows': rows}, ensure_ascii=False, indent=1))
 print()
 print('saved:', out)
 
@@ -105,7 +112,7 @@ tl = {'CONFIRM_CANDIDATE': 'CONFIRM', 'RISK_HOLD': 'RISK_HOLD'}
 lines = [
     f"# 盘中轻扫 190池（新P3口径 {time.strftime('%H:%M')} 快照，基日 {DAY}）",
     "",
-    f"- 大盘上证: **{mkt_pct:+.2f}%** | 实时报价 {len(rows)}/{len(codes)} | 缺失 {len(missing)}",
+    f"- 大盘上证: **{mkt_pct:+.2f}%** | 实时报价 {len(rows)}/{len(codes)} | 缺失 {len(missing)} | 无价 {len(no_price)}",
     f"- P3档位: " + ' / '.join(f"{k}×{v}只" for k, v in sorted(p3_dist.items(), reverse=True)),
     f"- 实时状态: " + ' / '.join(f"{k}×{v}" for k, v in Counter(r['live'] for r in rows).items()),
     "",

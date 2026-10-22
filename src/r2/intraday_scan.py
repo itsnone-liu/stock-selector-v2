@@ -17,7 +17,8 @@ ROOT=Path(__file__).resolve().parents[2]; SCANS=ROOT/'data/r2/scans'
 OUTD=ROOT/'data/r2/daily_update'
 
 import sys as _sys; _sys.path.insert(0,str(ROOT/'src'))
-from r2.tdx_quotes import quotes as _tdx_quotes, index_pct as _tdx_index_pct
+from r2.tdx_quotes import (quotes as _tdx_quotes, index_pct as _tdx_index_pct,
+                           split_quotes as _tdx_split, lookup as _tdx_lookup)
 
 def quotes(codes):
  '''实时批量快照。2026-10-21 定案：退役腾讯 qt.gtimg.cn → TDX 通道（字段同名同义）。'''
@@ -44,11 +45,18 @@ def main():
  want=[c['stock'] for c in cards]
  q=quotes(want)
  mkt_pct=idx_pct()  # FIX: benchmark = SH composite index, not pool average
- missing=[c for c in want if c not in q or q[c]['price']<=0]
+ # 停牌/无数据口径（2026-10-22 R4/R5 对拍 C-1/C-2/C-3 定案）：
+ #   服务器**不返回记录**（missing）才是停牌/无行情信号；绝不能用 price<=0 判停牌
+ #   —— 盘前 09:10 全市场请求 5598 只有记录 5576 只，5576/5576 全部
+ #   price=0,vol=0,servertime=8:35:00.000。有记录但 price<=0 = 盘前/竞价未撮合，
+ #   单列 no_price（不混进 missing，也不上榜）。分桶逻辑在 tdx_quotes.split_quotes。
+ _ok,_miss,_noprice=_tdx_split(q,want)
+ missing=list(_miss)
+ no_price=list(_noprice)
  rows=[]
  for c in cards:
-  t=q.get(c['stock'])
-  if not t or t['price']<=0: continue
+  t=_tdx_lookup(_ok,c['stock'])
+  if not t: continue
   cs=c['capital_support']; bl,bh=cs['cost_band_low'],cs['cost_band_high']
   trig=bl*0.95; px=t['price']
   # live support_state vs frozen band
@@ -71,9 +79,11 @@ def main():
  ts=time.strftime('%Y%m%d_%H%M')
  OUTD.mkdir(parents=True,exist_ok=True)
  (OUTD/f'intraday_{ts}.json').write_text(json.dumps({'ts':ts,'base_scan':base_day,
-  'idx_pct':round(mkt_pct,2),'n':len(rows),'n_missing':len(missing),'missing':missing,'rows':rows},ensure_ascii=False,indent=1))
+  'idx_pct':round(mkt_pct,2),'n':len(rows),'n_missing':len(missing),'missing':missing,
+  'n_no_price':len(no_price),'no_price':no_price,'rows':rows},ensure_ascii=False,indent=1))
  al=[r for r in rows if r['alerts']]
- print(json.dumps({'ts':ts,'base':base_day,'n':len(rows),'n_missing':len(missing),'missing':missing[:20],'idx_pct':mkt_pct,'alerts':len(al),
+ print(json.dumps({'ts':ts,'base':base_day,'n':len(rows),'n_missing':len(missing),'missing':missing[:20],
+  'n_no_price':len(no_price),'no_price':no_price[:20],'idx_pct':mkt_pct,'alerts':len(al),
   'cross_trigger':[r['stock'] for r in rows if 'CROSS_TRIGGER' in r['alerts']],
   'near_trigger':[r['stock'] for r in rows if 'NEAR_TRIGGER' in r['alerts']],
   'band_test':[r['stock'] for r in rows if 'BAND_TEST' in r['alerts']],

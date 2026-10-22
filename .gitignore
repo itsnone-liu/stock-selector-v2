@@ -19,6 +19,8 @@ data/
 # Source package directory named data is code, not runtime market data.
 !src/stock_selector/data/
 !src/stock_selector/data/**
+# 但上面的放行会连带把该目录下的编译缓存也捞进来，重新挡掉
+src/stock_selector/data/__pycache__/
 
 # Batch-H reviewer pre-spawn DSH captures (session-local, pinned by evidence records)
 captures/
