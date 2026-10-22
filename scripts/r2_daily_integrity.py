@@ -7,9 +7,14 @@
 退出码: 0=PASS / 1=FAIL(有 BLOCK) / 2=环境错误
 
 BLOCK 项（任一出现 => FAIL，需人工看）:
- A  manifest 缺 / ok!=true / hard_fail>0 / fails 或 tdx_mismatch 非空
- A' current + suspended_benign != n_codes（账不平 = 有票被静默丢弃）
- B  逐票覆盖：daily_fullmarket 末根 bar==day 的票数 != manifest.stats.current
+ A  manifest 缺 / ok!=true / ok 与 hard_fail<=gate_limit 自相矛盾
+ A1 sum(stats) != n_codes（账不平 = 有票被静默丢弃）
+ A2 suspended_benign != stats['tdx_no_daily']（良性桶口径只认停牌/退市/未覆盖）
+ A3 hard_fail != 非 OK 非良性桶之和（hard 计数口径）
+ A4 stats / tdx_mismatch 出现「未登记」桶或原因（fail-closed：新口径须显式登记才放行）
+ A5 真异常桶非空：overlap_missing / overlap_raw_mismatch / tdx_mismatch / fetch_fail /
+    tdx_transport:* / tdx_err:*（口径上计入 hard，但 integrity 层不放过）
+ B  逐票覆盖：daily_fullmarket 末根 bar==day 的票数 != 当日已写入桶之和（updated* + current）
  C  C 链 5 个产物：最新日期 != day 或文件缺失
  E  scans/current_scan_<day>.json 缺失
  F  daily_update/report_<day>.json 缺失
@@ -17,6 +22,15 @@ BLOCK 项（任一出现 => FAIL，需人工看）:
 WARN 项（提示不拦）:
  W1 TDX 镜像 .tdx_daily_sync_state.json 的 trade_date < day
  W2 产物 mtime 早于当日 15:00（可能跑的是旧产物）
+ W3 容忍桶（window_too_short / tdx_short_history）非空：计入 hard_fail 并由 gate ratio 容忍，
+    本层只记数不拦（但 daily_price_update 的 ok 已含此判定，故与 A6 交叉核）
+
+桶口径（2026-10-22 随 src/r2/daily_price_update.py 同步，勿改）:
+ 成功桶 = updated*（updated / updated_rawfallback / updated_seam / updated_rawfallback_seam）/ current
+ 良性桶 = tdx_no_daily（停牌/退市/未覆盖，不计入 hard_fail）
+ 容忍 hard 桶 = window_too_short / tdx_short_history（计入 hard_fail，由 max(20, 2%*票数) 容忍）
+ 真异常桶 = overlap_missing / overlap_raw_mismatch / tdx_mismatch / fetch_fail / tdx_transport:* / tdx_err:*
+ 生产者闸门 = ok ⇔ hard_fail <= gate_limit；本脚本以 manifest 为准，再叠加 A1–A5 交叉核
 """
 import argparse, gzip, json, os, re, sys, time
 from datetime import datetime, timezone, timedelta
@@ -35,6 +49,26 @@ ARTS = {  # C 链产物 -> rows 键
     'l3_pool': ('data/cd/l3_candidate_pool_v2.json.gz', 'pools'),
 }
 STEPS = ['A', 'C1', 'C1A', 'C2', 'C3', 'C4', 'C5', 'E', 'F']
+# A 步桶口径（随 src/r2/daily_price_update.py 同步，2026-10-22）
+BENIGN = 'tdx_no_daily'                                 # 停牌/退市/未覆盖：良性，不计入 hard_fail
+TOL_HARD = ('window_too_short', 'tdx_short_history')    # 计入 hard_fail，由 gate ratio 容忍
+ANOM_HARD = ('overlap_missing', 'overlap_raw_mismatch',  # 真异常：计入 hard_fail 且本层不放过
+             'tdx_mismatch', 'fetch_fail', 'tdx_transport', 'tdx_err')
+
+
+def bucket_kind(k):
+    """stats/manifest 的 status key 归类，未登记一律 'unknown'（fail-closed）。"""
+    if k.split('_')[0] == 'updated' or k == 'current':
+        return 'ok'                 # 当日已写入 / 已含当日 bar（计入 B 覆盖）
+    if k == 'no_change':
+        return 'ok_nocover'         # 无新 bar（末根 bar < day），不计入覆盖
+    if k == BENIGN:
+        return 'benign'
+    if k in TOL_HARD:
+        return 'tol_hard'
+    if k.split(':')[0] in ANOM_HARD or k in ANOM_HARD:
+        return 'anom_hard'
+    return 'unknown'
 
 
 def newest_date(path, key):
@@ -71,7 +105,7 @@ def main():
     t0 = time.time()
     block, warn, info = [], [], {}
 
-    # A: manifest
+    # A: manifest（口径 = src/r2/daily_price_update.py，2026-10-22 同步）
     mf = DU / f'update_{day}.json'
     if not mf.exists():
         block.append(f'A: manifest 缺失 {mf}')
@@ -79,20 +113,48 @@ def main():
         m = json.loads(mf.read_text())
         info['manifest'] = {k: m.get(k) for k in ('n_codes', 'new_bars', 'elapsed_s', 'suspended_benign', 'hard_fail', 'gate_limit', 'ok')}
         info['stats'] = m.get('stats')
-        if m.get('ok') is not True:
-            block.append(f"A: manifest ok={m.get('ok')}")
-        if (m.get('hard_fail') or 0) > 0:
-            block.append(f"A: hard_fail={m['hard_fail']} fails={m.get('fails')}")
-        for k in ('fails', 'tdx_mismatch'):
-            v = m.get(k)
-            if v:
-                block.append(f'A: {k} 非空({len(v)}): {v[:6]}')
-        cur = (m.get('stats') or {}).get('current', 0)
-        ben = m.get('suspended_benign') or 0
+        stats = m.get('stats') or {}
         n = m.get('n_codes') or 0
-        if cur + ben != n:
-            block.append(f'A: 账不平 current({cur})+benign({ben}) != n_codes({n})')
-        info['coverage_manifest'] = cur
+        ben = m.get('suspended_benign') or 0
+        hard = m.get('hard_fail') or 0
+        limit = m.get('gate_limit')
+        kind = {k: bucket_kind(k) for k in stats}
+        tol = sum(v for k, v in stats.items() if kind[k] == 'tol_hard')
+        anom = sum(v for k, v in stats.items() if kind[k] == 'anom_hard')
+        unk = sorted(k for k in stats if kind[k] == 'unknown')
+        # A1 账平：每票必须落进恰好一个桶（否则有票被静默丢弃）
+        if sum(stats.values()) != n:
+            block.append(f'A: 账不平 sum(stats)={sum(stats.values())} != n_codes={n}')
+        # A2 良性桶：口径只认 tdx_no_daily
+        if ben != stats.get(BENIGN, 0):
+            block.append(f"A: suspended_benign({ben}) != stats['{BENIGN}']({stats.get(BENIGN, 0)})")
+        # A3 hard_fail 口径：非 OK 非良性桶之和
+        hard_stat = tol + anom + sum(stats.get(k, 0) for k in unk)
+        if hard != hard_stat:
+            block.append(f'A: hard_fail({hard}) != 非OK非良性桶之和({hard_stat}；容忍{tol}+异常{anom}+未登记{len(unk)}桶)')
+        # A4 fail-closed：新桶/新原因必须先显式登记
+        if unk:
+            block.append(f'A: stats 出现未登记桶 {unk}（口径未登记，须人工确认后再放行）')
+        bad_reason = sorted({str(e[1]) for e in (m.get('tdx_mismatch') or [])
+                             if isinstance(e, (list, tuple)) and len(e) > 1 and bucket_kind(str(e[1])) == 'unknown'})
+        if bad_reason:
+            block.append(f'A: tdx_mismatch 出现未登记原因 {bad_reason[:6]}')
+        # A5 真异常桶：本层不放过（口径上计入 hard，但需人工看）
+        anom_keys = sorted(k for k in stats if kind[k] == 'anom_hard')
+        if anom_keys:
+            block.append(f'A: 真异常桶非空 {[(k, stats[k]) for k in anom_keys]}：共 {anom} 票')
+        if m.get('fails') or m.get('tdx_mismatch'):
+            warn.append(f"A: fails={len(m.get('fails') or [])} tdx_mismatch={len(m.get('tdx_mismatch') or [])}"
+                        f"（明细见 update_{day}.json；其中容忍桶 {tol} 票）")
+        # A6 manifest 自评闸门一致
+        if m.get('ok') is not True:
+            block.append(f"A: manifest ok={m.get('ok')}（hard_fail={hard} gate_limit={limit}）")
+        elif limit is not None and hard > limit:
+            block.append(f'A: manifest ok=true 但 hard_fail={hard} > gate_limit={limit}（自相矛盾）')
+        if tol:
+            warn.append(f'W3: 容忍桶 {tol} 票（window_too_short/tdx_short_history）计入 hard_fail 未超 gate_limit={limit}，不拦')
+        info['coverage_manifest'] = sum(v for k, v in stats.items() if kind[k] == 'ok')
+        info['hard_breakdown'] = {'tol_hard': tol, 'anom_hard': anom, 'unknown': {k: stats[k] for k in unk}}
 
     # B: 逐票覆盖（末根 bar == day 的票数 == manifest.stats.current）
     if FULL.is_dir():
@@ -109,7 +171,7 @@ def main():
         info['files_total'] = len(files)
         cur = (info.get('coverage_manifest') if 'coverage_manifest' in info else 0)
         if cur and cnt != cur:
-            block.append(f'B: 逐票覆盖 {cnt} != manifest.current {cur}（差 {cnt - cur}）')
+            block.append(f'B: 逐票覆盖 {cnt} != 当日已写入桶(updated*+current) {cur}（差 {cnt - cur}）')
     else:
         block.append(f'B: 目录缺失 {FULL}')
 
