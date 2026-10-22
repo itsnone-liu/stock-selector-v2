@@ -20,7 +20,10 @@ def breadth50():
  for pth in D.glob('*.json.gz'):
   try: d=json.loads(gzip.decompress(pth.read_bytes()))
   except Exception: continue
-  cl=d.get('qfq_close') or d.get('close')
+  # 2026-10-22 fix: CD 全市场文件 schema 为 {'dates','qfq','unadj'}，无 qfq_close/close 键，
+  # 旧写法 `d.get('qfq_close') or d.get('close')` 恒为 None → 每只票 continue → t=0
+  # → 兜底 0.5 → B50 闸门永远 OFF（breadth_history.jsonl 全 14 条均 0.5 取证）。
+  cl=d.get('qfq_close') or d.get('close') or [float(r[2]) for r in (d.get('qfq') or [])]
   if not cl or len(cl)<50: continue
   t+=1
   if cl[-1]>sum(cl[-50:])/50: a+=1
