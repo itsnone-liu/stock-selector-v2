@@ -54,7 +54,11 @@ miss = [c for c in codes if c not in names or not names[c]]
 print(f'[名称] {len(names)}/{len(codes)}，缺失: {miss[:10]}')
 
 # ---- 4. 写 md（按 p3_final 降序分组，组内保持 shadow 原序）----
-GRP_ORDER = [0.25, 0.1875, 0.125, 0.0938, 0.0625, 0.05]
+# 档位动态推导（2026-10-22 老刘批准修复）：硬编码 BEAR 档位表在 OTHER(0.75) 环境下会静默丢票
+# （0.375 等档不在表内 → 只写出 0.1875 一档 72/558 只，header 仍写"共 558 只"）
+GRP_ORDER = sorted({round(r['p3_final'], 4) for r in act}, reverse=True)
+# ⭐=q5 拥挤档 = 另一档位值 × 0.75（BEAR: 0.1875/0.0938；OTHER: 0.2812/0.1125）
+STAR_G = {v for v in GRP_ORDER if any(abs(round(u * 0.75, 4) - v) < 1e-9 for u in GRP_ORDER)}
 groups = {g: [] for g in GRP_ORDER}
 for r in act:
     groups.setdefault(round(r['p3_final'], 4), []).append(r)
@@ -87,7 +91,7 @@ lines = [head]
 for g in GRP_ORDER:
     if g not in groups or not groups[g]:
         continue
-    star = '⭐' if g in (0.1875, 0.0938) else ''
+    star = '⭐' if g in STAR_G else ''
     lines.append(f"## 仓位 {g}{star}（{len(groups[g])} 只）\n")
     for r in groups[g]:
         nm = names.get(r['stock'], '')
@@ -111,4 +115,5 @@ out = ROOT.parent.parent / f'/root/选股名单_{DAY}.md'
 Path(f'/root/选股名单_{DAY}.md').write_text('\n'.join(lines), encoding='utf-8')
 print(f'[写出] /root/选股名单_{DAY}.md  总行数 {len(lines)}')
 print('[档位小计]', {g: len(groups[g]) for g in GRP_ORDER if groups.get(g)}, '合计', sum(len(groups[g]) for g in GRP_ORDER))
+print('[自检] ⭐档合计', sum(len(groups[g]) for g in STAR_G), '应 == shadow counts.q5_reduce', shadow['counts']['q5_reduce'])
 print('[除权清单]', sorted(c for c, v in wound.items() if v == 'overlap_qfq_mismatch'))
