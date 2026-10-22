@@ -27,7 +27,7 @@ WARN 项（提示不拦）:
 
 桶口径（2026-10-22 随 src/r2/daily_price_update.py 同步，勿改）:
  成功桶 = updated*（updated / updated_rawfallback / updated_seam / updated_rawfallback_seam）/ current
- 良性桶 = tdx_no_daily（停牌/退市/未覆盖，不计入 hard_fail）
+ 良性桶 = tdx_no_daily（停牌/退市/未覆盖，及「当日无成交」的停牌占位根；不计入 hard_fail）
  容忍 hard 桶 = window_too_short / tdx_short_history（计入 hard_fail，由 max(20, 2%*票数) 容忍）
  真异常桶 = overlap_missing / overlap_raw_mismatch / tdx_mismatch / fetch_fail / tdx_transport:* / tdx_err:*
  生产者闸门 = ok ⇔ hard_fail <= gate_limit；本脚本以 manifest 为准，再叠加 A1–A5 交叉核

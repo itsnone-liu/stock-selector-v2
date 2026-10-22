@@ -5,6 +5,10 @@ Per stock: append-only extension from the **TDX 通道**（老刘逆向 tdx-prot
 cat1-affine-c2，与真客户端逐 bar 一致。2026-10-21 起腾讯/新浪/东财退役），
 交叉校验本机 TDX 镜像 (/root/tdx_data)。
 Fail-closed: any mismatch skips the stock and is reported explicitly.
+停牌占位根口径（2026-10-22 定）：TDX 对「当日无成交」（停牌/退市整理）的票会给一根
+O=H=L=C=前收、量=0 的占位根，且不留历史占位根；占位根零信息量，写成存量会把 last 推到次日
+就落在窗口外的日期（每日复发 window_too_short）。故：① 当日根为占位 → 归良性桶 tdx_no_daily
+（已登记桶，不新增口径、不计 hard_fail、不写盘）；② 存量尾部已有的占位根在落盘时剥除。
 --source tencent 保留旧腾讯 fqkline 路径作应急回退（默认 tdx）。
 
 Usage:
@@ -75,6 +79,26 @@ def tdx_reset():
  except Exception: pass
  _tdx_sess=None; _tdx_host=None
 
+def _ph_bar(b):
+ """停牌占位根判定（TDX bar 形态）：当日无成交 → O=H=L=C=前收 且量≈0。
+ 注意：量 0 在协议线上被反解成非规格化 float32（实测 5.877471754111438e-39，==0 为 False），
+ 故用绝对阈值 1e-6 判零；真实最小成交 1 手远高于此，不会误判一字板。"""
+ return abs(b['volume_hand'])<1e-6 and b['open']==b['high']==b['low']==b['close']
+
+def _ph_row(row):
+ """停牌占位根判定（存量 row 形态 [date,open,close,high,low,volume]）。见 tdx_seg/update_stock 注。"""
+ if not row or len(row)<6: return False
+ try:
+  o,c,h,l,v=float(row[1]),float(row[2]),float(row[3]),float(row[4]),float(row[5])
+ except (TypeError,ValueError): return False
+ return abs(v)<1e-6 and o==h==l==c
+
+def _write(d,p):
+ d['fetched_at']=time.strftime('%Y-%m-%dT%H:%M:%SZ')
+ tmp=p.with_suffix('.tmp.gz')
+ tmp.write_bytes(gzip.compress(json.dumps(d,ensure_ascii=False).encode()))
+ os.replace(tmp,p)
+
 def tdx_seg(code,last,day,count=800,stored_last=None):
  """TDX 通道取 bar 窗口，输出与旧腾讯 fqkline 完全同构的 row：[date, open, close, high, low, volume]。
 
@@ -108,6 +132,12 @@ def tdx_seg(code,last,day,count=800,stored_last=None):
   except Exception as e:
    return None,f'tdx_err:{type(e).__name__}:{e}'
  _rbar={b['date']:b for b in raw if b['date']<=day}
+ # 当日停牌占位根（2026-10-22）：TDX 对当日无成交（停牌/退市整理）的票给一根
+ # O=H=L=C=前收、量=0 的占位根，且**不留历史占位根**（只给查询当日一根）。占位根零信息量，
+ # 写进存量会把 last 推到「次日就不在窗口里」的日期 → 每天必发 window_too_short（10-21 实测
+ # 8 票复发、且会随停牌票增多扩散）。归入已登记的良性桶 tdx_no_daily（= 该码当日无有效日线），
+ # 不新增桶名、不计 hard_fail。
+ if _rbar and max(_rbar)==day and _ph_bar(_rbar[day]): return None,'tdx_no_daily'
  if q is None:
   _qbar={b['date']:b for b in raw if b['date']<=day}
  elif q.get('returned_count',0)<2: return None,'tdx_short_history'  # complete_history 恒为 False，改判覆盖度
@@ -179,10 +209,25 @@ def _rowmatch(a,b):
 def update_stock(sess,code,day,strict_tdx=True,source='tdx'):
  p=DAILY/f'{code}.json.gz'
  d=json.loads(gzip.decompress(p.read_bytes()))
+ # 停牌占位根清理（2026-10-22）：存量末根若是占位根（量 0、四价相等，10-21 切 TDX 后误写），
+ # 它是假数据且会让 last 停在「次日窗口外」的日期 → 每日复发 window_too_short。先只在内存里剥掉；
+ # 仅当本次真的落盘（有新增真根 / 良性停牌修订）才写回。
+ nph=0
+ while len(d['dates'])>1 and _ph_row(d['unadj'][-1]):
+  d['dates'].pop(); d['unadj'].pop(); d['qfq'].pop()
+  af=d.get('adjust_factor_model_derived')
+  if isinstance(af,list) and len(af)>len(d['dates']): af.pop()
+  nph+=1
  last=d['dates'][-1]
- if last>=day: return ('current',0)
+ if nph: print(f'[{code}] trim 停牌占位根 {nph} 根 → 真根 {last}',flush=True)
+ if last>=day:
+  if nph: _write(d,p)
+  return ('current',0)
  if source=='tdx':
   seg,err=tdx_seg(code,last,day,stored_last=d['unadj'][-1])
+  if err=='tdx_no_daily':
+   if nph: _write(d,p)          # 当日无成交：只修假根，不新增根；桶仍计入良性 tdx_no_daily
+   return (err,0)
   if err: return (err,0)
   raw,qm=seg['_r'],seg['_q']
  else:
@@ -213,17 +258,16 @@ def update_stock(sess,code,day,strict_tdx=True,source='tdx'):
   ks=f'{k[:4]}-{k[4:6]}-{k[6:]}'
   if last<ks<=day and ks not in nds: mism.append((ks,'tdx_bar_not_fetched'))
  if mism and strict_tdx: return ('tdx_mismatch',mism)
- if not nds: return ('no_change',0)
+ if not nds:
+  if nph: _write(d,p)
+  return ('no_change',0)
  newu=[raw[x][:6] for x in nds]; newq=[qm[x][:6] for x in nds]
  newf=[round(float(qm[x][2])/float(raw[x][2]),6) if float(raw[x][2]) else 1.0 for x in nds]
  d['dates']+=nds; d['unadj']+=newu; d['qfq']+=newq
  d.setdefault('adjust_factor_model_derived',[])
  if len(d['adjust_factor_model_derived'])==len(d['dates'])-len(nds):
   d['adjust_factor_model_derived']+=newf
- d['fetched_at']=time.strftime('%Y-%m-%dT%H:%M:%SZ')
- tmp=p.with_suffix('.tmp.gz')
- tmp.write_bytes(gzip.compress(json.dumps(d,ensure_ascii=False).encode()))
- os.replace(tmp,p)
+ _write(d,p)
  return ('updated'+('_'+deg if deg else '')+('_'+seam if seam else ''),len(nds))
 
 def main():
