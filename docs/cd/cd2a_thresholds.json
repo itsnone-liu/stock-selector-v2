@@ -1,8 +1,8 @@
 {
  "refit_at": "2026-10-21T22:11:48",
  "refit_trigger": "carry-mode-enrolment 2026-10-21 (C1A joins daily chain -> carry by default)",
- "carried_at": null,
- "carry_count": 0,
+ "carried_at": "2026-10-23T20:25:39",
+ "carry_count": 2,
  "refit_cadence": "slow-frequency data update event (manual, user-triggered)",
  "fit_basis_sha": "ddfb0944812b331c93a0118eea734581223cb886d167fc4f36f69eaa5acedd1e",
  "fit_basis_sha_now": "ddfb0944812b331c93a0118eea734581223cb886d167fc4f36f69eaa5acedd1e",
@@ -293,13 +293,13 @@
   "H61": "SMALL",
   "E49": "SMALL"
  },
- "band_table_sha256": "b7e9d4cc8b158c6b2c960721f2214a64404836c2d40aeaa29f03eee50a79dd32",
- "n_rows": 116449,
+ "band_table_sha256": "4150a6c6ee7b229e7cba3dd28be5423d673c8f87379f282cb42b4671dd8bb7e2",
+ "n_rows": 116615,
  "null_counts": {
-  "rp": 17726,
-  "part": 17726,
-  "breadth": 17726,
-  "conc": 21741,
-  "disp": 20258
+  "rp": 17750,
+  "part": 17750,
+  "breadth": 17750,
+  "conc": 21783,
+  "disp": 20286
  }
 }

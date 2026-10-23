@@ -1,28 +1,28 @@
 {
- "generated": "2026-10-21T21:33:22",
- "state_table_sha256": "0c92c73c712fca17ad4a7a03abda30b7c3c8fe9b260f9e4667147b49de244d0f",
- "n_rows": 116449,
+ "generated": "2026-10-23T20:25:42",
+ "state_table_sha256": "4f881edf5f599e8311b91874d47cb7b570397abd20155441b8892bd91371d236",
+ "n_rows": 116615,
  "base_counts": {
-  "INSUFFICIENT_SUPPORT": 17726,
-  "DIVERGENT": 25708,
-  "BROAD_WEAKNESS": 17485,
-  "NARROW_STRENGTH": 7957,
-  "NEUTRAL_WIDE_UP": 7127,
-  "NARROW_WEAKNESS": 14945,
-  "BROAD_STRENGTH": 9318,
+  "INSUFFICIENT_SUPPORT": 17750,
+  "DIVERGENT": 25729,
+  "BROAD_WEAKNESS": 17508,
+  "NARROW_STRENGTH": 7971,
+  "NEUTRAL_WIDE_UP": 7135,
+  "NARROW_WEAKNESS": 14991,
+  "BROAD_STRENGTH": 9322,
   "NEUTRAL": 8199,
-  "NEUTRAL_WIDE_DOWN": 7984
+  "NEUTRAL_WIDE_DOWN": 8010
  },
  "path_counts": {
-  "FADING": 5962,
-  "EXPANSION": 4065,
+  "FADING": 5968,
+  "EXPANSION": 4067,
   "NARROWING": 525,
   "BUILDING": 270
  },
- "path_days_total": 10822,
+ "path_days_total": 10830,
  "support_census": {
   "DIVERGENT|PARTICIPATION_EXPANDING+HIGH_DISPERSION": {
-   "count": 8625,
+   "count": 8630,
    "sectors": 69,
    "years": [
     "2021",
@@ -35,7 +35,7 @@
    "low_support": false
   },
   "DIVERGENT|HIGH_DISPERSION": {
-   "count": 5483,
+   "count": 5489,
    "sectors": 69,
    "years": [
     "2021",
@@ -48,7 +48,7 @@
    "low_support": false
   },
   "BROAD_WEAKNESS|HIGH_CONCENTRATION": {
-   "count": 3892,
+   "count": 3896,
    "sectors": 70,
    "years": [
     "2021",
@@ -61,7 +61,7 @@
    "low_support": false
   },
   "DIVERGENT|PARTICIPATION_FADING+HIGH_DISPERSION": {
-   "count": 3658,
+   "count": 3659,
    "sectors": 69,
    "years": [
     "2021",
@@ -74,7 +74,7 @@
    "low_support": false
   },
   "BROAD_STRENGTH|PARTICIPATION_EXPANDING": {
-   "count": 3612,
+   "count": 3614,
    "sectors": 69,
    "years": [
     "2021",
@@ -87,7 +87,7 @@
    "low_support": false
   },
   "NARROW_WEAKNESS|NONE": {
-   "count": 3522,
+   "count": 3547,
    "sectors": 69,
    "years": [
     "2021",
@@ -100,7 +100,7 @@
    "low_support": false
   },
   "NARROW_WEAKNESS|PARTICIPATION_FADING": {
-   "count": 3514,
+   "count": 3520,
    "sectors": 68,
    "years": [
     "2021",
@@ -113,7 +113,7 @@
    "low_support": false
   },
   "DIVERGENT|PARTICIPATION_EXPANDING+HIGH_CONCENTRATION+HIGH_DISPERSION": {
-   "count": 3451,
+   "count": 3454,
    "sectors": 69,
    "years": [
     "2021",
@@ -126,7 +126,7 @@
    "low_support": false
   },
   "BROAD_WEAKNESS|PARTICIPATION_FADING+HIGH_CONCENTRATION": {
-   "count": 3359,
+   "count": 3361,
    "sectors": 70,
    "years": [
     "2021",
@@ -139,7 +139,7 @@
    "low_support": false
   },
   "DIVERGENT|HIGH_CONCENTRATION+HIGH_DISPERSION": {
-   "count": 3093,
+   "count": 3098,
    "sectors": 68,
    "years": [
     "2021",
@@ -152,7 +152,7 @@
    "low_support": false
   },
   "NEUTRAL_WIDE_UP|NONE": {
-   "count": 2832,
+   "count": 2839,
    "sectors": 69,
    "years": [
     "2021",
@@ -165,7 +165,7 @@
    "low_support": false
   },
   "BROAD_WEAKNESS|PARTICIPATION_EXPANDING+HIGH_CONCENTRATION": {
-   "count": 2716,
+   "count": 2721,
    "sectors": 71,
    "years": [
     "2021",
@@ -178,7 +178,7 @@
    "low_support": false
   },
   "BROAD_STRENGTH|NONE": {
-   "count": 2701,
+   "count": 2703,
    "sectors": 69,
    "years": [
     "2021",
@@ -191,7 +191,7 @@
    "low_support": false
   },
   "NEUTRAL_WIDE_DOWN|HIGH_CONCENTRATION": {
-   "count": 2627,
+   "count": 2639,
    "sectors": 70,
    "years": [
     "2021",
@@ -243,7 +243,7 @@
    "low_support": false
   },
   "BROAD_WEAKNESS|NONE": {
-   "count": 1856,
+   "count": 1859,
    "sectors": 71,
    "years": [
     "2021",
@@ -269,7 +269,7 @@
    "low_support": false
   },
   "BROAD_WEAKNESS|PARTICIPATION_FADING": {
-   "count": 1778,
+   "count": 1781,
    "sectors": 71,
    "years": [
     "2021",
@@ -282,7 +282,7 @@
    "low_support": false
   },
   "NEUTRAL_WIDE_DOWN|PARTICIPATION_FADING+HIGH_CONCENTRATION": {
-   "count": 1764,
+   "count": 1766,
    "sectors": 69,
    "years": [
     "2021",
@@ -295,7 +295,7 @@
    "low_support": false
   },
   "NARROW_STRENGTH|NONE": {
-   "count": 1737,
+   "count": 1741,
    "sectors": 71,
    "years": [
     "2021",
@@ -308,7 +308,7 @@
    "low_support": false
   },
   "NARROW_STRENGTH|HIGH_CONCENTRATION": {
-   "count": 1659,
+   "count": 1666,
    "sectors": 67,
    "years": [
     "2021",
@@ -321,7 +321,7 @@
    "low_support": false
   },
   "NARROW_WEAKNESS|PARTICIPATION_EXPANDING": {
-   "count": 1565,
+   "count": 1567,
    "sectors": 68,
    "years": [
     "2021",
@@ -334,7 +334,7 @@
    "low_support": false
   },
   "DIVERGENT|PARTICIPATION_FADING+HIGH_CONCENTRATION+HIGH_DISPERSION": {
-   "count": 1398,
+   "count": 1399,
    "sectors": 68,
    "years": [
     "2021",
@@ -347,7 +347,7 @@
    "low_support": false
   },
   "NARROW_WEAKNESS|HIGH_CONCENTRATION": {
-   "count": 1370,
+   "count": 1374,
    "sectors": 57,
    "years": [
     "2021",
@@ -360,7 +360,7 @@
    "low_support": false
   },
   "NARROW_STRENGTH|PARTICIPATION_EXPANDING": {
-   "count": 1365,
+   "count": 1366,
    "sectors": 69,
    "years": [
     "2021",
@@ -412,7 +412,7 @@
    "low_support": false
   },
   "BROAD_WEAKNESS|PARTICIPATION_EXPANDING": {
-   "count": 1190,
+   "count": 1194,
    "sectors": 71,
    "years": [
     "2021",
@@ -425,7 +425,7 @@
    "low_support": false
   },
   "NEUTRAL_WIDE_DOWN|PARTICIPATION_EXPANDING+HIGH_CONCENTRATION": {
-   "count": 1116,
+   "count": 1120,
    "sectors": 71,
    "years": [
     "2021",
@@ -438,7 +438,7 @@
    "low_support": false
   },
   "NARROW_STRENGTH|PARTICIPATION_EXPANDING+HIGH_CONCENTRATION": {
-   "count": 1055,
+   "count": 1057,
    "sectors": 69,
    "years": [
     "2021",
@@ -451,7 +451,7 @@
    "low_support": false
   },
   "NEUTRAL_WIDE_DOWN|NONE": {
-   "count": 1027,
+   "count": 1032,
    "sectors": 70,
    "years": [
     "2021",
@@ -464,7 +464,7 @@
    "low_support": false
   },
   "NARROW_WEAKNESS|PARTICIPATION_FADING+HIGH_CONCENTRATION": {
-   "count": 1022,
+   "count": 1023,
    "sectors": 57,
    "years": [
     "2021",
@@ -490,7 +490,7 @@
    "low_support": false
   },
   "NARROW_WEAKNESS|HIGH_DISPERSION": {
-   "count": 958,
+   "count": 962,
    "sectors": 67,
    "years": [
     "2021",
@@ -529,7 +529,7 @@
    "low_support": false
   },
   "NARROW_WEAKNESS|PARTICIPATION_FADING+HIGH_DISPERSION": {
-   "count": 808,
+   "count": 809,
    "sectors": 66,
    "years": [
     "2021",
@@ -568,7 +568,7 @@
    "low_support": false
   },
   "BROAD_WEAKNESS|PARTICIPATION_EXPANDING+HIGH_CONCENTRATION+HIGH_DISPERSION": {
-   "count": 744,
+   "count": 745,
    "sectors": 69,
    "years": [
     "2021",
@@ -594,7 +594,7 @@
    "low_support": false
   },
   "BROAD_WEAKNESS|PARTICIPATION_FADING+HIGH_CONCENTRATION+HIGH_DISPERSION": {
-   "count": 612,
+   "count": 613,
    "sectors": 67,
    "years": [
     "2021",
@@ -633,8 +633,8 @@
    "low_support": false
   },
   "NEUTRAL_WIDE_DOWN|PARTICIPATION_EXPANDING": {
-   "count": 505,
-   "sectors": 61,
+   "count": 508,
+   "sectors": 62,
    "years": [
     "2021",
     "2022",
@@ -646,7 +646,7 @@
    "low_support": false
   },
   "NARROW_WEAKNESS|PARTICIPATION_EXPANDING+HIGH_DISPERSION": {
-   "count": 476,
+   "count": 477,
    "sectors": 64,
    "years": [
     "2021",
@@ -672,7 +672,7 @@
    "low_support": false
   },
   "NARROW_WEAKNESS|HIGH_CONCENTRATION+HIGH_DISPERSION": {
-   "count": 400,
+   "count": 401,
    "sectors": 57,
    "years": [
     "2021",
@@ -685,7 +685,7 @@
    "low_support": false
   },
   "NEUTRAL_WIDE_UP|HIGH_CONCENTRATION": {
-   "count": 361,
+   "count": 362,
    "sectors": 26,
    "years": [
     "2021",
@@ -724,7 +724,7 @@
    "low_support": false
   },
   "NARROW_WEAKNESS|PARTICIPATION_FADING+HIGH_CONCENTRATION+HIGH_DISPERSION": {
-   "count": 224,
+   "count": 225,
    "sectors": 49,
    "years": [
     "2021",
@@ -803,35 +803,35 @@
   }
  },
  "transition_top": {
-  "DIVERGENT->DIVERGENT": 7819,
-  "DIVERGENT->BROAD_WEAKNESS": 4574,
-  "BROAD_WEAKNESS->DIVERGENT": 4022,
-  "DIVERGENT->NARROW_WEAKNESS": 3788,
+  "DIVERGENT->DIVERGENT": 7825,
+  "DIVERGENT->BROAD_WEAKNESS": 4579,
+  "BROAD_WEAKNESS->DIVERGENT": 4027,
+  "DIVERGENT->NARROW_WEAKNESS": 3796,
   "NARROW_WEAKNESS->DIVERGENT": 3716,
-  "BROAD_WEAKNESS->BROAD_WEAKNESS": 3392,
-  "NARROW_WEAKNESS->BROAD_WEAKNESS": 2744,
-  "BROAD_WEAKNESS->NARROW_WEAKNESS": 2738,
+  "BROAD_WEAKNESS->BROAD_WEAKNESS": 3396,
+  "BROAD_WEAKNESS->NARROW_WEAKNESS": 2751,
+  "NARROW_WEAKNESS->BROAD_WEAKNESS": 2745,
   "NARROW_WEAKNESS->NARROW_WEAKNESS": 2507,
-  "NEUTRAL->DIVERGENT": 2184,
-  "BROAD_STRENGTH->DIVERGENT": 2161,
+  "NEUTRAL->DIVERGENT": 2186,
+  "BROAD_STRENGTH->DIVERGENT": 2162,
   "DIVERGENT->NEUTRAL": 2130,
   "DIVERGENT->BROAD_STRENGTH": 2071,
-  "NARROW_STRENGTH->DIVERGENT": 1965,
-  "NEUTRAL_WIDE_DOWN->DIVERGENT": 1917,
-  "BROAD_STRENGTH->BROAD_WEAKNESS": 1910,
+  "NARROW_STRENGTH->DIVERGENT": 1968,
+  "NEUTRAL_WIDE_DOWN->DIVERGENT": 1921,
+  "BROAD_STRENGTH->BROAD_WEAKNESS": 1913,
   "NEUTRAL_WIDE_UP->DIVERGENT": 1903,
-  "BROAD_WEAKNESS->BROAD_STRENGTH": 1893,
-  "DIVERGENT->NARROW_STRENGTH": 1839,
-  "DIVERGENT->NEUTRAL_WIDE_DOWN": 1812
+  "BROAD_WEAKNESS->BROAD_STRENGTH": 1894,
+  "DIVERGENT->NARROW_STRENGTH": 1840,
+  "DIVERGENT->NEUTRAL_WIDE_DOWN": 1814
  },
  "persistence_diag_share_of_inflow": {
   "BROAD_WEAKNESS": 0.1943,
-  "NARROW_STRENGTH": 0.0888,
-  "NEUTRAL_WIDE_UP": 0.0824,
+  "NARROW_STRENGTH": 0.0889,
+  "NEUTRAL_WIDE_UP": 0.0823,
   "DIVERGENT": 0.3044,
-  "NARROW_WEAKNESS": 0.1678,
+  "NARROW_WEAKNESS": 0.1673,
   "BROAD_STRENGTH": 0.1107,
   "NEUTRAL": 0.1003,
-  "NEUTRAL_WIDE_DOWN": 0.0991
+  "NEUTRAL_WIDE_DOWN": 0.0992
  }
 }
