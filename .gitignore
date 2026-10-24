@@ -27,4 +27,7 @@ captures/
 
 # EI-5P cron 运行日志
 logs/
-captures-archive/
+captures-archive/*
+!captures-archive/*.manifest.sha256
+!captures-archive/*.receipt.json
+!captures-archive/*.tar.sha256
