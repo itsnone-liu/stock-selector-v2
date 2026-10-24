@@ -134,12 +134,16 @@ def file_md5s(path):
     return m.hexdigest(), slices
 
 
-def upload_host(tok, path, uploadid):
-    j = api("GET", f"https://d.pcs.baidu.com/rest/2.0/pcs/file", params={
-        "method": "locateupload", "appid": 250528, "access_token": tok,
-        "path": path, "uploadid": uploadid, "upload_version": "2.0"})
-    host = (j.get("servers") or [{}])[0].get("server") or j.get("host") or "d.pcs.baidu.com"
-    return host if "." in host else "d.pcs.baidu.com"
+def upload_hosts(tok, path, uploadid):
+    """返回 https 上传主机列表（c10 等个别主机对境外 IP 挂起，需轮换）。"""
+    try:
+        j = api("GET", f"https://d.pcs.baidu.com/rest/2.0/pcs/file", params={
+            "method": "locateupload", "appid": 250528, "access_token": tok,
+            "path": path, "uploadid": uploadid, "upload_version": "2.0"})
+        hosts = [s["server"] for s in (j.get("servers") or []) if str(s.get("server", "")).startswith("https")]
+    except Exception:
+        hosts = []
+    return hosts or ["https://c9.pcs.baidu.com", "https://c2.pcs.baidu.com", "https://c.pcs.baidu.com"]
 
 
 def cmd_upload(app, local):
@@ -152,9 +156,9 @@ def cmd_upload(app, local):
     if len(slices) > 1024:
         sys.exit("分片>1024，需拆分文件")
 
-    common = {"access_token": tok, "path": remote}
+    common = {"access_token": tok}
     pre = api("POST", f"{PAN}/rest/2.0/xpan/file", params={"method": "precreate", **common},
-              data={"size": size, "isdir": 0, "autoinit": 1, "rtype": 3,
+              data={"path": remote, "size": size, "isdir": 0, "autoinit": 1, "rtype": 3,
                     "block_list": json.dumps(slices), "content-md5": md5})
     if pre.get("return_type") == 2:  # 秒传
         print("✓ 秒传成功（服务器已有相同文件）", json.dumps(pre, ensure_ascii=False))
@@ -163,27 +167,31 @@ def cmd_upload(app, local):
     need = set(pre.get("block_list") or range(len(slices)))
     print(f"uploadid={uploadid} 待传分片 {len(need)}/{len(slices)}")
 
-    host = upload_host(tok, remote, uploadid)
-    print("上传主机:", host, flush=True)
+    hosts = upload_hosts(tok, remote, uploadid)
+    hi = 0
+    print("上传主机池:", hosts, flush=True)
     t0, done_bytes = time.time(), 0
     with open(local, "rb") as f:
         for seq in sorted(need):
             f.seek(seq * SLICE)
             part = f.read(SLICE)
-            for attempt in range(5):
+            for attempt in range(8):
+                host = hosts[hi % len(hosts)]
                 try:
-                    rr = requests.post(f"https://{host}/rest/2.0/pcs/superfile2",
+                    rr = requests.post(f"{host}/rest/2.0/pcs/superfile2",
                                        params={"method": "upload", "type": "tmpfile",
                                                "access_token": tok, "path": remote,
                                                "uploadid": uploadid, "partseq": seq},
-                                       files={"file": (f"part-{seq}", part)}, headers=UA, timeout=600)
+                                       files={"file": (f"part-{seq}", part)}, headers=UA,
+                                       timeout=(30, 120))
                     j = rr.json()
                     if j.get("md5") == hashlib.md5(part).hexdigest():
                         break
-                    print(f"[slice {seq}] md5 不匹配应答: {rr.text[:120]}")
+                    print(f"[slice {seq}] {host} 应答异常: {rr.text[:120]}")
                 except Exception as e:
-                    print(f"[slice {seq}] {type(e).__name__} {e}")
-                time.sleep(15 * (attempt + 1))
+                    print(f"[slice {seq}] {host} {type(e).__name__}", flush=True)
+                hi += 1  # 换下一台主机
+                time.sleep(3 * (attempt + 1))
             else:
                 sys.exit(f"分片 {seq} 反复失败，稍后重跑本命令自动续传")
             done_bytes += len(part)
@@ -194,7 +202,8 @@ def cmd_upload(app, local):
                       f"{(size-done_bytes)/max(done_bytes/max(dt,1),1)/60:.0f}分", flush=True)
 
     cre = api("POST", f"{PAN}/rest/2.0/xpan/file", params={"method": "create", **common},
-              data={"size": size, "isdir": 0, "rtype": 3, "block_list": json.dumps(slices)})
+              data={"path": remote, "size": size, "isdir": 0, "rtype": 3, "uploadid": uploadid,
+                    "block_list": json.dumps(slices)})
     print("✓ 上传完成:", json.dumps({k: cre.get(k) for k in ("fs_id", "size", "path")}, ensure_ascii=False))
     save_json(CFG / f"upload-{local.name}.json",
               {"local": str(local), "local_sha256": hashlib.sha256(open(local, 'rb').read()).hexdigest()
