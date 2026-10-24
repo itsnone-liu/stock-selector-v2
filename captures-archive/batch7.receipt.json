@@ -1,0 +1,11 @@
+{
+ "batch": "batch7",
+ "tar_sha256": "c12136bee5ee6840644e8e92b257e2ecc741a86bd0b9d3ee8ff220bfb2d32a30",
+ "manifest": "captures-archive/batch7.manifest.sha256",
+ "manifest_sha256": "60bf902052727db4e6d07845f26f63b66d3ec8107ee9f839d9bbc289b9d4d514",
+ "remote_file": "/apps/ss2archive/batch7.tar",
+ "uploaded_at": "2026-10-25 00:24:50",
+ "size": 2310184960,
+ "md5": "f01493c99775572ac335743c912e7c4d",
+ "fs_id": 622335041825199
+}

@@ -1,0 +1,11 @@
+{
+ "batch": "batch9_extra",
+ "tar_sha256": "0b63139b1e85c8c78e363c2b0ed1ef2d2571cd6d08de223991a4268b8ee610fa",
+ "manifest": "captures-archive/batch9_extra.manifest.sha256",
+ "manifest_sha256": "85d6245cc4acc4711b94919694f855da0529c06a2e19732e6cf9116f984bf097",
+ "remote_file": "/apps/ss2archive/batch9_extra.tar",
+ "uploaded_at": "2026-10-25 00:45:41",
+ "size": 381020160,
+ "md5": "612a179418c814bb8f34cd99235e88d8",
+ "fs_id": 1124382097997399
+}
