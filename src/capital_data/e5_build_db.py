@@ -81,7 +81,7 @@ def block(con):
     if rows: con.executemany('INSERT OR REPLACE INTO block VALUES (?,?,?,?,?)',rows); n+=len(rows)
    con.commit(); print('block',tb.name,n,'rows',round(time.time()-t0,1),'s',flush=True)
 def main():
- con=sqlite3.connect(DB)
+ con=sqlite3.connect(DB, timeout=60)  # 与 R2 19:30 链并发：写者等锁 60s 而非 5s 即失败
  margin(con); block(con)
  for t in ('margin','block'):
   print(t,con.execute(f'SELECT COUNT(*),COUNT(DISTINCT code),MIN(date),MAX(date) FROM {t}').fetchone())

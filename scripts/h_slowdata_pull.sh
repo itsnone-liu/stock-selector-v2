@@ -9,6 +9,7 @@
 # 用法:
 #   bash scripts/h_slowdata_pull.sh                    # 抓+校验+同步+重建 e5.db
 #   bash scripts/h_slowdata_pull.sh --check            # 只看: 拉取+校验+报告差异, 不落盘
+#   bash scripts/h_slowdata_pull.sh --local            # 米线本地生成: 不 fetch/reset, 校验+同步+重建 e5.db
 #   bash scripts/h_slowdata_pull.sh --no-build         # 同步文件但不重建 e5.db
 #   bash scripts/h_slowdata_pull.sh --force            # 无变化也重建 e5.db
 #   bash scripts/h_slowdata_pull.sh --refit "e5 2026-10-25"   # 完成后接阈值重推+重跑链
@@ -28,10 +29,11 @@ STAGE="${SLOWDATA_STAGE:-/root/slowdata/stock-data}"
 E="$(pwd)/data/r2/e5"
 PY=/usr/bin/python3            # capital_data 脚本只用 stdlib, 系统 3.10 即可
 
-MODE=run; DO_BUILD=1; FORCE=0; REFIT=""
+MODE=run; DO_BUILD=1; FORCE=0; REFIT=""; LOCAL=0
 while [ $# -gt 0 ]; do
   case "$1" in
     --check)    MODE=check; DO_BUILD=0 ;;
+    --local)    LOCAL=1 ;;   # 跳过 fetch/reset, 用当前工作树 (米线本地生成年包场景)
     --no-build) DO_BUILD=0 ;;
     --force)    FORCE=1 ;;
     --refit)    shift; REFIT="${1:-slow-data update}"; DO_BUILD=1 ;;
@@ -44,7 +46,11 @@ echo "[slowdata] start $(date -Is)  mode=$MODE  stage=$STAGE"
 
 # --- 1) 拉取 (常驻浅克隆, 之后每次只增量 fetch) -----------------------------
 mkdir -p "$(dirname "$STAGE")"
-if [ -d "$STAGE/.git" ]; then
+if [ "$LOCAL" = 1 ]; then
+  # 米线本地生成: 仓库工作树里就是刚打包/刚 commit 的新年包, fetch+reset --hard 会抹掉本地提交
+  [ -f "$STAGE/MANIFEST.json" ] || { echo "[slowdata] FAIL: --local 但 $STAGE 缺 MANIFEST.json"; exit 1; }
+  echo "[slowdata] --local: 跳过 fetch/reset, 直接用当前工作树"
+elif [ -d "$STAGE/.git" ]; then
   GIT_TERMINAL_PROMPT=0 git -C "$STAGE" fetch --depth 1 origin main -q \
     || { echo "[slowdata] FAIL: fetch 失败 (凭据/网络?)"; exit 1; }
   git -C "$STAGE" reset --hard FETCH_HEAD -q || { echo "[slowdata] FAIL: reset"; exit 1; }
@@ -52,7 +58,11 @@ else
   GIT_TERMINAL_PROMPT=0 git clone --depth 1 -q "$REPO" "$STAGE" \
     || { echo "[slowdata] FAIL: clone 失败 (凭据/网络?)"; exit 1; }
 fi
-echo "[slowdata] repo HEAD: $(git -C "$STAGE" log -1 --format='%h | %ad | %s' --date=short)"
+if [ "$LOCAL" = 1 ]; then
+  echo "[slowdata] stage HEAD(本地): $(git -C "$STAGE" log -1 --format='%h | %ad | %s' --date=short 2>/dev/null || echo '(无 git)')"
+else
+  echo "[slowdata] repo HEAD: $(git -C "$STAGE" log -1 --format='%h | %ad | %s' --date=short)"
+fi
 
 # --- 2) MANIFEST sha256 完整性闸门 + 与本地差异分类 -------------------------
 VERDICT="$($PY - "$STAGE" "$E" <<'PY'

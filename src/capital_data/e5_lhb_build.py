@@ -13,7 +13,7 @@ def f(x):
  try: return float(str(x).replace(',','').replace('&nbsp;','').split(' ')[0])
  except Exception: return 0.0
 def main():
- con=sqlite3.connect(DB)
+ con=sqlite3.connect(DB, timeout=60)  # 与 R2 19:30 链并发：写者等锁 60s 而非 5s 即失败
  con.execute('DROP TABLE IF EXISTS lhb')
  con.execute('CREATE TABLE lhb(code TEXT,date TEXT,buy REAL,sell REAL,inst_net REAL,nb_net REAL,nseats INT)')
  for tb in sorted((E/'lhb_raw').glob('lhb_raw_*.tar.gz')):
