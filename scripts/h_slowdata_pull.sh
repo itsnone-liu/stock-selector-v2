@@ -98,7 +98,7 @@ if csv_bad:
     for b in csv_bad: print("  [gate] ~", b)
     print("  [gate] ~ 上游待修: 重新生成 MANIFEST 的 csv 段 (实体是准的, 清单是旧的)")
 elif csv_ok:
-    print("  [gate] CSV 3 项 sha256: 通过")
+    print(f"  [gate] CSV {len(csv_ok)} 项 sha256: 通过")
 if new:
     print(f"  [diff] 新增 {len(new)}:")
     for e in new: print(f"      + {e['path']}  {e.get('date_min','')}..{e.get('date_max','')}")

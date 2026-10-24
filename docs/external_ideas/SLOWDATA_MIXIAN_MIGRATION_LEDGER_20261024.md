@@ -144,3 +144,34 @@
 2. `tdx-node` 采集端 Linux 化改动 + 新驱动 `daily_slow_linux.py` **是否 push**。
 3. §6.1 是否要把 Windows 的 `lhb*.json` 同步到米线以恢复交叉核对闸门。
 4. §6.2 主跑时段是否维持 19:40（或改 21:00）。
+
+## 追加：老刘 2026-10-24 三项定案（当晚执行）
+
+1. **全量重建（服务器侧）** — 36 个年包（2021-01-04→2026-10-23）全量解到 `$NODE` raw 树，
+   `make_year_archive` 逐组文件数核验 **36/36、0 差异**（lhb_raw 66766 / block+sse 1404 /
+   block.szse_detail 54732 / block.szse_list 3380 / margin.sse 1427 / margin.szse 115894）。
+   随后跑三支 normalize 全量重建 csv：
+   - `lhb_seats.csv` 245M / 954551 行；`lhb_daily_stock.csv` 21M / 98262 行；覆盖 1404 天、`failed_or_incomplete_days: []`
+   - `block_trades.csv` 50M / 199617 行；`margin_daily.csv` 803M
+   → **驱动去掉 `--no-normalize`**，`daily_slow_linux.py` 采集步默认含全量 normalize；
+   `--no-normalize` 降级为应急开关（仅 raw 不全时用）。
+   新增 **3.5) csv 同步**：NODE csv → `STAGE/csv` + 刷新 `MANIFEST.json` 的 csv 段 sha256。
+   **口径**：默认只收 lhb 组（DATASET_META.json + lhb_seats.csv + lhb_daily_stock.csv），
+   与老归档 csv 段一致；block_trades / margin_daily（合计 ~850M）留在 NODE 不版本化，
+   下游零消费（`h_slowdata_pull.sh` 闸门原文「e5/csv 目前代码零消费」）；`--csv-all` 可强制全收。
+
+2. **主跑时段 19:40 → 21:00** — `slowdata-collect.timer` 改 `Mon..Fri 21:00:00`
+   （避开 R2 19:30→20:42 链，并能捞到更晚发布的深交所明细）。catchup 仍为周一 08:00。
+
+3. **lhb*.json 定期同步** — 新增 `/root/slowdata/bin/sync_tdx_lhb.sh` +
+   `slowdata-lhb-sync.timer`（周日 10:00 / 周一 07:30）。经 tailscale 从 Windows
+   拉 `D:/tdx-node/tdx-tq-v773/PYPlugins/data/lhb*.json` → `$NODE/tdx-tq-v773/PYPlugins/data/`；
+   不可达则 SKIP（退出 0，不影响主链），写 `$NODE/last_lhb_sync.json`。
+   驱动新增 **6) 交叉核对**：有 lhb*.json 就跑 `lhb_crosscheck_tdx.py`，无则跳过。
+   **一次性前提**：Windows 侧把米线公钥写进 `C:\ProgramData\ssh\administrators_authorized_keys`。
+
+## 磁盘
+
+本轮 raw 全量落盘 + csv 全量重建使 NODE 增加约 3.7G（raw 2.65G / csv 1.08G）。
+零风险清理（journal 3.7G + npm）后：101G used / **16G free / 87%**。
+待老刘定夺的大头：`captures` 27G、`output/research` 6.8G。
