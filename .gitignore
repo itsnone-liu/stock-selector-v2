@@ -31,3 +31,4 @@ captures-archive/*
 !captures-archive/*.manifest.sha256
 !captures-archive/*.receipt.json
 !captures-archive/*.tar.sha256
+!captures-archive/DELETION-RECORD.md
