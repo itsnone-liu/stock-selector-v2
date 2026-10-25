@@ -175,3 +175,12 @@
 本轮 raw 全量落盘 + csv 全量重建使 NODE 增加约 3.7G（raw 2.65G / csv 1.08G）。
 零风险清理（journal 3.7G + npm）后：101G used / **16G free / 87%**。
 待老刘定夺的大头：`captures` 27G、`output/research` 6.8G。
+
+## 2026-10-25 08:18 收尾核验（米线侧）
+
+- 磁盘：老刘已清理，`/` 由 87%/剩 16G → **62%/剩 46G**（净释放约 30G）。
+- 慢频资产清点无损：`node/lhb/raw` 549M、`node/blockmargin/raw` 2.1G、`node/lhb/csv` 265M、`node/blockmargin/csv` 816M、`stock-data` 889M；`e5.db` 301,318,144 B。
+- `sync_tdx_lhb.sh` 端到端试跑：Windows（100.84.28.40）当前**不在线/未放免密** → `result=SKIPPED`，**exit=0 不脏主链**。
+- 修补：脚本原仅在成功分支写 `last_lhb_sync.json`，SKIP 时留空文件；现改为两分支都写状态（SKIP 写 `result=SKIPPED`），试跑后文件 99 B 内容正确。
+- 定时器矩阵确认：`slowdata-lhb-sync` Sun 10:00 / Mon 07:30、`slowdata-catchup` Mon 08:00、`slowdata-collect` Mon–Fri 21:00。
+- 未做：三仓本地 commit 仍**未 push**（等老刘发话）。
