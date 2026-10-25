@@ -184,3 +184,15 @@
 - 修补：脚本原仅在成功分支写 `last_lhb_sync.json`，SKIP 时留空文件；现改为两分支都写状态（SKIP 写 `result=SKIPPED`），试跑后文件 99 B 内容正确。
 - 定时器矩阵确认：`slowdata-lhb-sync` Sun 10:00 / Mon 07:30、`slowdata-catchup` Mon 08:00、`slowdata-collect` Mon–Fri 21:00。
 - 未做：三仓本地 commit 仍**未 push**（等老刘发话）。
+
+## 2026-10-25 08:40 push 受阻与修复（GitHub 100MB 上限）
+
+- 老刘批准 push。tdx-node（2→含新修复共 3）、stock-selector-v2（1）直推成功。
+- stock-data 被拒：**`csv/lhb_seats.csv` 244.33MB > GitHub 单文件 100MB**（GH001 pre-receive hook）。
+- 否决 LFS：seats csv 每日一版（每版 ~244MB 新对象），免费 LFS 额度几天就爆。
+- 定案：**seats csv 撤出 git 归档**。它是 lhb_raw 的派生品，可由 raw 全量重建；canonical 副本留 `NODE/lhb/csv/lhb_seats.csv`。
+- 修复动作：
+  1. tdx-node `861d856`：csv_sync 排除 `lhb_seats.csv` + 自动清 STAGE 残留防复发；
+  2. stock-data 重写待推 2 commit 为 1 个（`16f5815`，soft reset→撤文件→MANIFEST csv 段剔除→force-with-lease），origin csv/ 现只剩 DATASET_META + lhb_daily_stock（21.5MB，增速 ~15KB/日，十几年内安全）；
+  3. 旧历史存 `backup/20261025-pre-rewrite` 分支。
+- 核验：`git fetch -q` 后 `status -sb` = `## main...origin/main`（0 ahead 0 behind）；origin csv/ 2 文件；MANIFEST csv 段 sha256 实核验 ALL_OK；新 commit 内 >100MB 文件 = 0。
