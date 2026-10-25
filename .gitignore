@@ -32,3 +32,6 @@ captures-archive/*
 !captures-archive/*.receipt.json
 !captures-archive/*.tar.sha256
 !captures-archive/DELETION-RECORD.md
+
+# Isolated harness incident probes contain copied private memory/context.
+.dsh-021-probe/
