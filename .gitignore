@@ -35,3 +35,4 @@ captures-archive/*
 
 # Isolated harness incident probes contain copied private memory/context.
 .dsh-021-probe/
+.context-budget/
