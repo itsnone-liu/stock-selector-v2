@@ -136,6 +136,26 @@
       "path": "docs/research/cfis/CF_IS_DIFFUSION_REVISION.md",
       "bytes": 2726,
       "sha256": "49ca9f30be3b6ba183fc2b2ba41a3e69ae4a57c92aaaf79c049fa70b7c1d4a04"
+    },
+    {
+      "path": "data/cfis/is2c_diffusion_features.csv",
+      "bytes": 51628,
+      "sha256": "390087ee5c172b8f3fbe3f2fa3b9251a34a06b3ccba4979cf80de83b2587ca8c"
+    },
+    {
+      "path": "data/cfis/is2c_diffusion_entries.csv",
+      "bytes": 27058,
+      "sha256": "9434557af0be657b9c2bb7b9a5236544b9999a1cb72926e4c2d3282e29dfd339"
+    },
+    {
+      "path": "data/cfis/is2c_diffusion_outcomes.csv",
+      "bytes": 108990,
+      "sha256": "8e8b237c69da3cbdf42d8f0da04467b6edc67893895ecea5ac1290659939a9d7"
+    },
+    {
+      "path": "docs/research/cfis/IS2C_DIFFUSION_SPEC_V1.md",
+      "bytes": 2827,
+      "sha256": "6c18fb1a24b802cdb64ce0c6bf5c837c4067bcf3cea9bb9915818a11b35ef1e0"
     }
   ],
   "overseas_expansion": {
@@ -193,5 +213,16 @@
     "months": 63,
     "targeted_tests": 135,
     "scope": "turnover proxy descriptive process, not net inflow or entry validation"
+  },
+  "independent_diffusion_v1": {
+    "common_eligible_weeks": 176,
+    "diffusion_entries": 2,
+    "amount_entries": 6,
+    "price_entries": 24,
+    "baseline_rows": 176,
+    "outcomes": 624,
+    "complete_outcomes": 408,
+    "targeted_tests": 159,
+    "judgment": "two same-phase diffusion entries insufficient; simultaneous rules miss 2024 sequence"
   }
 }
