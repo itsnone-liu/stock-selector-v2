@@ -1,7 +1,7 @@
 # CF-IS — 资金承接独立性研究进度记录
 
 - **项目代号**：CF-IS（Independent Support / Exit-Absorption / Cost-Band Defense-or-Pressure）
-- **状态**：Phase 1 完成（数据盘点 + 周频样表验证）；Phase 2 未开始。
+- **状态**：Phase 1 完成；Phase 2（IS-1 周频历史图景）进行中。
 - **模式**：Research-Only；不改写 CF-0、CF-1A/1B、CD-0～CD-7、CL 冻结合同，不接入交易权限。
 - **目标仓库**：`itsnone-liu/stock-selector-v2`
 - **实施方案来源**：用户提供的 `AC独立性研究实施方案_v1.md`，收到于 2026-10-29。
@@ -70,12 +70,12 @@
 episode 产物已 strip 成本字段，cost proxy 需按需从 daily_fullmarket+episode 区间重算；周表
 只取状态驻留与原始量，遵守 capital_weather aggregation=FORBIDDEN。
 
-### Phase 2 — 慢频描述性历史图景（IS-1/2，待开始）
+### Phase 2 — 慢频描述性历史图景（IS-1，进行中）
 
-- 将各层输入按周组织为并列观察轴，先保留原始量和方向描述，不先做总分或黑箱综合指数。
-- 选若干有代表性的市场阶段进行图表和案例整理，同时用一段连续全规则窗口检查观察是否只是故事挑选。
-- 可以试做轻量标签，例如“支持代理偏强/减弱 × 承接广/弱/混合”；标签用于叙述与汇总，不进入 CF 当前生产原子/Capital Weather。
-- 重点回答状态何时分化、何时同向、哪些组合常见、哪些输入根本无法匹配。
+- 全窗口周表已重建：`data/cfis/weekly_full_202201_202610.csv`（2022-W01→2026-W44，246 个有交易周；data/ 忽略，可脚本重建）。
+- 初版四层组合频次/分化形态/8 周规则分段/案例窗报告：`docs/research/cfis/IS1_WEEKLY_ATLAS.md`；图集脚本 `scripts/cfis/is1_weekly_atlas.py`。
+- 已修正 L4 周状态为周内众数、episode active 按真实 ISO 周界相交并单列 CENSORED；市场轴 eq_ret 仅作为等权成分日均涨跌幅代理并按复利聚合，非指数收益。
+- 后续：补真实指数基准、反例窗与数据截点核验；完成描述性结论后停止并报告用户，再决定 Phase 3。
 
 ### Phase 3 — 工程价值检查与简洁结论（IS-3，待 Phase 2 之后）
 
@@ -108,6 +108,5 @@ episode 产物已 strip 成本字段，cost proxy 需按需从 daily_fullmarket+
 
 ## 8. 当前下一步
 
-Phase 1 已交付（见上）。下一步进入 Phase 2：用 `scripts/cfis/is0_weekly_sample.py` 把周表跑满
-2022-01→2026-10（干跑已验证 246 周全对齐），做阶段标注与连续窗口检查，并选代表性行情段做
-案例整理。是否启动由用户决定。
+Phase 1 已交付；Phase 2 已启动。当前进展与停止点见 Phase 2 小节及
+`docs/research/cfis/IS1_WEEKLY_ATLAS.md`。完成补充反例/基准核验后报告并停止，等待用户决定是否进入 Phase 3。

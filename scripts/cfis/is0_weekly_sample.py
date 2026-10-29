@@ -62,12 +62,15 @@ def load_market_axes(start, end):
 
 
 def load_episodes(start, end):
-    """episode 生命期与周相交计数. 流式, 只要日期字段."""
-    p = os.path.join(ROOT, "data", "cd", "sector_axes", "backup_20261028", "l4_episodes.json.gz")
+    """episode 生命期与周相交计数. 优先 live 文件, 缺则用最新备份."""
+    cands = [
+        os.path.join(ROOT, "data", "cd", "l4_episodes.json.gz"),
+        os.path.join(ROOT, "data", "cd", "sector_axes", "backup_20261028", "l4_episodes.json.gz"),
+    ]
+    p = next((c for c in cands if os.path.exists(c)), cands[0])
     with gzip.open(p, "rt", encoding="utf-8") as fh:
         d = json.load(fh)
-    eps = d.get("episodes", [])
-    return eps
+    return d.get("episodes", [])
 
 
 def iso_week(datestr):
@@ -97,27 +100,35 @@ def main():
         for d in rows:
             weeks[iso_week(d)][d] = True
 
-    # episode 周相交
+    # episode 周相交(按每个实际观测周的真实日界)
+    from datetime import date, timedelta
     ep_new = Counter()
+    ep_new_by = defaultdict(Counter)
     ep_active = Counter()
+    ep_active_censored = Counter()
+    week_bounds = {}
+    for w, wd in weeks.items():
+        observed = sorted(wd)
+        y, wn = int(w[:4]), int(w[6:])
+        monday = date.fromisocalendar(y, wn, 1)
+        sunday = monday + timedelta(days=6)
+        # 周边界用于 interval intersection；统计日仍仅来自真实观测
+        week_bounds[w] = (monday.strftime("%Y%m%d"), sunday.strftime("%Y%m%d"))
     for e in eps:
         s = (e.get("start") or "").replace("-", "")
         t = (e.get("end") or "").replace("-", "")
         if not s:
             continue
         if start <= s <= end:
-            ep_new[iso_week(s)] += 1
-        if t:  # 已终结: 与生命期相交的周
-            cur = s
             wk = iso_week(s)
-            # 用周桶里已有的周界近似: 只统计样表周内相交
-            for w in weeks:
-                if w >= iso_week(s) and (not t or w <= iso_week(t)):
-                    ep_active[w] += 1
-        elif s <= end:  # 未终结且起点在窗口内
-            for w in weeks:
-                if w >= iso_week(s):
-                    ep_active[w] += 1
+            ep_new[wk] += 1
+            ep_new_by[wk][e.get("origin", "?")] += 1
+        # end 缺失视作仍活跃；闭区间与 ISO 周日历区间相交
+        for w, (ws, we) in week_bounds.items():
+            if s <= we and (not t or t >= ws):
+                ep_active[w] += 1
+                if e.get("terminal") == "CENSORED":
+                    ep_active_censored[w] += 1
 
     out_rows = []
     for w in sorted(weeks):
@@ -163,6 +174,8 @@ def main():
             "m_days": sum(1 for d in week_dates if d in m),
             # L4 情绪
             "l4_state": state_last(l4),
+            "l4_state_mode": (lambda c: c.most_common(1)[0][0] if c else "")(
+                Counter(l4[d].get("state") for d in week_dates if d in l4)),
             "l4_adv_mean": agg(l4, "advancers", "mean"),
             "l4_limitup_w": agg(l4, "limit_up", "sum"),
             "l4_amt_ratio": agg(l4, "amount_ratio20", "mean"),
@@ -171,11 +184,18 @@ def main():
             "ax_breadth": agg(ax, "breadth", "mean"),
             "ax_part": agg(ax, "part", "mean"),
             "ax_conc50": agg(ax, "conc50", "mean"),
+            "ax_eq_ret_w": (lambda vals: __import__('math').prod(1.0 + x for x in vals) - 1.0)(
+                [ax[d].get("eq_ret") for d in week_dates
+                 if d in ax and isinstance(ax[d].get("eq_ret"), (int, float))]),
             "ax_regime": (ax_regimes.most_common(1)[0][0] if ax_regimes else ""),
             "ax_days": sum(1 for d in week_dates if d in ax),
-            # L3 个股承接事件
+            # L3 个股承接事件(按 origin 分列: L=流动性触发/M=动能/S=结构)
             "ep_new_w": ep_new.get(w, 0),
+            "ep_new_L_w": ep_new_by[w].get("L", 0),
+            "ep_new_M_w": ep_new_by[w].get("M", 0),
+            "ep_new_S_w": ep_new_by[w].get("S", 0),
             "ep_active_w": ep_active.get(w, 0),
+            "ep_active_censored_w": ep_active_censored.get(w, 0),
         })
 
     out = args.out or os.path.join(
