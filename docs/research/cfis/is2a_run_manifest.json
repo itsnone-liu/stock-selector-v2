@@ -44,13 +44,18 @@
     },
     {
       "path": "docs/research/cfis/macro_events_seed.json",
-      "bytes": 11165,
-      "sha256": "0a787bf13845e00e1692156a88b2233687f823528caed82f623a096f27350136"
+      "bytes": 12518,
+      "sha256": "374fb373bee48bfa00e9e3bb02b6519d98c9e28be0673011be7e1e0e2d13f841"
     },
     {
       "path": "data/cfis/is2a_event_windows.csv",
-      "bytes": 797272,
-      "sha256": "224cd576433b4630fed949c4c572ab4e1e26f5423a788d1abe0d7a78bd260bde"
+      "bytes": 832801,
+      "sha256": "ddd5c92a9f30a3c94477caec4a7989792429226a56829625533b119eb51b2f17"
+    },
+    {
+      "path": "data/cfis/is2b_event_timeline.csv",
+      "bytes": 9468,
+      "sha256": "7cf972fb097f0b3fc214b0404353ebd33233318a3a84673d3f348135437e7c13"
     }
   ],
   "overseas_expansion": {
@@ -58,5 +63,13 @@
     "clusters": 9,
     "window_rows": 215,
     "purpose": "source/window plumbing only, overlapping purposive sample"
+  },
+  "timeline_expansion": {
+    "events": 11,
+    "clusters": 9,
+    "timeline_rows": 11,
+    "post4_available": 9,
+    "post4_index_available": 7,
+    "tests": 47
   }
 }

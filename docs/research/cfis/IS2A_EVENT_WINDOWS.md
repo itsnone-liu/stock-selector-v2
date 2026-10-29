@@ -22,9 +22,9 @@
 ## 覆盖与完整窗
 
 - 周表：2022-W01 .. 2026-W44，246 个观测交易周。
-- 台账事件 10 个；去重后 cluster 窗 9 个；完整窗 9 个。
-- 事件类型（源条目）：{'capital_market_policy': 1, 'monetary_liquidity': 1, 'joint_monetary_capital_market_policy': 1, 'fed_monetary_policy': 3, 'trade_escalation': 1, 'trade_deescalation': 1, 'geopolitical_escalation': 1, 'geopolitical_deescalation': 1}
-- 证据状态（源条目）：{'official_document_date_verified_exact_release_time_unknown': 1, 'government_republication_verified_original_intraday_timing_unverified': 1, 'official_transcript_verified_conservative_transcript_availability': 1, 'official_statement_release_time_verified': 3, 'official_final_announcement_date_verified_clock_unknown': 1, 'joint_statement_reproduced_by_xinhua_timestamp_verified': 1, 'xinhua_report_verified_not_independent_battlefield_assessment': 1, 'un_official_reaction_verified_not_ceasefire_compliance_confirmation': 1}
+- 台账事件 11 个；去重后 cluster 窗 9 个；完整窗 9 个。
+- 事件类型（源条目）：{'capital_market_policy': 1, 'monetary_liquidity': 1, 'joint_monetary_capital_market_policy': 1, 'fed_monetary_policy': 3, 'trade_escalation': 2, 'trade_deescalation': 1, 'geopolitical_escalation': 1, 'geopolitical_deescalation': 1}
+- 证据状态（源条目）：{'official_document_date_verified_exact_release_time_unknown': 1, 'government_republication_verified_original_intraday_timing_unverified': 1, 'official_transcript_verified_conservative_transcript_availability': 1, 'official_statement_release_time_verified': 3, 'official_final_announcement_date_verified_clock_unknown': 1, 'joint_statement_reproduced_by_xinhua_timestamp_verified': 1, 'xinhua_report_verified_not_independent_battlefield_assessment': 1, 'un_official_reaction_verified_not_ceasefire_compliance_confirmation': 1, 'official_notice_reproduced_cctv_timestamp_verified': 1}
 
 |cluster / representative|event ISO week|PRE|POST|状态|合并条目数|
 |---|---|---:|---:|---|---:|
@@ -33,7 +33,7 @@
 |CN_MONETARY_PACKAGE_20240124 / CN_RRR_20240124|2024-W04|8|12|COMPLETE|1|
 |MIDEAST_CONFLICT_JUNE2025 / US_IRAN_STRIKES_REPORTED_20250623|2025-W26|8|12|COMPLETE|2|
 |US_CHINA_301_REVIEW_2024 / US_CHINA_301_FINAL_20240913|2024-W37|8|12|COMPLETE|1|
-|US_CHINA_GENEVA_202505 / US_CHINA_GENEVA_20250512|2025-W20|8|12|COMPLETE|1|
+|US_CHINA_TRADE_CHAIN_2025 / CN_US_TARIFF_RESPONSE_20250404|2025-W14|8|12|COMPLETE|2|
 |US_FOMC_20220921 / US_FOMC_20220921|2022-W38|8|12|COMPLETE|1|
 |US_FOMC_20230614 / US_FOMC_20230614|2023-W24|8|12|COMPLETE|1|
 |US_FOMC_20240918 / US_FOMC_20240918|2024-W38|8|12|COMPLETE|1|

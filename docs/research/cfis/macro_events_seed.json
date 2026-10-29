@@ -122,11 +122,12 @@
       "published_at": "2025-05-12T15:00:54+08:00",
       "first_usable_at": "2025-05-12T15:00:54+08:00",
       "effective_at": "2025-05-14",
-      "event_cluster_id": "US_CHINA_GENEVA_202505",
+      "event_cluster_id": "US_CHINA_TRADE_CHAIN_2025",
       "evidence_status": "joint_statement_reproduced_by_xinhua_timestamp_verified",
       "source_excerpt": "双方承诺将于2025年5月14日前采取以下举措；24%的关税在初始的90天内暂停实施，保留10%。",
       "timing_note": "Retrieved article timestamp is after A-share close; not usable for May12 closing entry. effective_at represents implementation deadline, not exact common effective clock.",
-      "effective_at_semantics": "implementation deadline per statement, not precise execution time"
+      "effective_at_semantics": "implementation deadline per statement, not precise execution time",
+      "parent_chain_id": "US_CHINA_TRADE_CHAIN_2025"
     },
     {
       "event_id": "US_IRAN_STRIKES_REPORTED_20250623",
@@ -155,6 +156,22 @@
       "source_excerpt": "The President welcomes the announcement by President Trump of a ceasefire between Israel and Iran.",
       "timing_note": "Date-only New York briefing; conservative EDT day-end bound. Confirms official reaction to announced Israel-Iran ceasefire, NOT US-Iran bilateral ceasefire or verified compliance. Same conflict cluster: retained as transition, not independent window or known at earlier strike anchor.",
       "effective_at_semantics": "UN reaction date; ceasefire effective clock unverified"
+    },
+    {
+      "event_id": "CN_US_TARIFF_RESPONSE_20250404",
+      "title": "税委会公告2025年第4号：宣布对美进口商品加征34%关税",
+      "event_type": "trade_escalation",
+      "source_url": "https://jingji.cctv.com/2025/04/04/ARTI2CZBX7BfWBAIBnId3veR250404.shtml",
+      "published_at": "2025-04-04T18:09:00+08:00",
+      "first_usable_at": "2025-04-04T18:09:00+08:00",
+      "effective_at": "2025-04-10T12:01:00+08:00",
+      "event_cluster_id": "US_CHINA_TRADE_CHAIN_2025",
+      "evidence_status": "official_notice_reproduced_cctv_timestamp_verified",
+      "source_excerpt": "税委会公告2025年第4号：自2025年4月10日12时01分起，对原产于美国的所有进口商品，在现行适用关税税率基础上加征34%关税。",
+      "timing_note": "Announcement is Apr4 holiday; public availability does not imply tradability. This is original notice, not proof terms remained unchanged until Apr10; subsequent escalation notices not yet catalogued. US Apr2 announcement mentioned retrospectively is not encoded as separately time-verified event.",
+      "effective_at_semantics": "scheduled effective time in original notice, subject to later changes",
+      "scheduled_not_final_effective": true,
+      "parent_chain_id": "US_CHINA_TRADE_CHAIN_2025"
     }
   ]
 }
