@@ -76,6 +76,26 @@
       "path": "docs/research/cfis/IS2B_NODE_SPEC_V1.md",
       "bytes": 3828,
       "sha256": "b055bf8fd203ab75848faafab5c34639d122a283cf331c2f6970d2cf36f1786e"
+    },
+    {
+      "path": "data/cfis/is2b_episode_trace.csv",
+      "bytes": 20245,
+      "sha256": "769d57aa2a9a50798d3242ecd51ae6da952f9cb989faf473abc1f8b1f5e6ae7e"
+    },
+    {
+      "path": "data/cfis/is2b_episode_summary.csv",
+      "bytes": 2094,
+      "sha256": "ade486b9e679d3166314739be540604bdd980a90641d6420ab2a76d4ad69cf1d"
+    },
+    {
+      "path": "data/cfis/is2b_coverage_diagnostic.csv",
+      "bytes": 74964,
+      "sha256": "4c684deb21ca3020d8091a64d04cdd2144ffcc1cb3d70ee668c3b3fdf259077b"
+    },
+    {
+      "path": "docs/research/cfis/IS2B_COVERAGE_DIAGNOSTIC_SPEC.md",
+      "bytes": 1434,
+      "sha256": "493ebe250f9ef89e516e127535347f28f6f824dc9a3b10a3afec1de00a97d54d"
     }
   ],
   "overseas_expansion": {
@@ -104,5 +124,17 @@
     "complete_outcomes": 29,
     "targeted_tests": 82,
     "scope": "exploratory market timing candidates, not strategy"
+  },
+  "episode_audit_and_coverage": {
+    "episode_count": 6,
+    "loss": 4,
+    "expired": 2,
+    "known_weeks": 194,
+    "complete_4w": 179,
+    "rally_label_weeks": 33,
+    "adjacent_runs_not_independent": 13,
+    "rally_active": 3,
+    "rally_none": 30,
+    "targeted_tests": 99
   }
 }

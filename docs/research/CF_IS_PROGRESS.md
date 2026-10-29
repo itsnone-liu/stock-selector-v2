@@ -169,3 +169,14 @@ Phase 1 已交付；Phase 2 已启动。当前进展与停止点见 Phase 2 小�
 - 下一步核对6轮episode的持续/失效路径与未触发时期，补日历及宏观连续背景，固定对照方案后再评估增量；未进入Phase3或生产接入。
 
 复现：`python3 scripts/cfis/is2b_candidate_nodes.py` → `python3 scripts/cfis/is2b_node_outcomes.py` → `python3 scripts/cfis/is2b_node_report.py`。
+
+## 15. Phase 2B 路径审计与未触发覆盖诊断
+
+- 本批不修改A/B/C规则与阈值。逐周重放与原节点表精确核对，区分LOSS、EXPIRED、RIGHT_CENSORED；状态失效不是已执行止损，失效后上涨不改称原候选有效。
+- 六轮episode为4轮LOSS、2轮12观测周到期；2024-W29候选在W34已失效，9月上涨不能拿来证明7月候选持续有效。
+- 另按固定后验4周上涨>=5%标签检查全部当时已知周，不只看已触发A；未来标签只在诊断输出，缺失/删失不标未涨，重叠标签不当独立样本。
+- 后续优先级见`cfis/IS2B_NEXT_COMPARISON.md`，先补日历与宏观连续背景证据，不用小样本调规则凑好看。
+
+- 覆盖诊断实跑194已知周/179完整4周结果/33个+5%标签周（13相邻run但非独立事件），3个标签周在已有episode内、30个无活跃episode。不得称全部漏掉，也不把3个计成独立成功episode。
+- 99项CF-IS针对性测试通过；暂定A v1仅窄口径压力缓和候选，覆盖不足，不作通用底部入口。报告：`cfis/IS2B_EPISODE_AUDIT.md`、`cfis/IS2B_COVERAGE_DIAGNOSTIC.md`。
+- 复现：`python3 scripts/cfis/is2b_episode_audit.py` 和 `python3 scripts/cfis/is2b_coverage_diagnostic.py`；无需重建核心周表或修改原规则。
