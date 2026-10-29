@@ -1,0 +1,137 @@
+{
+  "project": "CF-IS",
+  "phase": "IS-0 data matching",
+  "generated": "2026-10-29",
+  "weekly_table_builder": "scripts/cfis/is0_weekly_sample.py",
+  "weekly_sample": "data/cfis/weekly_sample_202401_202412.csv",
+  "pit_check": {"rule": "available_at >= date", "violations": 0},
+  "aggregation_policy": "capital_weather aggregation=FORBIDDEN: weekly table uses state dwell (last/mode) and raw-metric mean/sum only, no weighted composite",
+  "sources": [
+    {
+      "layer": "L1", "role": "primary",
+      "path": "data/cf/derived/atoms/l1_history.jsonl",
+      "coverage": ["2012-01-04", "2026-10-27"], "rows": 3595, "granularity": "daily x market",
+      "fields": {"state": "INSUFFICIENT_SUPPORT|NORMAL|WATCH|NORMALIZING|STABILIZATION_READY|STABILIZATION_ACTIVE", "family_median_delta": "median of family share day-over-day relative change (dimensionless)", "families_observed": "int, <3 => INSUFFICIENT", "available_at": "{date}+1 conservative"},
+      "state_counts": {"NORMAL": 1309, "WATCH": 979, "NORMALIZING": 392, "STABILIZATION_READY": 338, "INSUFFICIENT_SUPPORT": 296, "STABILIZATION_ACTIVE": 281},
+      "weekly_key": "ISO week", "weekly_agg": {"state": "last valid", "family_median_delta": "mean"},
+      "family_definition": "docs/cf/cf1a_probes/l1_broad_etf_universe_v1.json (7 families / 20 patterns, dynamic membership, natural PIT)",
+      "generator": "src/stock_selector/cf/atoms.py replay_l1 via scripts/cf/run_atoms.py"
+    },
+    {
+      "layer": "L1", "role": "raw-detail",
+      "path": "data/cf/raw/sse_etf_scale/",
+      "coverage": ["2012-01-04", "2026-10-15"], "valid_days": 3587, "empty_days": 272,
+      "granularity": "daily x fund", "units": {"基金份额": "份"},
+      "keys": ["统计日期", "基金代码"], "duplicates": 0
+    },
+    {
+      "layer": "L1", "role": "raw-detail",
+      "path": "data/cf/raw/szse_etf_scale/",
+      "coverage": ["2016-12-01", "2026-10-15"], "unique_days": 2395, "rows": 585984,
+      "granularity": "daily x fund", "units": {"基金份额": "份"},
+      "keys": ["日期", "基金代码"], "duplicates": 0, "gaps": "no trading-day gaps (all calendar gaps are weekends/holidays)",
+      "note": "full two-market family coverage starts 2016-12"
+    },
+    {
+      "layer": "M", "role": "primary",
+      "path": "data/cf/derived/atoms/m_history.jsonl",
+      "coverage": ["2018-01-02", "2026-10-27"], "rows": 2137, "granularity": "daily x market",
+      "fields": {"state": "NEUTRAL|DELEVERAGING|DELEVERAGING_ACCELERATING|LEVERAGE_BUILDING|DELEVERAGED|INSUFFICIENT_SUPPORT", "financing_balance_pressure": "float", "financing_flow": "daily financing net flow in CNY yuan"},
+      "weekly_key": "ISO week", "weekly_agg": {"financing_flow": "sum", "state": "last valid"}
+    },
+    {
+      "layer": "M", "role": "raw",
+      "path": "data/cf/raw/sse_margin/",
+      "coverage": ["2018-01-02", "2026-10-15"], "unique_days": 2129,
+      "granularity": "daily x SSE market aggregate", "units": "CNY yuan",
+      "key": "信用交易日期", "note": "overlapping summary files verified identical values"
+    },
+    {
+      "layer": "M", "role": "raw",
+      "path": "data/cf/raw/szse_margin/",
+      "coverage": ["2018-01-02", "2026-10-15"], "unique_days": 2129,
+      "granularity": "daily x SZSE market aggregate", "units": "CNY 亿元 (x1e8 -> yuan, code evidence src/stock_selector/cf/atoms.py:60)",
+      "key": "filename date", "note": "non-empty date set identical to SSE margin (symmetric difference 0); union usable as 2018-2026 margin trading calendar"
+    },
+    {
+      "layer": "L4", "role": "primary",
+      "path": "data/cf/derived/atoms/l4_history.jsonl",
+      "coverage": ["2021-08-02", "2026-10-28"], "rows": 1268, "granularity": "daily x market",
+      "fields": {"state": "PANIC|APATHY|RECOVERY|FOMO|EUPHORIA|CAPITULATION|INSUFFICIENT_SUPPORT", "advancers": "float", "limit_up": "float", "advancers_percentile": "0-1", "amount_ratio20": "float"},
+      "state_counts": {"APATHY": 422, "FOMO": 260, "RECOVERY": 244, "PANIC": 241, "INSUFFICIENT_SUPPORT": 60, "EUPHORIA": 31, "CAPITULATION": 10},
+      "underlying": "TDX 880005/880006 advancers/decliners & limit-up counts",
+      "weekly_key": "ISO week", "weekly_agg": {"limit_up": "sum", "advancers": "mean", "amount_ratio20": "mean", "state": "last valid"}
+    },
+    {
+      "layer": "L4", "role": "optional-detail",
+      "path": "data/r2/e5/csv/lhb_daily_stock.csv",
+      "coverage": ["2021-01-04", "2026-10-28"], "rows": 98419, "trading_days": 1406,
+      "granularity": "daily x stock (+seats file)", "units": "CNY yuan (STAR board raw 万元 already x10000)",
+      "pit_field": "available_at", "keys": ["trade_date", "code"],
+      "note": "not in v0 weekly table; Phase 2 case layer candidate"
+    },
+    {
+      "layer": "L3-market", "role": "primary",
+      "path": "data/cd/sector_axes/l1_market_axes.json.gz",
+      "coverage": ["2022-01-13", "2026-10-27"], "rows": 1157, "granularity": "daily x market",
+      "fields": ["date", "eq_ret", "breadth", "vol", "conc50", "disp", "ret20d", "part", "trend", "regime", "b_conc", "b_disp", "b_part"],
+      "weekly_key": "ISO week", "weekly_agg": {"breadth/part/conc50": "mean", "regime": "mode"}
+    },
+    {
+      "layer": "L3-sector", "role": "alternate",
+      "path": "data/cd/sector_axes/l2_four_axes.json.gz (+ l2_state_table.json.gz)",
+      "coverage": ["2021-01-04", "2026-10-27"], "rows": 116781, "granularity": "daily x 83 l2 sectors",
+      "status_field": "OK|INSUFFICIENT_PARTICIPATION|NO_TRADING_MEMBERS (numeric fields only on OK rows)",
+      "keys": ["l2", "date"], "note": "sector panel starts one year before market axes; enables 2021-01 dense window if sector granularity adopted"
+    },
+    {
+      "layer": "L3-pool", "role": "alternate",
+      "path": "data/cd/sector_axes/l3_candidate_pool_v2.json.gz",
+      "coverage": ["2021-06-30", "2026-10-27"], "snapshots": 65, "granularity": "monthly x pool",
+      "note": "monthly frequency; use last month-end <= week_end if ever needed"
+    },
+    {
+      "layer": "L3-episodes", "role": "primary",
+      "path": "data/cd/l4_episodes.json.gz (live; sector_axes/backup_20261028/ = 30296)",
+      "coverage": ["2021-04-06", "2026-10-28"], "episodes": 30312, "stocks": 5341,
+      "granularity": "event x stock", "keys": ["episode_id (=stock#ord, unique)", "stock", "l2", "start/end interval"],
+      "terminal_counts": {"INACTIVE_TERMINATION": 25636, "CENSORED": 3764, "STRUCTURAL_FAILURE": 912},
+      "origin_counts": {"M": 20532, "L": 5712, "S": 4068},
+      "weekly_key": "ISO week", "weekly_agg": {"ep_new_w": "count starts in week", "ep_active_w": "count intervals intersecting week (CENSORED treated open)"},
+      "warning": "cost fields stripped before write; recompute from daily_fullmarket + episode ranges via scripts/cl_r2_avwap_*.py"
+    },
+    {
+      "layer": "L3-stocks", "role": "recompute-base",
+      "path": "data/cd/daily_fullmarket/",
+      "coverage": ["2021-01-04", "2026-10-28"], "stocks": 5430,
+      "granularity": "daily x stock", "fields": ["unadj (date,o,h,l,c,vol in 手)", "qfq", "adjust_factor_model_derived"],
+      "declared_gaps": ["amount", "turnover_rate", "free_float_market_cap", "st_flag"],
+      "keys": ["code", "date"], "note": "do not use amount; cost proxy (P25 volume-weighted TP band, anchored AVWAP) must be recomputed here"
+    },
+    {
+      "layer": "L2", "role": "case-annotation-only",
+      "path": "data/csr8_national_capital/raw/",
+      "children": {
+        "holdings": "84 stocks x 22 quarter-ends 2021Q1-2026Q2, top-10 float holders, HOLD_NUM in shares, 1798 non-empty + 50 empty",
+        "publication_dates": "per-stock sina report_date lists -> PIT publication week keys",
+        "etf_shares": "redundant SSE-only (万份), 2021-03-01..2026-09-18, NOT used"
+      },
+      "note": "no L2 atom exists in atoms system; quarterly disclosure lag forbids weekly current-state use"
+    },
+    {
+      "layer": "rejected",
+      "items": [
+        {"path": "data/cl_radar/r6_equityflow/", "reason": "ETF jsonl only 14 dates (2026-10); margin jsonl only from 2026-01 — recent window, not historical"},
+        {"path": "data/r2/shadow/breadth_history.jsonl", "reason": "14 unique days, duplicate same-day rows, operator-fed incremental log"},
+        {"path": "data/cl_radar/r3_effort_result/, r2_avwap/", "reason": "84-stock pilot aggregate statistics only, no per-stock daily series on disk"}
+      ]
+    }
+  ],
+  "join_window": {
+    "dense_four_layer": ["2022-01-13", "now"],
+    "two_layer_background_L1_M": ["2018-01-02", "2022-01-12"],
+    "L1_only_pre2018": ["2012-01-04", "2017-12-31"],
+    "sector_panel_alternative_from": "2021-01-04 (if l2 granularity adopted)"
+  },
+  "date_format_pitfalls": {"cd/cl_radar": "YYYY-MM-DD", "atoms": "YYYYMMDD", "r4_per_stock_code": "prefixed (sz.000078) vs bare 6-digit elsewhere"}
+}
