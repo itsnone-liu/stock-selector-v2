@@ -1,0 +1,51 @@
+{
+  "purpose": "Phase 2A run snapshot; live data may advance; not a frozen prediction panel",
+  "window": [
+    "20220101",
+    "20261028"
+  ],
+  "weekly_rows": 246,
+  "availability_unknown_weeks": 3,
+  "files": [
+    {
+      "path": "data/cf/derived/atoms/l1_history.jsonl",
+      "bytes": 818085,
+      "sha256": "698e90641c8ae02e9adcb53df517c7c46c45561b191ed5227cbdbf690946365d"
+    },
+    {
+      "path": "data/cf/derived/atoms/m_history.jsonl",
+      "bytes": 594481,
+      "sha256": "241e8ee09742ca7b18563cb558a089ff149a4f711ccc4f996bbe13089c3c9371"
+    },
+    {
+      "path": "data/cf/derived/atoms/l4_history.jsonl",
+      "bytes": 270486,
+      "sha256": "ae8bf074db5da10624621fc361983bbd0a6db2aa4be6257d4b48475137545551"
+    },
+    {
+      "path": "data/cd/sector_axes/l1_market_axes.json.gz",
+      "bytes": 47933,
+      "sha256": "2eb5b06fc9b592c3c3d3b4df256585b57ffaf5cd98ab084415ceefa5e72c4cc3"
+    },
+    {
+      "path": "data/cd/l4_episodes.json.gz",
+      "bytes": 779359,
+      "sha256": "1b7464b330adec0dde7f2946b6adf3705e90cdee7048c54ccc931b67f8a9ebb9"
+    },
+    {
+      "path": "docs/phase_i/evidence/market_index_000985.json",
+      "bytes": 154782,
+      "sha256": "046ca5ad1d3321a12ae16b5702622717eef1b685a2efb3496581225ca0ad23df"
+    },
+    {
+      "path": "docs/research/cfis/macro_events_seed.json",
+      "bytes": 3209,
+      "sha256": "6bee50bc3c8efc608a2d8b1178aedbf0a8d25e2fdc4200144e3e72692e4f5095"
+    },
+    {
+      "path": "data/cfis/weekly_full_202201_202610.csv",
+      "bytes": 315743,
+      "sha256": "607c05252eacf6fb708dc2a5c28bcfd2bcc81b8601ff15eef2c85ef86c8842f8"
+    }
+  ]
+}

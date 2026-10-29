@@ -15,6 +15,8 @@
 import argparse
 import csv
 import os
+import math
+from datetime import date
 from collections import Counter
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
@@ -22,7 +24,8 @@ ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 
 def fnum(x):
     try:
-        return float(x)
+        value = float(x)
+        return value if math.isfinite(value) else None
     except (TypeError, ValueError):
         return None
 
@@ -51,16 +54,50 @@ def l4_label(state):
     return state or "?"
 
 
+def complete_return(rows, start, k):
+    seg = rows[start:start + k]
+    if len(seg) != k or k <= 0:
+        return None
+    if any(_week_gap(a["week"], b["week"]) != 1 for a, b in zip(seg, seg[1:])):
+        return None
+    values = [fnum(r.get("ax_eq_ret_w")) for r in seg]
+    if any(x is None for x in values):
+        return None
+    return math.prod(1.0 + x for x in values) - 1.0
+
+
 def fwd_paths(rows, idxs, k=4):
-    """给定周下标, 返回其后 k 周累计 EW 收益列表(描述性路径, 非验证)."""
+    """Full contiguous future observation weeks only; descriptive, not executable."""
     out = []
     for i in idxs:
-        seg = [fnum(r["ax_eq_ret_w"]) or 0.0 for r in rows[i + 1:i + 1 + k]]
-        acc = 1.0
-        for x in seg:
-            acc *= 1.0 + x
-        out.append(acc - 1.0)
+        if i < 0 or i >= len(rows) or i + 1 >= len(rows):
+            continue
+        if _week_gap(rows[i]["week"], rows[i + 1]["week"]) != 1:
+            continue
+        value = complete_return(rows, i + 1, k)
+        if value is not None:
+            out.append(value)
     return out
+
+
+def rolling_returns(rows, k=8):
+    """Require k consecutive ISO calendar weeks, not k available trading weeks."""
+    return [complete_return(rows, i - k + 1, k) if i >= k - 1 else None
+            for i in range(len(rows))]
+
+
+def phase(x):
+    if x is None:
+        return "INSUFFICIENT8"
+    if x >= 0.10:
+        return "SURGE8"
+    if x <= -0.10:
+        return "DECLINE8"
+    if x >= 0.03:
+        return "UPTREND8"
+    if x <= -0.03:
+        return "DOWNTREND8"
+    return "CHOP8"
 
 
 def l3_label(breadth):
@@ -78,7 +115,14 @@ def main():
     ap.add_argument("--csv", default=os.path.join(ROOT, "data", "cfis",
                                                   "weekly_full_202201_202610.csv"))
     args = ap.parse_args()
-    rows = list(csv.DictReader(open(args.csv, encoding="utf-8")))
+    with open(args.csv, encoding="utf-8") as fh:
+        rows = list(csv.DictReader(fh))
+    if not rows:
+        ap.error("empty weekly CSV")
+    if any(_week_gap(a["week"], b["week"]) <= 0 for a, b in zip(rows, rows[1:])):
+        ap.error("weeks must be unique and increasing")
+    print("时间口径: 观察周不是周五可交易信号; assessment_at 为下周一保守评估下限，"
+          "usable_at 仅为 atoms 保守代理+axes收盘假设，非PIT证明; episodes/regime 为回顾性探索。")
 
     for r in rows:
         r["l1_lab"] = l1_label(r["l1_state"], fnum(r["l1_fam_delta_w"]))
@@ -139,24 +183,7 @@ def main():
                   f"{paths[3*len(paths)//4]:+.1%}, min {paths[0]:+.1%}, max {paths[-1]:+.1%}")
 
     # ---- 5) 规则分段(8 周滚动累计收益, 阈值先验) ----
-    rets = [fnum(r["ax_eq_ret_w"]) or 0.0 for r in rows]
-    roll8 = []
-    for i in range(n):
-        seg = rets[max(0, i - 7):i + 1]
-        acc = 1.0
-        for x in seg:
-            acc *= (1.0 + x)
-        roll8.append(acc - 1.0)
-    def phase(x):
-        if x >= 0.10:
-            return "SURGE8"
-        if x <= -0.10:
-            return "DECLINE8"
-        if x >= 0.03:
-            return "UPTREND8"
-        if x <= -0.03:
-            return "DOWNTREND8"
-        return "CHOP8"
+    roll8 = rolling_returns(rows)
     for i, r in enumerate(rows):
         r["phase8"] = phase(roll8[i])
     print("\n== 8 周滚动分段占比 ==")
@@ -188,17 +215,19 @@ def main():
                   f"{r['l3_lab']:<6s}{er}{br}{int(float(r['ep_new_w'])):7d}{fl}")
 
     # 自动: 最大 8 周滚动涨幅窗 / 最大跌幅窗 / 最长 STRENGTHEN×REDUCE 连段
-    i_max = max(range(n), key=lambda i: roll8[i])
-    i_min = min(range(n), key=lambda i: roll8[i])
-    window(f"最大8周上行(峰值 {roll8[i_max]:+.1%})", max(0, i_max - 5), min(n - 1, i_max))
-    window(f"最大8周下行(谷值 {roll8[i_min]:+.1%})", max(0, i_min - 5), min(n - 1, i_min))
+    valid8 = [i for i, value in enumerate(roll8) if value is not None]
+    if valid8:
+        i_max = max(valid8, key=lambda i: roll8[i])
+        i_min = min(valid8, key=lambda i: roll8[i])
+        window(f"最大8周上行(峰值 {roll8[i_max]:+.1%})", i_max - 7, i_max)
+        window(f"最大8周下行(谷值 {roll8[i_min]:+.1%})", i_min - 7, i_min)
 
     # 最长连段: STRENGTHEN 且 REDUCE
     best = (0, 0, 0)
     run = 0
     for i, r in enumerate(rows):
         if r["l1_lab"] == "STRENGTHEN" and r["m_lab"] == "REDUCE":
-            run += 1
+            run = run + 1 if i == 0 or _week_gap(rows[i-1]["week"], r["week"]) == 1 else 1
             if run > best[0]:
                 best = (run, i - run + 1, i)
         else:
@@ -213,9 +242,9 @@ def main():
 
 
 def _week_gap(a, b):
-    ya, wa = int(a[:4]), int(a[6:])
-    yb, wb = int(b[:4]), int(b[6:])
-    return (yb - ya) * 52 + (wb - wa)
+    da = date.fromisocalendar(int(a[:4]), int(a[6:]), 1)
+    db = date.fromisocalendar(int(b[:4]), int(b[6:]), 1)
+    return (db - da).days // 7
 
 
 if __name__ == "__main__":

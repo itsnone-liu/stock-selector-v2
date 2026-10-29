@@ -1,0 +1,47 @@
+{
+  "schema_version": "cfis_macro_seed_v1",
+  "coverage_status": "seed_not_exhaustive",
+  "selection_policy": "Three known policy episodes used only to test data plumbing; purposive, outcome-aware exploratory selection, not an unbiased event census. No adverse-event or no-event claims.",
+  "timezone": "Asia/Shanghai",
+  "events": [
+    {
+      "event_id": "CN_STAMP_TAX_20230827",
+      "title": "证券交易印花税自8月28日起减半征收",
+      "event_type": "capital_market_policy",
+      "source_url": "https://www.gov.cn/zhengce/zhengceku/202308/content_6900443.htm",
+      "published_at": "2023-08-27",
+      "first_usable_at": "2023-08-28T09:30:00+08:00",
+      "effective_at": "2023-08-28",
+      "event_cluster_id": "CN_CAPITAL_MARKET_PACKAGE_20230827",
+      "evidence_status": "official_document_date_verified_exact_release_time_unknown",
+      "source_excerpt": "自2023年8月28日起，证券交易印花税实施减半征收。财政部 税务总局 2023年8月27日",
+      "timing_note": "Sunday announcement; next-session research anchor, not an executable fill price. Simultaneous policy package is one cluster; other components not yet catalogued."
+    },
+    {
+      "event_id": "CN_RRR_20240124",
+      "title": "1月24日宣布2月5日降准0.5个百分点",
+      "event_type": "monetary_liquidity",
+      "source_url": "https://jrj.beijing.gov.cn/jrgzdt/202401/t20240125_3544868.html",
+      "published_at": "2024-01-25",
+      "first_usable_at": "2024-01-26T09:30:00+08:00",
+      "effective_at": "2024-02-05",
+      "event_cluster_id": "CN_MONETARY_PACKAGE_20240124",
+      "evidence_status": "government_republication_verified_original_intraday_timing_unverified",
+      "source_excerpt": "潘功胜1月24日宣布，中国人民银行将于2月5日下调存款准备金率0.5个百分点，向市场提供长期流动性约1万亿元。来源：新华社；网页时间2024-01-25。",
+      "timing_note": "Conservative availability uses next session after retrieved dated government republication. Actual announcement was Jan24; do not interpret Jan26 as economic event time. Timing must be improved before daily event inference."
+    },
+    {
+      "event_id": "CN_FINANCIAL_BRIEFING_20240924",
+      "title": "9月24日金融支持经济高质量发展发布会",
+      "event_type": "joint_monetary_capital_market_policy",
+      "source_url": "https://www.gov.cn/lianbo/fabu/202409/content_6976186.htm",
+      "published_at": "2024-09-24T18:51:00+08:00",
+      "first_usable_at": "2024-09-25T09:30:00+08:00",
+      "effective_at": "2024-09-24",
+      "event_cluster_id": "CN_FINANCIAL_PACKAGE_20240924",
+      "evidence_status": "official_transcript_verified_conservative_transcript_availability",
+      "source_excerpt": "国务院新闻办公室于2024年9月24日（星期二）上午9时举行新闻发布会。网页发布时间2024-09-24 18:51。",
+      "timing_note": "Briefing starts 09:00 but individual announcement times are not encoded. Use next-session availability of retrieved transcript, not 09:00 for entire package. effective_at denotes briefing date, not uniform policy implementation; components have different implementation dates."
+    }
+  ]
+}

@@ -19,6 +19,9 @@ import gzip
 import json
 import os
 from collections import Counter, defaultdict
+from datetime import date, datetime, timedelta
+import math
+import re
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 ATOMS = os.path.join(ROOT, "data", "cf", "derived", "atoms")
@@ -73,11 +76,70 @@ def load_episodes(start, end):
     return d.get("episodes", [])
 
 
+def normalize_date(value):
+    """Accept only YYYYMMDD / YYYY-MM-DD, validate actual calendar dates."""
+    if not re.fullmatch(r"(?:\d{8}|\d{4}-\d{2}-\d{2})", value):
+        raise ValueError(f"invalid date: {value!r}")
+    return datetime.strptime(value.replace("-", ""), "%Y%m%d").strftime("%Y%m%d")
+
+
 def iso_week(datestr):
-    from datetime import date
-    y, m, dd = int(datestr[:4]), int(datestr[4:6]), int(datestr[6:8])
-    iso = date(y, m, dd).isocalendar()
+    iso = datetime.strptime(normalize_date(datestr), "%Y%m%d").date().isocalendar()
     return f"{iso[0]}-W{iso[1]:02d}"
+
+
+def compound_returns(values):
+    """Decimal returns, no rounding or missing-to-zero imputation."""
+    values = list(values)
+    if not values or any(not isinstance(x, (int, float)) or isinstance(x, bool)
+                         or not math.isfinite(x) for x in values):
+        return ""
+    return math.prod(1.0 + x for x in values) - 1.0
+
+
+def availability_bound(value):
+    """Preserve raw strings elsewhere; conservative end-of-day upper bounds.
+
+    '+1' is NOT evidence of a trading session/publication clock. Use next
+    calendar day EOD; the weekly assessment floor is following Monday.
+    Unknown formats remain unknown rather than being guessed.
+    """
+    if not isinstance(value, str):
+        return None
+    match = re.fullmatch(r"(\d{8})(\+1 conservative| evening)", value)
+    if not match:
+        return None
+    try:
+        day = datetime.strptime(normalize_date(match[1]), "%Y%m%d").date()
+    except ValueError:
+        return None
+    if match[2] == "+1 conservative":
+        day += timedelta(days=1)
+    return datetime.combine(day, datetime.max.time()).replace(microsecond=0)
+
+
+def weekly_timing(week, sources, week_dates):
+    y, w = int(week[:4]), int(week[6:])
+    floor = datetime.combine(date.fromisocalendar(y, w, 1) + timedelta(days=7),
+                             datetime.min.time())
+    raw, bounds, unknown = {}, [], 0
+    for name, rows in sources:
+        entries = [{"date": d, "available_at": rows[d].get("available_at")}
+                   for d in week_dates if d in rows]
+        raw[name] = entries
+        if not entries:
+            unknown += 1
+        for entry in entries:
+            bound = availability_bound(entry["available_at"])
+            if bound is None:
+                unknown += 1
+            else:
+                bounds.append(bound)
+    usable = max([floor] + bounds).isoformat() + "+08:00" if not unknown else ""
+    return {"assessment_at": floor.isoformat() + "+08:00", "usable_at": usable,
+            "availability_unknown": unknown,
+            "available_at_raw": json.dumps(raw, ensure_ascii=False, separators=(",", ":")),
+            "timing_scope": "atoms_conservative_proxy+axes_close_assumed;regime_exploratory_not_pit;episodes_retrospective_not_pit"}
 
 
 def main():
@@ -86,7 +148,12 @@ def main():
     ap.add_argument("--end", default="20241231")
     ap.add_argument("--out", default=None)
     args = ap.parse_args()
-    start, end = args.start, args.end
+    try:
+        start, end = normalize_date(args.start), normalize_date(args.end)
+    except ValueError as exc:
+        ap.error(str(exc))
+    if start > end:
+        ap.error("--start must be <= --end")
 
     l1, l1_dup = load_atom_history("l1_history.jsonl", start, end)
     m, m_dup = load_atom_history("m_history.jsonl", start, end)
@@ -146,7 +213,7 @@ def main():
             if how == "mean":
                 return round(sum(vals) / len(vals), 4)
             if how == "sum":
-                return round(sum(vals), 2)
+                return math.fsum(vals)
 
         def state_last(src_rows):
             for d in reversed(week_dates):
@@ -163,6 +230,7 @@ def main():
             "week": w,
             "week_end": we,
             "days_obs": len(week_dates),
+            **weekly_timing(w, (("l1", l1), ("m", m), ("l4", l4)), week_dates),
             # L1 支持代理
             "l1_state": state_last(l1),
             "l1_fam_delta_w": agg(l1, "family_median_delta", "mean"),
@@ -184,9 +252,12 @@ def main():
             "ax_breadth": agg(ax, "breadth", "mean"),
             "ax_part": agg(ax, "part", "mean"),
             "ax_conc50": agg(ax, "conc50", "mean"),
-            "ax_eq_ret_w": (lambda vals: __import__('math').prod(1.0 + x for x in vals) - 1.0)(
-                [ax[d].get("eq_ret") for d in week_dates
-                 if d in ax and isinstance(ax[d].get("eq_ret"), (int, float))]),
+            # Require returns on every observed market date. Partial CLI boundary
+            # weeks are not full-week outcomes; absent returns are never flat.
+            "ax_eq_ret_w": compound_returns([ax.get(d, {}).get("eq_ret") for d in week_dates])
+                if start <= week_bounds[w][0] and end >= (
+                    datetime.strptime(week_bounds[w][0], "%Y%m%d").date() + timedelta(days=4)
+                ).strftime("%Y%m%d") else "",
             "ax_regime": (ax_regimes.most_common(1)[0][0] if ax_regimes else ""),
             "ax_days": sum(1 for d in week_dates if d in ax),
             # L3 个股承接事件(按 origin 分列: L=流动性触发/M=动能/S=结构)
@@ -200,7 +271,9 @@ def main():
 
     out = args.out or os.path.join(
         ROOT, "data", "cfis", f"weekly_sample_{start[:6]}_{end[:6]}.csv")
-    os.makedirs(os.path.dirname(out), exist_ok=True)
+    if not out_rows:
+        ap.error("no observations in requested date range")
+    os.makedirs(os.path.dirname(os.path.abspath(out)), exist_ok=True)
     with open(out, "w", newline="", encoding="utf-8") as fh:
         wr = csv.DictWriter(fh, fieldnames=list(out_rows[0].keys()))
         wr.writeheader()

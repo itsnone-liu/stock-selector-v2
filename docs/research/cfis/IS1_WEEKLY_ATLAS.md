@@ -1,5 +1,7 @@
 # IS-1 — CF-IS 周频历史图景（描述性初稿）
 
+> **已被 Phase 2A 口径修正部分取代**：下文保留原始探索记录，不作为当前验证结论。原收益存在缺失当零、周收益展示精度及尾部不足观察窗等问题；历史收益来源应为 `scripts/cd45_market_regime.py`（逐股 qfq 收盘收益横截面均值），不是实时脚本。当前规则见 `IS2A_TIME_AND_BASELINE.md` 与 `IS2A_CHECKPOINT.md`。新窗口统计只供调试，不能以修复后统计作为预测证据。
+
 - 日期：2026-10-29
 - 输入：`data/cfis/weekly_full_202201_202610.csv`（由 `scripts/cfis/is0_weekly_sample.py` 生成）
 - 输出脚本：`scripts/cfis/is1_weekly_atlas.py`
