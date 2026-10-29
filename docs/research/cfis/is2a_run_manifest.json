@@ -38,14 +38,25 @@
       "sha256": "046ca5ad1d3321a12ae16b5702622717eef1b685a2efb3496581225ca0ad23df"
     },
     {
-      "path": "docs/research/cfis/macro_events_seed.json",
-      "bytes": 3209,
-      "sha256": "6bee50bc3c8efc608a2d8b1178aedbf0a8d25e2fdc4200144e3e72692e4f5095"
-    },
-    {
       "path": "data/cfis/weekly_full_202201_202610.csv",
       "bytes": 315743,
       "sha256": "607c05252eacf6fb708dc2a5c28bcfd2bcc81b8601ff15eef2c85ef86c8842f8"
+    },
+    {
+      "path": "docs/research/cfis/macro_events_seed.json",
+      "bytes": 11165,
+      "sha256": "0a787bf13845e00e1692156a88b2233687f823528caed82f623a096f27350136"
+    },
+    {
+      "path": "data/cfis/is2a_event_windows.csv",
+      "bytes": 797272,
+      "sha256": "224cd576433b4630fed949c4c572ab4e1e26f5423a788d1abe0d7a78bd260bde"
     }
-  ]
+  ],
+  "overseas_expansion": {
+    "events": 10,
+    "clusters": 9,
+    "window_rows": 215,
+    "purpose": "source/window plumbing only, overlapping purposive sample"
+  }
 }

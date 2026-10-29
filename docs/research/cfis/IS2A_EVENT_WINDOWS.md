@@ -10,8 +10,8 @@
 - 完整窗只表示行数齐全，不证明周表底层字段完整或逐字段 point-in-time 合规。
 - PRE 另逐行核对 usable_at < first_usable_at；缺失、原子可用性未知、晚于/等于事件分别标记。
   该检查不把 timing_scope 中排除的回溯 episodes 字段升级为 PIT 特征。
-- PRE 可用性核查：{'USABLE_BEFORE_EVENT': 24}
-- 台账选样声明：Three known policy episodes used only to test data plumbing; purposive, outcome-aware exploratory selection, not an unbiased event census. No adverse-event or no-event claims.
+- PRE 可用性核查：{'USABLE_BEFORE_EVENT': 72}
+- 台账选样声明：Purposive exploratory domestic and overseas event seeds for pipeline/case organization, not an unbiased event census. No event-effect, surprise or no-event claims.
 - PRE=`PRE_EVENT_CONTEXT`，只表示事前周表背景，事件元数据是回溯关联，不能作事前特征。
 - EVENT=`MIXED_EVENT_WEEK_NOT_PREKNOWN`，整周混合事件前后，不能把 EVENT 整周当已知事件输入。
 - POST=`POST_EVENT_OBSERVATION_NOT_ENTRY_SIGNAL`，只作事后观察，不是入场信号。
@@ -22,15 +22,21 @@
 ## 覆盖与完整窗
 
 - 周表：2022-W01 .. 2026-W44，246 个观测交易周。
-- 台账事件 3 个；去重后 cluster 窗 3 个；完整窗 3 个。
-- 事件类型（源条目）：{'capital_market_policy': 1, 'monetary_liquidity': 1, 'joint_monetary_capital_market_policy': 1}
-- 证据状态（源条目）：{'official_document_date_verified_exact_release_time_unknown': 1, 'government_republication_verified_original_intraday_timing_unverified': 1, 'official_transcript_verified_conservative_transcript_availability': 1}
+- 台账事件 10 个；去重后 cluster 窗 9 个；完整窗 9 个。
+- 事件类型（源条目）：{'capital_market_policy': 1, 'monetary_liquidity': 1, 'joint_monetary_capital_market_policy': 1, 'fed_monetary_policy': 3, 'trade_escalation': 1, 'trade_deescalation': 1, 'geopolitical_escalation': 1, 'geopolitical_deescalation': 1}
+- 证据状态（源条目）：{'official_document_date_verified_exact_release_time_unknown': 1, 'government_republication_verified_original_intraday_timing_unverified': 1, 'official_transcript_verified_conservative_transcript_availability': 1, 'official_statement_release_time_verified': 3, 'official_final_announcement_date_verified_clock_unknown': 1, 'joint_statement_reproduced_by_xinhua_timestamp_verified': 1, 'xinhua_report_verified_not_independent_battlefield_assessment': 1, 'un_official_reaction_verified_not_ceasefire_compliance_confirmation': 1}
 
 |cluster / representative|event ISO week|PRE|POST|状态|合并条目数|
 |---|---|---:|---:|---|---:|
 |CN_CAPITAL_MARKET_PACKAGE_20230827 / CN_STAMP_TAX_20230827|2023-W35|8|12|COMPLETE|1|
 |CN_FINANCIAL_PACKAGE_20240924 / CN_FINANCIAL_BRIEFING_20240924|2024-W39|8|12|COMPLETE|1|
 |CN_MONETARY_PACKAGE_20240124 / CN_RRR_20240124|2024-W04|8|12|COMPLETE|1|
+|MIDEAST_CONFLICT_JUNE2025 / US_IRAN_STRIKES_REPORTED_20250623|2025-W26|8|12|COMPLETE|2|
+|US_CHINA_301_REVIEW_2024 / US_CHINA_301_FINAL_20240913|2024-W37|8|12|COMPLETE|1|
+|US_CHINA_GENEVA_202505 / US_CHINA_GENEVA_20250512|2025-W20|8|12|COMPLETE|1|
+|US_FOMC_20220921 / US_FOMC_20220921|2022-W38|8|12|COMPLETE|1|
+|US_FOMC_20230614 / US_FOMC_20230614|2023-W24|8|12|COMPLETE|1|
+|US_FOMC_20240918 / US_FOMC_20240918|2024-W38|8|12|COMPLETE|1|
 
 ## 固定日历比较窗（calendar comparison）
 
