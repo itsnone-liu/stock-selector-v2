@@ -1,0 +1,65 @@
+{
+  "schema_version": 1,
+  "source": {
+    "path": "/root/tdx_data/vipdoc/sh/lday/sh880005.day",
+    "bytes": 40608,
+    "sha256": "b2979b1f3d2a7e6559846cbda35a4edd1cd21a4d80e06c40dae964d6b1beb826"
+  },
+  "snapshot": {
+    "path": "/root/project/workspace/stock-selector-v2/data/cfis/snapshots/sh880005_2021-08-02_2026-10-29_b2979b1f3d2a7e6559846cbda35a4edd1cd21a4d80e06c40dae964d6b1beb826.day",
+    "bytes": 40608,
+    "sha256": "b2979b1f3d2a7e6559846cbda35a4edd1cd21a4d80e06c40dae964d6b1beb826"
+  },
+  "coverage": {
+    "first_date": "2021-08-02",
+    "last_date": "2026-10-29",
+    "records": 1269
+  },
+  "inputs": {
+    "axes": {
+      "path": "/root/project/workspace/stock-selector-v2/data/cd/sector_axes/l1_market_axes.json.gz",
+      "bytes": 47933,
+      "sha256": "2eb5b06fc9b592c3c3d3b4df256585b57ffaf5cd98ab084415ceefa5e72c4cc3"
+    },
+    "weekly": {
+      "path": "/root/project/workspace/stock-selector-v2/data/cfis/weekly_full_202201_202610.csv",
+      "bytes": 315743,
+      "sha256": "607c05252eacf6fb708dc2a5c28bcfd2bcc81b8601ff15eef2c85ef86c8842f8"
+    },
+    "index": {
+      "path": "/root/project/workspace/stock-selector-v2/docs/phase_i/evidence/market_index_000985.json",
+      "bytes": 154782,
+      "sha256": "046ca5ad1d3321a12ae16b5702622717eef1b685a2efb3496581225ca0ad23df"
+    }
+  },
+  "outputs": {
+    "daily": {
+      "path": "/root/project/workspace/stock-selector-v2/data/cfis/is2c_turnover_daily.csv",
+      "bytes": 207213,
+      "sha256": "1164a699b9299b8b6c63a8eb1373fe6f45ba720423c6cf4146a84f2d163b74f7"
+    },
+    "monthly": {
+      "path": "/root/project/workspace/stock-selector-v2/data/cfis/is2c_turnover_monthly.csv",
+      "bytes": 12997,
+      "sha256": "275746d83c9e670d42fe5d14527db5f46a0e7f76efee4265753b35c7871785e3"
+    },
+    "report": {
+      "path": "/root/project/workspace/stock-selector-v2/docs/research/cfis/IS2C_TURNOVER_TRAJECTORY.md",
+      "bytes": 20157,
+      "sha256": "5db86424fd3b3d975b76e12e914dde629605dac11138f54d00f231ef3417e67f"
+    }
+  },
+  "index_coverage": {
+    "first": "2020-08-12",
+    "last": "2026-04-30"
+  },
+  "weekly_iso_matches": 125,
+  "monthly_rows": 63,
+  "amount_unit": "yuan",
+  "amount_record_index": 5,
+  "source_scope": "TDX统计成交额代理; ETF/北交所待确证; 非官方沪深总额",
+  "month_policy": "observed calendar month end or later input month; no future calendar",
+  "daily_feature_policy": "prior 20/60 observations excluding current; no weekly features",
+  "missing_policy": "blank, no imputation",
+  "research_only": true
+}
