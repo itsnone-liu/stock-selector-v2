@@ -1,0 +1,18 @@
+{
+  "sofr": {
+    "url": "https://markets.newyorkfed.org/api/rates/secured/sofr/search.json?startDate=2021-12-01&endDate=2026-04-30",
+    "path": "data/cfis/macro_raw/nyfed_sofr_20211201_20260430.json",
+    "rows": 1101,
+    "sha256": "a8ffab0a9fa638c879c4294869e474599c2256fea685b1e3899cf8035e463c04",
+    "snapshot_file_mtime_utc": "2026-10-29T14:31:58.429401+00:00",
+    "fetched_snapshot_not_historical_vintage": true
+  },
+  "effr": {
+    "url": "https://markets.newyorkfed.org/api/rates/unsecured/effr/search.json?startDate=2021-12-01&endDate=2026-04-30",
+    "path": "data/cfis/macro_raw/nyfed_effr_20211201_20260430.json",
+    "rows": 1107,
+    "sha256": "554938895b0ffe6135fdc75acf06cf3a82836acd410b9cac5e02a5b9a067a0f6",
+    "snapshot_file_mtime_utc": "2026-10-29T14:31:58.433401+00:00",
+    "fetched_snapshot_not_historical_vintage": true
+  }
+}

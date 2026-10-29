@@ -96,6 +96,31 @@
       "path": "docs/research/cfis/IS2B_COVERAGE_DIAGNOSTIC_SPEC.md",
       "bytes": 1434,
       "sha256": "493ebe250f9ef89e516e127535347f28f6f824dc9a3b10a3afec1de00a97d54d"
+    },
+    {
+      "path": "data/cfis/is2b_calendar_outcome_comparison.csv",
+      "bytes": 13594,
+      "sha256": "69c73e57b6e683f3a545a952d20f3ee496fe35f6bae07644e6c8d1fbf29bd097"
+    },
+    {
+      "path": "data/cfis/is2b_macro_context.csv",
+      "bytes": 46464,
+      "sha256": "81b8e4391282525e0115a0d9bff90060a72cbdc25c2ca5f4a8512d258aa7f89a"
+    },
+    {
+      "path": "docs/research/cfis/calendar_evidence.json",
+      "bytes": 714,
+      "sha256": "650a2e85cc6252b215f5588498278aa6f93c59355856c4a02ea9b5b0b483885d"
+    },
+    {
+      "path": "data/cfis/macro_raw/nyfed_sofr_20211201_20260430.json",
+      "bytes": 261884,
+      "sha256": "a8ffab0a9fa638c879c4294869e474599c2256fea685b1e3899cf8035e463c04"
+    },
+    {
+      "path": "data/cfis/macro_raw/nyfed_effr_20211201_20260430.json",
+      "bytes": 312670,
+      "sha256": "554938895b0ffe6135fdc75acf06cf3a82836acd410b9cac5e02a5b9a067a0f6"
     }
   ],
   "overseas_expansion": {
@@ -136,5 +161,16 @@
     "rally_active": 3,
     "rally_none": 30,
     "targeted_tests": 99
+  },
+  "calendar_macro_batch": {
+    "original_outcomes": 33,
+    "original_complete": 29,
+    "calendar_comparison_complete": 31,
+    "recovered": 2,
+    "macro_context_rows": 194,
+    "sofr_raw_rows": 1101,
+    "effr_raw_rows": 1107,
+    "vintage": "LATEST_VINTAGE_NOT_PIT",
+    "targeted_tests": 110
   }
 }

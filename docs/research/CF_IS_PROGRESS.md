@@ -180,3 +180,13 @@ Phase 1 已交付；Phase 2 已启动。当前进展与停止点见 Phase 2 小�
 - 覆盖诊断实跑194已知周/179完整4周结果/33个+5%标签周（13相邻run但非独立事件），3个标签周在已有episode内、30个无活跃episode。不得称全部漏掉，也不把3个计成独立成功episode。
 - 99项CF-IS针对性测试通过；暂定A v1仅窄口径压力缓和候选，覆盖不足，不作通用底部入口。报告：`cfis/IS2B_EPISODE_AUDIT.md`、`cfis/IS2B_COVERAGE_DIAGNOSTIC.md`。
 - 复现：`python3 scripts/cfis/is2b_episode_audit.py` 和 `python3 scripts/cfis/is2b_coverage_diagnostic.py`；无需重建核心周表或修改原规则。
+
+## 16. Phase 2B 局部日历与连续宏观背景
+
+- 核实上交所官方2024休市表，局部确认春节2/9至2/18休市、2/19开市；不是完整逐日多年度日历。旁路结果比较不改原结果或规则，恢复2024-W01 A的8/12周两行。
+- 恢复后期末分别约+0.035%/+1.625%，最大不利变化均约-16.77%；不能以长期回本掩盖早期大幅不利路径。
+- 官方NYFed API取得SOFR1101条/EFFR1107条(2021-12-01..2026-04-30)，映射194个当时已知特征周，仅为美元隔夜利率背景。
+- 当前历史版本不是历史发布vintage，7日滞后只是显式研究假设，不宣称PIT。FRED错误页、财政部超时及ECB异常测试样数据均拒绝入库，未拿搜索摘要补值。美元/长端美债/人民币/油价仍缺，不冒称宏观全覆盖。
+- 说明见`cfis/IS2B_MACRO_CONTEXT.md`、`cfis/IS2B_CALENDAR_COMPARISON.md`，数据散列见manifest；本批不修改A/B/C、不触发R6-2或生产接入。
+
+- 隔离入口`python3 -m pytest --noconftest tests/test_cfis_*.py -q`完成110项测试；日历旁路完整结果29→31，原文件未改。复现`is2b_calendar_comparison.py`与`is2b_macro_context.py`，后者缺raw时显式加`--fetch`。
